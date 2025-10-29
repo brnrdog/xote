@@ -10,9 +10,10 @@
     "preview": "vite preview"
   },
   "keywords": [
-    "rescript"
+    "rescript",
+     "signals"
   ],
-  "author": "",
+  "author": "Bernardo Gurgel <brnrdog@hey.com>",
   "license": "MIT",
   "devDependencies": {
     "@rescript/core": "^1.6.1",
