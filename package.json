@@ -4,7 +4,10 @@
   "scripts": {
     "res:build": "rescript",
     "res:clean": "rescript clean",
-    "res:dev": "rescript -w"
+    "res:dev": "rescript -w",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "keywords": [
     "rescript"
@@ -12,7 +15,12 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@preact/signals-core": "^1.12.1",
     "@rescript/core": "^1.6.1",
-    "rescript": "^11.1.4"
+    "rescript": "^11.1.4",
+    "rescript-preact-signals": "^0.1.0"
+  },
+  "devDependencies": {
+    "vite": "^7.1.12"
   }
 }
