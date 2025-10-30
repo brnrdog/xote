@@ -81,7 +81,7 @@ Xote focuses on clarity, control, and performance. It brings reactive programmin
 - **Effect**: Function that re-runs when dependencies change  
 - **Component**: Declarative UI builder using ReScript functions  
 
-For a more complete example, see the full [Todo App example](https://github.com/brnrdog/xote/blob/main/src/demo/Xote__TodoApp.res).
+For a more complete example, see the full [Todo App example](https://github.com/brnrdog/xote/blob/main/src/demo/TodoApp.res).
 
 
 
