@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/brnrdog/xote/compare/v1.0.1...v1.0.2) (2025-10-30)
+
+
+### Bug Fixes
+
+* version bump ([2794ae6](https://github.com/brnrdog/xote/commit/2794ae697f5c3448d946b9fc5c7d1c0defa8be1a))
+
 ## [1.0.1](https://github.com/brnrdog/xote/compare/v1.0.0...v1.0.1) (2025-10-30)
 
 
