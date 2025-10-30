@@ -14,7 +14,9 @@
   },
   "keywords": [
     "rescript",
-    "signals"
+    "signals",
+    "xote",
+    "reactivity"
   ],
   "release": {
     "branches": [
