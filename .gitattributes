@@ -1,1 +1,2 @@
 *.mjs linguist-generated
+dist/* linguist-generated
