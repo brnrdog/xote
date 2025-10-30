@@ -10,6 +10,19 @@ let todos = Signal.make([])
 let nextId = ref(0)
 let inputValue = Signal.make("")
 
+// Computed values derived from todos
+let completedCount = Computed.make(() => {
+  Signal.get(todos)->Array.filter(todo => todo.completed)->Array.length
+})
+
+let activeCount = Computed.make(() => {
+  Signal.get(todos)->Array.filter(todo => !todo.completed)->Array.length
+})
+
+let totalCount = Computed.make(() => {
+  Signal.get(todos)->Array.length
+})
+
 let addTodo = (text: string) => {
   if String.trim(text) != "" {
     Signal.update(todos, list => {
@@ -88,6 +101,72 @@ let app = Component.div(
   ~attrs=[("class", "todo-app")],
   ~children=[
     Component.h1(~children=[Component.text("Todo List")], ()),
+    Component.div(
+      ~attrs=[("class", "todo-stats")],
+      ~children=[
+        Component.div(
+          ~attrs=[("class", "stat")],
+          ~children=[
+            Component.span(
+              ~attrs=[("class", "stat-label")],
+              ~children=[Component.text("Total:")],
+              (),
+            ),
+            Component.span(
+              ~attrs=[("class", "stat-value")],
+              ~children=[
+                Component.textSignal(
+                  Computed.make(() => Int.toString(Signal.get(totalCount)))
+                ),
+              ],
+              (),
+            ),
+          ],
+          (),
+        ),
+        Component.div(
+          ~attrs=[("class", "stat")],
+          ~children=[
+            Component.span(
+              ~attrs=[("class", "stat-label")],
+              ~children=[Component.text("Active:")],
+              (),
+            ),
+            Component.span(
+              ~attrs=[("class", "stat-value stat-active")],
+              ~children=[
+                Component.textSignal(
+                  Computed.make(() => Int.toString(Signal.get(activeCount)))
+                ),
+              ],
+              (),
+            ),
+          ],
+          (),
+        ),
+        Component.div(
+          ~attrs=[("class", "stat")],
+          ~children=[
+            Component.span(
+              ~attrs=[("class", "stat-label")],
+              ~children=[Component.text("Completed:")],
+              (),
+            ),
+            Component.span(
+              ~attrs=[("class", "stat-value stat-completed")],
+              ~children=[
+                Component.textSignal(
+                  Computed.make(() => Int.toString(Signal.get(completedCount)))
+                ),
+              ],
+              (),
+            ),
+          ],
+          (),
+        ),
+      ],
+      (),
+    ),
     Component.div(
       ~attrs=[("class", "todo-input-container")],
       ~children=[
