@@ -1,2 +1,0 @@
-(function(e,n){typeof exports=="object"&&typeof module!="undefined"?n(exports):typeof define=="function"&&define.amd?define(["exports"],n):(e=typeof globalThis!="undefined"?globalThis:e||self,n(e.xote={}))})(this,(function(e){"use strict";var n,o,t,f,i;e.Component=n,e.Computed=o,e.Core=t,e.Effect=f,e.Signal=i,Object.defineProperty(e,Symbol.toStringTag,{value:"Module"})}));
-//# sourceMappingURL=index.umd.js.map

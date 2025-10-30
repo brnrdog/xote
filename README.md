@@ -6,7 +6,7 @@ A lightweight, zero-dependency UI library for ReScript with fine-grained reactiv
 ## Features
 
 - Zero dependencies: pure ReScript implementation
-- Lightweight (~1kb) and efficient runtime
+- Lightweight and efficient runtime
 - Declarative components for building reactive UIs (JSX support comming up soon)
 - Reactive primitives: signals, computed values, and effects
 - Automatic dependency tracking: no manual subscription management
