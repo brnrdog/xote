@@ -9,6 +9,7 @@ permissions:
   contents: write          # create releases, push changelog commits
   issues: write            # (optional) if plugins comment on issues
   pull-requests: write     # (optional) if plugins post to PRs
+  id-token: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -32,7 +33,7 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build
         run: npm run build

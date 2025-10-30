@@ -1,6 +1,9 @@
 {
   "name": "xote",
   "version": "0.0.0",
+  "repository": {
+    "url": "https://github.com/brnrdog/xote"
+  },
   "scripts": {
     "res:build": "rescript",
     "res:clean": "rescript clean",
@@ -33,7 +36,8 @@
             "docs/CHANGELOG.md"
           ]
         }
-      ]
+      ],
+      "@semantic-release/npm"
     ]
   },
   "author": "Bernardo Gurgel <brnrdog@hey.com>",
