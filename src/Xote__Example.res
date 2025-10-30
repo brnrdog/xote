@@ -20,9 +20,9 @@ let addTodo = (text: string) => {
 }
 
 let toggleTodo = (id: int) => {
-  Signal.update(todos, list =>
+  Signal.update(todos, list => {
     Array.map(list, todo => todo.id == id ? {...todo, completed: !todo.completed} : todo)
-  )
+  })
 }
 
 @val @scope("document") external querySelector: string => Nullable.t<Dom.element> = "querySelector"
