@@ -5,3 +5,4 @@
 .bsb.lock
 .merlin
 *.res.mjs
+bundlemeta.json

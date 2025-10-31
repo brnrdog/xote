@@ -2,7 +2,8 @@
   "name": "xote",
   "sources": {
     "dir": "src",
-    "subdirs": true
+    "subdirs": true,
+    "public": ["Xote"]
   },
   "package-specs": {
     "module": "esmodule",
