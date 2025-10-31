@@ -46,8 +46,10 @@ let element = (
 ): node => Element({tag, attrs, events, children})
 
 /* Helper to create common elements */
-let div = (~attrs=?, ~events=?, ~children=?, ()) => element("div", ~attrs?, ~events?, ~children?, ())
-let span = (~attrs=?, ~events=?, ~children=?, ()) => element("span", ~attrs?, ~events?, ~children?, ())
+let div = (~attrs=?, ~events=?, ~children=?, ()) =>
+  element("div", ~attrs?, ~events?, ~children?, ())
+let span = (~attrs=?, ~events=?, ~children=?, ()) =>
+  element("span", ~attrs?, ~events?, ~children?, ())
 let button = (~attrs=?, ~events=?, ~children=?, ()) =>
   element("button", ~attrs?, ~events?, ~children?, ())
 let input = (~attrs=?, ~events=?, ()) => element("input", ~attrs?, ~events?, ())
@@ -57,15 +59,19 @@ let h3 = (~attrs=?, ~events=?, ~children=?, ()) => element("h3", ~attrs?, ~event
 let p = (~attrs=?, ~events=?, ~children=?, ()) => element("p", ~attrs?, ~events?, ~children?, ())
 let ul = (~attrs=?, ~events=?, ~children=?, ()) => element("ul", ~attrs?, ~events?, ~children?, ())
 let li = (~attrs=?, ~events=?, ~children=?, ()) => element("li", ~attrs?, ~events?, ~children?, ())
+let a = (~attrs=?, ~events=?, ~children=?, ()) => element("a", ~attrs?, ~events?, ~children?, ())
 
 /* External bindings for DOM manipulation */
 @val @scope("document") external createElement: string => Dom.element = "createElement"
 @val @scope("document") external createTextNode: string => Dom.element = "createTextNode"
-@val @scope("document") external createDocumentFragment: unit => Dom.element = "createDocumentFragment"
-@val @scope("document") external getElementById: string => Nullable.t<Dom.element> = "getElementById"
+@val @scope("document")
+external createDocumentFragment: unit => Dom.element = "createDocumentFragment"
+@val @scope("document")
+external getElementById: string => Nullable.t<Dom.element> = "getElementById"
 
 @send external setAttribute: (Dom.element, string, string) => unit = "setAttribute"
-@send external addEventListener: (Dom.element, string, Dom.event => unit) => unit = "addEventListener"
+@send
+external addEventListener: (Dom.element, string, Dom.event => unit) => unit = "addEventListener"
 @send external appendChild: (Dom.element, Dom.element) => unit = "appendChild"
 @set external setTextContent: (Dom.element, string) => unit = "textContent"
 
