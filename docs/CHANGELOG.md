@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/brnrdog/xote/compare/v1.0.3...v1.1.0) (2025-10-31)
+
+
+### Features
+
+* **component:** add support to a tags ([8ea09c1](https://github.com/brnrdog/xote/commit/8ea09c19aaed9383b80d6cd15e61ae75113c6d73))
+
 ## [1.0.3](https://github.com/brnrdog/xote/compare/v1.0.2...v1.0.3) (2025-10-31)
 
 
