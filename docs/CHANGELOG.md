@@ -1,3 +1,11 @@
+## [1.0.3](https://github.com/brnrdog/xote/compare/v1.0.2...v1.0.3) (2025-10-31)
+
+
+### Bug Fixes
+
+* adjust build configuration and dist output ([5dcca3b](https://github.com/brnrdog/xote/commit/5dcca3beb89e25aa55c6fba7a4b67c59661d75bd))
+* rescript build in release workflow ([9b2fb19](https://github.com/brnrdog/xote/commit/9b2fb1948b4f168de66da5fd96282ddcf82d8dca))
+
 ## [1.0.2](https://github.com/brnrdog/xote/compare/v1.0.1...v1.0.2) (2025-10-30)
 
 
