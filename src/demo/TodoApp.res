@@ -6,7 +6,7 @@ type todo = {
   completed: bool,
 }
 
-let todos = Signal.make([{id: 1, text: "Buy Milk", completed: true}])
+let todos = Signal.make([])
 let nextId = ref(0)
 let inputValue = Signal.make("")
 let darkMode = Signal.make(false)
@@ -22,6 +22,16 @@ let activeCount = Computed.make(() => {
 
 let totalCount = Computed.make(() => {
   Signal.get(todos)->Array.length
+})
+
+let filterState = Signal.make("all")
+
+let filteredTodos = Computed.make(() => {
+  switch Signal.get(filterState) {
+  | "active" => Signal.get(todos)->Array.filter(todo => !todo.completed)
+  | "completed" => Signal.get(todos)->Array.filter(todo => todo.completed)
+  | _ => Signal.get(todos)
+  }
 })
 
 let addTodo = (text: string) => {
@@ -98,26 +108,40 @@ let _ = Effect.run(() => {
 
 let todoItem = (todo: todo) => {
   let checkboxAttrs = todo.completed
-    ? [("type", "checkbox"), ("checked", "checked"), ("class", "w-5 h-5 cursor-pointer")]
-    : [("type", "checkbox"), ("class", "w-5 h-5 cursor-pointer")]
+    ? [
+        ("type", "checkbox"),
+        ("checked", "checked"),
+        ("class", "h-4 w-4 cursor-pointer accent-neutral-600 dark:accent-neutral-500"),
+      ]
+    : [
+        ("type", "checkbox"),
+        ("class", "h-4 w-4 cursor-pointer accent-neutral-600 dark:accent-neutral-500"),
+      ]
+
+  let textCls =
+    "flex-1 text-neutral-900 dark:text-neutral-100" ++ (
+      todo.completed ? " line-through text-neutral-500 dark:text-neutral-400" : ""
+    )
 
   Component.li(
     ~attrs=[
       (
         "class",
-        "flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 mb-2 " ++ (
-          todo.completed ? "completed" : ""
+        "flex items-center gap-3 px-3 py-2 bg-white dark:bg-neutral-900 rounded-md border border-neutral-200 dark:border-neutral-800 mb-1.5 " ++ (
+          todo.completed ? "opacity-80" : ""
         ),
       ),
     ],
     ~children=[
       Component.input(~attrs=checkboxAttrs, ~events=[("change", _ => toggleTodo(todo.id))], ()),
-      Component.span(
-        ~attrs=[("class", "flex-1 text-gray-900 dark:text-gray-100")],
-        ~children=[Component.text(todo.text)],
-        (),
-      ),
+      Component.span(~attrs=[("class", textCls)], ~children=[Component.text(todo.text)], ()),
       Component.button(
+        ~attrs=[
+          (
+            "class",
+            "px-2 py-1 rounded-md text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors",
+          ),
+        ],
         ~events=[("click", _ => removeTodo(todo.id))],
         ~children=[Component.Text("Delete")],
         (),
@@ -133,7 +157,7 @@ let inputElement = Component.input(
     ("placeholder", "What needs to be done?"),
     (
       "class",
-      "todo-input flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500",
+      "todo-input flex-1 px-3.5 py-2 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-700",
     ),
   ],
   ~events=[("input", handleInput), ("keydown", handleKeyDown)],
@@ -141,16 +165,31 @@ let inputElement = Component.input(
 )
 
 let app = Component.div(
-  ~attrs=[("class", "max-w-2xl mx-auto p-6 space-y-6")],
+  ~attrs=[
+    (
+      "class",
+      "max-w-2xl mx-auto p-6 md:p-8 space-y-6 min-h-screen bg-stone-50 dark:bg-neutral-950",
+    ),
+  ],
   ~children=[
     Component.div(
-      ~attrs=[("class", "bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8")],
+      ~attrs=[
+        (
+          "class",
+          "bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm p-6 md:p-7",
+        ),
+      ],
       ~children=[
         Component.div(
-          ~attrs=[("class", "flex items-center justify-between mb-6")],
+          ~attrs=[("class", "flex items-center justify-between mb-5")],
           ~children=[
             Component.h1(
-              ~attrs=[("class", "text-3xl font-bold text-gray-900 dark:text-white")],
+              ~attrs=[
+                (
+                  "class",
+                  "text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100",
+                ),
+              ],
               ~children=[Component.text("Todo List")],
               (),
             ),
@@ -158,7 +197,7 @@ let app = Component.div(
               ~attrs=[
                 (
                   "class",
-                  "px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors",
+                  "inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors",
                 ),
               ],
               ~events=[("click", toggleTheme)],
@@ -173,98 +212,14 @@ let app = Component.div(
           (),
         ),
         Component.div(
-          ~attrs=[
-            (
-              "class",
-              "grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700",
-            ),
-          ],
-          ~children=[
-            Component.div(
-              ~attrs=[("class", "flex flex-col items-center")],
-              ~children=[
-                Component.span(
-                  ~attrs=[
-                    (
-                      "class",
-                      "text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1",
-                    ),
-                  ],
-                  ~children=[Component.text("Total")],
-                  (),
-                ),
-                Component.span(
-                  ~attrs=[("class", "text-2xl font-bold text-gray-900 dark:text-white")],
-                  ~children=[
-                    Component.textSignal(Computed.make(() => Int.toString(Signal.get(totalCount)))),
-                  ],
-                  (),
-                ),
-              ],
-              (),
-            ),
-            Component.div(
-              ~attrs=[("class", "flex flex-col items-center")],
-              ~children=[
-                Component.span(
-                  ~attrs=[
-                    (
-                      "class",
-                      "text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1",
-                    ),
-                  ],
-                  ~children=[Component.text("Active")],
-                  (),
-                ),
-                Component.span(
-                  ~attrs=[("class", "text-2xl font-bold text-blue-600 dark:text-blue-400")],
-                  ~children=[
-                    Component.textSignal(
-                      Computed.make(() => Int.toString(Signal.get(activeCount))),
-                    ),
-                  ],
-                  (),
-                ),
-              ],
-              (),
-            ),
-            Component.div(
-              ~attrs=[("class", "flex flex-col items-center")],
-              ~children=[
-                Component.span(
-                  ~attrs=[
-                    (
-                      "class",
-                      "text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1",
-                    ),
-                  ],
-                  ~children=[Component.text("Completed")],
-                  (),
-                ),
-                Component.span(
-                  ~attrs=[("class", "text-2xl font-bold text-green-600 dark:text-green-400")],
-                  ~children=[
-                    Component.textSignal(
-                      Computed.make(() => Int.toString(Signal.get(completedCount))),
-                    ),
-                  ],
-                  (),
-                ),
-              ],
-              (),
-            ),
-          ],
-          (),
-        ),
-        Component.div(
-          ~attrs=[("class", "flex gap-2 mb-6")],
+          ~attrs=[("class", "flex gap-2 mb-4")],
           ~children=[
             inputElement,
             Component.button(
               ~attrs=[
                 (
                   "class",
-                  "px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500",
+                  "px-4 py-2 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors",
                 ),
               ],
               ~events=[("click", handleAddClick)],
@@ -275,8 +230,78 @@ let app = Component.div(
           (),
         ),
         Component.ul(
-          ~attrs=[("class", "todo-list space-y-2")],
-          ~children=[Component.list(todos, todoItem)],
+          ~attrs=[("class", "todo-list space-y-1.5")],
+          ~children=[Component.list(filteredTodos, todoItem)],
+          (),
+        ),
+        Component.div(
+          ~attrs=[("class", "flex gap-1 justify-center mt-6")],
+          ~children=[
+            Component.button(
+              ~events=[("click", _ => Signal.set(filterState, "all"))],
+              ~attrs=[
+                (
+                  "class",
+                  "px-3 py-1.5 rounded-md border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors",
+                ),
+              ],
+              ~children=[
+                Component.textSignal(
+                  Computed.make(() => "All " ++ Int.toString(Signal.get(totalCount))),
+                ),
+              ],
+              (),
+            ),
+            Component.button(
+              ~events=[("click", _ => Signal.set(filterState, "active"))],
+              ~attrs=[
+                (
+                  "class",
+                  "px-3 py-1.5 rounded-md border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors",
+                ),
+              ],
+              ~children=[
+                Component.textSignal(
+                  Computed.make(() => "Active " ++ Int.toString(Signal.get(activeCount))),
+                ),
+              ],
+              (),
+            ),
+            Component.button(
+              ~events=[("click", _ => Signal.set(filterState, "completed"))],
+              ~attrs=[
+                (
+                  "class",
+                  "px-3 py-1.5 rounded-md border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors",
+                ),
+              ],
+              ~children=[
+                Component.textSignal(
+                  Computed.make(() => "Completed " ++ Int.toString(Signal.get(completedCount))),
+                ),
+              ],
+              (),
+            ),
+          ],
+          (),
+        ),
+      ],
+      (),
+    ),
+    Component.div(
+      ~attrs=[("class", "text-center text-xs text-neutral-600 dark:text-neutral-400")],
+      ~children=[
+        Component.text("Powered by "),
+        Component.a(
+          ~attrs=[
+            ("href", "https://github.com/brnrdog/xote"),
+            ("target", "_blank"),
+            (
+              "class",
+              "underline decoration-neutral-300 hover:decoration-neutral-500 text-neutral-700 dark:text-neutral-300",
+            ),
+          ],
+          ~children=[Component.text("xote")],
           (),
         ),
       ],
