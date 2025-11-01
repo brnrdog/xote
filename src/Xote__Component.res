@@ -36,12 +36,10 @@ type rec node =
 /* Create a text node */
 let text = (content: string): node => Text(content)
 
-/* Create a reactive text node from a signal */
-let textSignal = (signal: Core.t<string>): node => SignalText(signal)
-
-let textSignalComputed = (signal: Core.t<string>): node => {
-  let computed = Computed.make(() => Signal.get(signal))
-  SignalText(computed)
+/* Create a reactive text node from a computed function */
+let textSignal = (compute: unit => string): node => {
+  let signal = Computed.make(compute)
+  SignalText(signal)
 }
 
 /* Create a fragment (multiple children without wrapper) */
