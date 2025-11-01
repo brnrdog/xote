@@ -64,16 +64,16 @@ let toggleTheme = (_evt: Dom.event) => {
 module TodoHeader = {
   let component = () => {
     Component.div(
-      ~attrs=[("class", "flex items-center justify-between mb-4")],
+      ~attrs=[Component.attr("class", "flex items-center justify-between mb-4")],
       ~children=[
         Component.h1(
-          ~attrs=[("class", "text-3xl font-bold text-stone-900 dark:text-white")],
+          ~attrs=[Component.attr("class", "text-3xl font-bold text-stone-900 dark:text-white")],
           ~children=[Component.text("Todo List")],
           (),
         ),
         Component.button(
           ~attrs=[
-            (
+            Component.attr(
               "class",
               "px-4 py-2 rounded-xl bg-stone-200 dark:bg-stone-700 text-stone-800 dark:text-stone-200 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors",
             ),
@@ -106,12 +106,16 @@ module TodoItem = {
 
   let component = (todo: todo) => {
     let checkboxAttrs = todo.completed
-      ? [("type", "checkbox"), ("checked", "checked"), ("class", "w-5 h-5 cursor-pointer")]
-      : [("type", "checkbox"), ("class", "w-5 h-5 cursor-pointer")]
+      ? [
+          Component.attr("type", "checkbox"),
+          Component.attr("checked", "checked"),
+          Component.attr("class", "w-5 h-5 cursor-pointer"),
+        ]
+      : [Component.attr("type", "checkbox"), Component.attr("class", "w-5 h-5 cursor-pointer")]
 
     Component.li(
       ~attrs=[
-        (
+        Component.attr(
           "class",
           "flex items-center gap-3 p-3 bg-white dark:bg-stone-800 rounded-xl border-2 border-stone-200 dark:border-stone-700 mb-2 " ++ (
             todo.completed ? "completed" : ""
@@ -121,19 +125,19 @@ module TodoItem = {
       ~children=[
         Component.input(~attrs=checkboxAttrs, ~events=[("change", _ => toggleTodo(todo.id))], ()),
         Component.span(
-          ~attrs=[("class", "flex-1 text-stone-900 dark:text-stone-100")],
+          ~attrs=[Component.attr("class", "flex-1 text-stone-900 dark:text-stone-100")],
           ~children=[Component.text(todo.text)],
           (),
         ),
         Component.button(
           ~events=[("click", _ => removeTodo(todo.id))],
           ~attrs=[
-            (
+            Component.attr(
               "class",
               "cursor-pointer text-xs text-stone-400 dark:text-stone-700 font-semibold uppercase tracking-wide",
             ),
           ],
-          ~children=[Component.Text("Delete")],
+          ~children=[Component.text("Delete")],
           (),
         ),
       ],
@@ -145,7 +149,7 @@ module TodoItem = {
 module TodoList = {
   let component = (todos: Core.t<array<todo>>) => {
     Component.ul(
-      ~attrs=[("class", "todo-list space-y-2")],
+      ~attrs=[Component.attr("class", "todo-list space-y-2")],
       ~children=[Component.list(todos, TodoItem.component)],
       (),
     )
@@ -180,13 +184,13 @@ module TodoForm = {
 
   let component = () => {
     Component.div(
-      ~attrs=[("class", "flex gap-2 mb-6")],
+      ~attrs=[Component.attr("class", "flex gap-2 mb-6")],
       ~children=[
         Component.input(
           ~attrs=[
-            ("type", "text"),
-            ("placeholder", "What needs to be done?"),
-            (
+            Component.attr("type", "text"),
+            Component.attr("placeholder", "What needs to be done?"),
+            Component.attr(
               "class",
               "todo-input flex-1 px-4 py-2 border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-900/25 focus:ring-offset-2 focus:border-stone-900 border-2 placeholder:text-stone-400 dark:placeholder:text-stone-600",
             ),
@@ -196,7 +200,7 @@ module TodoForm = {
         ),
         Component.button(
           ~attrs=[
-            (
+            Component.attr(
               "class",
               "px-6 py-2 bg-stone-900 min-w-24 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500",
             ),
@@ -224,7 +228,7 @@ module TodoFilter = {
 
     Component.button(
       ~events=[("click", _ => Signal.set(filterState, filterValue))],
-      ~signalAttrs=[
+      ~attrs=[
         Component.computedAttr("class", () => {
           "capitalize px-5 py-2 rounded-full text-xs transition-colors " ++ (
             Signal.get(filterState) == filterValue
@@ -240,7 +244,7 @@ module TodoFilter = {
 
   let render = filterState => {
     Component.div(
-      ~attrs=[("class", "flex gap-2 items-center mb-4")],
+      ~attrs=[Component.attr("class", "flex gap-2 items-center mb-4")],
       ~children=[
         renderFilterButton(filterState, "all"),
         renderFilterButton(filterState, "active"),
@@ -262,7 +266,7 @@ module TodoApp = {
     )
 
     Component.div(
-      ~attrs=[("class", "max-w-2xl mx-auto p-6 space-y-4")],
+      ~attrs=[Component.attr("class", "max-w-2xl mx-auto p-6 space-y-4")],
       ~children=[
         Component.div(
           ~children=[
@@ -274,14 +278,14 @@ module TodoApp = {
           (),
         ),
         Component.div(
-          ~attrs=[("class", "text-xs text-stone-600 dark:text-stone-400")],
+          ~attrs=[Component.attr("class", "text-xs text-stone-600 dark:text-stone-400")],
           ~children=[
             Component.text("Powered by "),
             Component.a(
               ~attrs=[
-                ("href", "https://github.com/brnrdog/xote"),
-                ("target", "_blank"),
-                ("class", "font-semibold dark:text-white underline"),
+                Component.attr("href", "https://github.com/brnrdog/xote"),
+                Component.attr("target", "_blank"),
+                Component.attr("class", "font-semibold dark:text-white underline"),
               ],
               ~children=[Component.text("Xote")],
               (),
