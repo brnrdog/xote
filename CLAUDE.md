@@ -66,8 +66,8 @@ The codebase follows a flat module hierarchy with the `Xote__` prefix for intern
 
 Components are functions returning `node` types. The `Component` module provides:
 
-1. **Static nodes**: `text("hello")`
-2. **Reactive text nodes**: `textSignal(signal)` - uses an effect to update `textContent`
+1. **Static text nodes**: `text("hello")`
+2. **Reactive text nodes**: `textSignal(() => ...)` - accepts a function that computes the text value
 3. **Unified attributes**: `attrs` parameter accepts static, signal, or computed values via helper functions:
    - `attr("key", "value")` - static string attribute
    - `signalAttr("key", signal)` - reactive attribute from a signal
@@ -111,6 +111,17 @@ let doubled = Computed.make(() => Signal.get(count) * 2)
 ### Event handlers
 ```rescript
 let increment = (_evt: Dom.event) => Signal.update(count, n => n + 1)
+```
+
+### Reactive text
+```rescript
+// Reactive text that updates when signal changes
+Component.textSignal(() => Signal.get(count)->Int.toString)
+
+// Reactive text with computed logic
+Component.textSignal(() =>
+  Signal.get(isActive) ? "Active" : "Inactive"
+)
 ```
 
 ### Static attributes

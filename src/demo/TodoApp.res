@@ -80,9 +80,7 @@ module TodoHeader = {
           ],
           ~events=[("click", toggleTheme)],
           ~children=[
-            Component.textSignal(
-              Computed.make(() => Signal.get(darkMode) ? "☀️ Light" : "🌙 Dark"),
-            ),
+            Component.textSignal(() => Signal.get(darkMode) ? "☀️ Light" : "🌙 Dark"),
           ],
           (),
         ),
@@ -217,15 +215,6 @@ module TodoForm = {
 
 module TodoFilter = {
   let renderFilterButton = (filterState, filterValue) => {
-    let count = Computed.make(() =>
-      switch filterValue {
-      | "all" => "(" ++ Signal.get(totalCount)->Int.toString ++ ")"
-      | "active" => "(" ++ Signal.get(activeCount)->Int.toString ++ ")"
-      | "completed" => "(" ++ Signal.get(completedCount)->Int.toString ++ ")"
-      | _ => ""
-      }
-    )
-
     Component.button(
       ~events=[("click", _ => Signal.set(filterState, filterValue))],
       ~attrs=[
@@ -237,7 +226,18 @@ module TodoFilter = {
           )
         }),
       ],
-      ~children=[Component.text(filterValue ++ " "), Component.textSignalComputed(count)],
+      ~children=[
+        Component.text(filterValue),
+        Component.text(" "),
+        Component.textSignal(() =>
+          switch filterValue {
+          | "all" => "(" ++ Signal.get(totalCount)->Int.toString ++ ")"
+          | "active" => "(" ++ Signal.get(activeCount)->Int.toString ++ ")"
+          | "completed" => "(" ++ Signal.get(completedCount)->Int.toString ++ ")"
+          | _ => ""
+          }
+        ),
+      ],
       (),
     )
   }
