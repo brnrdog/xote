@@ -3,12 +3,14 @@ module Effect = Xote__Effect
 module Core = Xote__Core
 module Computed = Xote__Computed
 
-/* Source for a reactive attribute value */
+/* Source for an attribute value - supports static strings, signals, or computed values */
 type attrValue =
+  | Static(string)
   | SignalValue(Core.t<string>)
   | Compute(unit => string)
 
-/* Helpers to build reactive attribute entries */
+/* Helpers to build attribute entries */
+let attr = (key: string, value: string): (string, attrValue) => (key, Static(value))
 let signalAttr = (key: string, signal: Core.t<string>): (string, attrValue) => (
   key,
   SignalValue(signal),
@@ -22,9 +24,7 @@ let computedAttr = (key: string, compute: unit => string): (string, attrValue) =
 type rec node =
   | Element({
       tag: string,
-      attrs: array<(string, string)>,
-      /* Attributes whose values are driven by signals or computed getters */
-      signalAttrs: array<(string, attrValue)>,
+      attrs: array<(string, attrValue)>,
       events: array<(string, Dom.event => unit)>,
       children: array<node>,
     })
@@ -61,36 +61,35 @@ let list = (signal: Core.t<array<'a>>, renderItem: 'a => node): node => {
 /* Create an element */
 let element = (
   tag: string,
-  ~attrs: array<(string, string)>=[]->Array.map(x => x),
-  ~signalAttrs: array<(string, attrValue)>=[]->Array.map(x => x),
+  ~attrs: array<(string, attrValue)>=[]->Array.map(x => x),
   ~events: array<(string, Dom.event => unit)>=[]->Array.map(x => x),
   ~children: array<node>=[]->Array.map(x => x),
   (),
-): node => Element({tag, attrs, signalAttrs, events, children})
+): node => Element({tag, attrs, events, children})
 
 /* Helper to create common elements */
-let div = (~attrs=?, ~signalAttrs=?, ~events=?, ~children=?, ()) =>
-  element("div", ~attrs?, ~signalAttrs?, ~events?, ~children?, ())
-let span = (~attrs=?, ~signalAttrs=?, ~events=?, ~children=?, ()) =>
-  element("span", ~attrs?, ~signalAttrs?, ~events?, ~children?, ())
-let button = (~attrs=?, ~signalAttrs=?, ~events=?, ~children=?, ()) =>
-  element("button", ~attrs?, ~signalAttrs?, ~events?, ~children?, ())
-let input = (~attrs=?, ~signalAttrs=?, ~events=?, ()) =>
-  element("input", ~attrs?, ~signalAttrs?, ~events?, ())
-let h1 = (~attrs=?, ~signalAttrs=?, ~events=?, ~children=?, ()) =>
-  element("h1", ~attrs?, ~signalAttrs?, ~events?, ~children?, ())
-let h2 = (~attrs=?, ~signalAttrs=?, ~events=?, ~children=?, ()) =>
-  element("h2", ~attrs?, ~signalAttrs?, ~events?, ~children?, ())
-let h3 = (~attrs=?, ~signalAttrs=?, ~events=?, ~children=?, ()) =>
-  element("h3", ~attrs?, ~signalAttrs?, ~events?, ~children?, ())
-let p = (~attrs=?, ~signalAttrs=?, ~events=?, ~children=?, ()) =>
-  element("p", ~attrs?, ~signalAttrs?, ~events?, ~children?, ())
-let ul = (~attrs=?, ~signalAttrs=?, ~events=?, ~children=?, ()) =>
-  element("ul", ~attrs?, ~signalAttrs?, ~events?, ~children?, ())
-let li = (~attrs=?, ~signalAttrs=?, ~events=?, ~children=?, ()) =>
-  element("li", ~attrs?, ~signalAttrs?, ~events?, ~children?, ())
-let a = (~attrs=?, ~signalAttrs=?, ~events=?, ~children=?, ()) =>
-  element("a", ~attrs?, ~signalAttrs?, ~events?, ~children?, ())
+let div = (~attrs=?, ~events=?, ~children=?, ()) =>
+  element("div", ~attrs?, ~events?, ~children?, ())
+let span = (~attrs=?, ~events=?, ~children=?, ()) =>
+  element("span", ~attrs?, ~events?, ~children?, ())
+let button = (~attrs=?, ~events=?, ~children=?, ()) =>
+  element("button", ~attrs?, ~events?, ~children?, ())
+let input = (~attrs=?, ~events=?, ()) =>
+  element("input", ~attrs?, ~events?, ())
+let h1 = (~attrs=?, ~events=?, ~children=?, ()) =>
+  element("h1", ~attrs?, ~events?, ~children?, ())
+let h2 = (~attrs=?, ~events=?, ~children=?, ()) =>
+  element("h2", ~attrs?, ~events?, ~children?, ())
+let h3 = (~attrs=?, ~events=?, ~children=?, ()) =>
+  element("h3", ~attrs?, ~events?, ~children?, ())
+let p = (~attrs=?, ~events=?, ~children=?, ()) =>
+  element("p", ~attrs?, ~events?, ~children?, ())
+let ul = (~attrs=?, ~events=?, ~children=?, ()) =>
+  element("ul", ~attrs?, ~events?, ~children?, ())
+let li = (~attrs=?, ~events=?, ~children=?, ()) =>
+  element("li", ~attrs?, ~events?, ~children?, ())
+let a = (~attrs=?, ~events=?, ~children=?, ()) =>
+  element("a", ~attrs?, ~events?, ~children?, ())
 
 /* External bindings for DOM manipulation */
 @val @scope("document") external createElement: string => Dom.element = "createElement"
@@ -121,27 +120,33 @@ let rec render = (node: node): Dom.element => {
 
       el
     }
-  | Element({tag, attrs, signalAttrs, events, children}) => {
+  | Element({tag, attrs, events, children}) => {
       let el = createElement(tag)
 
-      /* Set attributes */
-      attrs->Array.forEach(((key, value)) => {
-        el->setAttribute(key, value)
-      })
-
-      /* Set reactive attributes */
-      signalAttrs->Array.forEach(((key, source)) => {
-        let sig = switch source {
-        | SignalValue(s) => s
-        | Compute(f) => Computed.make(() => f())
+      /* Set attributes - handle static, signal, and computed values */
+      attrs->Array.forEach(((key, source)) => {
+        switch source {
+        | Static(value) =>
+          /* Static attribute - set once */
+          el->setAttribute(key, value)
+        | SignalValue(s) => {
+            /* Signal attribute - set initial value and subscribe to changes */
+            el->setAttribute(key, Signal.peek(s))
+            let _ = Effect.run(() => {
+              let v = Signal.get(s)
+              el->setAttribute(key, v)
+            })
+          }
+        | Compute(f) => {
+            /* Computed attribute - create computed signal and subscribe */
+            let sig = Computed.make(() => f())
+            el->setAttribute(key, Signal.peek(sig))
+            let _ = Effect.run(() => {
+              let v = Signal.get(sig)
+              el->setAttribute(key, v)
+            })
+          }
         }
-        /* initial */
-        el->setAttribute(key, Signal.peek(sig))
-        /* subscribe */
-        let _ = Effect.run(() => {
-          let v = Signal.get(sig)
-          el->setAttribute(key, v)
-        })
       })
 
       /* Attach event listeners */
