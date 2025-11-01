@@ -3,11 +3,28 @@ module Effect = Xote__Effect
 module Core = Xote__Core
 module Computed = Xote__Computed
 
+/* Source for a reactive attribute value */
+type attrValue =
+  | SignalValue(Core.t<string>)
+  | Compute(unit => string)
+
+/* Helpers to build reactive attribute entries */
+let signalAttr = (key: string, signal: Core.t<string>): (string, attrValue) => (
+  key,
+  SignalValue(signal),
+)
+let computedAttr = (key: string, compute: unit => string): (string, attrValue) => (
+  key,
+  Compute(compute),
+)
+
 /* Type representing a virtual node */
 type rec node =
   | Element({
       tag: string,
       attrs: array<(string, string)>,
+      /* Attributes whose values are driven by signals or computed getters */
+      signalAttrs: array<(string, attrValue)>,
       events: array<(string, Dom.event => unit)>,
       children: array<node>,
     })
@@ -21,6 +38,11 @@ let text = (content: string): node => Text(content)
 
 /* Create a reactive text node from a signal */
 let textSignal = (signal: Core.t<string>): node => SignalText(signal)
+
+let textSignalComputed = (signal: Core.t<string>): node => {
+  let computed = Computed.make(() => Signal.get(signal))
+  SignalText(computed)
+}
 
 /* Create a fragment (multiple children without wrapper) */
 let fragment = (children: array<node>): node => Fragment(children)
@@ -40,10 +62,11 @@ let list = (signal: Core.t<array<'a>>, renderItem: 'a => node): node => {
 let element = (
   tag: string,
   ~attrs: array<(string, string)>=[]->Array.map(x => x),
+  ~signalAttrs: array<(string, attrValue)>=[]->Array.map(x => x),
   ~events: array<(string, Dom.event => unit)>=[]->Array.map(x => x),
   ~children: array<node>=[]->Array.map(x => x),
   (),
-): node => Element({tag, attrs, events, children})
+): node => Element({tag, attrs, signalAttrs, events, children})
 
 /* Helper to create common elements */
 let div = (~attrs=?, ~events=?, ~children=?, ()) =>
@@ -90,12 +113,27 @@ let rec render = (node: node): Dom.element => {
 
       el
     }
-  | Element({tag, attrs, events, children}) => {
+  | Element({tag, attrs, signalAttrs, events, children}) => {
       let el = createElement(tag)
 
       /* Set attributes */
       attrs->Array.forEach(((key, value)) => {
         el->setAttribute(key, value)
+      })
+
+      /* Set reactive attributes */
+      signalAttrs->Array.forEach(((key, source)) => {
+        let sig = switch source {
+        | SignalValue(s) => s
+        | Compute(f) => Computed.make(() => f())
+        }
+        /* initial */
+        el->setAttribute(key, Signal.peek(sig))
+        /* subscribe */
+        let _ = Effect.run(() => {
+          let v = Signal.get(sig)
+          el->setAttribute(key, v)
+        })
       })
 
       /* Attach event listeners */
