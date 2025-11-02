@@ -14,6 +14,14 @@ module Effect = {
   include Xote__Effect
 }
 
+module Route = {
+  include Xote__Route
+}
+
+module Router = {
+  include Xote__Router
+}
+
 module Signal = {
   include Xote__Signal
 }
