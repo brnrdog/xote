@@ -18,12 +18,19 @@ module CounterApp = {
           ~attrs=[Component.attr("class", "mb-6 md:mb-8")],
           ~children=[
             Component.h1(
-              ~attrs=[Component.attr("class", "text-2xl md:text-3xl font-bold text-stone-900 dark:text-white mb-2")],
+              ~attrs=[
+                Component.attr(
+                  "class",
+                  "text-2xl md:text-3xl font-bold text-stone-900 dark:text-white mb-2",
+                ),
+              ],
               ~children=[Component.text("Counter Demo")],
               (),
             ),
             Component.p(
-              ~attrs=[Component.attr("class", "text-sm md:text-base text-stone-600 dark:text-stone-400")],
+              ~attrs=[
+                Component.attr("class", "text-sm md:text-base text-stone-600 dark:text-stone-400"),
+              ],
               ~children=[Component.text("A simple reactive counter built with Xote")],
               (),
             ),
@@ -40,12 +47,19 @@ module CounterApp = {
           ],
           ~children=[
             Component.div(
-              ~attrs=[Component.attr("class", "text-5xl md:text-6xl font-bold text-stone-900 dark:text-white mb-2")],
+              ~attrs=[
+                Component.attr(
+                  "class",
+                  "text-5xl md:text-6xl font-bold text-stone-900 dark:text-white mb-2",
+                ),
+              ],
               ~children=[Component.textSignal(() => Signal.get(count)->Int.toString)],
               (),
             ),
             Component.div(
-              ~attrs=[Component.attr("class", "text-xs md:text-sm text-stone-500 dark:text-stone-400")],
+              ~attrs=[
+                Component.attr("class", "text-xs md:text-sm text-stone-500 dark:text-stone-400"),
+              ],
               ~children=[Component.text("Current Count")],
               (),
             ),

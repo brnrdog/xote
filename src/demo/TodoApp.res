@@ -187,7 +187,7 @@ module TodoForm = {
           ~attrs=[
             Component.attr(
               "class",
-              "px-6 py-2 bg-stone-900 min-w-24 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500",
+              "px-6 py-2 bg-stone-900 dark:bg-stone-700 min-w-24 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors focus:outline-none focus:outline-none focus:ring-2 focus:ring-stone-900/25 focus:ring-offset-2 focus:border-stone-900",
             ),
           ],
           ~events=[("click", handleAddClick)],
@@ -253,22 +253,6 @@ module TodoApp = {
             TodoForm.component(),
             TodoFilter.render(filterState),
             TodoList.component(filteredTodos),
-          ],
-          (),
-        ),
-        Component.div(
-          ~attrs=[Component.attr("class", "text-xs text-stone-600 dark:text-stone-400")],
-          ~children=[
-            Component.text("Powered by "),
-            Component.a(
-              ~attrs=[
-                Component.attr("href", "https://github.com/brnrdog/xote"),
-                Component.attr("target", "_blank"),
-                Component.attr("class", "font-semibold dark:text-white underline"),
-              ],
-              ~children=[Component.text("Xote")],
-              (),
-            ),
           ],
           (),
         ),
