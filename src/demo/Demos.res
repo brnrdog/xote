@@ -87,6 +87,34 @@ module DemoHeader = {
                   ~children=[Component.text("✓ Todo List")],
                   (),
                 ),
+                Router.link(
+                  ~to="/color",
+                  ~attrs=[
+                    Component.computedAttr("class", () => {
+                      let currentPath = Signal.get(Router.location).pathname
+                      let baseClass = "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
+                      currentPath == "/color"
+                        ? baseClass ++ " bg-stone-900 text-white dark:bg-stone-700"
+                        : baseClass ++ " bg-stone-200 text-stone-800 dark:bg-stone-700/50 dark:text-stone-200 hover:bg-stone-300 dark:hover:bg-stone-700"
+                    }),
+                  ],
+                  ~children=[Component.text("🎨 Color Mixer")],
+                  (),
+                ),
+                Router.link(
+                  ~to="/reaction",
+                  ~attrs=[
+                    Component.computedAttr("class", () => {
+                      let currentPath = Signal.get(Router.location).pathname
+                      let baseClass = "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
+                      currentPath == "/reaction"
+                        ? baseClass ++ " bg-stone-900 text-white dark:bg-stone-700"
+                        : baseClass ++ " bg-stone-200 text-stone-800 dark:bg-stone-700/50 dark:text-stone-200 hover:bg-stone-300 dark:hover:bg-stone-700"
+                    }),
+                  ],
+                  ~children=[Component.text("⚡ Reaction Game")],
+                  (),
+                ),
                 Component.button(
                   ~attrs=[
                     Component.attr(
@@ -138,7 +166,7 @@ module Footer = {
                   ~children=[Component.text("Xote")],
                   (),
                 ),
-                Component.text(" - A lightweight, zero-dependency reactive UI library for "),
+                Component.text(" and "),
                 Component.a(
                   ~attrs=[
                     Component.attr("href", "https://rescript-lang.org/"),
@@ -256,6 +284,70 @@ module HomePage = {
                   ],
                   (),
                 ),
+                Component.div(
+                  ~attrs=[
+                    Component.attr(
+                      "class",
+                      "p-4 bg-stone-50 dark:bg-stone-700/50 rounded-xl border border-stone-200 dark:border-stone-600",
+                    ),
+                  ],
+                  ~children=[
+                    Component.h3(
+                      ~attrs=[
+                        Component.attr(
+                          "class",
+                          "font-semibold text-stone-900 dark:text-white mb-2",
+                        ),
+                      ],
+                      ~children=[Component.text("🎨 Color Mixer")],
+                      (),
+                    ),
+                    Component.p(
+                      ~attrs=[
+                        Component.attr("class", "text-sm text-stone-600 dark:text-stone-400"),
+                      ],
+                      ~children=[
+                        Component.text(
+                          "Mix colors with RGB sliders, explore variations, and save palettes.",
+                        ),
+                      ],
+                      (),
+                    ),
+                  ],
+                  (),
+                ),
+                Component.div(
+                  ~attrs=[
+                    Component.attr(
+                      "class",
+                      "p-4 bg-stone-50 dark:bg-stone-700/50 rounded-xl border border-stone-200 dark:border-stone-600",
+                    ),
+                  ],
+                  ~children=[
+                    Component.h3(
+                      ~attrs=[
+                        Component.attr(
+                          "class",
+                          "font-semibold text-stone-900 dark:text-white mb-2",
+                        ),
+                      ],
+                      ~children=[Component.text("⚡ Reaction Game")],
+                      (),
+                    ),
+                    Component.p(
+                      ~attrs=[
+                        Component.attr("class", "text-sm text-stone-600 dark:text-stone-400"),
+                      ],
+                      ~children=[
+                        Component.text(
+                          "Test your reflexes with a fun reaction time game. Features statistics and attempt history.",
+                        ),
+                      ],
+                      (),
+                    ),
+                  ],
+                  (),
+                ),
               ],
               (),
             ),
@@ -295,6 +387,8 @@ module Demos = {
               {pattern: "/", render: _params => HomePage.component()},
               {pattern: "/counter", render: _params => CounterApp.CounterApp.component()},
               {pattern: "/todo", render: _params => TodoApp.TodoApp.component()},
+              {pattern: "/color", render: _params => ColorMixerApp.ColorMixerApp.component()},
+              {pattern: "/reaction", render: _params => ReactionGame.ReactionGame.component()},
             ]),
           ],
           (),

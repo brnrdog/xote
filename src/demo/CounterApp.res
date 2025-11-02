@@ -106,23 +106,6 @@ module CounterApp = {
           ],
           (),
         ),
-        // Footer
-        Component.div(
-          ~attrs=[Component.attr("class", "text-xs text-stone-600 dark:text-stone-400 pt-4")],
-          ~children=[
-            Component.text("Powered by "),
-            Component.a(
-              ~attrs=[
-                Component.attr("href", "https://github.com/brnrdog/xote"),
-                Component.attr("target", "_blank"),
-                Component.attr("class", "font-semibold dark:text-white underline"),
-              ],
-              ~children=[Component.text("Xote")],
-              (),
-            ),
-          ],
-          (),
-        ),
       ],
       (),
     )
