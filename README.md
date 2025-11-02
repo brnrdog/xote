@@ -1,8 +1,8 @@
-# xote (pronounced [ˈʃɔtʃi])
+# xote 
 [![npm version](https://img.shields.io/npm/v/xote.svg)](https://www.npmjs.com/package/xote)
 [![bundle size](https://badgen.net/bundlephobia/min/xote)](https://bundlephobia.com/package/xote)
 
-A lightweight, zero-dependency UI library for ReScript with fine-grained reactivity based on the [TC39 Signals proposal](https://github.com/tc39/proposal-signals). Build reactive web applications with automatic dependency tracking and efficient updates.
+Xote (pronounced [ˈʃɔtʃi]) is a lightweight, zero-dependency UI library for ReScript with fine-grained reactivity based on the [TC39 Signals proposal](https://github.com/tc39/proposal-signals). Build reactive web applications with automatic dependency tracking and efficient updates.
 
 ## Features
 
