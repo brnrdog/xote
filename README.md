@@ -95,17 +95,16 @@ Xote focuses on clarity, control, and performance. It brings reactive programmin
 - **Navigation links**: Use `Router.link()` for SPA navigation without page reload
 - **Reactive location**: Access current route via `Router.location` signal
 
-### Examples
-
-Explore interactive demos showcasing Xote's reactive primitives and component system:
+## Examples
 
 - [Counter](https://github.com/brnrdog/xote/blob/main/src/demo/CounterApp.res) - simple reactive counter with signals and event handlers
 - [Todo List](https://github.com/brnrdog/xote/blob/main/src/demo/TodoApp.res) - complete todo app with filters, computed values, and reactive lists
 - [Color Mixer](https://github.com/brnrdog/xote/blob/main/src/demo/ColorMixerApp.res) - RGB color mixing with live preview, format conversions, and palette variations
 - [Reaction Game](https://github.com/brnrdog/xote/blob/main/src/demo/ReactionGame.res) - reflex testing game with timers, statistics, and computed averages
+- [Solitaire](https://github.com/brnrdog/xote/blob/main/src/demo/SolitaireGame.res) - classic Klondike Solitaire with click-to-move gameplay and win detection
 - [Router Demo](https://github.com/brnrdog/xote/blob/main/src/demo/RouterApp.res) - multi-page routing with dynamic parameters
 
-## Running Examples Locally
+### Running Examples Locally
 
 To run the example demos locally:
 

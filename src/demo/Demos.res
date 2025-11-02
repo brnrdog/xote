@@ -115,6 +115,20 @@ module DemoHeader = {
                   ~children=[Component.text("⚡ Reaction Game")],
                   (),
                 ),
+                Router.link(
+                  ~to="/solitaire",
+                  ~attrs=[
+                    Component.computedAttr("class", () => {
+                      let currentPath = Signal.get(Router.location).pathname
+                      let baseClass = "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
+                      currentPath == "/solitaire"
+                        ? baseClass ++ " bg-stone-900 text-white dark:bg-stone-700"
+                        : baseClass ++ " bg-stone-200 text-stone-800 dark:bg-stone-700/50 dark:text-stone-200 hover:bg-stone-300 dark:hover:bg-stone-700"
+                    }),
+                  ],
+                  ~children=[Component.text("🃏 Solitaire")],
+                  (),
+                ),
                 Component.button(
                   ~attrs=[
                     Component.attr(
@@ -348,6 +362,38 @@ module HomePage = {
                   ],
                   (),
                 ),
+                Component.div(
+                  ~attrs=[
+                    Component.attr(
+                      "class",
+                      "p-4 bg-stone-50 dark:bg-stone-700/50 rounded-xl border border-stone-200 dark:border-stone-600",
+                    ),
+                  ],
+                  ~children=[
+                    Component.h3(
+                      ~attrs=[
+                        Component.attr(
+                          "class",
+                          "font-semibold text-stone-900 dark:text-white mb-2",
+                        ),
+                      ],
+                      ~children=[Component.text("🃏 Solitaire")],
+                      (),
+                    ),
+                    Component.p(
+                      ~attrs=[
+                        Component.attr("class", "text-sm text-stone-600 dark:text-stone-400"),
+                      ],
+                      ~children=[
+                        Component.text(
+                          "Classic Klondike Solitaire with click-to-move gameplay and win detection.",
+                        ),
+                      ],
+                      (),
+                    ),
+                  ],
+                  (),
+                ),
               ],
               (),
             ),
@@ -389,6 +435,7 @@ module Demos = {
               {pattern: "/todo", render: _params => TodoApp.TodoApp.component()},
               {pattern: "/color", render: _params => ColorMixerApp.ColorMixerApp.component()},
               {pattern: "/reaction", render: _params => ReactionGame.ReactionGame.component()},
+              {pattern: "/solitaire", render: _params => SolitaireGame.SolitaireGame.component()},
             ]),
           ],
           (),
