@@ -10,17 +10,17 @@ type disposer = {dispose: unit => unit}
 
 let run = (fn: unit => unit): disposer => {
   let id = Id.make()
-  let rec o: Observer.t = {
+  let observer: Observer.t = {
     id,
     kind: #Effect,
     run: () => fn(),
     deps: IntSet.empty,
   }
-  Core.observers := IntMap.set(Core.observers.contents, id, o)
+  Core.observers := IntMap.set(Core.observers.contents, id, observer)
   /* initial run */
-  Core.clearDeps(o)
+  Core.clearDeps(observer)
   Core.currentObserverId := Some(id)
-  o.run()
+  observer.run()
   Core.currentObserverId := None
 
   let dispose = () => {
