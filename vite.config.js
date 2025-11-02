@@ -1,8 +1,6 @@
 import { defineConfig } from "vite";
 import path from "node:path";
 import { readFileSync } from "node:fs";
-import bundlesize from "vite-plugin-bundlesize";
-
 
 // Read package.json to auto-externalize deps & name the UMD build
 const pkg = JSON.parse(
@@ -13,12 +11,11 @@ const pkg = JSON.parse(
 const entryFromEnv = process.env.ENTRY;
 
 export default defineConfig(() => ({
-  plugins: [
-    bundlesize()
-  ],
+  plugins: [],
   build: {
     outDir: "dist",
-    sourcemap: "hidden",
+    target: 'es2020',
+    sourcemap: false,
     lib: {
       entry: 'src/Xote.res.mjs',
       name: "xote",
@@ -31,7 +28,6 @@ export default defineConfig(() => ({
           : "xote.umd.js",
     },
     rollupOptions: {
-      preserveModules: true,
       external: [
         ...Object.keys(pkg.dependencies ?? {}),
         ...Object.keys(pkg.peerDependencies ?? {}),

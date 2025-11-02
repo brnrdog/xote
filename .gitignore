@@ -6,3 +6,4 @@
 .merlin
 *.res.mjs
 bundlemeta.json
+.vite

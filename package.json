@@ -6,6 +6,7 @@
   },
   "main": "./dist/xote.cjs",
   "module": "./dist/xote.mjs",
+  "sideEffects": false,
   "files": [
     "dist"
   ],
