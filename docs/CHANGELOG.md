@@ -1,3 +1,13 @@
+# [1.1.0](https://github.com/brnrdog/xote/compare/v1.0.3...v1.1.0) (2025-11-02)
+
+
+### Features
+
+* **component:** set reactivity to component element attributes ([57217e3](https://github.com/brnrdog/xote/commit/57217e3951303033f4e29801bb24c85bc3313ad1))
+* **component:** simplify textSignal to accept function directly ([9a9d551](https://github.com/brnrdog/xote/commit/9a9d551b0f080ed2321597f9aeb85b41153890d3))
+* **component:** unify attrs and signalAttrs into single attrs parameter ([d8942d9](https://github.com/brnrdog/xote/commit/d8942d9b4522a2f232d37970b8f55a8883999ecc))
+* **router:** add signal-based routing with pattern matching ([7bab79e](https://github.com/brnrdog/xote/commit/7bab79eb46fc35c9f90d09391bb71209485aa1d5))
+
 # [1.1.0](https://github.com/brnrdog/xote/compare/v1.0.3...v1.1.0) (2025-11-01)
 
 
