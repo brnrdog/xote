@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/brnrdog/xote/compare/v1.0.0...v1.0.1) (2025-11-02)
+
+
+### Bug Fixes
+
+* optimize build configuration and reduce bundle size ([f9e50dc](https://github.com/brnrdog/xote/commit/f9e50dc9ac713135de5cba589e49c4ff03fbaeb0))
+
 # 1.0.0 (2025-11-02)
 
 
