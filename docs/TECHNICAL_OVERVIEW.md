@@ -13,6 +13,8 @@ Reference: TC39 Signals proposal `https://github.com/tc39/proposal-signals`.
 - **`Xote__Observer`**: Observer types and structure used by the scheduler.
 - **`Xote__Id`**: Monotonic integer ID generator.
 - **`Xote__Component`**: Minimal virtual DOM with reactive text and fragment nodes, render and mount to DOM. Convenience element constructors.
+- **`Xote__Route`**: Pure route matching logic with pattern-based string matching. Supports dynamic parameters using `:param` syntax.
+- **`Xote__Router`**: Signal-based router with browser History API integration. Provides location signal, imperative navigation, declarative routing components, and SPA navigation links.
 - **`Xote`**: Public module surface that re-exports the above.
 
 ### Core Data Structures (`Xote__Core`)
@@ -83,9 +85,42 @@ Notes:
 - Builders: `text`, `textSignal`, `fragment`, `signalFragment`, `list(signal, renderItem)`, `element` and tag helpers (`div`, `span`, `button`, `input`, `h1`, etc.).
 - Rendering:
   - `SignalText` creates a text node seeded with `peek`, and an effect that reads via `get` and writes `textContent` on change.
-  - `SignalFragment` uses an effect to replace its container’s children when the array signal changes.
+  - `SignalFragment` uses an effect to replace its container's children when the array signal changes.
   - `list` is built with a computed that maps the array signal through the item renderer and is rendered as a `SignalFragment`.
 - Mounting: `mount(node, container)` and `mountById(node, containerId)`.
+
+### Router (`Xote__Route` and `Xote__Router`)
+
+#### Route Matching (`Xote__Route`)
+
+- Pattern-based string matching with `:param` syntax for dynamic segments.
+- `parsePattern(pattern)` converts a route pattern like `/users/:id` into an array of `segment` (either `Static(string)` or `Param(string)`).
+- `matchPath(pattern, pathname)` returns `Match(params)` with extracted parameters or `NoMatch`.
+- `match(pattern, pathname)` is a convenience function that parses and matches in one call.
+- Parameters are returned as `Dict.t<string>` for flexible access.
+
+Notes:
+- No regex complexity; simple string-based matching covers common use cases.
+- All matching is synchronous and deterministic.
+
+#### Router State and Navigation (`Xote__Router`)
+
+- **Location signal**: `location: Core.t<location>` where `location = {pathname, search, hash}`.
+- **Initialization**: `init()` sets initial location from browser and adds `popstate` listener for back/forward buttons.
+- **Imperative navigation**:
+  - `push(pathname, ())` navigates with a new history entry using `pushState`.
+  - `replace(pathname, ())` navigates without a new history entry using `replaceState`.
+- **Declarative routing components**:
+  - `route(pattern, render)` renders a component when the pattern matches the current location.
+  - `routes(configs)` renders the first matching route from an array of `{pattern, render}` configs.
+  - Both use `SignalFragment` + `Computed` internally for reactive rendering.
+- **Navigation links**: `link(~to, ~children, ())` creates an anchor element that calls `push` on click (prevents page reload).
+
+Characteristics:
+- Router location is a signal, so all components reading it automatically re-render on navigation.
+- Browser History API integration ensures back/forward buttons work correctly.
+- Synchronous route matching aligns with Xote's default scheduling model.
+- Zero dependencies; uses only browser APIs and Xote primitives.
 
 ### Execution Characteristics
 
@@ -122,12 +157,23 @@ See the TC39 draft for the intended semantics and motivations: `https://github.c
 Rendering helpers (selected):
 
 - `Component.text : string -> node`
-- `Component.textSignal : Core.t<string> -> node`
+- `Component.textSignal : (unit -> string) -> node`
 - `Component.signalFragment : Core.t<array<node>> -> node`
 - `Component.list : (Core.t<array<'a>>, 'a -> node) -> node`
 - `Component.element : (~attrs=?, ~events=?, ~children=?, unit) -> node` and tag helpers.
 - `Component.mount : (node, Dom.element) -> unit`
 - `Component.mountById : (node, string) -> unit`
+
+Router helpers:
+
+- `Router.init : unit -> unit`
+- `Router.location : Core.t<{pathname: string, search: string, hash: string}>`
+- `Router.push : (string, ~search: string=?, ~hash: string=?, unit) -> unit`
+- `Router.replace : (string, ~search: string=?, ~hash: string=?, unit) -> unit`
+- `Router.route : (string, Route.params -> Component.node) -> Component.node`
+- `Router.routes : array<{pattern: string, render: Route.params -> Component.node}> -> Component.node`
+- `Router.link : (~to: string, ~attrs: array<(string, Component.attrValue)>=?, ~children: array<Component.node>=?, unit) -> Component.node`
+- `Route.match : (string, string) -> matchResult` where `matchResult = Match(Dict.t<string>) | NoMatch`
 
 ### Known Limitations and Future Work
 

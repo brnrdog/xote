@@ -11,6 +11,7 @@ A lightweight, zero-dependency UI library for ReScript with fine-grained reactiv
 - Reactive primitives: signals, computed values, and effects
 - Automatic dependency tracking: no manual subscription management
 - Fine-grained updates: direct DOM updates without a virtual DOM
+- Signal-based router: SPA navigation with pattern matching and dynamic parameters
 
 ## Getting Started
 
@@ -40,9 +41,6 @@ open Xote
 // Create reactive state
 let count = Signal.make(0)
 
-// Derived value
-let doubled = Computed.make(() => Signal.get(count) * 2)
-
 // Event handler
 let increment = (_evt: Dom.event) => Signal.update(count, n => n + 1)
 
@@ -51,9 +49,7 @@ let app = Component.div(
   ~children=[
     Component.h1(~children=[Component.text("Counter")], ()),
     Component.p(~children=[
-      Component.textSignal(
-        Computed.make(() => "Count: " ++ Int.toString(Signal.get(count)))
-      )
+      Component.textSignal(() => "Count: " ++ Int.toString(Signal.get(count)))
     ], ()),
     Component.button(
       ~events=[("click", increment)],
@@ -76,12 +72,32 @@ Xote focuses on clarity, control, and performance. It brings reactive programmin
 
 ## Core Concepts
 
-- **Signal**: Reactive state container  
-- **Computed**: Derived reactive value that updates automatically  
-- **Effect**: Function that re-runs when dependencies change  
-- **Component**: Declarative UI builder using ReScript functions  
+- **Signal**: Reactive state container
+- **Computed**: Derived reactive value that updates automatically
+- **Effect**: Function that re-runs when dependencies change
+- **Component**: Declarative UI builder using ReScript functions
+- **Router**: Signal-based navigation for single-page applications
 
-For a more complete example, see a full [todo list app example](https://github.com/brnrdog/xote/blob/main/src/demo/TodoApp.res).
+### Component Features
+
+- **Reactive text**: Use `textSignal(() => ...)` to create text nodes that update when signals change
+- **Unified attributes**: Use `attr()`, `signalAttr()`, or `computedAttr()` helper functions to create static or reactive attributes
+- **Reactive lists**: Use `list(signal, renderItem)` to render dynamic arrays
+- **Event handlers**: Pass event listeners via the `~events` parameter
+
+### Router Features
+
+- **Initialization**: Call `Router.init()` once at app start
+- **Imperative navigation**: Use `Router.push()` and `Router.replace()` to navigate programmatically
+- **Declarative routing**: Define routes with `Router.routes()` and render components based on URL patterns
+- **Dynamic parameters**: Extract URL parameters using `:param` syntax (e.g., `/users/:id`)
+- **Navigation links**: Use `Router.link()` for SPA navigation without page reload
+- **Reactive location**: Access current route via `Router.location` signal
+
+### Examples
+
+- [Todo list app](https://github.com/brnrdog/xote/blob/main/src/demo/TodoApp.res) - complete reactive todo application
+- [Router app](https://github.com/brnrdog/xote/blob/main/src/demo/RouterApp.res) - multi-page routing with dynamic parameters
 
 
 
