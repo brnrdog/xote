@@ -21,29 +21,21 @@ module DemoHeader = {
       ],
       ~children=[
         Component.div(
-          ~attrs=[Component.attr("class", "max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-4")],
+          ~attrs=[
+            Component.attr("class", "text-center max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-4"),
+          ],
           ~children=[
             Component.div(
-              ~attrs=[Component.attr("class", "flex items-center justify-between mb-3 md:mb-4")],
+              ~attrs=[Component.attr("class", "flex items-center gap-4 mb-3 md:mb-4")],
               ~children=[
                 Component.h1(
                   ~attrs=[
-                    Component.attr("class", "text-xl md:text-2xl font-bold text-stone-900 dark:text-white"),
-                  ],
-                  ~children=[Component.text("Xote Demos")],
-                  (),
-                ),
-                Component.button(
-                  ~attrs=[
                     Component.attr(
                       "class",
-                      "px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-sm bg-stone-200 dark:bg-stone-700 text-stone-800 dark:text-stone-200 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors",
+                      "text-base md:text-xl font-bold text-stone-900 dark:text-white",
                     ),
                   ],
-                  ~events=[("click", toggleTheme)],
-                  ~children=[
-                    Component.textSignal(() => Signal.get(darkMode) ? "☀️" : "🌙"),
-                  ],
+                  ~children=[Component.text("Xote: Example Applications")],
                   (),
                 ),
               ],
@@ -58,13 +50,10 @@ module DemoHeader = {
                   ~attrs=[
                     Component.computedAttr("class", () => {
                       let currentPath = Signal.get(Router.location).pathname
-                      let baseClass =
-                        "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
+                      let baseClass = "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
                       currentPath == "/"
-                        ? baseClass ++
-                          " bg-stone-900 text-white dark:bg-stone-700"
-                        : baseClass ++
-                          " bg-stone-200 text-stone-800 dark:bg-stone-700/50 dark:text-stone-200 hover:bg-stone-300 dark:hover:bg-stone-700"
+                        ? baseClass ++ " bg-stone-900 text-white dark:bg-stone-700"
+                        : baseClass ++ " bg-stone-200 text-stone-800 dark:bg-stone-700/50 dark:text-stone-200 hover:bg-stone-300 dark:hover:bg-stone-700"
                     }),
                   ],
                   ~children=[Component.text("🏠 Home")],
@@ -75,13 +64,10 @@ module DemoHeader = {
                   ~attrs=[
                     Component.computedAttr("class", () => {
                       let currentPath = Signal.get(Router.location).pathname
-                      let baseClass =
-                        "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
+                      let baseClass = "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
                       currentPath == "/counter"
-                        ? baseClass ++
-                          " bg-stone-900 text-white dark:bg-stone-700"
-                        : baseClass ++
-                          " bg-stone-200 text-stone-800 dark:bg-stone-700/50 dark:text-stone-200 hover:bg-stone-300 dark:hover:bg-stone-700"
+                        ? baseClass ++ " bg-stone-900 text-white dark:bg-stone-700"
+                        : baseClass ++ " bg-stone-200 text-stone-800 dark:bg-stone-700/50 dark:text-stone-200 hover:bg-stone-300 dark:hover:bg-stone-700"
                     }),
                   ],
                   ~children=[Component.text("🔢 Counter")],
@@ -92,16 +78,74 @@ module DemoHeader = {
                   ~attrs=[
                     Component.computedAttr("class", () => {
                       let currentPath = Signal.get(Router.location).pathname
-                      let baseClass =
-                        "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
+                      let baseClass = "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
                       currentPath == "/todo"
-                        ? baseClass ++
-                          " bg-stone-900 text-white dark:bg-stone-700"
-                        : baseClass ++
-                          " bg-stone-200 text-stone-800 dark:bg-stone-700/50 dark:text-stone-200 hover:bg-stone-300 dark:hover:bg-stone-700"
+                        ? baseClass ++ " bg-stone-900 text-white dark:bg-stone-700"
+                        : baseClass ++ " bg-stone-200 text-stone-800 dark:bg-stone-700/50 dark:text-stone-200 hover:bg-stone-300 dark:hover:bg-stone-700"
                     }),
                   ],
                   ~children=[Component.text("✓ Todo List")],
+                  (),
+                ),
+                Component.button(
+                  ~attrs=[
+                    Component.attr(
+                      "class",
+                      "bg-stone-200 text-stone-800 dark:bg-stone-700/50 dark:text-stone-200 px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2",
+                    ),
+                  ],
+                  ~events=[("click", toggleTheme)],
+                  ~children=[Component.textSignal(() => Signal.get(darkMode) ? "☀️" : "🌙")],
+                  (),
+                ),
+              ],
+              (),
+            ),
+          ],
+          (),
+        ),
+      ],
+      (),
+    )
+  }
+}
+
+module Footer = {
+  let component = () => {
+    Component.div(
+      ~attrs=[
+        Component.attr(
+          "class",
+          "mt-auto border-t border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800",
+        ),
+      ],
+      ~children=[
+        Component.div(
+          ~attrs=[Component.attr("class", "max-w-6xl mx-auto px-4 md:px-6 py-4")],
+          ~children=[
+            Component.p(
+              ~attrs=[
+                Component.attr("class", "text-xs text-center text-stone-700 dark:text-stone-400"),
+              ],
+              ~children=[
+                Component.text("Built with "),
+                Component.a(
+                  ~attrs=[
+                    Component.attr("href", "https://github.com/brnrdog/xote"),
+                    Component.attr("target", "_blank"),
+                    Component.attr("class", "font-semibold text-stone-900 dark:text-white"),
+                  ],
+                  ~children=[Component.text("Xote")],
+                  (),
+                ),
+                Component.text(" - A lightweight, zero-dependency reactive UI library for "),
+                Component.a(
+                  ~attrs=[
+                    Component.attr("href", "https://rescript-lang.org/"),
+                    Component.attr("target", "_blank"),
+                    Component.attr("class", "font-semibold text-stone-900 dark:text-white"),
+                  ],
+                  ~children=[Component.text("ReScript")],
                   (),
                 ),
               ],
@@ -133,7 +177,7 @@ module HomePage = {
               ~attrs=[
                 Component.attr("class", "text-2xl font-bold text-stone-900 dark:text-white mb-4"),
               ],
-              ~children=[Component.text("Welcome to Xote Demos")],
+              ~children=[Component.text("Welcome Example Applications")],
               (),
             ),
             Component.p(
@@ -167,7 +211,9 @@ module HomePage = {
                       (),
                     ),
                     Component.p(
-                      ~attrs=[Component.attr("class", "text-sm text-stone-600 dark:text-stone-400")],
+                      ~attrs=[
+                        Component.attr("class", "text-sm text-stone-600 dark:text-stone-400"),
+                      ],
                       ~children=[
                         Component.text(
                           "A simple counter demonstrating reactive signals and event handlers.",
@@ -197,7 +243,9 @@ module HomePage = {
                       (),
                     ),
                     Component.p(
-                      ~attrs=[Component.attr("class", "text-sm text-stone-600 dark:text-stone-400")],
+                      ~attrs=[
+                        Component.attr("class", "text-sm text-stone-600 dark:text-stone-400"),
+                      ],
                       ~children=[
                         Component.text(
                           "A full-featured todo app with computed values, filters, and reactive lists.",
@@ -205,29 +253,6 @@ module HomePage = {
                       ],
                       (),
                     ),
-                  ],
-                  (),
-                ),
-              ],
-              (),
-            ),
-            Component.div(
-              ~attrs=[Component.attr("class", "mt-6 pt-6 border-t border-stone-200 dark:border-stone-700")],
-              ~children=[
-                Component.p(
-                  ~attrs=[Component.attr("class", "text-xs text-stone-600 dark:text-stone-400")],
-                  ~children=[
-                    Component.text("Built with "),
-                    Component.a(
-                      ~attrs=[
-                        Component.attr("href", "https://github.com/brnrdog/xote"),
-                        Component.attr("target", "_blank"),
-                        Component.attr("class", "font-semibold dark:text-white underline"),
-                      ],
-                      ~children=[Component.text("Xote")],
-                      (),
-                    ),
-                    Component.text(" - A lightweight, zero-dependency reactive UI library for ReScript"),
                   ],
                   (),
                 ),
@@ -254,15 +279,28 @@ module Demos = {
     )
 
     Component.div(
-      ~attrs=[Component.attr("class", "min-h-screen bg-stone-50 dark:bg-stone-900 transition-colors")],
+      ~attrs=[
+        Component.attr(
+          "class",
+          "min-h-screen bg-stone-50 dark:bg-stone-900 transition-colors flex flex-col",
+        ),
+      ],
       ~children=[
         DemoHeader.component(),
-        // Routes
-        Router.routes([
-          {pattern: "/", render: _params => HomePage.component()},
-          {pattern: "/counter", render: _params => CounterApp.CounterApp.component()},
-          {pattern: "/todo", render: _params => TodoApp.TodoApp.component()},
-        ]),
+        // Routes - flex-1 to take remaining space
+        Component.div(
+          ~attrs=[Component.attr("class", "flex-1")],
+          ~children=[
+            Router.routes([
+              {pattern: "/", render: _params => HomePage.component()},
+              {pattern: "/counter", render: _params => CounterApp.CounterApp.component()},
+              {pattern: "/todo", render: _params => TodoApp.TodoApp.component()},
+            ]),
+          ],
+          (),
+        ),
+        // Footer always at bottom
+        Footer.component(),
       ],
       (),
     )
