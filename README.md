@@ -97,10 +97,38 @@ Xote focuses on clarity, control, and performance. It brings reactive programmin
 
 ### Examples
 
-- [Todo list app](https://github.com/brnrdog/xote/blob/main/src/demo/TodoApp.res) - complete reactive todo application
-- [Router app](https://github.com/brnrdog/xote/blob/main/src/demo/RouterApp.res) - multi-page routing with dynamic parameters
+Explore interactive demos showcasing Xote's reactive primitives and component system:
 
+- [Counter](https://github.com/brnrdog/xote/blob/main/src/demo/CounterApp.res) - simple reactive counter with signals and event handlers
+- [Todo List](https://github.com/brnrdog/xote/blob/main/src/demo/TodoApp.res) - complete todo app with filters, computed values, and reactive lists
+- [Color Mixer](https://github.com/brnrdog/xote/blob/main/src/demo/ColorMixerApp.res) - RGB color mixing with live preview, format conversions, and palette variations
+- [Reaction Game](https://github.com/brnrdog/xote/blob/main/src/demo/ReactionGame.res) - reflex testing game with timers, statistics, and computed averages
+- [Router Demo](https://github.com/brnrdog/xote/blob/main/src/demo/RouterApp.res) - multi-page routing with dynamic parameters
 
+## Running Examples Locally
+
+To run the example demos locally:
+
+1. Clone the repository:
+```bash
+git clone https://github.com/brnrdog/xote.git
+cd xote
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Compile ReScript and start the dev server:
+```bash
+npm run res:dev  # In one terminal (watches ReScript files)
+npm run dev      # In another terminal (starts Vite dev server)
+```
+
+4. Open your browser and navigate to `http://localhost:5173`
+
+The demo app includes a navigation menu to explore all examples interactively.
 
 ## License
 
