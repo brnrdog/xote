@@ -9,7 +9,6 @@ type todo = {
 let todos = Signal.make([])
 let nextId = ref(0)
 let inputValue = Signal.make("")
-let darkMode = Signal.make(false)
 
 // Computed values derived from todos
 let completedCount = Computed.make(() => {
@@ -57,31 +56,19 @@ let clearInput = () => {
   }
 }
 
-let toggleTheme = (_evt: Dom.event) => {
-  Signal.update(darkMode, mode => !mode)
-}
-
 module TodoHeader = {
   let component = () => {
     Component.div(
       ~attrs=[Component.attr("class", "flex items-center justify-between mb-4")],
       ~children=[
         Component.h1(
-          ~attrs=[Component.attr("class", "text-3xl font-bold text-stone-900 dark:text-white")],
-          ~children=[Component.text("Todo List")],
-          (),
-        ),
-        Component.button(
           ~attrs=[
             Component.attr(
               "class",
-              "px-4 py-2 rounded-xl bg-stone-200 dark:bg-stone-700 text-stone-800 dark:text-stone-200 hover:bg-stone-300 dark:hover:bg-stone-600 transition-colors",
+              "text-2xl md:text-3xl font-bold text-stone-900 dark:text-white",
             ),
           ],
-          ~events=[("click", toggleTheme)],
-          ~children=[
-            Component.textSignal(() => Signal.get(darkMode) ? "☀️ Light" : "🌙 Dark"),
-          ],
+          ~children=[Component.text("Todo List")],
           (),
         ),
       ],
@@ -182,7 +169,7 @@ module TodoForm = {
 
   let component = () => {
     Component.div(
-      ~attrs=[Component.attr("class", "flex gap-2 mb-6")],
+      ~attrs=[Component.attr("class", "flex flex-col sm:flex-row gap-2 mb-6")],
       ~children=[
         Component.input(
           ~attrs=[
@@ -219,7 +206,7 @@ module TodoFilter = {
       ~events=[("click", _ => Signal.set(filterState, filterValue))],
       ~attrs=[
         Component.computedAttr("class", () => {
-          "capitalize px-5 py-2 rounded-full text-xs transition-colors " ++ (
+          "capitalize px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs transition-colors " ++ (
             Signal.get(filterState) == filterValue
               ? "bg-stone-900 text-white dark:bg-stone-700 font-semibold"
               : "bg-stone-200 text-stone dark:bg-stone-800 dark:text-white"
@@ -244,7 +231,7 @@ module TodoFilter = {
 
   let render = filterState => {
     Component.div(
-      ~attrs=[Component.attr("class", "flex gap-2 items-center mb-4")],
+      ~attrs=[Component.attr("class", "flex flex-wrap gap-2 items-center mb-4")],
       ~children=[
         renderFilterButton(filterState, "all"),
         renderFilterButton(filterState, "active"),
@@ -257,16 +244,8 @@ module TodoFilter = {
 
 module TodoApp = {
   let component = () => {
-    // Effect to sync dark mode with HTML class
-    let _ = Effect.run(() =>
-      switch Signal.get(darkMode) {
-      | true => %raw(`document.documentElement.classList.add('dark')`)
-      | false => %raw(`document.documentElement.classList.remove('dark')`)
-      }
-    )
-
     Component.div(
-      ~attrs=[Component.attr("class", "max-w-2xl mx-auto p-6 space-y-4")],
+      ~attrs=[Component.attr("class", "max-w-2xl mx-auto p-4 md:p-6 space-y-4")],
       ~children=[
         Component.div(
           ~children=[
@@ -298,5 +277,3 @@ module TodoApp = {
     )
   }
 }
-
-Component.mountById(TodoApp.component(), "app")
