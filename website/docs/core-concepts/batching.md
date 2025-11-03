@@ -257,4 +257,4 @@ let applyDiscount = (code: string) => {
 
 - See how batching works with [Effects](/docs/core-concepts/effects)
 - Learn about [Components](/docs/components/overview) which use batching internally
-- Check the [API Reference](/docs/api/core) for Core utilities
+- Try the [Todo List Demo](/demos/todo) to see batching in a real application

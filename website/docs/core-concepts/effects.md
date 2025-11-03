@@ -278,4 +278,4 @@ Use **Computed** for pure calculations, **Effects** for side effects.
 
 - Learn about [Batching](/docs/core-concepts/batching) to optimize multiple updates
 - See how effects work in [Components](/docs/components/overview)
-- Check the [API Reference](/docs/api/effects) for complete details
+- Try the [Reaction Game Demo](/demos/reaction-game) to see effects with timers

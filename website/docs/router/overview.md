@@ -280,7 +280,7 @@ Component.mountById(app(), "app")
 
 ## Next Steps
 
-- Learn about [Route Matching](/docs/router/routing) patterns
-- Explore [Navigation](/docs/router/navigation) methods in detail
-- See the [Router Demo](/demos) for a complete example
-- Check the [API Reference](/docs/api/router) for all router functions
+- Try the [Demos](/demos) to see routing in action
+- Learn about [Signals](/docs/core-concepts/signals) for reactive state
+- Explore [Components](/docs/components/overview) for building UIs
+- Check the [Getting Started](/docs/) guide for more information
