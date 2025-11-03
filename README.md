@@ -97,12 +97,12 @@ Xote focuses on clarity, control, and performance. It brings reactive programmin
 
 ## Examples
 
-- [Counter](https://github.com/brnrdog/xote/blob/main/src/demo/CounterApp.res) - simple reactive counter with signals and event handlers
-- [Todo List](https://github.com/brnrdog/xote/blob/main/src/demo/TodoApp.res) - complete todo app with filters, computed values, and reactive lists
-- [Color Mixer](https://github.com/brnrdog/xote/blob/main/src/demo/ColorMixerApp.res) - RGB color mixing with live preview, format conversions, and palette variations
-- [Reaction Game](https://github.com/brnrdog/xote/blob/main/src/demo/ReactionGame.res) - reflex testing game with timers, statistics, and computed averages
-- [Solitaire](https://github.com/brnrdog/xote/blob/main/src/demo/SolitaireGame.res) - classic Klondike Solitaire with click-to-move gameplay and win detection
-- [Router Demo](https://github.com/brnrdog/xote/blob/main/src/demo/RouterApp.res) - multi-page routing with dynamic parameters
+- [Counter](https://github.com/brnrdog/xote/blob/main/demos/CounterApp.res) - simple reactive counter with signals and event handlers
+- [Todo List](https://github.com/brnrdog/xote/blob/main/demos/TodoApp.res) - complete todo app with filters, computed values, and reactive lists
+- [Color Mixer](https://github.com/brnrdog/xote/blob/main/demos/ColorMixerApp.res) - RGB color mixing with live preview, format conversions, and palette variations
+- [Reaction Game](https://github.com/brnrdog/xote/blob/main/demos/ReactionGame.res) - reflex testing game with timers, statistics, and computed averages
+- [Solitaire](https://github.com/brnrdog/xote/blob/main/demos/SolitaireGame.res) - classic Klondike Solitaire with click-to-move gameplay and win detection
+- [Router Demo](https://github.com/brnrdog/xote/blob/main/demos/RouterApp.res) - multi-page routing with dynamic parameters
 
 ### Running Examples Locally
 
@@ -128,6 +128,30 @@ npm run dev      # In another terminal (starts Vite dev server)
 4. Open your browser and navigate to `http://localhost:5173`
 
 The demo app includes a navigation menu to explore all examples interactively.
+
+## Documentation
+
+Comprehensive documentation with live embedded demos is available at:
+
+**https://brnrdog.github.io/xote/**
+
+The documentation includes:
+- Getting Started guide
+- Core concepts (Signals, Computed, Effects, Batching)
+- Component system documentation
+- Router documentation
+- API reference
+- Interactive demos you can try directly in the browser
+
+### Building Documentation Locally
+
+To build and preview the documentation site:
+
+```bash
+npm run docs:start
+```
+
+This will build the demos and start the documentation server at `http://localhost:3000`.
 
 ## License
 
