@@ -8,7 +8,7 @@ interface DemoFrameProps {
 }
 
 export default function DemoFrame({ route, title, minHeight = '600px' }: DemoFrameProps): React.JSX.Element {
-  const demoUrl = useBaseUrl(`demos${route}.html`);
+  const demoUrl = useBaseUrl(`demos/demos${route}.html`);
 
   return (
     <div style={{
