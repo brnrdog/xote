@@ -131,4 +131,4 @@ The demo app includes a navigation menu to explore all examples interactively.
 
 ## License
 
-MIT © 2025
+LGPL v3 
