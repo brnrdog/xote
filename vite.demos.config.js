@@ -10,11 +10,11 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        counter: resolve(__dirname, 'counter.html'),
-        todo: resolve(__dirname, 'todo.html'),
-        color: resolve(__dirname, 'color.html'),
-        reaction: resolve(__dirname, 'reaction.html'),
-        solitaire: resolve(__dirname, 'solitaire.html'),
+        counter: resolve(__dirname, 'demos/counter.html'),
+        todo: resolve(__dirname, 'demos/todo.html'),
+        color: resolve(__dirname, 'demos/color.html'),
+        reaction: resolve(__dirname, 'demos/reaction.html'),
+        solitaire: resolve(__dirname, 'demos/solitaire.html'),
       }
     }
   }
