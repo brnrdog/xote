@@ -16,7 +16,13 @@
     "res:dev": "rescript -w",
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:demos": "vite build --config vite.demos.config.js",
+    "copy:demos": "mkdir -p website/static/demos && cp -r demos-dist/* website/static/demos/",
+    "prepare:demos": "npm run res:build && npm run build:demos && npm run copy:demos",
+    "docs:start": "npm run prepare:demos && cd website && npm start",
+    "docs:build": "npm run prepare:demos && cd website && npm run build",
+    "docs:serve": "cd website && npm run serve"
   },
   "exports": {
     ".": {
@@ -56,7 +62,7 @@
     ]
   },
   "author": "Bernardo Gurgel <brnrdog@hey.com>",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "devDependencies": {
     "@rescript/core": "^1.6.1",
     "@semantic-release/changelog": "^6.0.3",
@@ -69,8 +75,5 @@
     "rescript": "^11.1.4",
     "semantic-release": "^25.0.1",
     "vite": "^7.1.12"
-  },
-  "dependencies": {
-    "vite-plugin-bundlesize": "^0.3.0"
   }
 }

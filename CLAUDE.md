@@ -175,7 +175,7 @@ Component.list(items, item => Component.text(Int.toString(item)))
 ## Reference Documentation
 
 - **Technical deep-dive**: See `docs/TECHNICAL_OVERVIEW.md` for detailed architecture
-- **Example app**: See `src/demo/TodoApp.res` for a complete todo list implementation
+- **Example app**: See `demos/TodoApp.res` for a complete todo list implementation
 - **TC39 Signals proposal**: https://github.com/tc39/proposal-signals
 
 ## Known Limitations

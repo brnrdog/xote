@@ -2,8 +2,16 @@
 /node_modules/
 /lib/
 /dist/
+/demos-dist/
 .bsb.lock
 .merlin
 *.res.mjs
 bundlemeta.json
 .vite
+
+# Documentation site
+/website/node_modules/
+/website/build/
+/website/.docusaurus/
+/website/.cache-loader/
+/website/static/demos/

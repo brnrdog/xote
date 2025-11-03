@@ -1,10 +1,16 @@
 {
   "name": "xote",
-  "sources": {
-    "dir": "src",
-    "subdirs": true,
-    "public": ["Xote"]
-  },
+  "sources": [
+    {
+      "dir": "src",
+      "subdirs": true,
+      "public": ["Xote"]
+    },
+    {
+      "dir": "demos",
+      "subdirs": false
+    }
+  ],
   "package-specs": {
     "module": "esmodule",
     "in-source": true
