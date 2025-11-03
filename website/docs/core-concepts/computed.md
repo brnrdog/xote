@@ -221,4 +221,4 @@ This ensures computed values are always current but may do unnecessary work if t
 
 - Learn about [Effects](/docs/core-concepts/effects) for side effects
 - Understand [Batching](/docs/core-concepts/batching) for grouping updates
-- See the [API Reference](/docs/api/computed) for the complete API
+- Try the [Color Mixer Demo](/demos/color-mixer) to see computed values in action

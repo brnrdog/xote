@@ -325,7 +325,7 @@ let toolbar = () => {
 
 ## Next Steps
 
-- Learn about [Reactive Attributes](/docs/components/attributes) in detail
-- Understand [Reactive Lists](/docs/components/lists) and their performance characteristics
-- Explore [Event Handling](/docs/components/events) patterns
-- See [Examples](/docs/examples/todo-app) for complete applications
+- Try the [Counter Demo](/demos/counter) to see basic components in action
+- Explore the [Todo List Demo](/demos/todo) for reactive lists and event handling
+- Check out the [Color Mixer Demo](/demos/color-mixer) for complex reactive patterns
+- View all [Examples](/demos) to see complete applications

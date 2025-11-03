@@ -251,6 +251,6 @@ Signal.update(todos, arr =>
 ## See Also
 
 - [Signals Guide](/docs/core-concepts/signals) - Conceptual overview
-- [Computed API](/docs/api/computed) - Derived values
-- [Effect API](/docs/api/effects) - Side effects
-- [Core API](/docs/api/core) - Batching and utilities
+- [Computed Guide](/docs/core-concepts/computed) - Derived values
+- [Effects Guide](/docs/core-concepts/effects) - Side effects
+- [Batching Guide](/docs/core-concepts/batching) - Batching and utilities
