@@ -15,3 +15,4 @@ bundlemeta.json
 /website/.docusaurus/
 /website/.cache-loader/
 /website/static/demos/
+/website/static/assets/

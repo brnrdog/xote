@@ -15,6 +15,7 @@ export default defineConfig({
         color: resolve(__dirname, 'demos/color.html'),
         reaction: resolve(__dirname, 'demos/reaction.html'),
         solitaire: resolve(__dirname, 'demos/solitaire.html'),
+        match: resolve(__dirname, 'demos/match.html'),
       }
     }
   }

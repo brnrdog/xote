@@ -39,6 +39,13 @@ const demos = [
     route: '/solitaire',
     source: 'https://github.com/brnrdog/xote/blob/main/demos/SolitaireGame.res',
   },
+  {
+    title: 'Memory Match',
+    description: '2-player memory matching game with 10 progressive levels and score tracking',
+    path: '/demos/memory-match',
+    route: '/match',
+    source: 'https://github.com/brnrdog/xote/blob/main/demos/MatchGame.res',
+  },
 ];
 
 function DemoCard({title, description, path, source}: {title: string; description: string; path: string; source: string}) {
