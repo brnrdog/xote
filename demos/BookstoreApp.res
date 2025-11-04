@@ -6,7 +6,12 @@ let _ = Router.init()
 // Navigate to home on first load if we're at the HTML file path
 let _ = Effect.run(() => {
   let pathname = Signal.get(Router.location).pathname
-  if pathname == "/bookstore.html" || pathname == "/demos/bookstore.html" {
+  // Handle various paths where the HTML file might be served
+  // - Local: /bookstore.html or /demos/bookstore.html
+  // - GitHub Pages: /xote/demos/bookstore.html
+  if pathname == "/bookstore.html" ||
+     pathname == "/demos/bookstore.html" ||
+     pathname == "/xote/demos/bookstore.html" {
     Router.replace("/", ())
   }
 })
