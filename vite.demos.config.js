@@ -16,6 +16,7 @@ export default defineConfig({
         reaction: resolve(__dirname, 'demos/reaction.html'),
         solitaire: resolve(__dirname, 'demos/solitaire.html'),
         match: resolve(__dirname, 'demos/match.html'),
+        bookstore: resolve(__dirname, 'demos/bookstore.html'),
       }
     }
   }

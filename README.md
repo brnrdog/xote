@@ -103,6 +103,7 @@ Xote focuses on clarity, control, and performance. It brings reactive programmin
 - [Reaction Game](https://github.com/brnrdog/xote/blob/main/demos/ReactionGame.res) - reflex testing game with timers, statistics, and computed averages
 - [Solitaire](https://github.com/brnrdog/xote/blob/main/demos/SolitaireGame.res) - classic Klondike Solitaire with click-to-move gameplay and win detection
 - [Memory Match](https://github.com/brnrdog/xote/blob/main/demos/MatchGame.res) - 2-player memory matching game with 10 progressive levels and score tracking
+- [Functional Bookstore](https://github.com/brnrdog/xote/blob/main/demos/BookstoreApp.res) - e-commerce app with routing, cart management, checkout flow, and absurd FP-themed books
 - [Router Demo](https://github.com/brnrdog/xote/blob/main/demos/RouterApp.res) - multi-page routing with dynamic parameters
 
 ### Running Examples Locally

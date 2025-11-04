@@ -46,6 +46,13 @@ const demos = [
     route: '/match',
     source: 'https://github.com/brnrdog/xote/blob/main/demos/MatchGame.res',
   },
+  {
+    title: 'Functional Bookstore',
+    description: 'E-commerce app with routing, cart management, checkout flow, and absurd FP-themed books',
+    path: '/demos/bookstore',
+    route: '/bookstore',
+    source: 'https://github.com/brnrdog/xote/blob/main/demos/BookstoreApp.res',
+  },
 ];
 
 function DemoCard({title, description, path, source}: {title: string; description: string; path: string; source: string}) {

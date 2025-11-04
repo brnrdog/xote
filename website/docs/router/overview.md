@@ -278,6 +278,18 @@ Component.mountById(app(), "app")
 4. **Use links for navigation**: Prefer `Router.link()` over manual `Router.push()` calls
 5. **Extract parameters safely**: Use `Option` methods when accessing route parameters
 
+## Real-World Example
+
+Check out the [Functional Bookstore](/demos/bookstore) demo to see a complete e-commerce application using Xote Router:
+
+- Multi-route navigation (catalog, cart, checkout, order confirmation)
+- Active link highlighting based on current route
+- Shopping cart state persisting across navigation
+- Programmatic navigation after form submission
+- Clean URL structure with SPA behavior
+
+[View Bookstore Demo →](/demos/bookstore)
+
 ## Next Steps
 
 - Try the [Demos](/demos) to see routing in action
