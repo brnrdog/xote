@@ -1,3 +1,4 @@
 *.mjs linguist-generated
 dist/ linguist-generated
 website/ linguist-documentation
+demos/ linguist-documentation
