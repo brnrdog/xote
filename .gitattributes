@@ -1,4 +1,13 @@
+# ReScript compiled output
 *.mjs linguist-generated
-dist/ linguist-generated
-website/ linguist-documentation
-demos/ linguist-documentation
+
+# Build artifacts
+dist/**/* linguist-generated
+demos-dist/**/* linguist-generated
+
+# Documentation site
+website/**/* linguist-documentation
+
+# Demo HTML files
+index.html linguist-generated
+demos/*.html linguist-generated
