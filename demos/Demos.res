@@ -435,7 +435,7 @@ module Demos = {
               {pattern: "/todo", render: _params => TodoApp.TodoApp.component()},
               {pattern: "/color", render: _params => ColorMixerApp.ColorMixerApp.component()},
               {pattern: "/reaction", render: _params => ReactionGame.ReactionGame.component()},
-              {pattern: "/solitaire", render: _params => SolitaireGame.SolitaireGame.component()},
+              {pattern: "/solitaire", render: _params => SolitaireGame.app()},
             ]),
           ],
           (),

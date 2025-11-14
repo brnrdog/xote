@@ -108,10 +108,10 @@ let shuffle = (arr: array<'a>): array<'a> => {
   let n = Array.length(result)
   for i in 0 to n - 1 {
     let j = i + Int.fromFloat(Math.random() *. Int.toFloat(n - i))
-    switch (Array.get(result, i), Array.get(result, j)) {
+    switch (result[i], result[j]) {
     | (Some(temp), Some(val)) => {
-        Array.set(result, i, val)
-        Array.set(result, j, temp)
+        result[i] = val
+        result[j] = temp
       }
     | _ => ()
     }
@@ -139,12 +139,15 @@ let newGame = (_evt: Dom.event) => {
   // Remaining cards go to stock
   let stock = Array.sliceToEnd(deck, ~start=deckIndex.contents)
 
-  Signal.set(gameState, {
-    stock,
-    waste: [],
-    foundations: [[], [], [], []],
-    tableau,
-  })
+  Signal.set(
+    gameState,
+    {
+      stock,
+      waste: [],
+      foundations: [[], [], [], []],
+      tableau,
+    },
+  )
   Signal.set(moves, 0)
   Signal.set(selectedCard, NoSelection)
   Signal.set(gameWon, false)
@@ -205,9 +208,8 @@ let canPlaceOnFoundation = (card: card, foundation: array<card>): bool => {
 // Check win condition
 let checkWin = () => {
   let state = Signal.get(gameState)
-  let allFoundationsComplete = state.foundations->Array.every(foundation =>
-    Array.length(foundation) == 13
-  )
+  let allFoundationsComplete =
+    state.foundations->Array.every(foundation => Array.length(foundation) == 13)
   if allFoundationsComplete {
     Signal.set(gameWon, true)
   }
@@ -256,8 +258,12 @@ let moveTableauToTableau = (fromCol: int, fromIndex: int, toCol: int) => {
     if firstCard.faceUp && canPlaceOnTableau(firstCard, Array.getUnsafe(state.tableau, toCol)) {
       // Valid move
       let newTableau = Array.copy(state.tableau)
-      Array.set(newTableau, fromCol, Array.slice(Array.getUnsafe(state.tableau, fromCol), ~start=0, ~end=fromIndex))
-      Array.set(newTableau, toCol, Array.concat(Array.getUnsafe(state.tableau, toCol), sourceCards))
+      newTableau[fromCol] = Array.slice(
+        Array.getUnsafe(state.tableau, fromCol),
+        ~start=0,
+        ~end=fromIndex,
+      )
+      newTableau[toCol] = Array.concat(Array.getUnsafe(state.tableau, toCol), sourceCards)
 
       // Flip last card in source column if it exists and is face down
       let fromColCards = Array.getUnsafe(newTableau, fromCol)
@@ -265,7 +271,7 @@ let moveTableauToTableau = (fromCol: int, fromIndex: int, toCol: int) => {
         let lastIndex = Array.length(fromColCards) - 1
         let lastCard = Array.getUnsafe(fromColCards, lastIndex)
         if !lastCard.faceUp {
-          Array.set(fromColCards, lastIndex, {...lastCard, faceUp: true})
+          fromColCards[lastIndex] = {...lastCard, faceUp: true}
         }
       }
 
@@ -285,7 +291,7 @@ let moveTableauToFoundation = (fromCol: int, foundIndex: int) => {
     if card.faceUp && canPlaceOnFoundation(card, Array.getUnsafe(state.foundations, foundIndex)) {
       // Valid move
       let newTableau = Array.copy(state.tableau)
-      Array.set(newTableau, fromCol, Array.slice(col, ~start=0, ~end=Array.length(col) - 1))
+      newTableau[fromCol] = Array.slice(col, ~start=0, ~end=Array.length(col) - 1)
 
       // Flip last card in source column if it exists and is face down
       let fromColCards = Array.getUnsafe(newTableau, fromCol)
@@ -293,7 +299,7 @@ let moveTableauToFoundation = (fromCol: int, foundIndex: int) => {
         let lastIndex = Array.length(fromColCards) - 1
         let lastCard = Array.getUnsafe(fromColCards, lastIndex)
         if !lastCard.faceUp {
-          Array.set(fromColCards, lastIndex, {...lastCard, faceUp: true})
+          fromColCards[lastIndex] = {...lastCard, faceUp: true}
         }
       }
 
@@ -323,13 +329,12 @@ let handleTableauCardClick = (colIndex: int, cardIndex: int, _evt: Dom.event) =>
         moveWasteToTableau(colIndex)
         Signal.set(selectedCard, NoSelection)
       }
-    | TableauSelected(fromCol, fromIndex) => {
-        if fromCol == colIndex {
-          Signal.set(selectedCard, NoSelection)
-        } else {
-          moveTableauToTableau(fromCol, fromIndex, colIndex)
-          Signal.set(selectedCard, NoSelection)
-        }
+    | TableauSelected(fromCol, fromIndex) =>
+      if fromCol == colIndex {
+        Signal.set(selectedCard, NoSelection)
+      } else {
+        moveTableauToTableau(fromCol, fromIndex, colIndex)
+        Signal.set(selectedCard, NoSelection)
       }
     | FoundationSelected(_) => Signal.set(selectedCard, NoSelection)
     }
@@ -364,435 +369,246 @@ let handleFoundationClick = (foundIndex: int, _evt: Dom.event) => {
   }
 }
 
-// Components
-module CardComponent = {
-  let component = (~card: card, ~isSelected: bool, ~onClick: Dom.event => unit, ()) => {
-    if !card.faceUp {
-      // Card back
-      Component.div(
-        ~attrs=[
-          Component.attr(
-            "class",
-            "w-16 h-24 bg-blue-600 border-2 border-blue-700 rounded-lg cursor-pointer shadow-md flex items-center justify-center",
-          ),
-        ],
-        ~events=[("click", onClick)],
-        ~children=[
-          Component.div(
-            ~attrs=[Component.attr("class", "text-blue-400 text-2xl")],
-            ~children=[Component.text("✦")],
-            (),
-          ),
-        ],
-        (),
-      )
-    } else {
-      // Card face
-      let color = isRed(card.suit) ? "text-red-600" : "text-black"
-      let borderColor = isSelected ? "border-yellow-400 border-4" : "border-stone-300 border-2"
+/* Card Component using JSX */
+type cardProps = {
+  card: card,
+  isSelected: bool,
+  onClick: Dom.event => unit,
+}
 
-      Component.div(
-        ~attrs=[
-          Component.attr(
-            "class",
-            `w-16 h-24 bg-white ${borderColor} rounded-lg cursor-pointer shadow-md p-1 flex flex-col justify-between`,
-          ),
-        ],
-        ~events=[("click", onClick)],
-        ~children=[
-          Component.div(
-            ~attrs=[Component.attr("class", `${color} text-sm font-bold text-left`)],
-            ~children=[
-              Component.text(rankToString(card.rank)),
-              Component.span(
-                ~attrs=[Component.attr("class", "text-base")],
-                ~children=[Component.text(suitToString(card.suit))],
-                (),
-              ),
-            ],
-            (),
-          ),
-          Component.div(
-            ~attrs=[Component.attr("class", `${color} text-2xl text-center`)],
-            ~children=[Component.text(suitToString(card.suit))],
-            (),
-          ),
-          Component.div(
-            ~attrs=[Component.attr("class", `${color} text-sm font-bold text-right`)],
-            ~children=[
-              Component.text(rankToString(card.rank)),
-              Component.span(
-                ~attrs=[Component.attr("class", "text-base")],
-                ~children=[Component.text(suitToString(card.suit))],
-                (),
-              ),
-            ],
-            (),
-          ),
-        ],
-        (),
-      )
-    }
+let cardComponent = (props: cardProps) => {
+  if !props.card.faceUp {
+    // Card back
+    <div
+      className="w-16 h-24 bg-blue-600 border-2 border-blue-700 rounded-lg cursor-pointer shadow-md flex items-center justify-center"
+      onClick={props.onClick}>
+      <div className="text-blue-400 text-2xl"> {Component.text("✦")} </div>
+    </div>
+  } else {
+    // Card face
+    let color = isRed(props.card.suit) ? "text-red-600" : "text-black"
+    let borderColor = props.isSelected ? "border-yellow-400 border-4" : "border-stone-300 border-2"
+
+    <div
+      className={`w-16 h-24 bg-white ${borderColor} rounded-lg cursor-pointer shadow-md p-1 flex flex-col justify-between`}
+      onClick={props.onClick}>
+      <div className={`${color} text-sm font-bold text-left`}>
+        {Component.text(rankToString(props.card.rank))}
+        <span className="text-base"> {Component.text(suitToString(props.card.suit))} </span>
+      </div>
+      <div className={`${color} text-2xl text-center`}>
+        {Component.text(suitToString(props.card.suit))}
+      </div>
+      <div className={`${color} text-sm font-bold text-right`}>
+        {Component.text(rankToString(props.card.rank))}
+        <span className="text-base"> {Component.text(suitToString(props.card.suit))} </span>
+      </div>
+    </div>
   }
 }
 
-module EmptySlot = {
-  let component = (~label: string, ~onClick: Dom.event => unit, ()) => {
-    Component.div(
-      ~attrs=[
-        Component.attr(
-          "class",
-          "w-16 h-24 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg flex items-center justify-center cursor-pointer hover:border-stone-400 dark:hover:border-stone-500 transition-colors",
-        ),
-      ],
-      ~events=[("click", onClick)],
-      ~children=[
-        Component.span(
-          ~attrs=[Component.attr("class", "text-stone-400 dark:text-stone-500 text-xs")],
-          ~children=[Component.text(label)],
-          (),
-        ),
-      ],
-      (),
-    )
-  }
+/* Empty Slot Component using JSX */
+type emptySlotProps = {
+  label: string,
+  onClick: Dom.event => unit,
 }
 
-module StockAndWaste = {
-  let component = () => {
-    Component.div(
-      ~attrs=[Component.attr("class", "flex gap-4")],
-      ~children=[
-        // Stock
-        Component.signalFragment(
-          Computed.make(() => {
-            let state = Signal.get(gameState)
-            if Array.length(state.stock) > 0 {
-              [
-                Component.div(
-                  ~attrs=[
-                    Component.attr(
-                      "class",
-                      "w-16 h-24 bg-blue-600 border-2 border-blue-700 rounded-lg cursor-pointer shadow-md flex items-center justify-center hover:scale-105 transition-transform",
-                    ),
-                  ],
-                  ~events=[("click", drawCard)],
-                  ~children=[
-                    Component.div(
-                      ~attrs=[Component.attr("class", "text-blue-400 text-2xl")],
-                      ~children=[Component.text("✦")],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-              ]
-            } else {
-              [
-                Component.div(
-                  ~attrs=[
-                    Component.attr(
-                      "class",
-                      "w-16 h-24 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg cursor-pointer flex items-center justify-center hover:border-stone-400 dark:hover:border-stone-500",
-                    ),
-                  ],
-                  ~events=[("click", drawCard)],
-                  ~children=[
-                    Component.span(
-                      ~attrs=[Component.attr("class", "text-stone-400 text-xs")],
-                      ~children=[Component.text("↻")],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-              ]
-            }
-          }),
-        ),
-        // Waste
-        Component.signalFragment(
-          Computed.make(() => {
-            let state = Signal.get(gameState)
-            let selection = Signal.get(selectedCard)
-            if Array.length(state.waste) > 0 {
-              let card = Array.getUnsafe(state.waste, 0)
-              let isSelected = switch selection {
-              | WasteSelected => true
-              | _ => false
-              }
-              [CardComponent.component(~card, ~isSelected, ~onClick=handleWasteClick, ())]
-            } else {
-              [EmptySlot.component(~label="", ~onClick=_ => (), ())]
-            }
-          }),
-        ),
-      ],
-      (),
-    )
-  }
+let emptySlot = (props: emptySlotProps) => {
+  <div
+    className="w-16 h-24 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg flex items-center justify-center cursor-pointer hover:border-stone-400 dark:hover:border-stone-500 transition-colors"
+    onClick={props.onClick}>
+    <span className="text-stone-400 dark:text-stone-500 text-xs">
+      {Component.text(props.label)}
+    </span>
+  </div>
 }
 
-module Foundations = {
-  let component = () => {
-    Component.div(
-      ~attrs=[Component.attr("class", "flex gap-4")],
-      ~children=[
-        Component.signalFragment(
-          Computed.make(() => {
-            let state = Signal.get(gameState)
-            Array.mapWithIndex(state.foundations, (foundation, index) => {
-              if Array.length(foundation) > 0 {
-                let card = Array.getUnsafe(foundation, Array.length(foundation) - 1)
-                CardComponent.component(
-                  ~card,
-                  ~isSelected=false,
-                  ~onClick=evt => handleFoundationClick(index, evt),
-                  (),
-                )
-              } else {
-                let label = switch index {
-                | 0 => "♥"
-                | 1 => "♦"
-                | 2 => "♣"
-                | _ => "♠"
-                }
-                EmptySlot.component(~label, ~onClick=evt => handleFoundationClick(index, evt), ())
-              }
+/* Stock and Waste Component using JSX */
+let stockAndWaste = () => {
+  <div className="flex gap-4">
+    {Component.signalFragment(
+      Computed.make(() => {
+        let state = Signal.get(gameState)
+        if Array.length(state.stock) > 0 {
+          [
+            <div
+              className="w-16 h-24 bg-blue-600 border-2 border-blue-700 rounded-lg cursor-pointer shadow-md flex items-center justify-center hover:scale-105 transition-transform"
+              onClick={drawCard}>
+              <div className="text-blue-400 text-2xl"> {Component.text("✦")} </div>
+            </div>,
+          ]
+        } else {
+          [
+            <div
+              className="w-16 h-24 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg cursor-pointer flex items-center justify-center hover:border-stone-400 dark:hover:border-stone-500"
+              onClick={drawCard}>
+              <span className="text-stone-400 text-xs"> {Component.text("↻")} </span>
+            </div>,
+          ]
+        }
+      }),
+    )}
+    {Component.signalFragment(
+      Computed.make(() => {
+        let state = Signal.get(gameState)
+        let selection = Signal.get(selectedCard)
+        if Array.length(state.waste) > 0 {
+          let card = Array.getUnsafe(state.waste, 0)
+          let isSelected = switch selection {
+          | WasteSelected => true
+          | _ => false
+          }
+          [cardComponent({card, isSelected, onClick: handleWasteClick})]
+        } else {
+          [emptySlot({label: "", onClick: _ => ()})]
+        }
+      }),
+    )}
+  </div>
+}
+
+/* Foundations Component using JSX */
+let foundations = () => {
+  <div className="flex gap-4">
+    {Component.signalFragment(
+      Computed.make(() => {
+        let state = Signal.get(gameState)
+        Array.mapWithIndex(state.foundations, (foundation, index) => {
+          if Array.length(foundation) > 0 {
+            let card = Array.getUnsafe(foundation, Array.length(foundation) - 1)
+            cardComponent({
+              card,
+              isSelected: false,
+              onClick: evt => handleFoundationClick(index, evt),
             })
-          }),
-        ),
-      ],
-      (),
-    )
-  }
+          } else {
+            let label = switch index {
+            | 0 => "♥"
+            | 1 => "♦"
+            | 2 => "♣"
+            | _ => "♠"
+            }
+            emptySlot({label, onClick: evt => handleFoundationClick(index, evt)})
+          }
+        })
+      }),
+    )}
+  </div>
 }
 
-module TableauColumn = {
-  let component = (~colIndex: int, ()) => {
-    Component.div(
-      ~attrs=[Component.attr("class", "flex flex-col")],
-      ~children=[
-        Component.signalFragment(
-          Computed.make(() => {
-            let state = Signal.get(gameState)
-            let selection = Signal.get(selectedCard)
-            let column = Array.getUnsafe(state.tableau, colIndex)
+/* Tableau Column Component using JSX */
+type tableauColumnProps = {colIndex: int}
 
-            if Array.length(column) == 0 {
-              [EmptySlot.component(~label="K", ~onClick=evt => handleTableauEmptyClick(colIndex, evt), ())]
-            } else {
-              Array.mapWithIndex(column, (card, cardIndex) => {
-                let isSelected = switch selection {
-                | TableauSelected(col, idx) => col == colIndex && idx == cardIndex
-                | _ => false
-                }
+let tableauColumn = (props: tableauColumnProps) => {
+  <div className="flex flex-col">
+    {Component.signalFragment(
+      Computed.make(() => {
+        let state = Signal.get(gameState)
+        let selection = Signal.get(selectedCard)
+        let column = Array.getUnsafe(state.tableau, props.colIndex)
 
-                let marginClass = if cardIndex > 0 {
-                  card.faceUp ? "-mt-16" : "-mt-20"
-                } else {
-                  ""
-                }
-
-                Component.div(
-                  ~attrs=[Component.attr("class", marginClass)],
-                  ~children=[
-                    CardComponent.component(
-                      ~card,
-                      ~isSelected,
-                      ~onClick=evt => handleTableauCardClick(colIndex, cardIndex, evt),
-                      (),
-                    ),
-                  ],
-                  (),
-                )
-              })
+        if Array.length(column) == 0 {
+          [emptySlot({label: "K", onClick: evt => handleTableauEmptyClick(props.colIndex, evt)})]
+        } else {
+          Array.mapWithIndex(column, (card, cardIndex) => {
+            let isSelected = switch selection {
+            | TableauSelected(col, idx) => col == props.colIndex && idx == cardIndex
+            | _ => false
             }
-          }),
-        ),
-      ],
-      (),
-    )
-  }
+
+            let marginClass = if cardIndex > 0 {
+              card.faceUp ? "-mt-16" : "-mt-20"
+            } else {
+              ""
+            }
+
+            <div className={marginClass}>
+              {cardComponent({
+                card,
+                isSelected,
+                onClick: evt => handleTableauCardClick(props.colIndex, cardIndex, evt),
+              })}
+            </div>
+          })
+        }
+      }),
+    )}
+  </div>
 }
 
-module SolitaireGame = {
-  let component = () => {
-    // Initialize game on mount
-    let _ = Effect.run(() => {
-      let state = Signal.get(gameState)
-      if Array.length(state.stock) == 0 &&
-         Array.length(Array.getUnsafe(state.tableau, 0)) == 0 {
-        newGame(%raw(`new Event('click')`))
-      }
-    })
+/* Main Solitaire Game Component using JSX */
+let app = () => {
+  // Initialize game on mount
+  let _ = Effect.run(() => {
+    let state = Signal.get(gameState)
+    if Array.length(state.stock) == 0 && Array.length(Array.getUnsafe(state.tableau, 0)) == 0 {
+      newGame(%raw(`new Event('click')`))
+    }
+  })
 
-    Component.div(
-      ~attrs=[Component.attr("class", "max-w-6xl mx-auto p-4 md:p-6 space-y-6")],
-      ~children=[
-        // Header
-        Component.div(
-          ~attrs=[Component.attr("class", "flex items-center justify-between mb-6")],
-          ~children=[
-            Component.div(
-              ~children=[
-                Component.h1(
-                  ~attrs=[
-                    Component.attr(
-                      "class",
-                      "text-2xl md:text-3xl font-bold text-stone-900 dark:text-white mb-1",
-                    ),
-                  ],
-                  ~children=[Component.text("Solitaire")],
-                  (),
-                ),
-                Component.p(
-                  ~attrs=[
-                    Component.attr("class", "text-sm text-stone-600 dark:text-stone-400"),
-                  ],
-                  ~children=[
-                    Component.text("Moves: "),
-                    Component.textSignal(() => Signal.get(moves)->Int.toString),
-                  ],
-                  (),
-                ),
-              ],
-              (),
-            ),
-            Component.button(
-              ~attrs=[
-                Component.attr(
-                  "class",
-                  "px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors",
-                ),
-              ],
-              ~events=[("click", newGame)],
-              ~children=[Component.text("New Game")],
-              (),
-            ),
-          ],
-          (),
-        ),
-        // Win message
-        Component.signalFragment(
-          Computed.make(() => {
-            if Signal.get(gameWon) {
-              [
-                Component.div(
-                  ~attrs=[
-                    Component.attr(
-                      "class",
-                      "bg-green-100 dark:bg-green-900/30 border-2 border-green-500 rounded-xl p-4 text-center",
-                    ),
-                  ],
-                  ~children=[
-                    Component.p(
-                      ~attrs=[
-                        Component.attr(
-                          "class",
-                          "text-xl font-bold text-green-800 dark:text-green-300",
-                        ),
-                      ],
-                      ~children=[
-                        Component.text("🎉 You Won! "),
-                        Component.textSignal(() =>
-                          `Completed in ${Signal.get(moves)->Int.toString} moves`
-                        ),
-                      ],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-              ]
-            } else {
-              []
-            }
-          }),
-        ),
-        // Game area
-        Component.div(
-          ~attrs=[
-            Component.attr(
-              "class",
-              "bg-green-700 dark:bg-green-900 rounded-2xl p-6 min-h-[600px]",
-            ),
-          ],
-          ~children=[
-            // Top row: Stock/Waste and Foundations
-            Component.div(
-              ~attrs=[Component.attr("class", "flex justify-between mb-8")],
-              ~children=[
-                StockAndWaste.component(),
-                Foundations.component(),
-              ],
-              (),
-            ),
-            // Tableau
-            Component.div(
-              ~attrs=[Component.attr("class", "grid grid-cols-7 gap-4")],
-              ~children=[
-                TableauColumn.component(~colIndex=0, ()),
-                TableauColumn.component(~colIndex=1, ()),
-                TableauColumn.component(~colIndex=2, ()),
-                TableauColumn.component(~colIndex=3, ()),
-                TableauColumn.component(~colIndex=4, ()),
-                TableauColumn.component(~colIndex=5, ()),
-                TableauColumn.component(~colIndex=6, ()),
-              ],
-              (),
-            ),
-          ],
-          (),
-        ),
-        // Instructions
-        Component.div(
-          ~attrs=[
-            Component.attr(
-              "class",
-              "bg-stone-50 dark:bg-stone-800 rounded-xl p-4 border border-stone-200 dark:border-stone-700",
-            ),
-          ],
-          ~children=[
-            Component.h3(
-              ~attrs=[
-                Component.attr("class", "font-semibold text-stone-900 dark:text-white mb-2"),
-              ],
-              ~children=[Component.text("How to Play")],
-              (),
-            ),
-            Component.ul(
-              ~attrs=[
-                Component.attr(
-                  "class",
-                  "text-sm text-stone-600 dark:text-stone-400 space-y-1 list-disc list-inside",
-                ),
-              ],
-              ~children=[
-                Component.li(
-                  ~children=[Component.text("Click cards to select, then click destination")],
-                  (),
-                ),
-                Component.li(
-                  ~children=[
-                    Component.text("Build tableau columns in descending order, alternating colors"),
-                  ],
-                  (),
-                ),
-                Component.li(
-                  ~children=[Component.text("Build foundations from Ace to King by suit")],
-                  (),
-                ),
-                Component.li(~children=[Component.text("Only Kings can be placed on empty columns")], ()),
-                Component.li(~children=[Component.text("Click stock to draw cards")], ()),
-              ],
-              (),
-            ),
-          ],
-          (),
-        ),
-      ],
-      (),
-    )
-  }
+  <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+    <div className="flex items-center justify-between mb-6">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold text-stone-900 dark:text-white mb-1">
+          {Component.text("Solitaire")}
+        </h1>
+        <p className="text-sm text-stone-600 dark:text-stone-400">
+          {Component.text("Moves: ")}
+          {Component.textSignal(() => Signal.get(moves)->Int.toString)}
+        </p>
+      </div>
+      <button
+        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+        onClick={newGame}>
+        {Component.text("New Game")}
+      </button>
+    </div>
+    {Component.signalFragment(
+      Computed.make(() => {
+        if Signal.get(gameWon) {
+          [
+            <div
+              className="bg-green-100 dark:bg-green-900/30 border-2 border-green-500 rounded-xl p-4 text-center">
+              <p className="text-xl font-bold text-green-800 dark:text-green-300">
+                {Component.text("🎉 You Won! ")}
+                {Component.textSignal(() =>
+                  `Completed in ${Signal.get(moves)->Int.toString} moves`
+                )}
+              </p>
+            </div>,
+          ]
+        } else {
+          []
+        }
+      }),
+    )}
+    <div className="bg-green-700 dark:bg-green-900 rounded-2xl p-6 min-h-[600px]">
+      <div className="flex justify-between mb-8">
+        {stockAndWaste()}
+        {foundations()}
+      </div>
+      <div className="grid grid-cols-7 gap-4">
+        {tableauColumn({colIndex: 0})}
+        {tableauColumn({colIndex: 1})}
+        {tableauColumn({colIndex: 2})}
+        {tableauColumn({colIndex: 3})}
+        {tableauColumn({colIndex: 4})}
+        {tableauColumn({colIndex: 5})}
+        {tableauColumn({colIndex: 6})}
+      </div>
+    </div>
+    <div
+      className="bg-stone-50 dark:bg-stone-800 rounded-xl p-4 border border-stone-200 dark:border-stone-700">
+      <h3 className="font-semibold text-stone-900 dark:text-white mb-2">
+        {Component.text("How to Play")}
+      </h3>
+      <ul className="text-sm text-stone-600 dark:text-stone-400 space-y-1 list-disc list-inside">
+        <li> {Component.text("Click cards to select, then click destination")} </li>
+        <li> {Component.text("Build tableau columns in descending order, alternating colors")} </li>
+        <li> {Component.text("Build foundations from Ace to King by suit")} </li>
+        <li> {Component.text("Only Kings can be placed on empty columns")} </li>
+        <li> {Component.text("Click stock to draw cards")} </li>
+      </ul>
+    </div>
+  </div>
 }
