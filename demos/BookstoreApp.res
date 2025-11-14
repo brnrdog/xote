@@ -1,3 +1,5 @@
+/* Bookstore demo using JSX syntax - showcases routing and e-commerce flow */
+
 open Xote
 
 // Initialize router
@@ -6,12 +8,15 @@ let _ = Router.init()
 // Navigate to home on first load if we're at the HTML file path
 let _ = Effect.run(() => {
   let pathname = Signal.get(Router.location).pathname
+
   // Handle various paths where the HTML file might be served
   // - Local: /bookstore.html or /demos/bookstore.html
   // - GitHub Pages: /xote/demos/bookstore.html
-  if pathname == "/bookstore.html" ||
-     pathname == "/demos/bookstore.html" ||
-     pathname == "/xote/demos/bookstore.html" {
+  if (
+    pathname == "/bookstore.html" ||
+    pathname == "/demos/bookstore.html" ||
+    pathname == "/xote/demos/bookstore.html"
+  ) {
     Router.replace("/", ())
   }
 })
@@ -156,7 +161,7 @@ let cartTotal = Computed.make(() => {
   items->Array.reduce(0.0, (total, item) => {
     let product = products->Array.find(p => p.id == item.productId)
     switch product {
-    | Some(p) => total +. (p.price *. Float.fromInt(item.quantity))
+    | Some(p) => total +. p.price *. Float.fromInt(item.quantity)
     | None => total
     }
   })
@@ -240,893 +245,588 @@ let completeOrder = () => {
   Signal.update(orderNumber, n => n + 1)
   Router.push("/order-confirmed", ())
   clearCart()
-  Signal.set(checkoutForm, {
-    name: "",
-    email: "",
-    address: "",
-    city: "",
-    cardNumber: "",
-  })
+  Signal.set(
+    checkoutForm,
+    {
+      name: "",
+      email: "",
+      address: "",
+      city: "",
+      cardNumber: "",
+    },
+  )
 }
 
-// Components
-module HomePage = {
-  let component = () => {
-    Component.div(
-      ~attrs=[Component.attr("class", "max-w-4xl mx-auto p-6 text-center")],
-      ~children=[
-        Component.div(
-          ~attrs=[Component.attr("class", "py-12")],
-          ~children=[
-            Component.div(
-              ~attrs=[Component.attr("class", "text-6xl mb-6")],
-              ~children=[Component.text("📚")],
-              (),
-            ),
-            Component.h1(
-              ~attrs=[Component.attr("class", "text-4xl md:text-5xl font-bold text-stone-900 dark:text-white mb-4")],
-              ~children=[Component.text("Welcome to Functional Bookstore")],
-              (),
-            ),
-            Component.p(
-              ~attrs=[Component.attr("class", "text-xl text-stone-600 dark:text-stone-400 mb-8")],
-              ~children=[Component.text("Your premier destination for absurd functional programming literature")],
-              (),
-            ),
-            Router.link(
-              ~to="/catalog",
-              ~attrs=[Component.attr("class", "inline-block px-8 py-4 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-xl font-semibold text-lg transition-colors")],
-              ~children=[Component.text("Browse Our Collection →")],
-              (),
-            ),
-          ],
-          (),
-        ),
-        Component.div(
-          ~attrs=[Component.attr("class", "grid grid-cols-1 md:grid-cols-3 gap-6 mt-12")],
-          ~children=[
-            Component.div(
-              ~attrs=[Component.attr("class", "bg-white dark:bg-stone-800 rounded-xl p-6 border-2 border-stone-200 dark:border-stone-700")],
-              ~children=[
-                Component.div(
-                  ~attrs=[Component.attr("class", "text-3xl mb-3")],
-                  ~children=[Component.text("📖")],
-                  (),
-                ),
-                Component.h3(
-                  ~attrs=[Component.attr("class", "text-xl font-bold text-stone-900 dark:text-white mb-2")],
-                  ~children=[Component.text("12 Unique Titles")],
-                  (),
-                ),
-                Component.p(
-                  ~attrs=[Component.attr("class", "text-stone-600 dark:text-stone-400")],
-                  ~children=[Component.text("From monads to functors, explore our curated collection")],
-                  (),
-                ),
-              ],
-              (),
-            ),
-            Component.div(
-              ~attrs=[Component.attr("class", "bg-white dark:bg-stone-800 rounded-xl p-6 border-2 border-stone-200 dark:border-stone-700")],
-              ~children=[
-                Component.div(
-                  ~attrs=[Component.attr("class", "text-3xl mb-3")],
-                  ~children=[Component.text("🎨")],
-                  (),
-                ),
-                Component.h3(
-                  ~attrs=[Component.attr("class", "text-xl font-bold text-stone-900 dark:text-white mb-2")],
-                  ~children=[Component.text("Fictional Authors")],
-                  (),
-                ),
-                Component.p(
-                  ~attrs=[Component.attr("class", "text-stone-600 dark:text-stone-400")],
-                  ~children=[Component.text("Written by legends like Dr. Lambda Calculus")],
-                  (),
-                ),
-              ],
-              (),
-            ),
-            Component.div(
-              ~attrs=[Component.attr("class", "bg-white dark:bg-stone-800 rounded-xl p-6 border-2 border-stone-200 dark:border-stone-700")],
-              ~children=[
-                Component.div(
-                  ~attrs=[Component.attr("class", "text-3xl mb-3")],
-                  ~children=[Component.text("Ƒ")],
-                  (),
-                ),
-                Component.h3(
-                  ~attrs=[Component.attr("class", "text-xl font-bold text-stone-900 dark:text-white mb-2")],
-                  ~children=[Component.text("Functor Currency")],
-                  (),
-                ),
-                Component.p(
-                  ~attrs=[Component.attr("class", "text-stone-600 dark:text-stone-400")],
-                  ~children=[Component.text("All prices in our fictional Functor (Ƒ) currency")],
-                  (),
-                ),
-              ],
-              (),
-            ),
-          ],
-          (),
-        ),
-      ],
-      (),
-    )
-  }
-}
-
-module AboutPage = {
-  let component = () => {
-    Component.div(
-      ~attrs=[Component.attr("class", "max-w-3xl mx-auto p-6")],
-      ~children=[
-        Component.h1(
-          ~attrs=[Component.attr("class", "text-4xl font-bold text-stone-900 dark:text-white mb-6")],
-          ~children=[Component.text("About Functional Bookstore")],
-          (),
-        ),
-        Component.div(
-          ~attrs=[Component.attr("class", "bg-white dark:bg-stone-800 rounded-xl p-8 border-2 border-stone-200 dark:border-stone-700 space-y-6")],
-          ~children=[
-            Component.p(
-              ~attrs=[Component.attr("class", "text-lg text-stone-700 dark:text-stone-300")],
-              ~children=[Component.text("Welcome to the Functional Bookstore, your one-stop shop for the most absurd and delightful functional programming literature in the known universe.")],
-              (),
-            ),
-            Component.h2(
-              ~attrs=[Component.attr("class", "text-2xl font-bold text-stone-900 dark:text-white mt-6")],
-              ~children=[Component.text("Our Mission")],
-              (),
-            ),
-            Component.p(
-              ~attrs=[Component.attr("class", "text-stone-600 dark:text-stone-400")],
-              ~children=[Component.text("We believe that learning functional programming should be fun, quirky, and filled with clever puns. Our carefully curated collection features fictional books with titles that will make you laugh, think, and perhaps question your life choices.")],
-              (),
-            ),
-            Component.h2(
-              ~attrs=[Component.attr("class", "text-2xl font-bold text-stone-900 dark:text-white mt-6")],
-              ~children=[Component.text("Why Functors?")],
-              (),
-            ),
-            Component.p(
-              ~attrs=[Component.attr("class", "text-stone-600 dark:text-stone-400")],
-              ~children=[Component.text("Our currency, the Functor (Ƒ), represents the pure, mappable nature of value itself. Just as a functor maps values through a context, our prices map your desire for knowledge into tangible (albeit fictional) transactions.")],
-              (),
-            ),
-            Component.h2(
-              ~attrs=[Component.attr("class", "text-2xl font-bold text-stone-900 dark:text-white mt-6")],
-              ~children=[Component.text("Demo Purpose")],
-              (),
-            ),
-            Component.p(
-              ~attrs=[Component.attr("class", "text-stone-600 dark:text-stone-400")],
-              ~children=[Component.text("This bookstore is a demonstration of Xote's routing capabilities, showcasing multi-page navigation, shopping cart management, and a complete checkout flow. All built with reactive signals and zero dependencies.")],
-              (),
-            ),
-            Component.div(
-              ~attrs=[Component.attr("class", "pt-6 mt-6 border-t-2 border-stone-200 dark:border-stone-700")],
-              ~children=[
-                Router.link(
-                  ~to="/catalog",
-                  ~attrs=[Component.attr("class", "inline-block px-6 py-3 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors")],
-                  ~children=[Component.text("Start Shopping →")],
-                  (),
-                ),
-              ],
-              (),
-            ),
-          ],
-          (),
-        ),
-      ],
-      (),
-    )
-  }
-}
-
-module Header = {
-  let component = () => {
-    Component.div(
-      ~attrs=[
-        Component.attr("class", "bg-white dark:bg-stone-800 border-b-2 border-stone-200 dark:border-stone-700 p-4")
-      ],
-      ~children=[
-        Component.div(
-          ~attrs=[Component.attr("class", "max-w-7xl mx-auto flex justify-between items-center")],
-          ~children=[
-            Router.link(
-              ~to="/",
-              ~attrs=[Component.attr("class", "flex items-center gap-3 hover:opacity-80 transition-opacity")],
-              ~children=[
-                Component.span(
-                  ~attrs=[Component.attr("class", "text-3xl")],
-                  ~children=[Component.text("📚")],
-                  (),
-                ),
-                Component.h1(
-                  ~attrs=[Component.attr("class", "text-2xl font-bold text-stone-900 dark:text-white")],
-                  ~children=[Component.text("Functional Bookstore")],
-                  (),
-                ),
-              ],
-              (),
-            ),
-            Component.div(
-              ~attrs=[Component.attr("class", "flex items-center gap-2")],
-              ~children=[
-                Router.link(
-                  ~to="/",
-                  ~attrs=[
-                    Component.computedAttr("class", () => {
-                      let pathname = Signal.get(Router.location).pathname
-                      if pathname == "/" {
-                        "px-4 py-2 bg-stone-900 dark:bg-stone-700 text-white rounded-lg font-semibold"
-                      } else {
-                        "px-4 py-2 text-stone-900 dark:text-white hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg font-semibold transition-colors"
-                      }
-                    })
-                  ],
-                  ~children=[Component.text("Home")],
-                  (),
-                ),
-                Router.link(
-                  ~to="/catalog",
-                  ~attrs=[
-                    Component.computedAttr("class", () => {
-                      let pathname = Signal.get(Router.location).pathname
-                      if pathname == "/catalog" {
-                        "px-4 py-2 bg-stone-900 dark:bg-stone-700 text-white rounded-lg font-semibold"
-                      } else {
-                        "px-4 py-2 text-stone-900 dark:text-white hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg font-semibold transition-colors"
-                      }
-                    })
-                  ],
-                  ~children=[Component.text("Browse Books")],
-                  (),
-                ),
-                Router.link(
-                  ~to="/about",
-                  ~attrs=[
-                    Component.computedAttr("class", () => {
-                      let pathname = Signal.get(Router.location).pathname
-                      if pathname == "/about" {
-                        "px-4 py-2 bg-stone-900 dark:bg-stone-700 text-white rounded-lg font-semibold"
-                      } else {
-                        "px-4 py-2 text-stone-900 dark:text-white hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg font-semibold transition-colors"
-                      }
-                    })
-                  ],
-                  ~children=[Component.text("About")],
-                  (),
-                ),
-                Router.link(
-                  ~to="/cart",
-                  ~attrs=[
-                    Component.attr("class", "relative px-4 py-2 bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 text-stone-900 dark:text-white rounded-lg font-semibold transition-colors")
-                  ],
-                  ~children=[
-                    Component.text("🛒 Cart"),
-                    Component.span(
-                      ~attrs=[
-                        Component.computedAttr("class", () => {
-                          let count = Signal.get(cartItemCount)
-                          if count > 0 {
-                            "ml-2 px-2 py-1 bg-stone-900 dark:bg-stone-600 text-white text-xs rounded-full"
-                          } else {
-                            "hidden"
-                          }
-                        })
-                      ],
-                      ~children=[Component.textSignal(() => Int.toString(Signal.get(cartItemCount)))],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-              ],
-              (),
-            ),
-          ],
-          (),
-        ),
-      ],
-      (),
-    )
-  }
-}
-
-module ProductCard = {
-  let component = (product: product) => {
-    let inCart = Computed.make(() => {
-      let item = getCartItem(product.id)
-      Option.isSome(item)
-    })
-
-    Component.div(
-      ~attrs=[Component.attr("class", "bg-white dark:bg-stone-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow border-2 border-stone-200 dark:border-stone-700")],
-      ~children=[
-        Component.div(
-          ~attrs=[Component.attr("class", "text-6xl text-center mb-4")],
-          ~children=[Component.text(product.cover)],
-          (),
-        ),
-        Component.h3(
-          ~attrs=[Component.attr("class", "text-xl font-bold text-stone-900 dark:text-white mb-2")],
-          ~children=[Component.text(product.title)],
-          (),
-        ),
-        Component.p(
-          ~attrs=[Component.attr("class", "text-sm text-stone-600 dark:text-stone-400 mb-2")],
-          ~children=[Component.text("by " ++ product.author)],
-          (),
-        ),
-        Component.p(
-          ~attrs=[Component.attr("class", "text-stone-600 dark:text-stone-400 text-sm mb-4 line-clamp-3")],
-          ~children=[Component.text(product.description)],
-          (),
-        ),
-        Component.div(
-          ~attrs=[Component.attr("class", "flex justify-between items-center")],
-          ~children=[
-            Component.span(
-              ~attrs=[Component.attr("class", "text-2xl font-bold text-stone-700 dark:text-stone-300")],
-              ~children=[Component.text(formatPrice(product.price))],
-              (),
-            ),
-            Component.button(
-              ~attrs=[
-                Component.computedAttr("class", () =>
-                  if Signal.get(inCart) {
-                    "px-4 py-2 bg-green-600 text-white rounded-lg font-semibold"
-                  } else {
-                    "px-4 py-2 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors"
-                  }
-                )
-              ],
-              ~events=[("click", _ => addToCart(product.id))],
-              ~children=[
-                Component.textSignal(() =>
-                  if Signal.get(inCart) {
-                    "✓ In Cart"
-                  } else {
-                    "Add to Cart"
-                  }
-                )
-              ],
-              (),
-            ),
-          ],
-          (),
-        ),
-      ],
-      (),
-    )
-  }
-}
-
-module CatalogView = {
-  let component = () => {
-    Component.div(
-      ~attrs=[Component.attr("class", "max-w-7xl mx-auto p-6")],
-      ~children=[
-        Component.h2(
-          ~attrs=[Component.attr("class", "text-3xl font-bold text-stone-900 dark:text-white mb-6")],
-          ~children=[Component.text("Available Books")],
-          (),
-        ),
-        Component.div(
-          ~attrs=[Component.attr("class", "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6")],
-          ~children=products->Array.map(product => ProductCard.component(product)),
-          (),
-        ),
-      ],
-      (),
-    )
-  }
-}
-
-module CartItemRow = {
-  let component = (item: cartItem) => {
-    let product = getProductById(item.productId)
-
-    switch product {
-    | Some(p) =>
-      Component.div(
-        ~attrs=[Component.attr("class", "bg-white dark:bg-stone-800 rounded-lg p-4 shadow border-2 border-stone-200 dark:border-stone-700")],
+/* Header Component using JSX */
+let header = () => {
+  <div className="bg-white dark:bg-stone-800 border-b-2 border-stone-200 dark:border-stone-700 p-4">
+    <div className="max-w-7xl mx-auto flex justify-between items-center">
+      {Router.link(
+        ~to="/",
+        ~attrs=[
+          Component.attr("class", "flex items-center gap-3 hover:opacity-80 transition-opacity"),
+        ],
         ~children=[
-          Component.div(
-            ~attrs=[Component.attr("class", "flex gap-4")],
-            ~children=[
-              Component.div(
-                ~attrs=[Component.attr("class", "text-4xl")],
-                ~children=[Component.text(p.cover)],
-                (),
-              ),
-              Component.div(
-                ~attrs=[Component.attr("class", "flex-1")],
-                ~children=[
-                  Component.h3(
-                    ~attrs=[Component.attr("class", "font-bold text-stone-900 dark:text-white")],
-                    ~children=[Component.text(p.title)],
-                    (),
-                  ),
-                  Component.p(
-                    ~attrs=[Component.attr("class", "text-sm text-stone-600 dark:text-stone-400")],
-                    ~children=[Component.text("by " ++ p.author)],
-                    (),
-                  ),
-                  Component.p(
-                    ~attrs=[Component.attr("class", "text-stone-700 dark:text-stone-300 font-semibold mt-2")],
-                    ~children=[Component.text(formatPrice(p.price) ++ " each")],
-                    (),
-                  ),
-                ],
-                (),
-              ),
-              Component.div(
-                ~attrs=[Component.attr("class", "flex flex-col items-end gap-2")],
-                ~children=[
-                  Component.div(
-                    ~attrs=[Component.attr("class", "flex items-center gap-2")],
-                    ~children=[
-                      Component.button(
-                        ~attrs=[Component.attr("class", "px-3 py-1 bg-stone-200 dark:bg-stone-700 rounded hover:bg-stone-300 dark:hover:bg-stone-600 font-bold")],
-                        ~events=[("click", _ => updateQuantity(p.id, item.quantity - 1))],
-                        ~children=[Component.text("-")],
-                        (),
-                      ),
-                      Component.span(
-                        ~attrs=[Component.attr("class", "px-4 py-1 bg-stone-100 dark:bg-stone-700 rounded font-semibold text-stone-900 dark:text-white")],
-                        ~children=[Component.text(Int.toString(item.quantity))],
-                        (),
-                      ),
-                      Component.button(
-                        ~attrs=[Component.attr("class", "px-3 py-1 bg-stone-200 dark:bg-stone-700 rounded hover:bg-stone-300 dark:hover:bg-stone-600 font-bold")],
-                        ~events=[("click", _ => updateQuantity(p.id, item.quantity + 1))],
-                        ~children=[Component.text("+")],
-                        (),
-                      ),
-                    ],
-                    (),
-                  ),
-                  Component.p(
-                    ~attrs=[Component.attr("class", "text-lg font-bold text-stone-900 dark:text-white")],
-                    ~children=[Component.text(formatPrice(p.price *. Float.fromInt(item.quantity)))],
-                    (),
-                  ),
-                  Component.button(
-                    ~attrs=[Component.attr("class", "text-sm text-red-600 hover:text-red-700 font-semibold")],
-                    ~events=[("click", _ => removeFromCart(p.id))],
-                    ~children=[Component.text("Remove")],
-                    (),
-                  ),
-                ],
-                (),
-              ),
-            ],
-            (),
-          ),
+          <span className="text-3xl"> {Component.text("📚")} </span>,
+          <h1 className="text-2xl font-bold text-stone-900 dark:text-white">
+            {Component.text("Functional Bookstore")}
+          </h1>,
         ],
         (),
-      )
-    | None => Component.div(~children=[], ())
-    }
-  }
-}
-
-module CartView = {
-  let component = () => {
-    let isEmpty = Computed.make(() => Array.length(Signal.get(cart)) == 0)
-
-    Component.div(
-      ~attrs=[Component.attr("class", "max-w-4xl mx-auto p-6")],
-      ~children=[
-        Component.h2(
-          ~attrs=[Component.attr("class", "text-3xl font-bold text-stone-900 dark:text-white mb-6")],
-          ~children=[Component.text("Shopping Cart")],
-          (),
-        ),
-        Component.div(
+      )}
+      <div className="flex items-center gap-2">
+        {Router.link(
+          ~to="/",
           ~attrs=[
-            Component.computedAttr("class", () =>
-              if Signal.get(isEmpty) {
-                "block"
+            Component.computedAttr("class", () => {
+              let pathname = Signal.get(Router.location).pathname
+              if pathname == "/" {
+                "px-4 py-2 bg-stone-900 dark:bg-stone-700 text-white rounded-lg font-semibold"
               } else {
-                "hidden"
+                "px-4 py-2 text-stone-900 dark:text-white hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg font-semibold transition-colors"
               }
-            )
+            }),
           ],
-          ~children=[
-            Component.div(
-              ~attrs=[Component.attr("class", "text-center py-12")],
-              ~children=[
-                Component.p(
-                  ~attrs=[Component.attr("class", "text-xl text-stone-600 dark:text-stone-400 mb-4")],
-                  ~children=[Component.text("Your cart is empty")],
-                  (),
-                ),
-                Router.link(
-                  ~to="/catalog",
-                  ~attrs=[Component.attr("class", "px-6 py-3 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors")],
-                  ~children=[Component.text("Browse Books")],
-                  (),
-                ),
-              ],
-              (),
-            ),
-          ],
+          ~children=[Component.text("Home")],
           (),
-        ),
-        Component.div(
+        )}
+        {Router.link(
+          ~to="/catalog",
           ~attrs=[
-            Component.computedAttr("class", () =>
-              if Signal.get(isEmpty) {
-                "hidden"
+            Component.computedAttr("class", () => {
+              let pathname = Signal.get(Router.location).pathname
+              if pathname == "/catalog" {
+                "px-4 py-2 bg-stone-900 dark:bg-stone-700 text-white rounded-lg font-semibold"
               } else {
-                "block"
+                "px-4 py-2 text-stone-900 dark:text-white hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg font-semibold transition-colors"
               }
-            )
+            }),
+          ],
+          ~children=[Component.text("Browse Books")],
+          (),
+        )}
+        {Router.link(
+          ~to="/about",
+          ~attrs=[
+            Component.computedAttr("class", () => {
+              let pathname = Signal.get(Router.location).pathname
+              if pathname == "/about" {
+                "px-4 py-2 bg-stone-900 dark:bg-stone-700 text-white rounded-lg font-semibold"
+              } else {
+                "px-4 py-2 text-stone-900 dark:text-white hover:bg-stone-100 dark:hover:bg-stone-700 rounded-lg font-semibold transition-colors"
+              }
+            }),
+          ],
+          ~children=[Component.text("About")],
+          (),
+        )}
+        {Router.link(
+          ~to="/cart",
+          ~attrs=[
+            Component.attr(
+              "class",
+              "relative px-4 py-2 bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 text-stone-900 dark:text-white rounded-lg font-semibold transition-colors",
+            ),
           ],
           ~children=[
-            Component.div(
-              ~attrs=[Component.attr("class", "space-y-4 mb-6")],
-              ~children=[
-                Component.list(cart, item => CartItemRow.component(item))
-              ],
-              (),
-            ),
-            Component.div(
-              ~attrs=[Component.attr("class", "bg-stone-100 dark:bg-stone-800 rounded-lg p-6 border-2 border-stone-300 dark:border-stone-700")],
-              ~children=[
-                Component.div(
-                  ~attrs=[Component.attr("class", "flex justify-between items-center mb-4")],
-                  ~children=[
-                    Component.span(
-                      ~attrs=[Component.attr("class", "text-2xl font-bold text-stone-900 dark:text-white")],
-                      ~children=[Component.text("Total:")],
-                      (),
-                    ),
-                    Component.span(
-                      ~attrs=[Component.attr("class", "text-3xl font-bold text-stone-700 dark:text-stone-300")],
-                      ~children=[Component.textSignal(() => formatPrice(Signal.get(cartTotal)))],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-                Component.div(
-                  ~attrs=[Component.attr("class", "flex gap-4")],
-                  ~children=[
-                    Router.link(
-                      ~to="/catalog",
-                      ~attrs=[Component.attr("class", "flex-1 px-6 py-3 bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 text-stone-900 dark:text-white rounded-lg font-semibold transition-colors text-center")],
-                      ~children=[Component.text("Continue Shopping")],
-                      (),
-                    ),
-                    Router.link(
-                      ~to="/checkout",
-                      ~attrs=[Component.attr("class", "flex-1 px-6 py-3 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors text-center")],
-                      ~children=[Component.text("Proceed to Checkout")],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-              ],
-              (),
-            ),
+            Component.text("🛒 Cart"),
+            <span
+              className={
+                let count = Signal.get(cartItemCount)
+                if count > 0 {
+                  "ml-2 px-2 py-1 bg-stone-900 dark:bg-stone-600 text-white text-xs rounded-full"
+                } else {
+                  "hidden"
+                }
+              }>
+              {Component.textSignal(() => Int.toString(Signal.get(cartItemCount)))}
+            </span>,
           ],
           (),
-        ),
-      ],
-      (),
-    )
+        )}
+      </div>
+    </div>
+  </div>
+}
+
+/* HomePage Component using JSX */
+let homePage = () => {
+  <div className="max-w-4xl mx-auto p-6 text-center">
+    <div className="py-12">
+      <div className="text-6xl mb-6"> {Component.text("📚")} </div>
+      <h1 className="text-4xl md:text-5xl font-bold text-stone-900 dark:text-white mb-4">
+        {Component.text("Welcome to Functional Bookstore")}
+      </h1>
+      <p className="text-xl text-stone-600 dark:text-stone-400 mb-8">
+        {Component.text("Your premier destination for absurd functional programming literature")}
+      </p>
+      {Router.link(
+        ~to="/catalog",
+        ~attrs=[
+          Component.attr(
+            "class",
+            "inline-block px-8 py-4 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-xl font-semibold text-lg transition-colors",
+          ),
+        ],
+        ~children=[Component.text("Browse Our Collection →")],
+        (),
+      )}
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+      <div
+        className="bg-white dark:bg-stone-800 rounded-xl p-6 border-2 border-stone-200 dark:border-stone-700">
+        <div className="text-3xl mb-3"> {Component.text("📖")} </div>
+        <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-2">
+          {Component.text("12 Unique Titles")}
+        </h3>
+        <p className="text-stone-600 dark:text-stone-400">
+          {Component.text("From monads to functors, explore our curated collection")}
+        </p>
+      </div>
+      <div
+        className="bg-white dark:bg-stone-800 rounded-xl p-6 border-2 border-stone-200 dark:border-stone-700">
+        <div className="text-3xl mb-3"> {Component.text("🎨")} </div>
+        <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-2">
+          {Component.text("Fictional Authors")}
+        </h3>
+        <p className="text-stone-600 dark:text-stone-400">
+          {Component.text("Written by legends like Dr. Lambda Calculus")}
+        </p>
+      </div>
+      <div
+        className="bg-white dark:bg-stone-800 rounded-xl p-6 border-2 border-stone-200 dark:border-stone-700">
+        <div className="text-3xl mb-3"> {Component.text("Ƒ")} </div>
+        <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-2">
+          {Component.text("Functor Currency")}
+        </h3>
+        <p className="text-stone-600 dark:text-stone-400">
+          {Component.text("All prices in our fictional Functor (Ƒ) currency")}
+        </p>
+      </div>
+    </div>
+  </div>
+}
+
+/* AboutPage Component using JSX */
+let aboutPage = () => {
+  <div className="max-w-3xl mx-auto p-6">
+    <h1 className="text-4xl font-bold text-stone-900 dark:text-white mb-6">
+      {Component.text("About Functional Bookstore")}
+    </h1>
+    <div
+      className="bg-white dark:bg-stone-800 rounded-xl p-8 border-2 border-stone-200 dark:border-stone-700 space-y-6">
+      <p className="text-lg text-stone-700 dark:text-stone-300">
+        {Component.text(
+          "Welcome to the Functional Bookstore, your one-stop shop for the most absurd and delightful functional programming literature in the known universe.",
+        )}
+      </p>
+      <h2 className="text-2xl font-bold text-stone-900 dark:text-white mt-6">
+        {Component.text("Our Mission")}
+      </h2>
+      <p className="text-stone-600 dark:text-stone-400">
+        {Component.text(
+          "We believe that learning functional programming should be fun, quirky, and filled with clever puns. Our carefully curated collection features fictional books with titles that will make you laugh, think, and perhaps question your life choices.",
+        )}
+      </p>
+      <h2 className="text-2xl font-bold text-stone-900 dark:text-white mt-6">
+        {Component.text("Why Functors?")}
+      </h2>
+      <p className="text-stone-600 dark:text-stone-400">
+        {Component.text(
+          "Our currency, the Functor (Ƒ), represents the pure, mappable nature of value itself. Just as a functor maps values through a context, our prices map your desire for knowledge into tangible (albeit fictional) transactions.",
+        )}
+      </p>
+      <h2 className="text-2xl font-bold text-stone-900 dark:text-white mt-6">
+        {Component.text("Demo Purpose")}
+      </h2>
+      <p className="text-stone-600 dark:text-stone-400">
+        {Component.text(
+          "This bookstore is a demonstration of Xote's routing capabilities, showcasing multi-page navigation, shopping cart management, and a complete checkout flow. All built with reactive signals and zero dependencies.",
+        )}
+      </p>
+      <div className="pt-6 mt-6 border-t-2 border-stone-200 dark:border-stone-700">
+        {Router.link(
+          ~to="/catalog",
+          ~attrs=[
+            Component.attr(
+              "class",
+              "inline-block px-6 py-3 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors",
+            ),
+          ],
+          ~children=[Component.text("Start Shopping →")],
+          (),
+        )}
+      </div>
+    </div>
+  </div>
+}
+
+/* ProductCard Component using JSX */
+type productCardProps = {product: product}
+
+let productCard = (props: productCardProps) => {
+  let inCart = Computed.make(() => {
+    let item = getCartItem(props.product.id)
+    Option.isSome(item)
+  })
+
+  <div
+    className="bg-white dark:bg-stone-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow border-2 border-stone-200 dark:border-stone-700">
+    <div className="text-6xl text-center mb-4"> {Component.text(props.product.cover)} </div>
+    <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-2">
+      {Component.text(props.product.title)}
+    </h3>
+    <p className="text-sm text-stone-600 dark:text-stone-400 mb-2">
+      {Component.text("by " ++ props.product.author)}
+    </p>
+    <p className="text-stone-600 dark:text-stone-400 text-sm mb-4 line-clamp-3">
+      {Component.text(props.product.description)}
+    </p>
+    <div className="flex justify-between items-center">
+      <span className="text-2xl font-bold text-stone-700 dark:text-stone-300">
+        {Component.text(formatPrice(props.product.price))}
+      </span>
+      <button
+        className={if Signal.get(inCart) {
+          "px-4 py-2 bg-green-600 text-white rounded-lg font-semibold"
+        } else {
+          "px-4 py-2 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors"
+        }}
+        onClick={_ => addToCart(props.product.id)}>
+        {Component.textSignal(() =>
+          if Signal.get(inCart) {
+            "✓ In Cart"
+          } else {
+            "Add to Cart"
+          }
+        )}
+      </button>
+    </div>
+  </div>
+}
+
+/* CatalogView Component using JSX */
+let catalogView = () => {
+  <div className="max-w-7xl mx-auto p-6">
+    <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-6">
+      {Component.text("Available Books")}
+    </h2>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {Component.fragment(products->Array.map(product => productCard({product: product})))}
+    </div>
+  </div>
+}
+
+/* CartItemRow Component using JSX */
+type cartItemRowProps = {item: cartItem}
+
+let cartItemRow = (props: cartItemRowProps) => {
+  let product = getProductById(props.item.productId)
+
+  switch product {
+  | Some(p) =>
+    <div
+      className="bg-white dark:bg-stone-800 rounded-lg p-4 shadow border-2 border-stone-200 dark:border-stone-700">
+      <div className="flex gap-4">
+        <div className="text-4xl"> {Component.text(p.cover)} </div>
+        <div className="flex-1">
+          <h3 className="font-bold text-stone-900 dark:text-white"> {Component.text(p.title)} </h3>
+          <p className="text-sm text-stone-600 dark:text-stone-400">
+            {Component.text("by " ++ p.author)}
+          </p>
+          <p className="text-stone-700 dark:text-stone-300 font-semibold mt-2">
+            {Component.text(formatPrice(p.price) ++ " each")}
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              className="px-3 py-1 bg-stone-200 dark:bg-stone-700 rounded hover:bg-stone-300 dark:hover:bg-stone-600 font-bold"
+              onClick={_ => updateQuantity(p.id, props.item.quantity - 1)}>
+              {Component.text("-")}
+            </button>
+            <span
+              className="px-4 py-1 bg-stone-100 dark:bg-stone-700 rounded font-semibold text-stone-900 dark:text-white">
+              {Component.text(Int.toString(props.item.quantity))}
+            </span>
+            <button
+              className="px-3 py-1 bg-stone-200 dark:bg-stone-700 rounded hover:bg-stone-300 dark:hover:bg-stone-600 font-bold"
+              onClick={_ => updateQuantity(p.id, props.item.quantity + 1)}>
+              {Component.text("+")}
+            </button>
+          </div>
+          <p className="text-lg font-bold text-stone-900 dark:text-white">
+            {Component.text(formatPrice(p.price *. Float.fromInt(props.item.quantity)))}
+          </p>
+          <button
+            className="text-sm text-red-600 hover:text-red-700 font-semibold"
+            onClick={_ => removeFromCart(p.id)}>
+            {Component.text("Remove")}
+          </button>
+        </div>
+      </div>
+    </div>
+  | None => <div />
   }
 }
 
-module CheckoutView = {
-  let component = () => {
-    let handleInput = (field: string, evt: Dom.event) => {
-      let value = %raw(`evt.target.value`)
-      updateFormField(field, value)
-    }
+/* CartView Component using JSX */
+let cartView = () => {
+  let isEmpty = Computed.make(() => Array.length(Signal.get(cart)) == 0)
 
-    Component.div(
-      ~attrs=[Component.attr("class", "max-w-2xl mx-auto p-6")],
-      ~children=[
-        Component.h2(
-          ~attrs=[Component.attr("class", "text-3xl font-bold text-stone-900 dark:text-white mb-6")],
-          ~children=[Component.text("Checkout")],
-          (),
-        ),
-        Component.div(
-          ~attrs=[Component.attr("class", "bg-white dark:bg-stone-800 rounded-xl p-6 shadow-lg border-2 border-stone-200 dark:border-stone-700 mb-6")],
-          ~children=[
-            Component.h3(
-              ~attrs=[Component.attr("class", "text-xl font-bold text-stone-900 dark:text-white mb-4")],
-              ~children=[Component.text("Shipping Information")],
-              (),
-            ),
-            Component.div(
-              ~attrs=[Component.attr("class", "space-y-4")],
-              ~children=[
-                Component.div(
-                  ~children=[
-                    Component.span(
-                      ~attrs=[Component.attr("class", "block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2")],
-                      ~children=[Component.text("Full Name")],
-                      (),
-                    ),
-                    Component.input(
-                      ~attrs=[
-                        Component.attr("type", "text"),
-                        Component.attr("class", "w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"),
-                        Component.attr("placeholder", "John Doe"),
-                      ],
-                      ~events=[("input", handleInput("name", _))],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-                Component.div(
-                  ~children=[
-                    Component.span(
-                      ~attrs=[Component.attr("class", "block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2")],
-                      ~children=[Component.text("Email")],
-                      (),
-                    ),
-                    Component.input(
-                      ~attrs=[
-                        Component.attr("type", "email"),
-                        Component.attr("class", "w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"),
-                        Component.attr("placeholder", "john@example.com"),
-                      ],
-                      ~events=[("input", handleInput("email", _))],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-                Component.div(
-                  ~children=[
-                    Component.span(
-                      ~attrs=[Component.attr("class", "block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2")],
-                      ~children=[Component.text("Address")],
-                      (),
-                    ),
-                    Component.input(
-                      ~attrs=[
-                        Component.attr("type", "text"),
-                        Component.attr("class", "w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"),
-                        Component.attr("placeholder", "123 Lambda Lane"),
-                      ],
-                      ~events=[("input", handleInput("address", _))],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-                Component.div(
-                  ~children=[
-                    Component.span(
-                      ~attrs=[Component.attr("class", "block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2")],
-                      ~children=[Component.text("City")],
-                      (),
-                    ),
-                    Component.input(
-                      ~attrs=[
-                        Component.attr("type", "text"),
-                        Component.attr("class", "w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"),
-                        Component.attr("placeholder", "Functional City"),
-                      ],
-                      ~events=[("input", handleInput("city", _))],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-              ],
-              (),
+  <div className="max-w-4xl mx-auto p-6">
+    <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-6">
+      {Component.text("Shopping Cart")}
+    </h2>
+    <div
+      className={if Signal.get(isEmpty) {
+        "block"
+      } else {
+        "hidden"
+      }}>
+      <div className="text-center py-12">
+        <p className="text-xl text-stone-600 dark:text-stone-400 mb-4">
+          {Component.text("Your cart is empty")}
+        </p>
+        {Router.link(
+          ~to="/catalog",
+          ~attrs=[
+            Component.attr(
+              "class",
+              "px-6 py-3 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors",
             ),
           ],
+          ~children=[Component.text("Browse Books")],
           (),
-        ),
-        Component.div(
-          ~attrs=[Component.attr("class", "bg-white dark:bg-stone-800 rounded-xl p-6 shadow-lg border-2 border-stone-200 dark:border-stone-700 mb-6")],
-          ~children=[
-            Component.h3(
-              ~attrs=[Component.attr("class", "text-xl font-bold text-stone-900 dark:text-white mb-4")],
-              ~children=[Component.text("Payment Information")],
-              (),
-            ),
-            Component.div(
-              ~children=[
-                Component.span(
-                  ~attrs=[Component.attr("class", "block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2")],
-                  ~children=[Component.text("Card Number")],
-                  (),
-                ),
-                Component.input(
-                  ~attrs=[
-                    Component.attr("type", "text"),
-                    Component.attr("class", "w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"),
-                    Component.attr("placeholder", "1234 5678 9012 3456"),
-                  ],
-                  ~events=[("input", handleInput("cardNumber", _))],
-                  (),
-                ),
-              ],
-              (),
-            ),
-          ],
-          (),
-        ),
-        Component.div(
-          ~attrs=[Component.attr("class", "bg-stone-100 dark:bg-stone-800 rounded-lg p-6 border-2 border-stone-300 dark:border-stone-700 mb-6")],
-          ~children=[
-            Component.div(
-              ~attrs=[Component.attr("class", "flex justify-between items-center mb-2")],
-              ~children=[
-                Component.span(
-                  ~attrs=[Component.attr("class", "text-stone-600 dark:text-stone-400")],
-                  ~children=[Component.textSignal(() => "Items (" ++ Int.toString(Signal.get(cartItemCount)) ++ ")")],
-                  (),
-                ),
-                Component.span(
-                  ~attrs=[Component.attr("class", "font-semibold text-stone-900 dark:text-white")],
-                  ~children=[Component.textSignal(() => formatPrice(Signal.get(cartTotal)))],
-                  (),
-                ),
-              ],
-              (),
-            ),
-            Component.div(
-              ~attrs=[Component.attr("class", "flex justify-between items-center mb-2")],
-              ~children=[
-                Component.span(
-                  ~attrs=[Component.attr("class", "text-stone-600 dark:text-stone-400")],
-                  ~children=[Component.text("Shipping")],
-                  (),
-                ),
-                Component.span(
-                  ~attrs=[Component.attr("class", "font-semibold text-stone-700 dark:text-stone-300")],
-                  ~children=[Component.text("FREE")],
-                  (),
-                ),
-              ],
-              (),
-            ),
-            Component.div(
-              ~attrs=[Component.attr("class", "border-t-2 border-purple-200 dark:border-purple-700 pt-2 mt-2")],
-              ~children=[
-                Component.div(
-                  ~attrs=[Component.attr("class", "flex justify-between items-center")],
-                  ~children=[
-                    Component.span(
-                      ~attrs=[Component.attr("class", "text-xl font-bold text-stone-900 dark:text-white")],
-                      ~children=[Component.text("Total:")],
-                      (),
-                    ),
-                    Component.span(
-                      ~attrs=[Component.attr("class", "text-2xl font-bold text-stone-700 dark:text-stone-300")],
-                      ~children=[Component.textSignal(() => formatPrice(Signal.get(cartTotal)))],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-              ],
-              (),
-            ),
-          ],
-          (),
-        ),
-        Component.div(
-          ~attrs=[Component.attr("class", "flex gap-4")],
-          ~children=[
-            Router.link(
-              ~to="/cart",
-              ~attrs=[Component.attr("class", "flex-1 px-6 py-3 bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 text-stone-900 dark:text-white rounded-lg font-semibold transition-colors text-center")],
-              ~children=[Component.text("Back to Cart")],
-              (),
-            ),
-            Component.button(
-              ~attrs=[Component.attr("class", "flex-1 px-6 py-3 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors")],
-              ~events=[("click", _ => completeOrder())],
-              ~children=[Component.text("Complete Order")],
-              (),
-            ),
-          ],
-          (),
-        ),
-      ],
-      (),
-    )
-  }
+        )}
+      </div>
+    </div>
+    <div
+      className={if Signal.get(isEmpty) {
+        "hidden"
+      } else {
+        "block"
+      }}>
+      <div className="space-y-4 mb-6">
+        {Component.list(cart, item => cartItemRow({item: item}))}
+      </div>
+      <div
+        className="bg-stone-100 dark:bg-stone-800 rounded-lg p-6 border-2 border-stone-300 dark:border-stone-700">
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-2xl font-bold text-stone-900 dark:text-white">
+            {Component.text("Total:")}
+          </span>
+          <span className="text-3xl font-bold text-stone-700 dark:text-stone-300">
+            {Component.textSignal(() => formatPrice(Signal.get(cartTotal)))}
+          </span>
+        </div>
+        <div className="flex gap-4">
+          {Router.link(
+            ~to="/catalog",
+            ~attrs=[
+              Component.attr(
+                "class",
+                "flex-1 px-6 py-3 bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 text-stone-900 dark:text-white rounded-lg font-semibold transition-colors text-center",
+              ),
+            ],
+            ~children=[Component.text("Continue Shopping")],
+            (),
+          )}
+          {Router.link(
+            ~to="/checkout",
+            ~attrs=[
+              Component.attr(
+                "class",
+                "flex-1 px-6 py-3 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors text-center",
+              ),
+            ],
+            ~children=[Component.text("Proceed to Checkout")],
+            (),
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
 }
 
-module OrderConfirmedView = {
-  let component = () => {
-    Component.div(
-      ~attrs=[Component.attr("class", "max-w-2xl mx-auto p-6")],
-      ~children=[
-        Component.div(
-          ~attrs=[Component.attr("class", "bg-white dark:bg-stone-800 rounded-xl p-8 shadow-lg border-2 border-stone-300 dark:border-stone-700 text-center")],
-          ~children=[
-            Component.div(
-              ~attrs=[Component.attr("class", "text-6xl mb-4")],
-              ~children=[Component.text("✅")],
-              (),
-            ),
-            Component.h2(
-              ~attrs=[Component.attr("class", "text-3xl font-bold text-stone-900 dark:text-white mb-4")],
-              ~children=[Component.text("Order Confirmed!")],
-              (),
-            ),
-            Component.p(
-              ~attrs=[Component.attr("class", "text-xl text-stone-600 dark:text-stone-400 mb-2")],
-              ~children=[Component.text("Thank you for your order!")],
-              (),
-            ),
-            Component.p(
-              ~attrs=[Component.attr("class", "text-lg text-stone-500 dark:text-stone-500 mb-6")],
-              ~children=[
-                Component.text("Order #"),
-                Component.textSignal(() => Int.toString(Signal.get(orderNumber))),
-              ],
-              (),
-            ),
-            Component.div(
-              ~attrs=[Component.attr("class", "bg-stone-100 dark:bg-stone-700 rounded-lg p-6 mb-6")],
-              ~children=[
-                Component.p(
-                  ~attrs=[Component.attr("class", "text-stone-700 dark:text-stone-300 mb-2")],
-                  ~children=[Component.text("Your books are being prepared for shipment.")],
-                  (),
-                ),
-                Component.p(
-                  ~attrs=[Component.attr("class", "text-stone-600 dark:text-stone-400 text-sm")],
-                  ~children=[Component.text("You will receive a confirmation email shortly.")],
-                  (),
-                ),
-              ],
-              (),
-            ),
-            Router.link(
-              ~to="/catalog",
-              ~attrs=[Component.attr("class", "px-8 py-3 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors")],
-              ~children=[Component.text("Continue Shopping")],
-              (),
-            ),
-          ],
-          (),
-        ),
-      ],
-      (),
-    )
+/* CheckoutView Component using JSX */
+let checkoutView = () => {
+  let handleInput = (field: string, evt: Dom.event) => {
+    let value = %raw(`evt.target.value`)
+    updateFormField(field, value)
   }
+
+  <div className="max-w-2xl mx-auto p-6">
+    <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-6">
+      {Component.text("Checkout")}
+    </h2>
+    <div
+      className="bg-white dark:bg-stone-800 rounded-xl p-6 shadow-lg border-2 border-stone-200 dark:border-stone-700 mb-6">
+      <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-4">
+        {Component.text("Shipping Information")}
+      </h3>
+      <div className="space-y-4">
+        <div>
+          <span className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
+            {Component.text("Full Name")}
+          </span>
+          <input
+            type_="text"
+            className="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
+            placeholder="John Doe"
+            onInput={handleInput("name", _)}
+          />
+        </div>
+        <div>
+          <span className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
+            {Component.text("Email")}
+          </span>
+          <input
+            type_="email"
+            className="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
+            placeholder="john@example.com"
+            onInput={handleInput("email", _)}
+          />
+        </div>
+        <div>
+          <span className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
+            {Component.text("Address")}
+          </span>
+          <input
+            type_="text"
+            className="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
+            placeholder="123 Lambda Lane"
+            onInput={handleInput("address", _)}
+          />
+        </div>
+        <div>
+          <span className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
+            {Component.text("City")}
+          </span>
+          <input
+            type_="text"
+            className="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
+            placeholder="Functional City"
+            onInput={handleInput("city", _)}
+          />
+        </div>
+      </div>
+    </div>
+    <div
+      className="bg-white dark:bg-stone-800 rounded-xl p-6 shadow-lg border-2 border-stone-200 dark:border-stone-700 mb-6">
+      <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-4">
+        {Component.text("Payment Information")}
+      </h3>
+      <div>
+        <span className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
+          {Component.text("Card Number")}
+        </span>
+        <input
+          type_="text"
+          className="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
+          placeholder="1234 5678 9012 3456"
+          onInput={handleInput("cardNumber", _)}
+        />
+      </div>
+    </div>
+    <div
+      className="bg-stone-100 dark:bg-stone-800 rounded-lg p-6 border-2 border-stone-300 dark:border-stone-700 mb-6">
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-stone-600 dark:text-stone-400">
+          {Component.textSignal(() => "Items (" ++ Int.toString(Signal.get(cartItemCount)) ++ ")")}
+        </span>
+        <span className="font-semibold text-stone-900 dark:text-white">
+          {Component.textSignal(() => formatPrice(Signal.get(cartTotal)))}
+        </span>
+      </div>
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-stone-600 dark:text-stone-400"> {Component.text("Shipping")} </span>
+        <span className="font-semibold text-stone-700 dark:text-stone-300">
+          {Component.text("FREE")}
+        </span>
+      </div>
+      <div className="border-t-2 border-purple-200 dark:border-purple-700 pt-2 mt-2">
+        <div className="flex justify-between items-center">
+          <span className="text-xl font-bold text-stone-900 dark:text-white">
+            {Component.text("Total:")}
+          </span>
+          <span className="text-2xl font-bold text-stone-700 dark:text-stone-300">
+            {Component.textSignal(() => formatPrice(Signal.get(cartTotal)))}
+          </span>
+        </div>
+      </div>
+    </div>
+    <div className="flex gap-4">
+      {Router.link(
+        ~to="/cart",
+        ~attrs=[
+          Component.attr(
+            "class",
+            "flex-1 px-6 py-3 bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 text-stone-900 dark:text-white rounded-lg font-semibold transition-colors text-center",
+          ),
+        ],
+        ~children=[Component.text("Back to Cart")],
+        (),
+      )}
+      <button
+        className="flex-1 px-6 py-3 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors"
+        onClick={_ => completeOrder()}>
+        {Component.text("Complete Order")}
+      </button>
+    </div>
+  </div>
 }
 
-// Main App
-module BookstoreApp = {
-  let component = () => {
-    Component.div(
-      ~attrs=[Component.attr("class", "min-h-screen bg-stone-50 dark:bg-stone-900")],
-      ~children=[
-        Header.component(),
-        Router.routes([
-          {pattern: "/", render: _ => HomePage.component()},
-          {pattern: "/catalog", render: _ => CatalogView.component()},
-          {pattern: "/about", render: _ => AboutPage.component()},
-          {pattern: "/cart", render: _ => CartView.component()},
-          {pattern: "/checkout", render: _ => CheckoutView.component()},
-          {pattern: "/order-confirmed", render: _ => OrderConfirmedView.component()},
-        ]),
-      ],
-      (),
-    )
-  }
+/* OrderConfirmedView Component using JSX */
+let orderConfirmedView = () => {
+  <div className="max-w-2xl mx-auto p-6">
+    <div
+      className="bg-white dark:bg-stone-800 rounded-xl p-8 shadow-lg border-2 border-stone-300 dark:border-stone-700 text-center">
+      <div className="text-6xl mb-4"> {Component.text("✅")} </div>
+      <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-4">
+        {Component.text("Order Confirmed!")}
+      </h2>
+      <p className="text-xl text-stone-600 dark:text-stone-400 mb-2">
+        {Component.text("Thank you for your order!")}
+      </p>
+      <p className="text-lg text-stone-500 dark:text-stone-500 mb-6">
+        {Component.text("Order #")}
+        {Component.textSignal(() => Int.toString(Signal.get(orderNumber)))}
+      </p>
+      <div className="bg-stone-100 dark:bg-stone-700 rounded-lg p-6 mb-6">
+        <p className="text-stone-700 dark:text-stone-300 mb-2">
+          {Component.text("Your books are being prepared for shipment.")}
+        </p>
+        <p className="text-stone-600 dark:text-stone-400 text-sm">
+          {Component.text("You will receive a confirmation email shortly.")}
+        </p>
+      </div>
+      {Router.link(
+        ~to="/catalog",
+        ~attrs=[
+          Component.attr(
+            "class",
+            "px-8 py-3 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors",
+          ),
+        ],
+        ~children=[Component.text("Continue Shopping")],
+        (),
+      )}
+    </div>
+  </div>
+}
+
+/* Main Bookstore App Component using JSX */
+let app = () => {
+  <div className="min-h-screen bg-stone-50 dark:bg-stone-900">
+    {header()}
+    {Router.routes([
+      {pattern: "/", render: _ => homePage()},
+      {pattern: "/catalog", render: _ => catalogView()},
+      {pattern: "/about", render: _ => aboutPage()},
+      {pattern: "/cart", render: _ => cartView()},
+      {pattern: "/checkout", render: _ => checkoutView()},
+      {pattern: "/order-confirmed", render: _ => orderConfirmedView()},
+    ])}
+  </div>
 }
