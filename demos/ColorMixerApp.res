@@ -1,4 +1,7 @@
-open Xote
+module Signal = Xote.Signal
+module Computed = Xote.Computed
+module Component = Xote.Component
+module Core = Xote.Core
 
 // Color channel signals (0-255)
 let red = Signal.make(100)
@@ -140,443 +143,222 @@ let randomColor = (_evt: Dom.event) => {
 }
 
 module ColorSlider = {
-  let component = (~label: string, ~value: Core.t<int>, ~color: string, ~onChange, ()) => {
-    Component.div(
-      ~attrs=[Component.attr("class", "space-y-2")],
-      ~children=[
-        Component.div(
-          ~attrs=[Component.attr("class", "flex items-center justify-between")],
-          ~children=[
-            Component.span(
-              ~attrs=[
-                Component.attr("class", "text-sm font-semibold text-stone-700 dark:text-stone-300"),
-              ],
-              ~children=[Component.text(label)],
-              (),
-            ),
-            Component.span(
-              ~attrs=[
-                Component.attr(
-                  "class",
-                  "text-sm font-mono font-bold text-stone-900 dark:text-white w-12 text-right",
-                ),
-              ],
-              ~children=[Component.textSignal(() => Signal.get(value)->Int.toString)],
-              (),
-            ),
-          ],
-          (),
-        ),
-        Component.input(
-          ~attrs=[
-            Component.attr("type", "range"),
-            Component.attr("min", "0"),
-            Component.attr("max", "255"),
-            Component.computedAttr("value", () => Signal.get(value)->Int.toString),
-            Component.attr(
-              "class",
-              "w-full h-2 rounded-lg appearance-none cursor-pointer " ++ color,
-            ),
-          ],
-          ~events=[("input", onChange)],
-          (),
-        ),
-      ],
-      (),
-    )
+  type props = {
+    label: string,
+    value: Core.t<int>,
+    color: string,
+    onChange: Dom.event => unit,
+  }
+
+  let component = (props: props) => {
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold text-stone-700 dark:text-stone-300">
+          {Component.text(props.label)}
+        </span>
+        <span className="text-sm font-mono font-bold text-stone-900 dark:text-white w-12 text-right">
+          {Component.textSignal(() => Signal.get(props.value)->Int.toString)}
+        </span>
+      </div>
+      <input
+        type_="range"
+        value={Signal.get(props.value)->Int.toString}
+        className={"w-full h-2 rounded-lg appearance-none cursor-pointer " ++ props.color}
+        onInput={props.onChange}
+      />
+    </div>
   }
 }
 
 module ColorPreview = {
   let component = () => {
-    Component.div(
-      ~attrs=[
-        Component.attr(
-          "class",
-          "rounded-2xl border-4 border-stone-200 dark:border-stone-700 overflow-hidden shadow-xl",
-        ),
-      ],
-      ~children=[
-        Component.div(
-          ~attrs=[
-            Component.attr("class", "h-48 md:h-64 relative transition-colors duration-200"),
-            Component.computedAttr("style", () =>
-              `background-color: ${Signal.get(rgbColor)}; transition: background-color 0.2s ease`
-            ),
-          ],
-          ~children=[
-            Component.div(
-              ~attrs=[
-                Component.attr(
-                  "class",
-                  "absolute inset-0 flex items-center justify-center bg-black/10",
-                ),
-              ],
-              ~children=[
-                Component.div(
-                  ~attrs=[
-                    Component.attr(
-                      "class",
-                      "bg-white dark:bg-stone-800 px-6 py-3 rounded-xl shadow-lg backdrop-blur",
-                    ),
-                  ],
-                  ~children=[
-                    Component.p(
-                      ~attrs=[
-                        Component.attr(
-                          "class",
-                          "font-mono font-bold text-xl text-stone-900 dark:text-white",
-                        ),
-                      ],
-                      ~children=[Component.textSignal(() => Signal.get(hexColor))],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-              ],
-              (),
-            ),
-          ],
-          (),
-        ),
-      ],
-      (),
-    )
+    <div className="rounded-2xl border-4 border-stone-200 dark:border-stone-700 overflow-hidden shadow-xl">
+      <div
+        className="h-48 md:h-64 relative transition-colors duration-200"
+        style={`background-color: ${Signal.get(rgbColor)}; transition: background-color 0.2s ease`}>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+          <div className="bg-white dark:bg-stone-800 px-6 py-3 rounded-xl shadow-lg backdrop-blur">
+            <p className="font-mono font-bold text-xl text-stone-900 dark:text-white">
+              {Component.textSignal(() => Signal.get(hexColor))}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   }
 }
 
 module ColorInfo = {
-  let colorValueRow = (label: string, value: Core.t<string>) => {
-    Component.div(
-      ~attrs=[
-        Component.attr(
-          "class",
-          "flex items-center justify-between p-3 bg-stone-50 dark:bg-stone-700/50 rounded-lg",
-        ),
-      ],
-      ~children=[
-        Component.span(
-          ~attrs=[
-            Component.attr("class", "text-sm font-medium text-stone-600 dark:text-stone-400"),
-          ],
-          ~children=[Component.text(label)],
-          (),
-        ),
-        Component.div(
-          ~attrs=[Component.attr("class", "flex items-center gap-2")],
-          ~children=[
-            Component.span(
-              ~attrs=[
-                Component.attr("class", "text-sm font-mono text-stone-900 dark:text-white"),
-              ],
-              ~children=[Component.textSignal(() => Signal.get(value))],
-              (),
-            ),
-            Component.button(
-              ~attrs=[
-                Component.attr(
-                  "class",
-                  "text-xs px-2 py-1 bg-stone-200 dark:bg-stone-600 hover:bg-stone-300 dark:hover:bg-stone-500 rounded transition-colors",
-                ),
-              ],
-              ~events=[("click", _evt => copyToClipboard(Signal.get(value)))],
-              ~children=[Component.text("Copy")],
-              (),
-            ),
-          ],
-          (),
-        ),
-      ],
-      (),
-    )
+  type colorValueRowProps = {
+    label: string,
+    value: Core.t<string>,
+  }
+
+  let colorValueRow = (props: colorValueRowProps) => {
+    <div className="flex items-center justify-between p-3 bg-stone-50 dark:bg-stone-700/50 rounded-lg">
+      <span className="text-sm font-medium text-stone-600 dark:text-stone-400">
+        {Component.text(props.label)}
+      </span>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-mono text-stone-900 dark:text-white">
+          {Component.textSignal(() => Signal.get(props.value))}
+        </span>
+        <button
+          className="text-xs px-2 py-1 bg-stone-200 dark:bg-stone-600 hover:bg-stone-300 dark:hover:bg-stone-500 rounded transition-colors"
+          onClick={_evt => copyToClipboard(Signal.get(props.value))}>
+          {Component.text("Copy")}
+        </button>
+      </div>
+    </div>
   }
 
   let component = () => {
-    Component.div(
-      ~attrs=[Component.attr("class", "space-y-2")],
-      ~children=[
-        Component.h3(
-          ~attrs=[
-            Component.attr("class", "text-lg font-bold text-stone-900 dark:text-white mb-3"),
-          ],
-          ~children=[Component.text("Color Values")],
-          (),
-        ),
-        colorValueRow("HEX", hexColor),
-        colorValueRow("RGB", rgbColor),
-        colorValueRow("HSL", hslColor),
-      ],
-      (),
-    )
+    <div className="space-y-2">
+      <h3 className="text-lg font-bold text-stone-900 dark:text-white mb-3">
+        {Component.text("Color Values")}
+      </h3>
+      {colorValueRow({label: "HEX", value: hexColor})}
+      {colorValueRow({label: "RGB", value: rgbColor})}
+      {colorValueRow({label: "HSL", value: hslColor})}
+    </div>
   }
 }
 
 module ColorPalette = {
-  let paletteItem = (label: string, color: Core.t<string>) => {
-    Component.div(
-      ~attrs=[Component.attr("class", "text-center space-y-2")],
-      ~children=[
-        Component.div(
-          ~attrs=[
-            Component.attr(
-              "class",
-              "h-20 rounded-lg border-2 border-stone-200 dark:border-stone-700 cursor-pointer hover:scale-105 transition-transform",
-            ),
-            Component.computedAttr("style", () => `background-color: ${Signal.get(color)}`),
-          ],
-          ~events=[("click", _evt => copyToClipboard(Signal.get(color)))],
-          (),
-        ),
-        Component.p(
-          ~attrs=[
-            Component.attr("class", "text-xs font-medium text-stone-600 dark:text-stone-400"),
-          ],
-          ~children=[Component.text(label)],
-          (),
-        ),
-      ],
-      (),
-    )
+  type paletteItemProps = {
+    label: string,
+    color: Core.t<string>,
+  }
+
+  let paletteItem = (props: paletteItemProps) => {
+    <div className="text-center space-y-2">
+      <div
+        className="h-20 rounded-lg border-2 border-stone-200 dark:border-stone-700 cursor-pointer hover:scale-105 transition-transform"
+        style={`background-color: ${Signal.get(props.color)}`}
+        onClick={_evt => copyToClipboard(Signal.get(props.color))}
+      />
+      <p className="text-xs font-medium text-stone-600 dark:text-stone-400">
+        {Component.text(props.label)}
+      </p>
+    </div>
   }
 
   let component = () => {
-    Component.div(
-      ~attrs=[Component.attr("class", "space-y-3")],
-      ~children=[
-        Component.h3(
-          ~attrs=[
-            Component.attr("class", "text-lg font-bold text-stone-900 dark:text-white"),
-          ],
-          ~children=[Component.text("Color Variations")],
-          (),
-        ),
-        Component.div(
-          ~attrs=[Component.attr("class", "grid grid-cols-3 gap-3")],
-          ~children=[
-            paletteItem("Lighter", lighterColor),
-            paletteItem("Current", rgbColor),
-            paletteItem("Darker", darkerColor),
-          ],
-          (),
-        ),
-        paletteItem("Complementary", complementaryColor),
-      ],
-      (),
-    )
+    <div className="space-y-3">
+      <h3 className="text-lg font-bold text-stone-900 dark:text-white">
+        {Component.text("Color Variations")}
+      </h3>
+      <div className="grid grid-cols-3 gap-3">
+        {paletteItem({label: "Lighter", color: lighterColor})}
+        {paletteItem({label: "Current", color: rgbColor})}
+        {paletteItem({label: "Darker", color: darkerColor})}
+      </div>
+      {paletteItem({label: "Complementary", color: complementaryColor})}
+    </div>
   }
 }
 
 module SavedColors = {
   let component = () => {
-    Component.div(
-      ~attrs=[Component.attr("class", "space-y-3")],
-      ~children=[
-        Component.div(
-          ~attrs=[Component.attr("class", "flex items-center justify-between")],
-          ~children=[
-            Component.h3(
-              ~attrs=[
-                Component.attr("class", "text-lg font-bold text-stone-900 dark:text-white"),
-              ],
-              ~children=[Component.text("Saved Colors")],
-              (),
-            ),
-            Component.button(
-              ~attrs=[
-                Component.attr(
-                  "class",
-                  "text-xs px-3 py-1.5 bg-stone-900 dark:bg-stone-700 hover:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg transition-colors",
-                ),
-              ],
-              ~events=[("click", saveColor)],
-              ~children=[Component.text("+ Save Current")],
-              (),
-            ),
-          ],
-          (),
-        ),
-        Component.signalFragment(
-          Computed.make(() => {
-            let colors = Signal.get(savedColors)
-            if Array.length(colors) == 0 {
-              [
-                Component.p(
-                  ~attrs=[
-                    Component.attr(
-                      "class",
-                      "text-sm text-stone-500 dark:text-stone-500 text-center py-4",
-                    ),
-                  ],
-                  ~children=[Component.text("No saved colors yet")],
-                  (),
-                ),
-              ]
-            } else {
-              [
-                Component.div(
-                  ~attrs=[Component.attr("class", "grid grid-cols-4 gap-2")],
-                  ~children=[
-                    Component.list(
-                      savedColors,
-                      color => {
-                        Component.div(
-                          ~attrs=[
-                            Component.attr(
-                              "class",
-                              "h-12 rounded-lg border-2 border-stone-200 dark:border-stone-700 cursor-pointer hover:scale-105 transition-transform",
-                            ),
-                            Component.attr("style", `background-color: ${color}`),
-                            Component.attr("title", color),
-                          ],
-                          ~events=[("click", _evt => copyToClipboard(color))],
-                          (),
-                        )
-                      },
-                    ),
-                  ],
-                  (),
-                ),
-              ]
-            }
-          }),
-        ),
-      ],
-      (),
-    )
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-bold text-stone-900 dark:text-white">
+          {Component.text("Saved Colors")}
+        </h3>
+        <button
+          className="text-xs px-3 py-1.5 bg-stone-900 dark:bg-stone-700 hover:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg transition-colors"
+          onClick={saveColor}>
+          {Component.text("+ Save Current")}
+        </button>
+      </div>
+      {Component.signalFragment(
+        Computed.make(() => {
+          let colors = Signal.get(savedColors)
+          if Array.length(colors) == 0 {
+            [
+              <p className="text-sm text-stone-500 dark:text-stone-500 text-center py-4">
+                {Component.text("No saved colors yet")}
+              </p>,
+            ]
+          } else {
+            [
+              <div className="grid grid-cols-4 gap-2">
+                {Component.list(
+                  savedColors,
+                  color => {
+                    <div
+                      className="h-12 rounded-lg border-2 border-stone-200 dark:border-stone-700 cursor-pointer hover:scale-105 transition-transform"
+                      style={`background-color: ${color}`}
+                      onClick={_evt => copyToClipboard(color)}
+                    />
+                  },
+                )}
+              </div>,
+            ]
+          }
+        }),
+      )}
+    </div>
   }
 }
 
 module ColorMixerApp = {
   let component = () => {
-    Component.div(
-      ~attrs=[Component.attr("class", "max-w-4xl mx-auto p-4 md:p-6 space-y-6")],
-      ~children=[
-        // Header
-        Component.div(
-          ~attrs=[Component.attr("class", "mb-6")],
-          ~children=[
-            Component.h1(
-              ~attrs=[
-                Component.attr(
-                  "class",
-                  "text-2xl md:text-3xl font-bold text-stone-900 dark:text-white mb-2",
-                ),
-              ],
-              ~children=[Component.text("Color Mixer")],
-              (),
-            ),
-            Component.p(
-              ~attrs=[
-                Component.attr("class", "text-sm md:text-base text-stone-600 dark:text-stone-400"),
-              ],
-              ~children=[
-                Component.text("Mix colors with RGB sliders and explore variations in real-time"),
-              ],
-              (),
-            ),
-          ],
-          (),
-        ),
-        // Color Preview
-        ColorPreview.component(),
-        // RGB Sliders
-        Component.div(
-          ~attrs=[
-            Component.attr(
-              "class",
-              "bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6 space-y-4",
-            ),
-          ],
-          ~children=[
-            Component.div(
-              ~attrs=[Component.attr("class", "flex items-center justify-between mb-4")],
-              ~children=[
-                Component.h2(
-                  ~attrs=[
-                    Component.attr("class", "text-xl font-bold text-stone-900 dark:text-white"),
-                  ],
-                  ~children=[Component.text("RGB Mixer")],
-                  (),
-                ),
-                Component.button(
-                  ~attrs=[
-                    Component.attr(
-                      "class",
-                      "text-sm px-4 py-2 bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 rounded-lg transition-colors",
-                    ),
-                  ],
-                  ~events=[("click", randomColor)],
-                  ~children=[Component.text("🎲 Random")],
-                  (),
-                ),
-              ],
-              (),
-            ),
-            ColorSlider.component(
-              ~label="Red",
-              ~value=red,
-              ~color="bg-red-500",
-              ~onChange=updateRed,
-              (),
-            ),
-            ColorSlider.component(
-              ~label="Green",
-              ~value=green,
-              ~color="bg-green-500",
-              ~onChange=updateGreen,
-              (),
-            ),
-            ColorSlider.component(
-              ~label="Blue",
-              ~value=blue,
-              ~color="bg-blue-500",
-              ~onChange=updateBlue,
-              (),
-            ),
-          ],
-          (),
-        ),
-        // Two column layout for info and palette
-        Component.div(
-          ~attrs=[Component.attr("class", "grid md:grid-cols-2 gap-6")],
-          ~children=[
-            Component.div(
-              ~attrs=[
-                Component.attr(
-                  "class",
-                  "bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6",
-                ),
-              ],
-              ~children=[ColorInfo.component()],
-              (),
-            ),
-            Component.div(
-              ~attrs=[
-                Component.attr(
-                  "class",
-                  "bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6",
-                ),
-              ],
-              ~children=[ColorPalette.component()],
-              (),
-            ),
-          ],
-          (),
-        ),
-        // Saved colors
-        Component.div(
-          ~attrs=[
-            Component.attr(
-              "class",
-              "bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6",
-            ),
-          ],
-          ~children=[SavedColors.component()],
-          (),
-        ),
-      ],
-      (),
-    )
+    <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+      // Header
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-stone-900 dark:text-white mb-2">
+          {Component.text("Color Mixer")}
+        </h1>
+        <p className="text-sm md:text-base text-stone-600 dark:text-stone-400">
+          {Component.text("Mix colors with RGB sliders and explore variations in real-time")}
+        </p>
+      </div>
+
+      // Color Preview
+      {ColorPreview.component()}
+
+      // RGB Sliders
+      <div className="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6 space-y-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-stone-900 dark:text-white">
+            {Component.text("RGB Mixer")}
+          </h2>
+          <button
+            className="text-sm px-4 py-2 bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 rounded-lg transition-colors"
+            onClick={randomColor}>
+            {Component.text("🎲 Random")}
+          </button>
+        </div>
+        {ColorSlider.component({label: "Red", value: red, color: "bg-red-500", onChange: updateRed})}
+        {ColorSlider.component({
+          label: "Green",
+          value: green,
+          color: "bg-green-500",
+          onChange: updateGreen,
+        })}
+        {ColorSlider.component({
+          label: "Blue",
+          value: blue,
+          color: "bg-blue-500",
+          onChange: updateBlue,
+        })}
+      </div>
+
+      // Two column layout for info and palette
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6">
+          {ColorInfo.component()}
+        </div>
+        <div className="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6">
+          {ColorPalette.component()}
+        </div>
+      </div>
+
+      // Saved colors
+      <div className="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6">
+        {SavedColors.component()}
+      </div>
+    </div>
   }
 }
