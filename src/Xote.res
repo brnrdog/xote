@@ -14,6 +14,10 @@ module Effect = {
   include Xote__Effect
 }
 
+module JSX = {
+  include Xote__JSX
+}
+
 module Route = {
   include Xote__Route
 }
