@@ -11,3 +11,9 @@ website/**/* linguist-documentation
 # Demo HTML files
 index.html linguist-generated
 demos/*.html linguist-generated
+
+# Config files
+vite.config.js linguist-vendored
+vite.demos.config.js linguist-vendored
+
+
