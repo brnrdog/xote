@@ -1,4 +1,6 @@
-open Xote
+module Signal = Xote.Signal
+module Component = Xote.Component
+module Effect = Xote.Effect
 
 @val external setTimeout: (unit => unit, int) => unit = "setTimeout"
 
@@ -210,277 +212,173 @@ module MatchGame = {
       }
     })
 
-    Component.div(
-      ~attrs=[Component.attr("class", "max-w-4xl mx-auto p-4 md:p-6")],
-      ~children=[
-        // Header
-        Component.div(
-          ~attrs=[Component.attr("class", "mb-6")],
-          ~children=[
-            Component.h1(
-              ~attrs=[Component.attr("class", "text-3xl font-bold text-stone-900 dark:text-white mb-2 text-center")],
-              ~children=[Component.text("Memory Match Game")],
-              (),
-            ),
-            Component.p(
-              ~attrs=[Component.attr("class", "text-center text-stone-600 dark:text-stone-400")],
-              ~children=[Component.text("2 Players • Find matching pairs")],
-              (),
-            ),
-          ],
-          (),
-        ),
+    <div className="max-w-4xl mx-auto p-4 md:p-6">
+      // Header
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-stone-900 dark:text-white mb-2 text-center">
+          {Component.text("Memory Match Game")}
+        </h1>
+        <p className="text-center text-stone-600 dark:text-stone-400">
+          {Component.text("2 Players • Find matching pairs")}
+        </p>
+      </div>
 
-        // Score and Level Info
-        Component.div(
-          ~attrs=[Component.attr("class", "bg-white dark:bg-stone-800 rounded-xl p-4 mb-6 border-2 border-stone-200 dark:border-stone-700")],
-          ~children=[
-            Component.div(
-              ~attrs=[Component.attr("class", "flex justify-between items-center mb-4")],
-              ~children=[
-                Component.div(
-                  ~attrs=[Component.attr("class", "text-center")],
-                  ~children=[
-                    Component.div(
-                      ~attrs=[
-                        Component.computedAttr("class", () =>
-                          switch Signal.get(currentPlayer) {
-                          | Player1 => "text-2xl font-bold text-blue-600 dark:text-blue-400"
-                          | Player2 => "text-2xl font-bold text-stone-500 dark:text-stone-400"
-                          }
-                        )
-                      ],
-                      ~children=[Component.textSignal(() => "P1: " ++ Int.toString(Signal.get(player1Score)))],
-                      (),
-                    ),
-                    Component.div(
-                      ~attrs=[Component.attr("class", "text-xs text-stone-500 dark:text-stone-400")],
-                      ~children=[
-                        Component.textSignal(() =>
-                          switch Signal.get(currentPlayer) {
-                          | Player1 => "• Your Turn"
-                          | Player2 => ""
-                          }
-                        )
-                      ],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-                Component.div(
-                  ~attrs=[Component.attr("class", "text-center")],
-                  ~children=[
-                    Component.div(
-                      ~attrs=[Component.attr("class", "text-xl font-bold text-stone-900 dark:text-white")],
-                      ~children=[Component.textSignal(() => "Level " ++ Int.toString(Signal.get(currentLevel)))],
-                      (),
-                    ),
-                    Component.div(
-                      ~attrs=[Component.attr("class", "text-xs text-stone-500 dark:text-stone-400")],
-                      ~children=[
-                        Component.textSignal(() => {
-                          let level = Signal.get(currentLevel)
-                          let numCards = levelsConfig[level - 1]->Option.getOr(4)
-                          Int.toString(numCards) ++ " cards"
-                        })
-                      ],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-                Component.div(
-                  ~attrs=[Component.attr("class", "text-center")],
-                  ~children=[
-                    Component.div(
-                      ~attrs=[
-                        Component.computedAttr("class", () =>
-                          switch Signal.get(currentPlayer) {
-                          | Player2 => "text-2xl font-bold text-green-600 dark:text-green-400"
-                          | Player1 => "text-2xl font-bold text-stone-500 dark:text-stone-400"
-                          }
-                        )
-                      ],
-                      ~children=[Component.textSignal(() => "P2: " ++ Int.toString(Signal.get(player2Score)))],
-                      (),
-                    ),
-                    Component.div(
-                      ~attrs=[Component.attr("class", "text-xs text-stone-500 dark:text-stone-400")],
-                      ~children=[
-                        Component.textSignal(() =>
-                          switch Signal.get(currentPlayer) {
-                          | Player2 => "• Your Turn"
-                          | Player1 => ""
-                          }
-                        )
-                      ],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-              ],
-              (),
-            ),
-          ],
-          (),
-        ),
+      // Score and Level Info
+      <div className="bg-white dark:bg-stone-800 rounded-xl p-4 mb-6 border-2 border-stone-200 dark:border-stone-700">
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-center">
+            <div
+              className={switch Signal.get(currentPlayer) {
+              | Player1 => "text-2xl font-bold text-blue-600 dark:text-blue-400"
+              | Player2 => "text-2xl font-bold text-stone-500 dark:text-stone-400"
+              }}>
+              {Component.textSignal(() => "P1: " ++ Int.toString(Signal.get(player1Score)))}
+            </div>
+            <div className="text-xs text-stone-500 dark:text-stone-400">
+              {Component.textSignal(() =>
+                switch Signal.get(currentPlayer) {
+                | Player1 => "• Your Turn"
+                | Player2 => ""
+                }
+              )}
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-xl font-bold text-stone-900 dark:text-white">
+              {Component.textSignal(() => "Level " ++ Int.toString(Signal.get(currentLevel)))}
+            </div>
+            <div className="text-xs text-stone-500 dark:text-stone-400">
+              {Component.textSignal(() => {
+                let level = Signal.get(currentLevel)
+                let numCards = levelsConfig[level - 1]->Option.getOr(4)
+                Int.toString(numCards) ++ " cards"
+              })}
+            </div>
+          </div>
+          <div className="text-center">
+            <div
+              className={switch Signal.get(currentPlayer) {
+              | Player2 => "text-2xl font-bold text-green-600 dark:text-green-400"
+              | Player1 => "text-2xl font-bold text-stone-500 dark:text-stone-400"
+              }}>
+              {Component.textSignal(() => "P2: " ++ Int.toString(Signal.get(player2Score)))}
+            </div>
+            <div className="text-xs text-stone-500 dark:text-stone-400">
+              {Component.textSignal(() =>
+                switch Signal.get(currentPlayer) {
+                | Player2 => "• Your Turn"
+                | Player1 => ""
+                }
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
-        // Game Board
-        Component.div(
-          ~attrs=[
-            Component.computedAttr("class", () => {
-              let level = Signal.get(currentLevel)
-              let numCards = levelsConfig[level - 1]->Option.getOr(4)
-              if numCards <= 10 {
-                "grid grid-cols-4 gap-3 mb-6"
-              } else if numCards <= 20 {
-                "grid grid-cols-5 gap-2 mb-6"
+      // Game Board
+      <div
+        className={let level = Signal.get(currentLevel)
+        let numCards = levelsConfig[level - 1]->Option.getOr(4)
+        if numCards <= 10 {
+          "grid grid-cols-4 gap-3 mb-6"
+        } else if numCards <= 20 {
+          "grid grid-cols-5 gap-2 mb-6"
+        } else {
+          "grid grid-cols-6 gap-2 mb-6"
+        }}>
+        {Component.list(
+          cards,
+          card => {
+            let className = {
+              let baseClass = "aspect-square rounded-lg font-bold text-3xl transition-all duration-300 transform"
+              if card.matched {
+                baseClass ++ " bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 scale-95 opacity-50"
+              } else if card.flipped {
+                baseClass ++ " bg-blue-500 dark:bg-blue-600 text-white shadow-lg"
               } else {
-                "grid grid-cols-6 gap-2 mb-6"
+                baseClass ++ " bg-stone-300 dark:bg-stone-700 hover:bg-stone-400 dark:hover:bg-stone-600 hover:scale-105"
               }
-            })
-          ],
-          ~children=[
-            Component.list(cards, card => {
-              Component.button(
-                ~attrs=[
-                  Component.computedAttr("class", () => {
-                    let baseClass = "aspect-square rounded-lg font-bold text-3xl transition-all duration-300 transform"
-                    if card.matched {
-                      baseClass ++ " bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 scale-95 opacity-50"
-                    } else if card.flipped {
-                      baseClass ++ " bg-blue-500 dark:bg-blue-600 text-white shadow-lg"
-                    } else {
-                      baseClass ++ " bg-stone-300 dark:bg-stone-700 hover:bg-stone-400 dark:hover:bg-stone-600 hover:scale-105"
-                    }
-                  })
-                ],
-                ~events=[("click", handleCardClick(card.id, _))],
-                ~children=[
-                  Component.textSignal(() =>
-                    if card.flipped || card.matched {
-                      card.symbol
-                    } else {
-                      "?"
-                    }
-                  )
-                ],
-                (),
-              )
-            })
-          ],
-          (),
-        ),
+            }
 
-        // Level Complete / Game Won Modal
-        Component.div(
-          ~attrs=[
-            Component.computedAttr("class", () =>
+            <button className={className} onClick={handleCardClick(card.id, _)}>
+              {Component.textSignal(() =>
+                if card.flipped || card.matched {
+                  card.symbol
+                } else {
+                  "?"
+                }
+              )}
+            </button>
+          },
+        )}
+      </div>
+
+      // Level Complete / Game Won Modal
+      <div
+        className={switch Signal.get(gameState) {
+        | Playing => "hidden"
+        | LevelComplete | GameWon => "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        }}>
+        <div className="bg-white dark:bg-stone-800 rounded-2xl p-8 max-w-md mx-4 text-center">
+          <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-4">
+            {Component.textSignal(() =>
               switch Signal.get(gameState) {
-              | Playing => "hidden"
-              | LevelComplete | GameWon => "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+              | LevelComplete => "Level Complete! 🎉"
+              | GameWon => "Game Won! 🏆"
+              | Playing => ""
               }
-            )
-          ],
-          ~children=[
-            Component.div(
-              ~attrs=[Component.attr("class", "bg-white dark:bg-stone-800 rounded-2xl p-8 max-w-md mx-4 text-center")],
-              ~children=[
-                Component.h2(
-                  ~attrs=[Component.attr("class", "text-3xl font-bold text-stone-900 dark:text-white mb-4")],
-                  ~children=[
-                    Component.textSignal(() =>
-                      switch Signal.get(gameState) {
-                      | LevelComplete => "Level Complete! 🎉"
-                      | GameWon => "Game Won! 🏆"
-                      | Playing => ""
-                      }
-                    )
-                  ],
-                  (),
-                ),
-                Component.div(
-                  ~attrs=[Component.attr("class", "text-xl mb-6")],
-                  ~children=[
-                    Component.div(
-                      ~attrs=[Component.attr("class", "mb-2")],
-                      ~children=[
-                        Component.textSignal(() => {
-                          let p1 = Signal.get(player1Score)
-                          let p2 = Signal.get(player2Score)
-                          if p1 > p2 {
-                            "🏅 Player 1 Wins!"
-                          } else if p2 > p1 {
-                            "🏅 Player 2 Wins!"
-                          } else {
-                            "🤝 It's a Tie!"
-                          }
-                        })
-                      ],
-                      (),
-                    ),
-                    Component.div(
-                      ~attrs=[Component.attr("class", "text-base text-stone-600 dark:text-stone-400")],
-                      ~children=[
-                        Component.textSignal(() =>
-                          "Player 1: " ++ Int.toString(Signal.get(player1Score)) ++ " | Player 2: " ++ Int.toString(Signal.get(player2Score))
-                        )
-                      ],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-                Component.div(
-                  ~attrs=[Component.attr("class", "flex gap-4 justify-center")],
-                  ~children=[
-                    Component.button(
-                      ~attrs=[
-                        Component.attr("class", "px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"),
-                        Component.computedAttr("style", () =>
-                          switch Signal.get(gameState) {
-                          | GameWon => "display: none"
-                          | _ => ""
-                          }
-                        ),
-                      ],
-                      ~events=[("click", nextLevel)],
-                      ~children=[Component.text("Next Level →")],
-                      (),
-                    ),
-                    Component.button(
-                      ~attrs=[Component.attr("class", "px-6 py-3 bg-stone-600 hover:bg-stone-700 text-white rounded-lg font-medium transition-colors")],
-                      ~events=[("click", restartGame)],
-                      ~children=[Component.text("Restart Game")],
-                      (),
-                    ),
-                  ],
-                  (),
-                ),
-              ],
-              (),
-            ),
-          ],
-          (),
-        ),
+            )}
+          </h2>
+          <div className="text-xl mb-6">
+            <div className="mb-2">
+              {Component.textSignal(() => {
+                let p1 = Signal.get(player1Score)
+                let p2 = Signal.get(player2Score)
+                if p1 > p2 {
+                  "🏅 Player 1 Wins!"
+                } else if p2 > p1 {
+                  "🏅 Player 2 Wins!"
+                } else {
+                  "🤝 It's a Tie!"
+                }
+              })}
+            </div>
+            <div className="text-base text-stone-600 dark:text-stone-400">
+              {Component.textSignal(() =>
+                "Player 1: " ++
+                Int.toString(Signal.get(player1Score)) ++
+                " | Player 2: " ++
+                Int.toString(Signal.get(player2Score))
+              )}
+            </div>
+          </div>
+          <div className="flex gap-4 justify-center">
+            <button
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              style={switch Signal.get(gameState) {
+              | GameWon => "display: none"
+              | _ => ""
+              }}
+              onClick={nextLevel}>
+              {Component.text("Next Level →")}
+            </button>
+            <button
+              className="px-6 py-3 bg-stone-600 hover:bg-stone-700 text-white rounded-lg font-medium transition-colors"
+              onClick={restartGame}>
+              {Component.text("Restart Game")}
+            </button>
+          </div>
+        </div>
+      </div>
 
-        // Restart button
-        Component.div(
-          ~attrs=[Component.attr("class", "text-center")],
-          ~children=[
-            Component.button(
-              ~attrs=[Component.attr("class", "px-6 py-2 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-900 dark:text-white rounded-lg font-medium transition-colors")],
-              ~events=[("click", restartGame)],
-              ~children=[Component.text("Restart Game")],
-              (),
-            ),
-          ],
-          (),
-        ),
-      ],
-      (),
-    )
+      // Restart button
+      <div className="text-center">
+        <button
+          className="px-6 py-2 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-900 dark:text-white rounded-lg font-medium transition-colors"
+          onClick={restartGame}>
+          {Component.text("Restart Game")}
+        </button>
+      </div>
+    </div>
   }
 }
