@@ -32,6 +32,7 @@ type rec node =
   | SignalText(Core.t<string>)
   | Fragment(array<node>)
   | SignalFragment(Core.t<array<node>>)
+  | KeyedFragment(Core.t<array<(string, node)>>)
 
 /* Create a text node */
 let text = (content: string): node => Text(content)
@@ -54,6 +55,18 @@ let list = (signal: Core.t<array<'a>>, renderItem: 'a => node): node => {
     Signal.get(signal)->Array.map(renderItem)
   })
   SignalFragment(nodesSignal)
+}
+
+/* Create a reactive keyed list for efficient reconciliation */
+let listKeyed = (
+  signal: Core.t<array<'a>>,
+  getKey: 'a => string,
+  renderItem: 'a => node,
+): node => {
+  let keyedNodesSignal = Computed.make(() => {
+    Signal.get(signal)->Array.map(item => (getKey(item), renderItem(item)))
+  })
+  KeyedFragment(keyedNodesSignal)
 }
 
 /* Create an element */
@@ -101,7 +114,10 @@ external getElementById: string => Nullable.t<Dom.element> = "getElementById"
 @send
 external addEventListener: (Dom.element, string, Dom.event => unit) => unit = "addEventListener"
 @send external appendChild: (Dom.element, Dom.element) => unit = "appendChild"
+@send external removeChild: (Dom.element, Dom.element) => unit = "removeChild"
+@send external insertBefore: (Dom.element, Dom.element, Dom.element) => unit = "insertBefore"
 @set external setTextContent: (Dom.element, string) => unit = "textContent"
+@get external childNodes: Dom.element => array<Dom.element> = "childNodes"
 
 /* Render a virtual node to a real DOM element */
 let rec render = (node: node): Dom.element => {
@@ -183,6 +199,75 @@ let rec render = (node: node): Dom.element => {
         children->Array.forEach(child => {
           let childEl = render(child)
           container->appendChild(childEl)
+        })
+      })
+
+      container
+    }
+  | KeyedFragment(signal) => {
+      /* Create a container element to hold the dynamic children */
+      let container = createElement("div")
+      setAttribute(container, "data-keyed-fragment", "true")
+      setAttribute(container, "style", "display: contents")
+
+      /* Track DOM elements by key using a mutable map */
+      let elementsByKey: Dict.t<Dom.element> = Dict.make()
+
+      /* Set up effect to reconcile children when signal changes */
+      let _ = Effect.run(() => {
+        let newKeyedChildren = Signal.get(signal)
+
+        /* Create a set of new keys for quick lookup */
+        let newKeys = Set.make()
+        newKeyedChildren->Array.forEach(((key, _)) => {
+          newKeys->Set.add(key)
+        })
+
+        /* Remove elements whose keys are no longer present */
+        elementsByKey
+        ->Dict.keysToArray
+        ->Array.forEach(key => {
+          if !(newKeys->Set.has(key)) {
+            switch elementsByKey->Dict.get(key) {
+            | Some(el) => {
+                container->removeChild(el)
+                elementsByKey->Dict.delete(key)
+              }
+            | None => ()
+            }
+          }
+        })
+
+        /* Get current children for positioning */
+        let currentChildren = container->childNodes
+
+        /* Process new children in order */
+        newKeyedChildren->Array.forEachWithIndex((keyedChild, index) => {
+          let (key, childNode) = keyedChild
+
+          switch elementsByKey->Dict.get(key) {
+          | Some(existingEl) => {
+              /* Element exists - check if it needs to be moved */
+              let currentIndex = currentChildren->Array.indexOf(existingEl)
+              if currentIndex != index {
+                /* Need to move the element to the correct position */
+                switch currentChildren->Array.get(index) {
+                | Some(refChild) => container->insertBefore(existingEl, refChild)
+                | None => container->appendChild(existingEl)
+                }
+              }
+            }
+          | None => {
+              /* New element - render and insert at correct position */
+              let newEl = render(childNode)
+              elementsByKey->Dict.set(key, newEl)
+
+              switch currentChildren->Array.get(index) {
+              | Some(refChild) => container->insertBefore(newEl, refChild)
+              | None => container->appendChild(newEl)
+              }
+            }
+          }
         })
       })
 
