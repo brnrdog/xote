@@ -151,19 +151,19 @@ module ColorSlider = {
   }
 
   let component = (props: props) => {
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-stone-700 dark:text-stone-300">
+    <div class="space-y-2">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-semibold text-stone-700 dark:text-stone-300">
           {Component.text(props.label)}
         </span>
-        <span className="text-sm font-mono font-bold text-stone-900 dark:text-white w-12 text-right">
+        <span class="text-sm font-mono font-bold text-stone-900 dark:text-white w-12 text-right">
           {Component.textSignal(() => Signal.get(props.value)->Int.toString)}
         </span>
       </div>
       <input
         type_="range"
         value={Signal.get(props.value)->Int.toString}
-        className={"w-full h-2 rounded-lg appearance-none cursor-pointer " ++ props.color}
+        class={"w-full h-2 rounded-lg appearance-none cursor-pointer " ++ props.color}
         onInput={props.onChange}
       />
     </div>
@@ -172,13 +172,13 @@ module ColorSlider = {
 
 module ColorPreview = {
   let component = () => {
-    <div className="rounded-2xl border-4 border-stone-200 dark:border-stone-700 overflow-hidden shadow-xl">
+    <div class="rounded-2xl border-4 border-stone-200 dark:border-stone-700 overflow-hidden shadow-xl">
       <div
-        className="h-48 md:h-64 relative transition-colors duration-200"
+        class="h-48 md:h-64 relative transition-colors duration-200"
         style={`background-color: ${Signal.get(rgbColor)}; transition: background-color 0.2s ease`}>
-        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-          <div className="bg-white dark:bg-stone-800 px-6 py-3 rounded-xl shadow-lg backdrop-blur">
-            <p className="font-mono font-bold text-xl text-stone-900 dark:text-white">
+        <div class="absolute inset-0 flex items-center justify-center bg-black/10">
+          <div class="bg-white dark:bg-stone-800 px-6 py-3 rounded-xl shadow-lg backdrop-blur">
+            <p class="font-mono font-bold text-xl text-stone-900 dark:text-white">
               {Component.textSignal(() => Signal.get(hexColor))}
             </p>
           </div>
@@ -195,16 +195,16 @@ module ColorInfo = {
   }
 
   let colorValueRow = (props: colorValueRowProps) => {
-    <div className="flex items-center justify-between p-3 bg-stone-50 dark:bg-stone-700/50 rounded-lg">
-      <span className="text-sm font-medium text-stone-600 dark:text-stone-400">
+    <div class="flex items-center justify-between p-3 bg-stone-50 dark:bg-stone-700/50 rounded-lg">
+      <span class="text-sm font-medium text-stone-600 dark:text-stone-400">
         {Component.text(props.label)}
       </span>
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-mono text-stone-900 dark:text-white">
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-mono text-stone-900 dark:text-white">
           {Component.textSignal(() => Signal.get(props.value))}
         </span>
         <button
-          className="text-xs px-2 py-1 bg-stone-200 dark:bg-stone-600 hover:bg-stone-300 dark:hover:bg-stone-500 rounded transition-colors"
+          class="text-xs px-2 py-1 bg-stone-200 dark:bg-stone-600 hover:bg-stone-300 dark:hover:bg-stone-500 rounded transition-colors"
           onClick={_evt => copyToClipboard(Signal.get(props.value))}>
           {Component.text("Copy")}
         </button>
@@ -213,8 +213,8 @@ module ColorInfo = {
   }
 
   let component = () => {
-    <div className="space-y-2">
-      <h3 className="text-lg font-bold text-stone-900 dark:text-white mb-3">
+    <div class="space-y-2">
+      <h3 class="text-lg font-bold text-stone-900 dark:text-white mb-3">
         {Component.text("Color Values")}
       </h3>
       {colorValueRow({label: "HEX", value: hexColor})}
@@ -231,24 +231,24 @@ module ColorPalette = {
   }
 
   let paletteItem = (props: paletteItemProps) => {
-    <div className="text-center space-y-2">
+    <div class="text-center space-y-2">
       <div
-        className="h-20 rounded-lg border-2 border-stone-200 dark:border-stone-700 cursor-pointer hover:scale-105 transition-transform"
+        class="h-20 rounded-lg border-2 border-stone-200 dark:border-stone-700 cursor-pointer hover:scale-105 transition-transform"
         style={`background-color: ${Signal.get(props.color)}`}
         onClick={_evt => copyToClipboard(Signal.get(props.color))}
       />
-      <p className="text-xs font-medium text-stone-600 dark:text-stone-400">
+      <p class="text-xs font-medium text-stone-600 dark:text-stone-400">
         {Component.text(props.label)}
       </p>
     </div>
   }
 
   let component = () => {
-    <div className="space-y-3">
-      <h3 className="text-lg font-bold text-stone-900 dark:text-white">
+    <div class="space-y-3">
+      <h3 class="text-lg font-bold text-stone-900 dark:text-white">
         {Component.text("Color Variations")}
       </h3>
-      <div className="grid grid-cols-3 gap-3">
+      <div class="grid grid-cols-3 gap-3">
         {paletteItem({label: "Lighter", color: lighterColor})}
         {paletteItem({label: "Current", color: rgbColor})}
         {paletteItem({label: "Darker", color: darkerColor})}
@@ -260,13 +260,13 @@ module ColorPalette = {
 
 module SavedColors = {
   let component = () => {
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold text-stone-900 dark:text-white">
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-stone-900 dark:text-white">
           {Component.text("Saved Colors")}
         </h3>
         <button
-          className="text-xs px-3 py-1.5 bg-stone-900 dark:bg-stone-700 hover:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg transition-colors"
+          class="text-xs px-3 py-1.5 bg-stone-900 dark:bg-stone-700 hover:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg transition-colors"
           onClick={saveColor}>
           {Component.text("+ Save Current")}
         </button>
@@ -276,18 +276,18 @@ module SavedColors = {
           let colors = Signal.get(savedColors)
           if Array.length(colors) == 0 {
             [
-              <p className="text-sm text-stone-500 dark:text-stone-500 text-center py-4">
+              <p class="text-sm text-stone-500 dark:text-stone-500 text-center py-4">
                 {Component.text("No saved colors yet")}
               </p>,
             ]
           } else {
             [
-              <div className="grid grid-cols-4 gap-2">
+              <div class="grid grid-cols-4 gap-2">
                 {Component.list(
                   savedColors,
                   color => {
                     <div
-                      className="h-12 rounded-lg border-2 border-stone-200 dark:border-stone-700 cursor-pointer hover:scale-105 transition-transform"
+                      class="h-12 rounded-lg border-2 border-stone-200 dark:border-stone-700 cursor-pointer hover:scale-105 transition-transform"
                       style={`background-color: ${color}`}
                       onClick={_evt => copyToClipboard(color)}
                     />
@@ -304,13 +304,13 @@ module SavedColors = {
 
 module ColorMixerApp = {
   let component = () => {
-    <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+    <div class="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
       // Header
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-stone-900 dark:text-white mb-2">
+      <div class="mb-6">
+        <h1 class="text-2xl md:text-3xl font-bold text-stone-900 dark:text-white mb-2">
           {Component.text("Color Mixer")}
         </h1>
-        <p className="text-sm md:text-base text-stone-600 dark:text-stone-400">
+        <p class="text-sm md:text-base text-stone-600 dark:text-stone-400">
           {Component.text("Mix colors with RGB sliders and explore variations in real-time")}
         </p>
       </div>
@@ -319,13 +319,13 @@ module ColorMixerApp = {
       {ColorPreview.component()}
 
       // RGB Sliders
-      <div className="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6 space-y-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-stone-900 dark:text-white">
+      <div class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6 space-y-4">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold text-stone-900 dark:text-white">
             {Component.text("RGB Mixer")}
           </h2>
           <button
-            className="text-sm px-4 py-2 bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 rounded-lg transition-colors"
+            class="text-sm px-4 py-2 bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 rounded-lg transition-colors"
             onClick={randomColor}>
             {Component.text("🎲 Random")}
           </button>
@@ -346,17 +346,17 @@ module ColorMixerApp = {
       </div>
 
       // Two column layout for info and palette
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6">
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6">
           {ColorInfo.component()}
         </div>
-        <div className="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6">
+        <div class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6">
           {ColorPalette.component()}
         </div>
       </div>
 
       // Saved colors
-      <div className="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6">
+      <div class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6">
         {SavedColors.component()}
       </div>
     </div>

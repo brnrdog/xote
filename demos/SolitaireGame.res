@@ -380,9 +380,9 @@ let cardComponent = (props: cardProps) => {
   if !props.card.faceUp {
     // Card back
     <div
-      className="w-16 h-24 bg-blue-600 border-2 border-blue-700 rounded-lg cursor-pointer shadow-md flex items-center justify-center"
+      class="w-16 h-24 bg-blue-600 border-2 border-blue-700 rounded-lg cursor-pointer shadow-md flex items-center justify-center"
       onClick={props.onClick}>
-      <div className="text-blue-400 text-2xl"> {Component.text("✦")} </div>
+      <div class="text-blue-400 text-2xl"> {Component.text("✦")} </div>
     </div>
   } else {
     // Card face
@@ -390,18 +390,18 @@ let cardComponent = (props: cardProps) => {
     let borderColor = props.isSelected ? "border-yellow-400 border-4" : "border-stone-300 border-2"
 
     <div
-      className={`w-16 h-24 bg-white ${borderColor} rounded-lg cursor-pointer shadow-md p-1 flex flex-col justify-between`}
+      class={`w-16 h-24 bg-white ${borderColor} rounded-lg cursor-pointer shadow-md p-1 flex flex-col justify-between`}
       onClick={props.onClick}>
-      <div className={`${color} text-sm font-bold text-left`}>
+      <div class={`${color} text-sm font-bold text-left`}>
         {Component.text(rankToString(props.card.rank))}
-        <span className="text-base"> {Component.text(suitToString(props.card.suit))} </span>
+        <span class="text-base"> {Component.text(suitToString(props.card.suit))} </span>
       </div>
-      <div className={`${color} text-2xl text-center`}>
+      <div class={`${color} text-2xl text-center`}>
         {Component.text(suitToString(props.card.suit))}
       </div>
-      <div className={`${color} text-sm font-bold text-right`}>
+      <div class={`${color} text-sm font-bold text-right`}>
         {Component.text(rankToString(props.card.rank))}
-        <span className="text-base"> {Component.text(suitToString(props.card.suit))} </span>
+        <span class="text-base"> {Component.text(suitToString(props.card.suit))} </span>
       </div>
     </div>
   }
@@ -415,9 +415,9 @@ type emptySlotProps = {
 
 let emptySlot = (props: emptySlotProps) => {
   <div
-    className="w-16 h-24 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg flex items-center justify-center cursor-pointer hover:border-stone-400 dark:hover:border-stone-500 transition-colors"
+    class="w-16 h-24 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg flex items-center justify-center cursor-pointer hover:border-stone-400 dark:hover:border-stone-500 transition-colors"
     onClick={props.onClick}>
-    <span className="text-stone-400 dark:text-stone-500 text-xs">
+    <span class="text-stone-400 dark:text-stone-500 text-xs">
       {Component.text(props.label)}
     </span>
   </div>
@@ -425,24 +425,24 @@ let emptySlot = (props: emptySlotProps) => {
 
 /* Stock and Waste Component using JSX */
 let stockAndWaste = () => {
-  <div className="flex gap-4">
+  <div class="flex gap-4">
     {Component.signalFragment(
       Computed.make(() => {
         let state = Signal.get(gameState)
         if Array.length(state.stock) > 0 {
           [
             <div
-              className="w-16 h-24 bg-blue-600 border-2 border-blue-700 rounded-lg cursor-pointer shadow-md flex items-center justify-center hover:scale-105 transition-transform"
+              class="w-16 h-24 bg-blue-600 border-2 border-blue-700 rounded-lg cursor-pointer shadow-md flex items-center justify-center hover:scale-105 transition-transform"
               onClick={drawCard}>
-              <div className="text-blue-400 text-2xl"> {Component.text("✦")} </div>
+              <div class="text-blue-400 text-2xl"> {Component.text("✦")} </div>
             </div>,
           ]
         } else {
           [
             <div
-              className="w-16 h-24 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg cursor-pointer flex items-center justify-center hover:border-stone-400 dark:hover:border-stone-500"
+              class="w-16 h-24 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg cursor-pointer flex items-center justify-center hover:border-stone-400 dark:hover:border-stone-500"
               onClick={drawCard}>
-              <span className="text-stone-400 text-xs"> {Component.text("↻")} </span>
+              <span class="text-stone-400 text-xs"> {Component.text("↻")} </span>
             </div>,
           ]
         }
@@ -469,7 +469,7 @@ let stockAndWaste = () => {
 
 /* Foundations Component using JSX */
 let foundations = () => {
-  <div className="flex gap-4">
+  <div class="flex gap-4">
     {Component.signalFragment(
       Computed.make(() => {
         let state = Signal.get(gameState)
@@ -500,7 +500,7 @@ let foundations = () => {
 type tableauColumnProps = {colIndex: int}
 
 let tableauColumn = (props: tableauColumnProps) => {
-  <div className="flex flex-col">
+  <div class="flex flex-col">
     {Component.signalFragment(
       Computed.make(() => {
         let state = Signal.get(gameState)
@@ -522,7 +522,7 @@ let tableauColumn = (props: tableauColumnProps) => {
               ""
             }
 
-            <div className={marginClass}>
+            <div class={marginClass}>
               {cardComponent({
                 card,
                 isSelected,
@@ -546,19 +546,19 @@ let app = () => {
     }
   })
 
-  <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
-    <div className="flex items-center justify-between mb-6">
+  <div class="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+    <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-stone-900 dark:text-white mb-1">
+        <h1 class="text-2xl md:text-3xl font-bold text-stone-900 dark:text-white mb-1">
           {Component.text("Solitaire")}
         </h1>
-        <p className="text-sm text-stone-600 dark:text-stone-400">
+        <p class="text-sm text-stone-600 dark:text-stone-400">
           {Component.text("Moves: ")}
           {Component.textSignal(() => Signal.get(moves)->Int.toString)}
         </p>
       </div>
       <button
-        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+        class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
         onClick={newGame}>
         {Component.text("New Game")}
       </button>
@@ -568,8 +568,8 @@ let app = () => {
         if Signal.get(gameWon) {
           [
             <div
-              className="bg-green-100 dark:bg-green-900/30 border-2 border-green-500 rounded-xl p-4 text-center">
-              <p className="text-xl font-bold text-green-800 dark:text-green-300">
+              class="bg-green-100 dark:bg-green-900/30 border-2 border-green-500 rounded-xl p-4 text-center">
+              <p class="text-xl font-bold text-green-800 dark:text-green-300">
                 {Component.text("🎉 You Won! ")}
                 {Component.textSignal(() =>
                   `Completed in ${Signal.get(moves)->Int.toString} moves`
@@ -582,12 +582,12 @@ let app = () => {
         }
       }),
     )}
-    <div className="bg-green-700 dark:bg-green-900 rounded-2xl p-6 min-h-[600px]">
-      <div className="flex justify-between mb-8">
+    <div class="bg-green-700 dark:bg-green-900 rounded-2xl p-6 min-h-[600px]">
+      <div class="flex justify-between mb-8">
         {stockAndWaste()}
         {foundations()}
       </div>
-      <div className="grid grid-cols-7 gap-4">
+      <div class="grid grid-cols-7 gap-4">
         {tableauColumn({colIndex: 0})}
         {tableauColumn({colIndex: 1})}
         {tableauColumn({colIndex: 2})}
@@ -598,11 +598,11 @@ let app = () => {
       </div>
     </div>
     <div
-      className="bg-stone-50 dark:bg-stone-800 rounded-xl p-4 border border-stone-200 dark:border-stone-700">
-      <h3 className="font-semibold text-stone-900 dark:text-white mb-2">
+      class="bg-stone-50 dark:bg-stone-800 rounded-xl p-4 border border-stone-200 dark:border-stone-700">
+      <h3 class="font-semibold text-stone-900 dark:text-white mb-2">
         {Component.text("How to Play")}
       </h3>
-      <ul className="text-sm text-stone-600 dark:text-stone-400 space-y-1 list-disc list-inside">
+      <ul class="text-sm text-stone-600 dark:text-stone-400 space-y-1 list-disc list-inside">
         <li> {Component.text("Click cards to select, then click destination")} </li>
         <li> {Component.text("Build tableau columns in descending order, alternating colors")} </li>
         <li> {Component.text("Build foundations from Ace to King by suit")} </li>

@@ -85,7 +85,7 @@ Xote supports ReScript's generic JSX v4 for a more declarative component syntax:
 
 ```rescript
 let app = () => {
-  <div className="container">
+  <div class="container">
     <h1> {Component.text("Hello JSX")} </h1>
     <button onClick={handleClick}>
       {Component.text("Click me")}
@@ -96,7 +96,7 @@ let app = () => {
 
 **JSX features**:
 - Lowercase tags (`<div>`, `<button>`, etc.) create HTML elements
-- Props support: `className`, `id`, `style`, `type_`, `value`, `placeholder`, `disabled`, `checked`, `href`, `target`
+- Props support: `class`, `id`, `style`, `type_`, `value`, `placeholder`, `disabled`, `checked`, `href`, `target`
 - Event handlers: `onClick`, `onInput`, `onChange`, `onSubmit`, `onFocus`, `onBlur`, `onKeyDown`, `onKeyUp`, `onMouseEnter`, `onMouseLeave`
 - Children are passed via JSX syntax and rendered as nodes
 - Component functions can be called directly with props objects
@@ -202,7 +202,7 @@ Component.list(items, item => Component.text(Int.toString(item)))
 #### Basic JSX elements
 ```rescript
 // Simple element
-<div className="container">
+<div class="container">
   {Component.text("Hello")}
 </div>
 
@@ -228,7 +228,7 @@ type buttonProps = {
 }
 
 let customButton = (props: buttonProps) => {
-  <button className="custom-btn" onClick={props.onClick}>
+  <button class="custom-btn" onClick={props.onClick}>
     {Component.text(props.label)}
   </button>
 }
