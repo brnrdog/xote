@@ -112,7 +112,11 @@ type todoListProps = {todos: Xote.Core.t<array<todo>>}
 
 let todoList = (props: todoListProps) => {
   <ul class="todo-list space-y-2">
-    {Component.list(props.todos, todo => todoItem({todo: todo}))}
+    {Component.listKeyed(
+      props.todos,
+      todo => todo.id->Int.toString,
+      todo => todoItem({todo: todo}),
+    )}
   </ul>
 }
 
