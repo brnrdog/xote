@@ -105,7 +105,6 @@ let app = () => {
 - `SignalText` nodes create a DOM text node and set up an effect that updates `textContent` when the signal changes
 - `SignalFragment` nodes use a container element with `display: contents` and replace all children when the signal changes (no diffing)
 - `list` is implemented as a computed signal + `SignalFragment`, so the entire list rerenders on any array change
-- `listKeyed` implements efficient reconciliation using keys - it reuses DOM elements, only updating what changed
 - Attributes can be static or reactive - reactive attributes set up effects that update the DOM attribute when the signal/computed value changes
 
 ## Key Concepts for Development
@@ -194,18 +193,8 @@ Component.button(
 
 ### Reactive lists
 ```rescript
-// Simple list (re-renders entire list on change)
 let items = Signal.make([1, 2, 3])
 Component.list(items, item => Component.text(Int.toString(item)))
-
-// Keyed list (efficient reconciliation)
-type todo = {id: int, text: string}
-let todos = Signal.make([{id: 1, text: "Buy milk"}])
-Component.listKeyed(
-  todos,
-  todo => todo.id->Int.toString,  // key extractor
-  todo => Component.text(todo.text)  // renderer
-)
 ```
 
 ### JSX Syntax
@@ -286,4 +275,4 @@ let app = () => {
 2. No microtask-based scheduling (synchronous by default)
 3. No effect cleanup hooks
 4. No equality checks in `Signal.set`
-5. Non-keyed lists (`list`) replace all children on update - use `listKeyed` for efficient reconciliation
+5. Fragment/list updates replace all children (no diffing algorithm)
