@@ -44,7 +44,9 @@ The codebase follows a flat module hierarchy with the `Xote__` prefix for intern
 
 - **`Xote__Component`**: Minimal component/renderer with virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`). Provides element constructors (`div`, `button`, `input`, etc.) and reactive nodes that update DOM directly via effects.
 
-- **`Xote.res`**: Public API surface that re-exports the above modules as `Signal`, `Computed`, `Effect`, `Core`, and `Component`.
+- **`Xote__JSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags.
+
+- **`Xote.res`**: Public API surface that re-exports the above modules as `Signal`, `Computed`, `Effect`, `Core`, `Component`, and `JSX`.
 
 ### Reactivity Model
 
@@ -61,11 +63,13 @@ The codebase follows a flat module hierarchy with the `Xote__` prefix for intern
 - **Public module**: Only `Xote` is exported (controlled via `rescript.json` `sources.public`)
 - **Compiler flags**: `-open RescriptCore` (RescriptCore is auto-opened in all files)
 - **Dependencies**: `@rescript/core` only
+- **JSX**: ReScript JSX v4 configured to use `Xote__JSX` module (generic JSX transform)
 
 ### Component System
 
-Components are functions returning `node` types. The `Component` module provides:
+Components are functions returning `node` types. Xote supports **two syntax styles**:
 
+#### Function-based API (Component module)
 1. **Static text nodes**: `text("hello")`
 2. **Reactive text nodes**: `textSignal(() => ...)` - accepts a function that computes the text value
 3. **Unified attributes**: `attrs` parameter accepts static, signal, or computed values via helper functions:
@@ -75,6 +79,27 @@ Components are functions returning `node` types. The `Component` module provides
 4. **Reactive lists**: `list(signal, renderItem)` - creates a computed that maps array to nodes
 5. **Event handlers**: `events` parameter for DOM event listeners
 6. **Mounting**: `mountById(node, "element-id")` to attach to DOM
+
+#### JSX Syntax (Experimental)
+Xote supports ReScript's generic JSX v4 for a more declarative component syntax:
+
+```rescript
+let app = () => {
+  <div className="container">
+    <h1> {Component.text("Hello JSX")} </h1>
+    <button onClick={handleClick}>
+      {Component.text("Click me")}
+    </button>
+  </div>
+}
+```
+
+**JSX features**:
+- Lowercase tags (`<div>`, `<button>`, etc.) create HTML elements
+- Props support: `className`, `id`, `style`, `type_`, `value`, `placeholder`, `disabled`, `checked`, `href`, `target`
+- Event handlers: `onClick`, `onInput`, `onChange`, `onSubmit`, `onFocus`, `onBlur`, `onKeyDown`, `onKeyUp`, `onMouseEnter`, `onMouseLeave`
+- Children are passed via JSX syntax and rendered as nodes
+- Component functions can be called directly with props objects
 
 **Important rendering behavior**:
 - `SignalText` nodes create a DOM text node and set up an effect that updates `textContent` when the signal changes
@@ -172,11 +197,77 @@ let items = Signal.make([1, 2, 3])
 Component.list(items, item => Component.text(Int.toString(item)))
 ```
 
+### JSX Syntax
+
+#### Basic JSX elements
+```rescript
+// Simple element
+<div className="container">
+  {Component.text("Hello")}
+</div>
+
+// With events
+<button onClick={handleClick}>
+  {Component.text("Click me")}
+</button>
+
+// Input with reactive value
+<input
+  type_="text"
+  value={Signal.peek(inputValue)}
+  onInput={handleInput}
+/>
+```
+
+#### Component functions with JSX
+```rescript
+// Define a component function
+type buttonProps = {
+  label: string,
+  onClick: Dom.event => unit,
+}
+
+let customButton = (props: buttonProps) => {
+  <button className="custom-btn" onClick={props.onClick}>
+    {Component.text(props.label)}
+  </button>
+}
+
+// Use the component
+let app = () => {
+  <div>
+    {customButton({label: "Submit", onClick: handleSubmit})}
+  </div>
+}
+```
+
+#### Reactive content in JSX
+```rescript
+let app = () => {
+  let count = Signal.make(0)
+
+  <div>
+    <p>
+      {Component.textSignal(() =>
+        `Count: ${Signal.get(count)->Int.toString}`
+      )}
+    </p>
+    <button onClick={_ => Signal.update(count, n => n + 1)}>
+      {Component.text("+")}
+    </button>
+  </div>
+}
+```
+
 ## Reference Documentation
 
 - **Technical deep-dive**: See `docs/TECHNICAL_OVERVIEW.md` for detailed architecture
-- **Example app**: See `demos/TodoApp.res` for a complete todo list implementation
+- **Example apps**:
+  - `demos/TodoApp.res` - Todo list using function-based API
+  - `demos/CounterJSX.res` - Counter demo with JSX syntax
+  - `demos/TodoJSX.res` - Todo list with JSX syntax and custom components
 - **TC39 Signals proposal**: https://github.com/tc39/proposal-signals
+- **ReScript JSX**: https://rescript-lang.org/docs/manual/latest/jsx
 
 ## Known Limitations
 
