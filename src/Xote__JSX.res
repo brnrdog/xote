@@ -53,7 +53,7 @@ module Elements = {
   type props = {
     /* Standard attributes */
     id?: string,
-    className?: string,
+    class?: string,
     style?: string,
     /* Input attributes */
     @as("type") type_?: string,
@@ -88,7 +88,7 @@ module Elements = {
     | None => ()
     }
 
-    switch props.className {
+    switch props.class {
     | Some(v) => attrs->Array.push(Component.attr("class", v))
     | None => ()
     }

@@ -212,29 +212,29 @@ module MatchGame = {
       }
     })
 
-    <div className="max-w-4xl mx-auto p-4 md:p-6">
+    <div class="max-w-4xl mx-auto p-4 md:p-6">
       // Header
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-stone-900 dark:text-white mb-2 text-center">
+      <div class="mb-6">
+        <h1 class="text-3xl font-bold text-stone-900 dark:text-white mb-2 text-center">
           {Component.text("Memory Match Game")}
         </h1>
-        <p className="text-center text-stone-600 dark:text-stone-400">
+        <p class="text-center text-stone-600 dark:text-stone-400">
           {Component.text("2 Players • Find matching pairs")}
         </p>
       </div>
 
       // Score and Level Info
-      <div className="bg-white dark:bg-stone-800 rounded-xl p-4 mb-6 border-2 border-stone-200 dark:border-stone-700">
-        <div className="flex justify-between items-center mb-4">
-          <div className="text-center">
+      <div class="bg-white dark:bg-stone-800 rounded-xl p-4 mb-6 border-2 border-stone-200 dark:border-stone-700">
+        <div class="flex justify-between items-center mb-4">
+          <div class="text-center">
             <div
-              className={switch Signal.get(currentPlayer) {
+              class={switch Signal.get(currentPlayer) {
               | Player1 => "text-2xl font-bold text-blue-600 dark:text-blue-400"
               | Player2 => "text-2xl font-bold text-stone-500 dark:text-stone-400"
               }}>
               {Component.textSignal(() => "P1: " ++ Int.toString(Signal.get(player1Score)))}
             </div>
-            <div className="text-xs text-stone-500 dark:text-stone-400">
+            <div class="text-xs text-stone-500 dark:text-stone-400">
               {Component.textSignal(() =>
                 switch Signal.get(currentPlayer) {
                 | Player1 => "• Your Turn"
@@ -243,11 +243,11 @@ module MatchGame = {
               )}
             </div>
           </div>
-          <div className="text-center">
-            <div className="text-xl font-bold text-stone-900 dark:text-white">
+          <div class="text-center">
+            <div class="text-xl font-bold text-stone-900 dark:text-white">
               {Component.textSignal(() => "Level " ++ Int.toString(Signal.get(currentLevel)))}
             </div>
-            <div className="text-xs text-stone-500 dark:text-stone-400">
+            <div class="text-xs text-stone-500 dark:text-stone-400">
               {Component.textSignal(() => {
                 let level = Signal.get(currentLevel)
                 let numCards = levelsConfig[level - 1]->Option.getOr(4)
@@ -255,15 +255,15 @@ module MatchGame = {
               })}
             </div>
           </div>
-          <div className="text-center">
+          <div class="text-center">
             <div
-              className={switch Signal.get(currentPlayer) {
+              class={switch Signal.get(currentPlayer) {
               | Player2 => "text-2xl font-bold text-green-600 dark:text-green-400"
               | Player1 => "text-2xl font-bold text-stone-500 dark:text-stone-400"
               }}>
               {Component.textSignal(() => "P2: " ++ Int.toString(Signal.get(player2Score)))}
             </div>
-            <div className="text-xs text-stone-500 dark:text-stone-400">
+            <div class="text-xs text-stone-500 dark:text-stone-400">
               {Component.textSignal(() =>
                 switch Signal.get(currentPlayer) {
                 | Player2 => "• Your Turn"
@@ -277,7 +277,7 @@ module MatchGame = {
 
       // Game Board
       <div
-        className={let level = Signal.get(currentLevel)
+        class={let level = Signal.get(currentLevel)
         let numCards = levelsConfig[level - 1]->Option.getOr(4)
         if numCards <= 10 {
           "grid grid-cols-4 gap-3 mb-6"
@@ -300,7 +300,7 @@ module MatchGame = {
               }
             }
 
-            <button className={className} onClick={handleCardClick(card.id, _)}>
+            <button class={className} onClick={handleCardClick(card.id, _)}>
               {Component.textSignal(() =>
                 if card.flipped || card.matched {
                   card.symbol
@@ -315,12 +315,12 @@ module MatchGame = {
 
       // Level Complete / Game Won Modal
       <div
-        className={switch Signal.get(gameState) {
+        class={switch Signal.get(gameState) {
         | Playing => "hidden"
         | LevelComplete | GameWon => "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
         }}>
-        <div className="bg-white dark:bg-stone-800 rounded-2xl p-8 max-w-md mx-4 text-center">
-          <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-4">
+        <div class="bg-white dark:bg-stone-800 rounded-2xl p-8 max-w-md mx-4 text-center">
+          <h2 class="text-3xl font-bold text-stone-900 dark:text-white mb-4">
             {Component.textSignal(() =>
               switch Signal.get(gameState) {
               | LevelComplete => "Level Complete! 🎉"
@@ -329,8 +329,8 @@ module MatchGame = {
               }
             )}
           </h2>
-          <div className="text-xl mb-6">
-            <div className="mb-2">
+          <div class="text-xl mb-6">
+            <div class="mb-2">
               {Component.textSignal(() => {
                 let p1 = Signal.get(player1Score)
                 let p2 = Signal.get(player2Score)
@@ -343,7 +343,7 @@ module MatchGame = {
                 }
               })}
             </div>
-            <div className="text-base text-stone-600 dark:text-stone-400">
+            <div class="text-base text-stone-600 dark:text-stone-400">
               {Component.textSignal(() =>
                 "Player 1: " ++
                 Int.toString(Signal.get(player1Score)) ++
@@ -352,9 +352,9 @@ module MatchGame = {
               )}
             </div>
           </div>
-          <div className="flex gap-4 justify-center">
+          <div class="flex gap-4 justify-center">
             <button
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
               style={switch Signal.get(gameState) {
               | GameWon => "display: none"
               | _ => ""
@@ -363,7 +363,7 @@ module MatchGame = {
               {Component.text("Next Level →")}
             </button>
             <button
-              className="px-6 py-3 bg-stone-600 hover:bg-stone-700 text-white rounded-lg font-medium transition-colors"
+              class="px-6 py-3 bg-stone-600 hover:bg-stone-700 text-white rounded-lg font-medium transition-colors"
               onClick={restartGame}>
               {Component.text("Restart Game")}
             </button>
@@ -372,9 +372,9 @@ module MatchGame = {
       </div>
 
       // Restart button
-      <div className="text-center">
+      <div class="text-center">
         <button
-          className="px-6 py-2 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-900 dark:text-white rounded-lg font-medium transition-colors"
+          class="px-6 py-2 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-900 dark:text-white rounded-lg font-medium transition-colors"
           onClick={restartGame}>
           {Component.text("Restart Game")}
         </button>

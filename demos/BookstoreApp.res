@@ -259,22 +259,22 @@ let completeOrder = () => {
 
 /* Header Component using JSX */
 let header = () => {
-  <div className="bg-white dark:bg-stone-800 border-b-2 border-stone-200 dark:border-stone-700 p-4">
-    <div className="max-w-7xl mx-auto flex justify-between items-center">
+  <div class="bg-white dark:bg-stone-800 border-b-2 border-stone-200 dark:border-stone-700 p-4">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
       {Router.link(
         ~to="/",
         ~attrs=[
           Component.attr("class", "flex items-center gap-3 hover:opacity-80 transition-opacity"),
         ],
         ~children=[
-          <span className="text-3xl"> {Component.text("📚")} </span>,
-          <h1 className="text-2xl font-bold text-stone-900 dark:text-white">
+          <span class="text-3xl"> {Component.text("📚")} </span>,
+          <h1 class="text-2xl font-bold text-stone-900 dark:text-white">
             {Component.text("Functional Bookstore")}
           </h1>,
         ],
         (),
       )}
-      <div className="flex items-center gap-2">
+      <div class="flex items-center gap-2">
         {Router.link(
           ~to="/",
           ~attrs=[
@@ -331,7 +331,7 @@ let header = () => {
           ~children=[
             Component.text("🛒 Cart"),
             <span
-              className={
+              class={
                 let count = Signal.get(cartItemCount)
                 if count > 0 {
                   "ml-2 px-2 py-1 bg-stone-900 dark:bg-stone-600 text-white text-xs rounded-full"
@@ -351,13 +351,13 @@ let header = () => {
 
 /* HomePage Component using JSX */
 let homePage = () => {
-  <div className="max-w-4xl mx-auto p-6 text-center">
-    <div className="py-12">
-      <div className="text-6xl mb-6"> {Component.text("📚")} </div>
-      <h1 className="text-4xl md:text-5xl font-bold text-stone-900 dark:text-white mb-4">
+  <div class="max-w-4xl mx-auto p-6 text-center">
+    <div class="py-12">
+      <div class="text-6xl mb-6"> {Component.text("📚")} </div>
+      <h1 class="text-4xl md:text-5xl font-bold text-stone-900 dark:text-white mb-4">
         {Component.text("Welcome to Functional Bookstore")}
       </h1>
-      <p className="text-xl text-stone-600 dark:text-stone-400 mb-8">
+      <p class="text-xl text-stone-600 dark:text-stone-400 mb-8">
         {Component.text("Your premier destination for absurd functional programming literature")}
       </p>
       {Router.link(
@@ -372,34 +372,34 @@ let homePage = () => {
         (),
       )}
     </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
       <div
-        className="bg-white dark:bg-stone-800 rounded-xl p-6 border-2 border-stone-200 dark:border-stone-700">
-        <div className="text-3xl mb-3"> {Component.text("📖")} </div>
-        <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-2">
+        class="bg-white dark:bg-stone-800 rounded-xl p-6 border-2 border-stone-200 dark:border-stone-700">
+        <div class="text-3xl mb-3"> {Component.text("📖")} </div>
+        <h3 class="text-xl font-bold text-stone-900 dark:text-white mb-2">
           {Component.text("12 Unique Titles")}
         </h3>
-        <p className="text-stone-600 dark:text-stone-400">
+        <p class="text-stone-600 dark:text-stone-400">
           {Component.text("From monads to functors, explore our curated collection")}
         </p>
       </div>
       <div
-        className="bg-white dark:bg-stone-800 rounded-xl p-6 border-2 border-stone-200 dark:border-stone-700">
-        <div className="text-3xl mb-3"> {Component.text("🎨")} </div>
-        <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-2">
+        class="bg-white dark:bg-stone-800 rounded-xl p-6 border-2 border-stone-200 dark:border-stone-700">
+        <div class="text-3xl mb-3"> {Component.text("🎨")} </div>
+        <h3 class="text-xl font-bold text-stone-900 dark:text-white mb-2">
           {Component.text("Fictional Authors")}
         </h3>
-        <p className="text-stone-600 dark:text-stone-400">
+        <p class="text-stone-600 dark:text-stone-400">
           {Component.text("Written by legends like Dr. Lambda Calculus")}
         </p>
       </div>
       <div
-        className="bg-white dark:bg-stone-800 rounded-xl p-6 border-2 border-stone-200 dark:border-stone-700">
-        <div className="text-3xl mb-3"> {Component.text("Ƒ")} </div>
-        <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-2">
+        class="bg-white dark:bg-stone-800 rounded-xl p-6 border-2 border-stone-200 dark:border-stone-700">
+        <div class="text-3xl mb-3"> {Component.text("Ƒ")} </div>
+        <h3 class="text-xl font-bold text-stone-900 dark:text-white mb-2">
           {Component.text("Functor Currency")}
         </h3>
-        <p className="text-stone-600 dark:text-stone-400">
+        <p class="text-stone-600 dark:text-stone-400">
           {Component.text("All prices in our fictional Functor (Ƒ) currency")}
         </p>
       </div>
@@ -409,42 +409,42 @@ let homePage = () => {
 
 /* AboutPage Component using JSX */
 let aboutPage = () => {
-  <div className="max-w-3xl mx-auto p-6">
-    <h1 className="text-4xl font-bold text-stone-900 dark:text-white mb-6">
+  <div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-4xl font-bold text-stone-900 dark:text-white mb-6">
       {Component.text("About Functional Bookstore")}
     </h1>
     <div
-      className="bg-white dark:bg-stone-800 rounded-xl p-8 border-2 border-stone-200 dark:border-stone-700 space-y-6">
-      <p className="text-lg text-stone-700 dark:text-stone-300">
+      class="bg-white dark:bg-stone-800 rounded-xl p-8 border-2 border-stone-200 dark:border-stone-700 space-y-6">
+      <p class="text-lg text-stone-700 dark:text-stone-300">
         {Component.text(
           "Welcome to the Functional Bookstore, your one-stop shop for the most absurd and delightful functional programming literature in the known universe.",
         )}
       </p>
-      <h2 className="text-2xl font-bold text-stone-900 dark:text-white mt-6">
+      <h2 class="text-2xl font-bold text-stone-900 dark:text-white mt-6">
         {Component.text("Our Mission")}
       </h2>
-      <p className="text-stone-600 dark:text-stone-400">
+      <p class="text-stone-600 dark:text-stone-400">
         {Component.text(
           "We believe that learning functional programming should be fun, quirky, and filled with clever puns. Our carefully curated collection features fictional books with titles that will make you laugh, think, and perhaps question your life choices.",
         )}
       </p>
-      <h2 className="text-2xl font-bold text-stone-900 dark:text-white mt-6">
+      <h2 class="text-2xl font-bold text-stone-900 dark:text-white mt-6">
         {Component.text("Why Functors?")}
       </h2>
-      <p className="text-stone-600 dark:text-stone-400">
+      <p class="text-stone-600 dark:text-stone-400">
         {Component.text(
           "Our currency, the Functor (Ƒ), represents the pure, mappable nature of value itself. Just as a functor maps values through a context, our prices map your desire for knowledge into tangible (albeit fictional) transactions.",
         )}
       </p>
-      <h2 className="text-2xl font-bold text-stone-900 dark:text-white mt-6">
+      <h2 class="text-2xl font-bold text-stone-900 dark:text-white mt-6">
         {Component.text("Demo Purpose")}
       </h2>
-      <p className="text-stone-600 dark:text-stone-400">
+      <p class="text-stone-600 dark:text-stone-400">
         {Component.text(
           "This bookstore is a demonstration of Xote's routing capabilities, showcasing multi-page navigation, shopping cart management, and a complete checkout flow. All built with reactive signals and zero dependencies.",
         )}
       </p>
-      <div className="pt-6 mt-6 border-t-2 border-stone-200 dark:border-stone-700">
+      <div class="pt-6 mt-6 border-t-2 border-stone-200 dark:border-stone-700">
         {Router.link(
           ~to="/catalog",
           ~attrs=[
@@ -471,23 +471,23 @@ let productCard = (props: productCardProps) => {
   })
 
   <div
-    className="bg-white dark:bg-stone-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow border-2 border-stone-200 dark:border-stone-700">
-    <div className="text-6xl text-center mb-4"> {Component.text(props.product.cover)} </div>
-    <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-2">
+    class="bg-white dark:bg-stone-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow border-2 border-stone-200 dark:border-stone-700">
+    <div class="text-6xl text-center mb-4"> {Component.text(props.product.cover)} </div>
+    <h3 class="text-xl font-bold text-stone-900 dark:text-white mb-2">
       {Component.text(props.product.title)}
     </h3>
-    <p className="text-sm text-stone-600 dark:text-stone-400 mb-2">
+    <p class="text-sm text-stone-600 dark:text-stone-400 mb-2">
       {Component.text("by " ++ props.product.author)}
     </p>
-    <p className="text-stone-600 dark:text-stone-400 text-sm mb-4 line-clamp-3">
+    <p class="text-stone-600 dark:text-stone-400 text-sm mb-4 line-clamp-3">
       {Component.text(props.product.description)}
     </p>
-    <div className="flex justify-between items-center">
-      <span className="text-2xl font-bold text-stone-700 dark:text-stone-300">
+    <div class="flex justify-between items-center">
+      <span class="text-2xl font-bold text-stone-700 dark:text-stone-300">
         {Component.text(formatPrice(props.product.price))}
       </span>
       <button
-        className={if Signal.get(inCart) {
+        class={if Signal.get(inCart) {
           "px-4 py-2 bg-green-600 text-white rounded-lg font-semibold"
         } else {
           "px-4 py-2 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors"
@@ -507,11 +507,11 @@ let productCard = (props: productCardProps) => {
 
 /* CatalogView Component using JSX */
 let catalogView = () => {
-  <div className="max-w-7xl mx-auto p-6">
-    <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-6">
+  <div class="max-w-7xl mx-auto p-6">
+    <h2 class="text-3xl font-bold text-stone-900 dark:text-white mb-6">
       {Component.text("Available Books")}
     </h2>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {Component.fragment(products->Array.map(product => productCard({product: product})))}
     </div>
   </div>
@@ -526,40 +526,40 @@ let cartItemRow = (props: cartItemRowProps) => {
   switch product {
   | Some(p) =>
     <div
-      className="bg-white dark:bg-stone-800 rounded-lg p-4 shadow border-2 border-stone-200 dark:border-stone-700">
-      <div className="flex gap-4">
-        <div className="text-4xl"> {Component.text(p.cover)} </div>
-        <div className="flex-1">
-          <h3 className="font-bold text-stone-900 dark:text-white"> {Component.text(p.title)} </h3>
-          <p className="text-sm text-stone-600 dark:text-stone-400">
+      class="bg-white dark:bg-stone-800 rounded-lg p-4 shadow border-2 border-stone-200 dark:border-stone-700">
+      <div class="flex gap-4">
+        <div class="text-4xl"> {Component.text(p.cover)} </div>
+        <div class="flex-1">
+          <h3 class="font-bold text-stone-900 dark:text-white"> {Component.text(p.title)} </h3>
+          <p class="text-sm text-stone-600 dark:text-stone-400">
             {Component.text("by " ++ p.author)}
           </p>
-          <p className="text-stone-700 dark:text-stone-300 font-semibold mt-2">
+          <p class="text-stone-700 dark:text-stone-300 font-semibold mt-2">
             {Component.text(formatPrice(p.price) ++ " each")}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-2">
+        <div class="flex flex-col items-end gap-2">
+          <div class="flex items-center gap-2">
             <button
-              className="px-3 py-1 bg-stone-200 dark:bg-stone-700 rounded hover:bg-stone-300 dark:hover:bg-stone-600 font-bold"
+              class="px-3 py-1 bg-stone-200 dark:bg-stone-700 rounded hover:bg-stone-300 dark:hover:bg-stone-600 font-bold"
               onClick={_ => updateQuantity(p.id, props.item.quantity - 1)}>
               {Component.text("-")}
             </button>
             <span
-              className="px-4 py-1 bg-stone-100 dark:bg-stone-700 rounded font-semibold text-stone-900 dark:text-white">
+              class="px-4 py-1 bg-stone-100 dark:bg-stone-700 rounded font-semibold text-stone-900 dark:text-white">
               {Component.text(Int.toString(props.item.quantity))}
             </span>
             <button
-              className="px-3 py-1 bg-stone-200 dark:bg-stone-700 rounded hover:bg-stone-300 dark:hover:bg-stone-600 font-bold"
+              class="px-3 py-1 bg-stone-200 dark:bg-stone-700 rounded hover:bg-stone-300 dark:hover:bg-stone-600 font-bold"
               onClick={_ => updateQuantity(p.id, props.item.quantity + 1)}>
               {Component.text("+")}
             </button>
           </div>
-          <p className="text-lg font-bold text-stone-900 dark:text-white">
+          <p class="text-lg font-bold text-stone-900 dark:text-white">
             {Component.text(formatPrice(p.price *. Float.fromInt(props.item.quantity)))}
           </p>
           <button
-            className="text-sm text-red-600 hover:text-red-700 font-semibold"
+            class="text-sm text-red-600 hover:text-red-700 font-semibold"
             onClick={_ => removeFromCart(p.id)}>
             {Component.text("Remove")}
           </button>
@@ -574,18 +574,18 @@ let cartItemRow = (props: cartItemRowProps) => {
 let cartView = () => {
   let isEmpty = Computed.make(() => Array.length(Signal.get(cart)) == 0)
 
-  <div className="max-w-4xl mx-auto p-6">
-    <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-6">
+  <div class="max-w-4xl mx-auto p-6">
+    <h2 class="text-3xl font-bold text-stone-900 dark:text-white mb-6">
       {Component.text("Shopping Cart")}
     </h2>
     <div
-      className={if Signal.get(isEmpty) {
+      class={if Signal.get(isEmpty) {
         "block"
       } else {
         "hidden"
       }}>
-      <div className="text-center py-12">
-        <p className="text-xl text-stone-600 dark:text-stone-400 mb-4">
+      <div class="text-center py-12">
+        <p class="text-xl text-stone-600 dark:text-stone-400 mb-4">
           {Component.text("Your cart is empty")}
         </p>
         {Router.link(
@@ -602,25 +602,25 @@ let cartView = () => {
       </div>
     </div>
     <div
-      className={if Signal.get(isEmpty) {
+      class={if Signal.get(isEmpty) {
         "hidden"
       } else {
         "block"
       }}>
-      <div className="space-y-4 mb-6">
+      <div class="space-y-4 mb-6">
         {Component.list(cart, item => cartItemRow({item: item}))}
       </div>
       <div
-        className="bg-stone-100 dark:bg-stone-800 rounded-lg p-6 border-2 border-stone-300 dark:border-stone-700">
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-2xl font-bold text-stone-900 dark:text-white">
+        class="bg-stone-100 dark:bg-stone-800 rounded-lg p-6 border-2 border-stone-300 dark:border-stone-700">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-2xl font-bold text-stone-900 dark:text-white">
             {Component.text("Total:")}
           </span>
-          <span className="text-3xl font-bold text-stone-700 dark:text-stone-300">
+          <span class="text-3xl font-bold text-stone-700 dark:text-stone-300">
             {Component.textSignal(() => formatPrice(Signal.get(cartTotal)))}
           </span>
         </div>
-        <div className="flex gap-4">
+        <div class="flex gap-4">
           {Router.link(
             ~to="/catalog",
             ~attrs=[
@@ -656,56 +656,56 @@ let checkoutView = () => {
     updateFormField(field, value)
   }
 
-  <div className="max-w-2xl mx-auto p-6">
-    <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-6">
+  <div class="max-w-2xl mx-auto p-6">
+    <h2 class="text-3xl font-bold text-stone-900 dark:text-white mb-6">
       {Component.text("Checkout")}
     </h2>
     <div
-      className="bg-white dark:bg-stone-800 rounded-xl p-6 shadow-lg border-2 border-stone-200 dark:border-stone-700 mb-6">
-      <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-4">
+      class="bg-white dark:bg-stone-800 rounded-xl p-6 shadow-lg border-2 border-stone-200 dark:border-stone-700 mb-6">
+      <h3 class="text-xl font-bold text-stone-900 dark:text-white mb-4">
         {Component.text("Shipping Information")}
       </h3>
-      <div className="space-y-4">
+      <div class="space-y-4">
         <div>
-          <span className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
+          <span class="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
             {Component.text("Full Name")}
           </span>
           <input
             type_="text"
-            className="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
+            class="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
             placeholder="John Doe"
             onInput={handleInput("name", _)}
           />
         </div>
         <div>
-          <span className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
+          <span class="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
             {Component.text("Email")}
           </span>
           <input
             type_="email"
-            className="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
+            class="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
             placeholder="john@example.com"
             onInput={handleInput("email", _)}
           />
         </div>
         <div>
-          <span className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
+          <span class="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
             {Component.text("Address")}
           </span>
           <input
             type_="text"
-            className="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
+            class="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
             placeholder="123 Lambda Lane"
             onInput={handleInput("address", _)}
           />
         </div>
         <div>
-          <span className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
+          <span class="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
             {Component.text("City")}
           </span>
           <input
             type_="text"
-            className="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
+            class="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
             placeholder="Functional City"
             onInput={handleInput("city", _)}
           />
@@ -713,50 +713,50 @@ let checkoutView = () => {
       </div>
     </div>
     <div
-      className="bg-white dark:bg-stone-800 rounded-xl p-6 shadow-lg border-2 border-stone-200 dark:border-stone-700 mb-6">
-      <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-4">
+      class="bg-white dark:bg-stone-800 rounded-xl p-6 shadow-lg border-2 border-stone-200 dark:border-stone-700 mb-6">
+      <h3 class="text-xl font-bold text-stone-900 dark:text-white mb-4">
         {Component.text("Payment Information")}
       </h3>
       <div>
-        <span className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
+        <span class="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
           {Component.text("Card Number")}
         </span>
         <input
           type_="text"
-          className="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
+          class="w-full px-4 py-2 border-2 border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
           placeholder="1234 5678 9012 3456"
           onInput={handleInput("cardNumber", _)}
         />
       </div>
     </div>
     <div
-      className="bg-stone-100 dark:bg-stone-800 rounded-lg p-6 border-2 border-stone-300 dark:border-stone-700 mb-6">
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-stone-600 dark:text-stone-400">
+      class="bg-stone-100 dark:bg-stone-800 rounded-lg p-6 border-2 border-stone-300 dark:border-stone-700 mb-6">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-stone-600 dark:text-stone-400">
           {Component.textSignal(() => "Items (" ++ Int.toString(Signal.get(cartItemCount)) ++ ")")}
         </span>
-        <span className="font-semibold text-stone-900 dark:text-white">
+        <span class="font-semibold text-stone-900 dark:text-white">
           {Component.textSignal(() => formatPrice(Signal.get(cartTotal)))}
         </span>
       </div>
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-stone-600 dark:text-stone-400"> {Component.text("Shipping")} </span>
-        <span className="font-semibold text-stone-700 dark:text-stone-300">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-stone-600 dark:text-stone-400"> {Component.text("Shipping")} </span>
+        <span class="font-semibold text-stone-700 dark:text-stone-300">
           {Component.text("FREE")}
         </span>
       </div>
-      <div className="border-t-2 border-purple-200 dark:border-purple-700 pt-2 mt-2">
-        <div className="flex justify-between items-center">
-          <span className="text-xl font-bold text-stone-900 dark:text-white">
+      <div class="border-t-2 border-purple-200 dark:border-purple-700 pt-2 mt-2">
+        <div class="flex justify-between items-center">
+          <span class="text-xl font-bold text-stone-900 dark:text-white">
             {Component.text("Total:")}
           </span>
-          <span className="text-2xl font-bold text-stone-700 dark:text-stone-300">
+          <span class="text-2xl font-bold text-stone-700 dark:text-stone-300">
             {Component.textSignal(() => formatPrice(Signal.get(cartTotal)))}
           </span>
         </div>
       </div>
     </div>
-    <div className="flex gap-4">
+    <div class="flex gap-4">
       {Router.link(
         ~to="/cart",
         ~attrs=[
@@ -769,7 +769,7 @@ let checkoutView = () => {
         (),
       )}
       <button
-        className="flex-1 px-6 py-3 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors"
+        class="flex-1 px-6 py-3 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors"
         onClick={_ => completeOrder()}>
         {Component.text("Complete Order")}
       </button>
@@ -779,25 +779,25 @@ let checkoutView = () => {
 
 /* OrderConfirmedView Component using JSX */
 let orderConfirmedView = () => {
-  <div className="max-w-2xl mx-auto p-6">
+  <div class="max-w-2xl mx-auto p-6">
     <div
-      className="bg-white dark:bg-stone-800 rounded-xl p-8 shadow-lg border-2 border-stone-300 dark:border-stone-700 text-center">
-      <div className="text-6xl mb-4"> {Component.text("✅")} </div>
-      <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-4">
+      class="bg-white dark:bg-stone-800 rounded-xl p-8 shadow-lg border-2 border-stone-300 dark:border-stone-700 text-center">
+      <div class="text-6xl mb-4"> {Component.text("✅")} </div>
+      <h2 class="text-3xl font-bold text-stone-900 dark:text-white mb-4">
         {Component.text("Order Confirmed!")}
       </h2>
-      <p className="text-xl text-stone-600 dark:text-stone-400 mb-2">
+      <p class="text-xl text-stone-600 dark:text-stone-400 mb-2">
         {Component.text("Thank you for your order!")}
       </p>
-      <p className="text-lg text-stone-500 dark:text-stone-500 mb-6">
+      <p class="text-lg text-stone-500 dark:text-stone-500 mb-6">
         {Component.text("Order #")}
         {Component.textSignal(() => Int.toString(Signal.get(orderNumber)))}
       </p>
-      <div className="bg-stone-100 dark:bg-stone-700 rounded-lg p-6 mb-6">
-        <p className="text-stone-700 dark:text-stone-300 mb-2">
+      <div class="bg-stone-100 dark:bg-stone-700 rounded-lg p-6 mb-6">
+        <p class="text-stone-700 dark:text-stone-300 mb-2">
           {Component.text("Your books are being prepared for shipment.")}
         </p>
-        <p className="text-stone-600 dark:text-stone-400 text-sm">
+        <p class="text-stone-600 dark:text-stone-400 text-sm">
           {Component.text("You will receive a confirmation email shortly.")}
         </p>
       </div>
@@ -818,7 +818,7 @@ let orderConfirmedView = () => {
 
 /* Main Bookstore App Component using JSX */
 let app = () => {
-  <div className="min-h-screen bg-stone-50 dark:bg-stone-900">
+  <div class="min-h-screen bg-stone-50 dark:bg-stone-900">
     {header()}
     {Router.routes([
       {pattern: "/", render: _ => homePage()},
