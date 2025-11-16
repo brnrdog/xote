@@ -8,7 +8,7 @@ Xote (pronounced [ˈʃɔtʃi]) is a lightweight, zero-dependency UI library for 
 
 - Zero dependencies: pure ReScript implementation
 - Lightweight and efficient runtime
-- Declarative components for building reactive UIs (JSX support comming up soon)
+- Declarative components for building reactive UIs with JSX support
 - Reactive primitives: signals, computed values, and effects
 - Automatic dependency tracking: no manual subscription management
 - Fine-grained updates: direct DOM updates without a virtual DOM
@@ -35,6 +35,36 @@ Then, add it to your ReScript project’s dependencies in `rescript.json`:
 ```
 
 ### Quick Example
+
+#### Using JSX
+
+```rescript
+open Xote
+
+let app = () => {
+  // Create reactive state
+  let count = Signal.make(0)
+
+  // Event handler
+  let increment = (_evt: Dom.event) => Signal.update(count, n => n + 1)
+
+  // Build the UI with JSX
+  <div>
+    <h1> {Component.text("Counter")} </h1>
+    <p>
+      {Component.textSignal(() => `Count: ${Signal.get(count)->Int.toString}`)}
+    </p>
+    <button onClick={increment}>
+      {Component.text("Increment")}
+    </button>
+  </div>
+}
+
+// Mount to the DOM
+Component.mountById(app(), "app")
+```
+
+#### Using Function-based API
 
 ```rescript
 open Xote
@@ -81,6 +111,16 @@ Xote focuses on clarity, control, and performance. It brings reactive programmin
 
 ### Component Features
 
+Xote supports two syntax styles:
+
+#### JSX Syntax (Recommended)
+- **JSX elements**: Use lowercase tags like `<div>`, `<button>`, `<input>`
+- **Props**: Standard props like `class`, `id`, `style`, `value`, `placeholder`
+- **Event handlers**: `onClick`, `onInput`, `onChange`, `onSubmit`, etc.
+- **Reactive content**: Wrap reactive text with `Component.textSignal(() => ...)`
+- **Component functions**: Define reusable components as functions that return JSX
+
+#### Function-based API
 - **Reactive text**: Use `textSignal(() => ...)` to create text nodes that update when signals change
 - **Unified attributes**: Use `attr()`, `signalAttr()`, or `computedAttr()` helper functions to create static or reactive attributes
 - **Reactive lists**: Use `list(signal, renderItem)` to render dynamic arrays
@@ -97,13 +137,18 @@ Xote focuses on clarity, control, and performance. It brings reactive programmin
 
 ## Examples
 
+### JSX Syntax Examples
+- [Counter (JSX)](https://github.com/brnrdog/xote/blob/main/demos/CounterJSX.res) - simple reactive counter with JSX syntax
+- [Todo List (JSX)](https://github.com/brnrdog/xote/blob/main/demos/TodoJSX.res) - complete todo app with custom components and JSX
+- [Functional Bookstore (JSX)](https://github.com/brnrdog/xote/blob/main/demos/BookstoreApp.res) - e-commerce app with routing, cart management, checkout flow, and absurd FP-themed books
+
+### Function-based API Examples
 - [Counter](https://github.com/brnrdog/xote/blob/main/demos/CounterApp.res) - simple reactive counter with signals and event handlers
 - [Todo List](https://github.com/brnrdog/xote/blob/main/demos/TodoApp.res) - complete todo app with filters, computed values, and reactive lists
 - [Color Mixer](https://github.com/brnrdog/xote/blob/main/demos/ColorMixerApp.res) - RGB color mixing with live preview, format conversions, and palette variations
 - [Reaction Game](https://github.com/brnrdog/xote/blob/main/demos/ReactionGame.res) - reflex testing game with timers, statistics, and computed averages
 - [Solitaire](https://github.com/brnrdog/xote/blob/main/demos/SolitaireGame.res) - classic Klondike Solitaire with click-to-move gameplay and win detection
 - [Memory Match](https://github.com/brnrdog/xote/blob/main/demos/MatchGame.res) - 2-player memory matching game with 10 progressive levels and score tracking
-- [Functional Bookstore](https://github.com/brnrdog/xote/blob/main/demos/BookstoreApp.res) - e-commerce app with routing, cart management, checkout flow, and absurd FP-themed books
 - [Router Demo](https://github.com/brnrdog/xote/blob/main/demos/RouterApp.res) - multi-page routing with dynamic parameters
 
 ### Running Examples Locally

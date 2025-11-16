@@ -21,6 +21,8 @@ Xote brings reactive programming to ReScript with minimal abstractions and no ru
 
 Here's a simple counter application to get you started:
 
+### Using JSX Syntax
+
 ```rescript
 open Xote
 
@@ -31,6 +33,30 @@ let count = Signal.make(0)
 let increment = (_evt: Dom.event) => Signal.update(count, n => n + 1)
 
 // Build the UI
+let app = () => {
+  <div>
+    <h1> {Component.text("Counter")} </h1>
+    <p>
+      {Component.textSignal(() => "Count: " ++ Int.toString(Signal.get(count)))}
+    </p>
+    <button onClick={increment}>
+      {Component.text("Increment")}
+    </button>
+  </div>
+}
+
+// Mount to the DOM
+Component.mountById(app(), "app")
+```
+
+### Using Function API
+
+```rescript
+open Xote
+
+let count = Signal.make(0)
+let increment = (_evt: Dom.event) => Signal.update(count, n => n + 1)
+
 let app = Component.div(
   ~children=[
     Component.h1(~children=[Component.text("Counter")], ()),
@@ -46,7 +72,6 @@ let app = Component.div(
   ()
 )
 
-// Mount to the DOM
 Component.mountById(app, "app")
 ```
 

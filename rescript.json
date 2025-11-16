@@ -21,5 +21,9 @@
   ],
   "bsc-flags": [
     "-open RescriptCore"
-  ]
+  ],
+  "jsx": {
+    "version": 4,
+    "module": "Xote__JSX"
+  }
 }
