@@ -1,3 +1,18 @@
+# [1.1.0](https://github.com/brnrdog/xote/compare/v1.0.1...v1.1.0) (2025-11-18)
+
+
+### Bug Fixes
+
+* revert keyed list reconciliation ([60aa2a0](https://github.com/brnrdog/xote/commit/60aa2a093fdae4d26558c4d4aec4e2e9f9384964))
+
+
+### Features
+
+* add JSX support with generic transform ([d71175d](https://github.com/brnrdog/xote/commit/d71175dc0a2680996b7725ba3c781cdd8c706b49))
+* change className to class in JSX props ([2515242](https://github.com/brnrdog/xote/commit/251524249328cf06f78dfdfbcf348f1552e88e9f))
+* implement keyed list reconciliation for efficient updates ([dd9c0b8](https://github.com/brnrdog/xote/commit/dd9c0b8c5d5473b1bdfc0aa8acc1dec8cec21999))
+* standardize JSX component naming convention ([f683316](https://github.com/brnrdog/xote/commit/f68331613466a94004d34299b21b26c43bf43c0b))
+
 ## [1.0.1](https://github.com/brnrdog/xote/compare/v1.0.0...v1.0.1) (2025-11-02)
 
 
