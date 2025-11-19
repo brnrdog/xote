@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/brnrdog/xote/compare/v1.2.0...v1.2.1) (2025-11-19)
+
+
+### Bug Fixes
+
+* enable reactivity for JSX element attributes ([0ea7235](https://github.com/brnrdog/xote/commit/0ea72353a6a6d26b38e1f7c1058d95f843d3e898))
+
 # [1.2.0](https://github.com/brnrdog/xote/compare/v1.1.0...v1.2.0) (2025-11-19)
 
 
