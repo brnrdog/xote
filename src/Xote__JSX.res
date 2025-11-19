@@ -49,21 +49,35 @@ let null = (): element => Component.text("")
 
 /* Elements module for lowercase HTML tags */
 module Elements = {
+  /* Attribute value type that can be static, signal, or computed */
+  @unboxed
+  type rec attributeValue =
+    | Any('a): attributeValue
+
+  /* Automatic conversion from string to attributeValue */
+  external fromString: string => attributeValue = "%identity"
+
+  /* Helper to convert a signal to an attributeValue */
+  let signal = (s: Xote__Core.t<string>): attributeValue => Any(s)
+
+  /* Helper to convert a computed function to an attributeValue */
+  let computed = (f: unit => string): attributeValue => Any(f)
+
   /* Props type for HTML elements - supports common attributes and events */
-  type props = {
-    /* Standard attributes */
-    id?: string,
-    class?: string,
-    style?: string,
+  type props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target> = {
+    /* Standard attributes - can be static strings or reactive values */
+    id?: 'id,
+    class?: 'class,
+    style?: 'style,
     /* Input attributes */
-    @as("type") type_?: string,
-    value?: string,
-    placeholder?: string,
+    @as("type") type_?: 'typ,
+    value?: 'value,
+    placeholder?: 'placeholder,
     disabled?: bool,
     checked?: bool,
     /* Link attributes */
-    href?: string,
-    target?: string,
+    href?: 'href,
+    target?: 'target,
     /* Event handlers */
     onClick?: Dom.event => unit,
     onInput?: Dom.event => unit,
@@ -79,37 +93,58 @@ module Elements = {
     children?: element,
   }
 
+  /* Helper to detect if a value is a signal (has an id property) */
+  @get external hasId: 'a => option<int> = "id"
+
+  /* Helper to convert any value to Component.attrValue */
+  let convertAttrValue = (key: string, value: 'a): (string, Component.attrValue) => {
+    // Check if it's a function (computed)
+    if Js.typeof(value) == "function" {
+      // It's a computed function
+      let f: unit => string = Obj.magic(value)
+      Component.computedAttr(key, f)
+    } else if Js.typeof(value) == "object" && hasId(value)->Option.isSome {
+      // It's a signal (has an id property)
+      let sig: Xote__Core.t<string> = Obj.magic(value)
+      Component.signalAttr(key, sig)
+    } else {
+      // It's a static string
+      let s: string = Obj.magic(value)
+      Component.attr(key, s)
+    }
+  }
+
   /* Convert props to attrs array */
-  let propsToAttrs = (props: props): array<(string, Component.attrValue)> => {
+  let propsToAttrs = (props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>): array<(string, Component.attrValue)> => {
     let attrs = []
 
     switch props.id {
-    | Some(v) => attrs->Array.push(Component.attr("id", v))
+    | Some(v) => attrs->Array.push(convertAttrValue("id", v))
     | None => ()
     }
 
     switch props.class {
-    | Some(v) => attrs->Array.push(Component.attr("class", v))
+    | Some(v) => attrs->Array.push(convertAttrValue("class", v))
     | None => ()
     }
 
     switch props.style {
-    | Some(v) => attrs->Array.push(Component.attr("style", v))
+    | Some(v) => attrs->Array.push(convertAttrValue("style", v))
     | None => ()
     }
 
     switch props.type_ {
-    | Some(v) => attrs->Array.push(Component.attr("type", v))
+    | Some(v) => attrs->Array.push(convertAttrValue("type", v))
     | None => ()
     }
 
     switch props.value {
-    | Some(v) => attrs->Array.push(Component.attr("value", v))
+    | Some(v) => attrs->Array.push(convertAttrValue("value", v))
     | None => ()
     }
 
     switch props.placeholder {
-    | Some(v) => attrs->Array.push(Component.attr("placeholder", v))
+    | Some(v) => attrs->Array.push(convertAttrValue("placeholder", v))
     | None => ()
     }
 
@@ -124,12 +159,12 @@ module Elements = {
     }
 
     switch props.href {
-    | Some(v) => attrs->Array.push(Component.attr("href", v))
+    | Some(v) => attrs->Array.push(convertAttrValue("href", v))
     | None => ()
     }
 
     switch props.target {
-    | Some(v) => attrs->Array.push(Component.attr("target", v))
+    | Some(v) => attrs->Array.push(convertAttrValue("target", v))
     | None => ()
     }
 
@@ -137,7 +172,7 @@ module Elements = {
   }
 
   /* Convert props to events array */
-  let propsToEvents = (props: props): array<(string, Dom.event => unit)> => {
+  let propsToEvents = (props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>): array<(string, Dom.event => unit)> => {
     let events = []
 
     switch props.onClick {
@@ -194,7 +229,7 @@ module Elements = {
   }
 
   /* Extract children from props */
-  let getChildren = (props: props): array<element> => {
+  let getChildren = (props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>): array<element> => {
     switch props.children {
     | Some(Fragment(children)) => children
     | Some(child) => [child]
@@ -203,7 +238,7 @@ module Elements = {
   }
 
   /* Create an element from a tag string and props */
-  let createElement = (tag: string, props: props): element => {
+  let createElement = (tag: string, props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>): element => {
     Component.Element({
       tag,
       attrs: propsToAttrs(props),
@@ -213,16 +248,16 @@ module Elements = {
   }
 
   /* JSX functions for HTML elements */
-  let jsx = (tag: string, props: props): element => createElement(tag, props)
+  let jsx = (tag: string, props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>): element => createElement(tag, props)
 
-  let jsxs = (tag: string, props: props): element => createElement(tag, props)
+  let jsxs = (tag: string, props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>): element => createElement(tag, props)
 
-  let jsxKeyed = (tag: string, props: props, ~key: option<string>=?, @ignore _: unit): element => {
+  let jsxKeyed = (tag: string, props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>, ~key: option<string>=?, @ignore _: unit): element => {
     let _ = key
     createElement(tag, props)
   }
 
-  let jsxsKeyed = (tag: string, props: props, ~key: option<string>=?, @ignore _: unit): element => {
+  let jsxsKeyed = (tag: string, props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>, ~key: option<string>=?, @ignore _: unit): element => {
     let _ = key
     createElement(tag, props)
   }
