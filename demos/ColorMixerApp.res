@@ -162,7 +162,7 @@ module ColorSlider = {
       </div>
       <input
         type_="range"
-        value={Signal.get(props.value)->Int.toString}
+        value={() => Signal.get(props.value)->Int.toString}
         class={"w-full h-2 rounded-lg appearance-none cursor-pointer " ++ props.color}
         onInput={props.onChange}
       />
@@ -175,7 +175,7 @@ module ColorPreview = {
     <div class="rounded-2xl border-4 border-stone-200 dark:border-stone-700 overflow-hidden shadow-xl">
       <div
         class="h-48 md:h-64 relative transition-colors duration-200"
-        style={`background-color: ${Signal.get(rgbColor)}; transition: background-color 0.2s ease`}>
+        style={() => `background-color: ${Signal.get(rgbColor)}; transition: background-color 0.2s ease`}>
         <div class="absolute inset-0 flex items-center justify-center bg-black/10">
           <div class="bg-white dark:bg-stone-800 px-6 py-3 rounded-xl shadow-lg backdrop-blur">
             <p class="font-mono font-bold text-xl text-stone-900 dark:text-white">
@@ -234,7 +234,7 @@ module ColorPalette = {
     <div class="text-center space-y-2">
       <div
         class="h-20 rounded-lg border-2 border-stone-200 dark:border-stone-700 cursor-pointer hover:scale-105 transition-transform"
-        style={`background-color: ${Signal.get(props.color)}`}
+        style={() => `background-color: ${Signal.get(props.color)}`}
         onClick={_evt => copyToClipboard(Signal.get(props.color))}
       />
       <p class="text-xs font-medium text-stone-600 dark:text-stone-400">

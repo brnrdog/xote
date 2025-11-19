@@ -487,11 +487,12 @@ let productCard = (props: productCardProps) => {
         {Component.text(formatPrice(props.product.price))}
       </span>
       <button
-        class={if Signal.get(inCart) {
-          "px-4 py-2 bg-green-600 text-white rounded-lg font-semibold"
-        } else {
-          "px-4 py-2 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors"
-        }}
+        class={() =>
+          if Signal.get(inCart) {
+            "px-4 py-2 bg-green-600 text-white rounded-lg font-semibold"
+          } else {
+            "px-4 py-2 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors"
+          }}
         onClick={_ => addToCart(props.product.id)}>
         {Component.textSignal(() =>
           if Signal.get(inCart) {
@@ -579,11 +580,12 @@ let cartView = () => {
       {Component.text("Shopping Cart")}
     </h2>
     <div
-      class={if Signal.get(isEmpty) {
-        "block"
-      } else {
-        "hidden"
-      }}>
+      class={() =>
+        if Signal.get(isEmpty) {
+          "block"
+        } else {
+          "hidden"
+        }}>
       <div class="text-center py-12">
         <p class="text-xl text-stone-600 dark:text-stone-400 mb-4">
           {Component.text("Your cart is empty")}
@@ -602,11 +604,12 @@ let cartView = () => {
       </div>
     </div>
     <div
-      class={if Signal.get(isEmpty) {
-        "hidden"
-      } else {
-        "block"
-      }}>
+      class={() =>
+        if Signal.get(isEmpty) {
+          "hidden"
+        } else {
+          "block"
+        }}>
       <div class="space-y-4 mb-6">
         {Component.list(cart, item => cartItemRow({item: item}))}
       </div>

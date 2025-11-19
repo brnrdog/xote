@@ -101,9 +101,7 @@ module TodoItem = {
         class="w-5 h-5 cursor-pointer"
         onChange={_ => toggleTodo(todo.id)}
       />
-      <span class="flex-1 text-stone-900 dark:text-stone-100">
-        {Component.text(todo.text)}
-      </span>
+      <span class="flex-1 text-stone-900 dark:text-stone-100"> {Component.text(todo.text)} </span>
       <button
         class="cursor-pointer text-xs text-stone-400 dark:text-stone-700 font-semibold uppercase tracking-wide"
         onClick={_ => removeTodo(todo.id)}>
@@ -170,23 +168,23 @@ module TodoForm = {
 
 module FilterButton = {
   type props = {
-    currentFilter: string,
     filterValue: string,
     onClick: Dom.event => unit,
   }
 
   let make = (props: props) => {
-    let {currentFilter, filterValue, onClick} = props
-    let isActive = currentFilter == filterValue
+    let {filterValue, onClick} = props
+    let isActive = Computed.make(() => Signal.get(filterState) == filterValue)
 
-    let className =
+    let className = Computed.make(() => {
       "capitalize px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs transition-colors " ++ if (
-        isActive
+        Signal.get(isActive)
       ) {
         "bg-stone-900 text-white dark:bg-stone-700 font-semibold"
       } else {
         "bg-stone-200 text-stone dark:bg-stone-800 dark:text-white"
       }
+    })
 
     <button class={className} onClick={onClick}>
       {Component.text(filterValue)}
@@ -204,27 +202,13 @@ module FilterButton = {
 }
 
 module TodoFilter = {
-  type props = {filterState: Xote.Core.t<string>}
+  type props = {}
 
-  let make = (props: props) => {
-    let currentFilter = Signal.get(props.filterState)
-
+  let make = (_props: props) => {
     <div class="flex flex-wrap gap-2 items-center mb-4">
-      <FilterButton
-        currentFilter
-        filterValue="all"
-        onClick={_ => Signal.set(props.filterState, "all")}
-      />
-      <FilterButton
-        currentFilter
-        filterValue="active"
-        onClick={_ => Signal.set(props.filterState, "active")}
-      />
-      <FilterButton
-        currentFilter
-        filterValue="completed"
-        onClick={_ => Signal.set(props.filterState, "completed")}
-      />
+      <FilterButton filterValue="all" onClick={_ => Signal.set(filterState, "all")} />
+      <FilterButton filterValue="active" onClick={_ => Signal.set(filterState, "active")} />
+      <FilterButton filterValue="completed" onClick={_ => Signal.set(filterState, "completed")} />
     </div>
   }
 }
@@ -234,7 +218,7 @@ let todoApp = () => {
     <div>
       <TodoHeader />
       <TodoForm />
-      <TodoFilter filterState />
+      <TodoFilter />
       <TodoList todos={filteredTodos} />
     </div>
   </div>

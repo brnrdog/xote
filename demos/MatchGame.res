@@ -228,10 +228,11 @@ module MatchGame = {
         <div class="flex justify-between items-center mb-4">
           <div class="text-center">
             <div
-              class={switch Signal.get(currentPlayer) {
-              | Player1 => "text-2xl font-bold text-blue-600 dark:text-blue-400"
-              | Player2 => "text-2xl font-bold text-stone-500 dark:text-stone-400"
-              }}>
+              class={() =>
+                switch Signal.get(currentPlayer) {
+                | Player1 => "text-2xl font-bold text-blue-600 dark:text-blue-400"
+                | Player2 => "text-2xl font-bold text-stone-500 dark:text-stone-400"
+                }}>
               {Component.textSignal(() => "P1: " ++ Int.toString(Signal.get(player1Score)))}
             </div>
             <div class="text-xs text-stone-500 dark:text-stone-400">
@@ -257,10 +258,11 @@ module MatchGame = {
           </div>
           <div class="text-center">
             <div
-              class={switch Signal.get(currentPlayer) {
-              | Player2 => "text-2xl font-bold text-green-600 dark:text-green-400"
-              | Player1 => "text-2xl font-bold text-stone-500 dark:text-stone-400"
-              }}>
+              class={() =>
+                switch Signal.get(currentPlayer) {
+                | Player2 => "text-2xl font-bold text-green-600 dark:text-green-400"
+                | Player1 => "text-2xl font-bold text-stone-500 dark:text-stone-400"
+                }}>
               {Component.textSignal(() => "P2: " ++ Int.toString(Signal.get(player2Score)))}
             </div>
             <div class="text-xs text-stone-500 dark:text-stone-400">
@@ -277,14 +279,16 @@ module MatchGame = {
 
       // Game Board
       <div
-        class={let level = Signal.get(currentLevel)
-        let numCards = levelsConfig[level - 1]->Option.getOr(4)
-        if numCards <= 10 {
-          "grid grid-cols-4 gap-3 mb-6"
-        } else if numCards <= 20 {
-          "grid grid-cols-5 gap-2 mb-6"
-        } else {
-          "grid grid-cols-6 gap-2 mb-6"
+        class={() => {
+          let level = Signal.get(currentLevel)
+          let numCards = levelsConfig[level - 1]->Option.getOr(4)
+          if numCards <= 10 {
+            "grid grid-cols-4 gap-3 mb-6"
+          } else if numCards <= 20 {
+            "grid grid-cols-5 gap-2 mb-6"
+          } else {
+            "grid grid-cols-6 gap-2 mb-6"
+          }
         }}>
         {Component.list(
           cards,
@@ -315,10 +319,11 @@ module MatchGame = {
 
       // Level Complete / Game Won Modal
       <div
-        class={switch Signal.get(gameState) {
-        | Playing => "hidden"
-        | LevelComplete | GameWon => "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-        }}>
+        class={() =>
+          switch Signal.get(gameState) {
+          | Playing => "hidden"
+          | LevelComplete | GameWon => "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          }}>
         <div class="bg-white dark:bg-stone-800 rounded-2xl p-8 max-w-md mx-4 text-center">
           <h2 class="text-3xl font-bold text-stone-900 dark:text-white mb-4">
             {Component.textSignal(() =>
@@ -355,10 +360,11 @@ module MatchGame = {
           <div class="flex gap-4 justify-center">
             <button
               class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-              style={switch Signal.get(gameState) {
-              | GameWon => "display: none"
-              | _ => ""
-              }}
+              style={() =>
+                switch Signal.get(gameState) {
+                | GameWon => "display: none"
+                | _ => ""
+                }}
               onClick={nextLevel}>
               {Component.text("Next Level →")}
             </button>

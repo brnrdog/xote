@@ -103,16 +103,18 @@ let attemptsCount = Computed.make(() => {
 
 module GameArea = {
   let component = () => {
-    let (bgColor, cursorStyle) = switch Signal.get(state) {
-    | Idle => ("bg-blue-500", "cursor-pointer")
-    | Waiting => ("bg-red-500", "cursor-not-allowed")
-    | Ready => ("bg-green-500", "cursor-pointer")
-    | Result(_) => ("bg-stone-800", "cursor-default")
-    | TooEarly => ("bg-orange-500", "cursor-default")
-    }
-    let className = `h-64 md:h-80 rounded-2xl border-4 border-stone-200 dark:border-stone-700 flex items-center justify-center transition-all duration-300 ${bgColor} ${cursorStyle}`
-
-    <div class={className} onClick={handleGameClick}>
+    <div
+      class={() => {
+        let (bgColor, cursorStyle) = switch Signal.get(state) {
+        | Idle => ("bg-blue-500", "cursor-pointer")
+        | Waiting => ("bg-red-500", "cursor-not-allowed")
+        | Ready => ("bg-green-500", "cursor-pointer")
+        | Result(_) => ("bg-stone-800", "cursor-default")
+        | TooEarly => ("bg-orange-500", "cursor-default")
+        }
+        `h-64 md:h-80 rounded-2xl border-4 border-stone-200 dark:border-stone-700 flex items-center justify-center ${bgColor} ${cursorStyle}`
+      }}
+      onClick={handleGameClick}>
       <div class="text-center px-6">
         <p class="text-2xl md:text-4xl font-bold text-white drop-shadow-lg">
           {Component.textSignal(() => {
