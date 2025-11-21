@@ -62,9 +62,10 @@ let schedule = (obsId: int) => {
       | Some(o) => {
           /* re-track */
           clearDeps(o)
+          let prev = currentObserverId.contents
           currentObserverId := Some(id)
           o.run()
-          currentObserverId := None
+          currentObserverId := prev
         }
       }
     })

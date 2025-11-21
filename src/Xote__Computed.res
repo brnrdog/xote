@@ -33,9 +33,10 @@ let make = (calc: unit => 'a): Core.t<'a> => {
 
   /* initial compute under tracking */
   Core.clearDeps(o)
+  let prev = Core.currentObserverId.contents
   Core.currentObserverId := Some(id)
   o.run()
-  Core.currentObserverId := None
+  Core.currentObserverId := prev
 
   /* When dependencies change, scheduler will run `recompute` which writes to s,
    and that write will notify s's own dependents. */

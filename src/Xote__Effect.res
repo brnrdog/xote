@@ -19,9 +19,10 @@ let run = (fn: unit => unit): disposer => {
   Core.observers := IntMap.set(Core.observers.contents, id, observer)
   /* initial run */
   Core.clearDeps(observer)
+  let prev = Core.currentObserverId.contents
   Core.currentObserverId := Some(id)
   observer.run()
-  Core.currentObserverId := None
+  Core.currentObserverId := prev
 
   let dispose = () => {
     switch IntMap.get(Core.observers.contents, id) {
