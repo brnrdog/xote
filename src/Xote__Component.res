@@ -103,6 +103,34 @@ external addEventListener: (Dom.element, string, Dom.event => unit) => unit = "a
 @send external appendChild: (Dom.element, Dom.element) => unit = "appendChild"
 @set external setTextContent: (Dom.element, string) => unit = "textContent"
 
+/* Disposer management for reactive nodes */
+type disposerList = array<Effect.disposer>
+
+@set external setDisposers: (Dom.element, disposerList) => unit = "__xote_disposers"
+@get external getDisposers: Dom.element => Nullable.t<disposerList> = "__xote_disposers"
+
+/* Helper to add a disposer to an element */
+let addDisposer = (el: Dom.element, disposer: Effect.disposer): unit => {
+  let existing = getDisposers(el)->Nullable.toOption->Option.getOr([])
+  setDisposers(el, Array.concat(existing, [disposer]))
+}
+
+/* Recursively dispose an element and all its children */
+let rec disposeElement = (el: Dom.element): unit => {
+  /* Dispose this element's observers */
+  switch getDisposers(el)->Nullable.toOption {
+  | Some(disposers) => {
+      disposers->Array.forEach(d => d.dispose())
+      setDisposers(el, []) /* Clear the disposers array */
+    }
+  | None => ()
+  }
+
+  /* Dispose all children recursively */
+  let children: array<Dom.element> = %raw(`Array.from(el.childNodes || [])`)
+  children->Array.forEach(disposeElement)
+}
+
 /* Render a virtual node to a real DOM element */
 let rec render = (node: node): Dom.element => {
   switch node {
@@ -111,11 +139,12 @@ let rec render = (node: node): Dom.element => {
       let el = createTextNode(Signal.peek(signal))
 
       /* Set up effect to update text when signal changes */
-      let _ = Effect.run(() => {
+      let disposer = Effect.run(() => {
         let content = Signal.get(signal)
         el->setTextContent(content)
       })
 
+      addDisposer(el, disposer)
       el
     }
   | Element({tag, attrs, events, children}) => {
@@ -130,19 +159,21 @@ let rec render = (node: node): Dom.element => {
         | SignalValue(s) => {
             /* Signal attribute - set initial value and subscribe to changes */
             el->setAttribute(key, Signal.peek(s))
-            let _ = Effect.run(() => {
+            let disposer = Effect.run(() => {
               let v = Signal.get(s)
               el->setAttribute(key, v)
             })
+            addDisposer(el, disposer)
           }
         | Compute(f) => {
             /* Computed attribute - create computed signal and subscribe */
             let sig = Computed.make(() => f())
             el->setAttribute(key, Signal.peek(sig))
-            let _ = Effect.run(() => {
+            let disposer = Effect.run(() => {
               let v = Signal.get(sig)
               el->setAttribute(key, v)
             })
+            addDisposer(el, disposer)
           }
         }
       })
@@ -175,8 +206,10 @@ let rec render = (node: node): Dom.element => {
       setAttribute(container, "style", "display: contents")
 
       /* Set up effect to update children when signal changes */
-      let _ = Effect.run(() => {
+      let disposer = Effect.run(() => {
         let children = Signal.get(signal)
+        /* Dispose existing children before clearing DOM */
+        disposeElement(container)
         /* Clear existing children */
         %raw(`container.innerHTML = ''`)
         /* Render and append new children */
@@ -186,6 +219,7 @@ let rec render = (node: node): Dom.element => {
         })
       })
 
+      addDisposer(container, disposer)
       container
     }
   }
