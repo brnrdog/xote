@@ -51,8 +51,7 @@ let null = (): element => Component.text("")
 module Elements = {
   /* Attribute value type that can be static, signal, or computed */
   @unboxed
-  type rec attributeValue =
-    | Any('a): attributeValue
+  type rec attributeValue = Any('a): attributeValue
 
   /* Automatic conversion from string to attributeValue */
   external fromString: string => attributeValue = "%identity"
@@ -64,7 +63,7 @@ module Elements = {
   let computed = (f: unit => string): attributeValue => Any(f)
 
   /* Props type for HTML elements - supports common attributes and events */
-  type props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target> = {
+  type props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data> = {
     /* Standard attributes - can be static strings or reactive values */
     id?: 'id,
     class?: 'class,
@@ -78,6 +77,8 @@ module Elements = {
     /* Link attributes */
     href?: 'href,
     target?: 'target,
+    /* Data attributes */
+    data?: 'data,
     /* Event handlers */
     onClick?: Dom.event => unit,
     onInput?: Dom.event => unit,
@@ -115,7 +116,9 @@ module Elements = {
   }
 
   /* Convert props to attrs array */
-  let propsToAttrs = (props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>): array<(string, Component.attrValue)> => {
+  let propsToAttrs = (
+    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
+  ): array<(string, Component.attrValue)> => {
     let attrs = []
 
     switch props.id {
@@ -168,11 +171,24 @@ module Elements = {
     | None => ()
     }
 
+    switch props.data {
+    | Some(_dataObj) => {
+        let _ = %raw(`
+          Object.entries(_dataObj).forEach(([key, value]) => {
+            attrs.push(convertAttrValue("data-" + key, value))
+          })
+        `)
+      }
+    | None => ()
+    }
+
     attrs
   }
 
   /* Convert props to events array */
-  let propsToEvents = (props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>): array<(string, Dom.event => unit)> => {
+  let propsToEvents = (
+    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
+  ): array<(string, Dom.event => unit)> => {
     let events = []
 
     switch props.onClick {
@@ -229,7 +245,9 @@ module Elements = {
   }
 
   /* Extract children from props */
-  let getChildren = (props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>): array<element> => {
+  let getChildren = (
+    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
+  ): array<element> => {
     switch props.children {
     | Some(Fragment(children)) => children
     | Some(child) => [child]
@@ -238,7 +256,10 @@ module Elements = {
   }
 
   /* Create an element from a tag string and props */
-  let createElement = (tag: string, props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>): element => {
+  let createElement = (
+    tag: string,
+    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
+  ): element => {
     Component.Element({
       tag,
       attrs: propsToAttrs(props),
@@ -248,16 +269,32 @@ module Elements = {
   }
 
   /* JSX functions for HTML elements */
-  let jsx = (tag: string, props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>): element => createElement(tag, props)
+  let jsx = (
+    tag: string,
+    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
+  ): element => createElement(tag, props)
 
-  let jsxs = (tag: string, props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>): element => createElement(tag, props)
+  let jsxs = (
+    tag: string,
+    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
+  ): element => createElement(tag, props)
 
-  let jsxKeyed = (tag: string, props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>, ~key: option<string>=?, @ignore _: unit): element => {
+  let jsxKeyed = (
+    tag: string,
+    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
+    ~key: option<string>=?,
+    @ignore _: unit,
+  ): element => {
     let _ = key
     createElement(tag, props)
   }
 
-  let jsxsKeyed = (tag: string, props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target>, ~key: option<string>=?, @ignore _: unit): element => {
+  let jsxsKeyed = (
+    tag: string,
+    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
+    ~key: option<string>=?,
+    @ignore _: unit,
+  ): element => {
     let _ = key
     createElement(tag, props)
   }
