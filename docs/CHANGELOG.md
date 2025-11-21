@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/brnrdog/xote/compare/v1.2.1...v1.3.0) (2025-11-21)
+
+
+### Features
+
+* add support to data attributes in Xote.JSX ([903c265](https://github.com/brnrdog/xote/commit/903c265352d5344118dd8a66d65b2ec20ab57042))
+
 ## [1.2.1](https://github.com/brnrdog/xote/compare/v1.2.0...v1.2.1) (2025-11-19)
 
 
