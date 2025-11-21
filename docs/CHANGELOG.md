@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/brnrdog/xote/compare/v1.3.0...v1.3.1) (2025-11-21)
+
+
+### Bug Fixes
+
+* preserve observer tracking context during nested execution ([afb9450](https://github.com/brnrdog/xote/commit/afb945059ca026072f777859e781fd086e88189b))
+
 # [1.3.0](https://github.com/brnrdog/xote/compare/v1.2.1...v1.3.0) (2025-11-21)
 
 
