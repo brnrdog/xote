@@ -12,7 +12,7 @@ let make = (calc: unit => 'a): Core.t<'a> => {
   let initialized = ref(false)
 
   let id = Id.make()
-  let rec recompute = () => {
+  let recompute = () => {
     let next = calc()
     if initialized.contents == false {
       initialized := true
@@ -22,11 +22,12 @@ let make = (calc: unit => 'a): Core.t<'a> => {
     }
   }
 
-  let rec o: Observer.t = {
+  let o: Observer.t = {
     id,
     kind: #Computed(s.id),
     run: recompute,
     deps: IntSet.empty,
+    level: 0 /* Will be recomputed after tracking dependencies */,
   }
 
   Core.observers := IntMap.set(Core.observers.contents, id, o)
@@ -37,6 +38,9 @@ let make = (calc: unit => 'a): Core.t<'a> => {
   Core.currentObserverId := Some(id)
   o.run()
   Core.currentObserverId := prev
+
+  /* Compute proper level after tracking dependencies */
+  o.level = Core.computeLevel(o)
 
   /* When dependencies change, scheduler will run `recompute` which writes to s,
    and that write will notify s's own dependents. */
