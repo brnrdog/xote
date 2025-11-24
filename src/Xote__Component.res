@@ -209,7 +209,8 @@ let rec render = (node: node): Dom.element => {
       let disposer = Effect.run(() => {
         let children = Signal.get(signal)
         /* Dispose existing children before clearing DOM */
-        disposeElement(container)
+        let childNodes: array<Dom.element> = %raw(`Array.from(container.childNodes || [])`)
+        childNodes->Array.forEach(disposeElement)
         /* Clear existing children */
         %raw(`container.innerHTML = ''`)
         /* Render and append new children */
