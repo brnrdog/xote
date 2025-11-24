@@ -1,3 +1,11 @@
+## [1.3.2](https://github.com/brnrdog/xote/compare/v1.3.1...v1.3.2) (2025-11-24)
+
+
+### Bug Fixes
+
+* automatic disposal of reactive observers to prevent memory leaks ([befae81](https://github.com/brnrdog/xote/commit/befae8116f47347179f8d5bdfe6355b40942c79a)), closes [#7](https://github.com/brnrdog/xote/issues/7)
+* preserve signal fragment effect when disposing children ([c3d530c](https://github.com/brnrdog/xote/commit/c3d530ccc344d58cc73aa209bbe02f0b87e7cd9a))
+
 ## [1.3.1](https://github.com/brnrdog/xote/compare/v1.3.0...v1.3.1) (2025-11-21)
 
 
