@@ -15,6 +15,7 @@ let run = (fn: unit => unit): disposer => {
     kind: #Effect,
     run: () => fn(),
     deps: IntSet.empty,
+    level: 1000, /* Effects start at high level, will be recomputed after tracking */
   }
   Core.observers := IntMap.set(Core.observers.contents, id, observer)
   /* initial run */
@@ -23,6 +24,8 @@ let run = (fn: unit => unit): disposer => {
   Core.currentObserverId := Some(id)
   observer.run()
   Core.currentObserverId := prev
+  /* Compute proper level after tracking dependencies */
+  observer.level = Core.computeLevel(observer)
 
   let dispose = () => {
     switch IntMap.get(Core.observers.contents, id) {

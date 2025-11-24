@@ -9,4 +9,6 @@ type t = {
   run: unit => unit,
   /* current dependency set (signal ids) */
   mutable deps: IntSet.t,
+  /* topological level for scheduling order */
+  mutable level: int,
 }
