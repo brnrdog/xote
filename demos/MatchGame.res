@@ -210,6 +210,7 @@ module MatchGame = {
       if Array.length(Signal.get(cards)) == 0 {
         startLevel(1)
       }
+      None
     })
 
     <div class="max-w-4xl mx-auto p-4 md:p-6">

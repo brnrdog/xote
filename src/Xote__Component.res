@@ -134,6 +134,7 @@ let rec render = (node: node): Dom.element => {
       let disposer = Effect.run(() => {
         let content = Signal.get(signal)
         el->setTextContent(content)
+        None
       })
 
       addDisposer(el, disposer)
@@ -154,6 +155,7 @@ let rec render = (node: node): Dom.element => {
             let disposer = Effect.run(() => {
               let v = Signal.get(s)
               el->setAttribute(key, v)
+              None
             })
             addDisposer(el, disposer)
           }
@@ -164,6 +166,7 @@ let rec render = (node: node): Dom.element => {
             let disposer = Effect.run(() => {
               let v = Signal.get(computed.signal)
               el->setAttribute(key, v)
+              None
             })
             addDisposer(el, disposer)
           }
@@ -210,6 +213,7 @@ let rec render = (node: node): Dom.element => {
           let childEl = render(child)
           container->appendChild(childEl)
         })
+        None
       })
 
       addDisposer(container, disposer)
