@@ -36,7 +36,15 @@ let make = (calc: unit => 'a): Core.t<'a> => {
   Core.clearDeps(o)
   let prev = Core.currentObserverId.contents
   Core.currentObserverId := Some(id)
-  o.run()
+  /* Use try/finally to ensure tracking state is restored even on exceptions */
+  try {
+    o.run()
+  } catch {
+  | exn => {
+      Core.currentObserverId := prev
+      raise(exn)
+    }
+  }
   Core.currentObserverId := prev
 
   /* Compute proper level after tracking dependencies */

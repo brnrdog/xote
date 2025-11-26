@@ -129,7 +129,15 @@ let rec flush = () => {
           clearDeps(o)
           let prev = currentObserverId.contents
           currentObserverId := Some(id)
-          o.run()
+          /* Use try/finally to ensure tracking state is restored even on exceptions */
+          try {
+            o.run()
+          } catch {
+          | exn => {
+              currentObserverId := prev
+              raise(exn)
+            }
+          }
           currentObserverId := prev
           /* Recompute level after re-tracking (dependencies may have changed) */
           o.level = computeLevel(o)
@@ -175,16 +183,32 @@ let notify = (sid: int) => {
 let untrack = (f: unit => 'a): 'a => {
   let prev = currentObserverId.contents
   currentObserverId := None
-  let r = f()
-  currentObserverId := prev
-  r
+  /* Use try/catch to ensure tracking state is restored even on exceptions */
+  try {
+    let result = f()
+    currentObserverId := prev
+    result
+  } catch {
+  | exn => {
+      currentObserverId := prev
+      raise(exn)
+    }
+  }
 }
 
 /* Batch: defer scheduling until after block ends */
 let batch = (f: unit => 'a): 'a => {
   let prev = batching.contents
   batching := true
-  let r = f()
+  /* Use try/finally to ensure batching state is restored even on exceptions */
+  let result = try {
+    f()
+  } catch {
+  | exn => {
+      batching := prev
+      raise(exn)
+    }
+  }
   batching := prev
 
   /* flush anything queued */
@@ -193,5 +217,5 @@ let batch = (f: unit => 'a): 'a => {
     pending := IntSet.empty
     toRun->IntSet.forEach(id => schedule(id))
   }
-  r
+  result
 }

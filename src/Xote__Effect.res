@@ -22,7 +22,15 @@ let run = (fn: unit => unit): disposer => {
   Core.clearDeps(observer)
   let prev = Core.currentObserverId.contents
   Core.currentObserverId := Some(id)
-  observer.run()
+  /* Use try/finally to ensure tracking state is restored even on exceptions */
+  try {
+    observer.run()
+  } catch {
+  | exn => {
+      Core.currentObserverId := prev
+      raise(exn)
+    }
+  }
   Core.currentObserverId := prev
   /* Compute proper level after tracking dependencies */
   observer.level = Core.computeLevel(observer)
