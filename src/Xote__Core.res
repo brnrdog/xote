@@ -106,8 +106,9 @@ let computeLevel = (obs: Observer.t): int => {
   }
 }
 
-let rec flush = () => {
-  if pending.contents != IntSet.empty {
+let flush = () => {
+  /* Iterative loop instead of recursion to avoid stack overflow */
+  while pending.contents != IntSet.empty {
     let toRun = pending.contents
     pending := IntSet.empty
 
@@ -129,7 +130,7 @@ let rec flush = () => {
           clearDeps(o)
           let prev = currentObserverId.contents
           currentObserverId := Some(id)
-          /* Use try/finally to ensure tracking state is restored even on exceptions */
+          /* Use try/catch to ensure tracking state is restored even on exceptions */
           try {
             o.run()
           } catch {
@@ -145,8 +146,7 @@ let rec flush = () => {
       }
     })
 
-    /* Recursively flush any new pending observers that were scheduled during execution */
-    flush()
+    /* Loop continues if new pending observers were scheduled during execution */
   }
 }
 
