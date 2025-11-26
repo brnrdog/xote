@@ -409,12 +409,13 @@ module HomePage = {
 module Demos = {
   let component = () => {
     // Effect to sync dark mode with HTML class
-    let _ = Effect.run(() =>
+    let _ = Effect.run(() => {
       switch Signal.get(darkMode) {
       | true => %raw(`document.documentElement.classList.add('dark')`)
       | false => %raw(`document.documentElement.classList.remove('dark')`)
       }
-    )
+      None
+    })
 
     Component.div(
       ~attrs=[

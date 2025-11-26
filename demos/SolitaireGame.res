@@ -548,6 +548,7 @@ let app = () => {
     if Array.length(state.stock) == 0 && Array.length(Array.getUnsafe(state.tableau, 0)) == 0 {
       newGame(%raw(`new Event('click')`))
     }
+    None
   })
 
   <div class="max-w-6xl mx-auto p-4 md:p-6 space-y-6">

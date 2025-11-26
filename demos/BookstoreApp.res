@@ -19,6 +19,7 @@ let _ = Effect.run(() => {
   ) {
     Router.replace("/", ())
   }
+  None
 })
 
 // Types

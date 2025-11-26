@@ -8,12 +8,24 @@ module Core = Xote__Core
 
 type disposer = {dispose: unit => unit}
 
-let run = (fn: unit => unit): disposer => {
+let run = (fn: unit => option<unit => unit>): disposer => {
   let id = Id.make()
+  let cleanup: ref<option<unit => unit>> = ref(None)
+
+  let runWithCleanup = () => {
+    /* Run previous cleanup if it exists */
+    switch cleanup.contents {
+    | Some(cleanupFn) => cleanupFn()
+    | None => ()
+    }
+    /* Run the effect and store the new cleanup */
+    cleanup := fn()
+  }
+
   let observer: Observer.t = {
     id,
     kind: #Effect,
-    run: () => fn(),
+    run: runWithCleanup,
     deps: IntSet.empty,
     level: 1000, /* Effects start at high level, will be recomputed after tracking */
   }
@@ -22,7 +34,7 @@ let run = (fn: unit => unit): disposer => {
   Core.clearDeps(observer)
   let prev = Core.currentObserverId.contents
   Core.currentObserverId := Some(id)
-  /* Use try/finally to ensure tracking state is restored even on exceptions */
+  /* Use try/catch to ensure tracking state is restored even on exceptions */
   try {
     observer.run()
   } catch {
@@ -39,6 +51,11 @@ let run = (fn: unit => unit): disposer => {
     switch IntMap.get(Core.observers.contents, id) {
     | None => ()
     | Some(o) => {
+        /* Run cleanup before disposing */
+        switch cleanup.contents {
+        | Some(cleanupFn) => cleanupFn()
+        | None => ()
+        }
         Core.clearDeps(o)
         Core.observers := IntMap.remove(Core.observers.contents, id)
       }
