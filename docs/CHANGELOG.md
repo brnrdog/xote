@@ -1,3 +1,10 @@
+## [1.3.3](https://github.com/brnrdog/xote/compare/v1.3.2...v1.3.3) (2025-11-26)
+
+
+### Bug Fixes
+
+* implement topological ordering to prevent scheduling glitches ([51f1a8c](https://github.com/brnrdog/xote/commit/51f1a8ca592c8e722e0a05d37017604e40547062))
+
 ## [1.3.2](https://github.com/brnrdog/xote/compare/v1.3.1...v1.3.2) (2025-11-24)
 
 
