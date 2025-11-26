@@ -108,7 +108,7 @@ Signal.set(count, 10) // Effect will NOT re-run
 let set: (t<'a>, 'a) => unit
 ```
 
-Sets a new value for the signal and notifies all dependent observers.
+Sets a new value for the signal and notifies all dependent observers if the value has changed.
 
 **Parameters:**
 - `signal: t<'a>` - The signal to update
@@ -120,10 +120,14 @@ Sets a new value for the signal and notifies all dependent observers.
 **Example:**
 ```rescript
 let count = Signal.make(0)
-Signal.set(count, 10) // count is now 10
+Signal.set(count, 10) // count is now 10, observers notified
+
+Signal.set(count, 10) // Same value - no notification
 ```
 
-**Important:** Always notifies dependents, even if the new value equals the old value. There is no built-in equality check.
+**Equality Check:** Uses structural equality (`!=`) to check if the value has changed. Only notifies dependent observers if the new value differs from the current value. This prevents unnecessary recomputations and helps avoid infinite loops when effects write back to their dependencies.
+
+**Note:** The equality check uses ReScript's structural comparison, which works correctly for primitives, records, and arrays. For complex objects or when you need custom equality, consider using a different pattern.
 
 ---
 
@@ -243,10 +247,11 @@ Signal.update(todos, arr =>
 
 ## Notes
 
-- Signals always notify dependents on `set()`, even if the value didn't change
+- Signals use structural equality checks - only notify dependents when the value actually changes
 - Use `peek()` to avoid creating dependencies in effects
 - Signals work with any type: primitives, records, arrays, etc.
 - Signal updates are synchronous by default (use `Core.batch()` for grouping)
+- The equality check prevents accidental infinite loops and unnecessary recomputations
 
 ## See Also
 
