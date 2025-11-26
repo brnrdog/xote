@@ -73,7 +73,7 @@ let resetGame = (_evt: Dom.event) => {
 }
 
 // Computed statistics
-let bestTime = Computed.make(() => {
+let bestTimeComputed = Computed.make(() => {
   let list = Signal.get(attempts)
   if Array.length(list) == 0 {
     None
@@ -86,8 +86,9 @@ let bestTime = Computed.make(() => {
     })
   }
 })
+let bestTime = bestTimeComputed.signal
 
-let averageTime = Computed.make(() => {
+let averageTimeComputed = Computed.make(() => {
   let list = Signal.get(attempts)
   if Array.length(list) == 0 {
     None
@@ -96,10 +97,12 @@ let averageTime = Computed.make(() => {
     Some(sum / Array.length(list))
   }
 })
+let averageTime = averageTimeComputed.signal
 
-let attemptsCount = Computed.make(() => {
+let attemptsCountComputed = Computed.make(() => {
   Signal.get(attempts)->Array.length
 })
+let attemptsCount = attemptsCountComputed.signal
 
 module GameArea = {
   let component = () => {
@@ -127,8 +130,8 @@ module GameArea = {
             }
           })}
         </p>
-        {Component.signalFragment(
-          Computed.make(() => {
+        {
+          let gameAreaComputed = Computed.make(() => {
             switch Signal.get(state) {
             | Result(_) => [
                 <p class="text-sm text-stone-300 mt-2">
@@ -142,8 +145,9 @@ module GameArea = {
               ]
             | _ => []
             }
-          }),
-        )}
+          })
+          Component.signalFragment(gameAreaComputed.signal)
+        }
       </div>
     </div>
   }
@@ -221,8 +225,8 @@ module AttemptHistory = {
         <h3 class="text-xl font-bold text-stone-900 dark:text-white">
           {Component.text("Recent Attempts")}
         </h3>
-        {Component.signalFragment(
-          Computed.make(() => {
+        {
+          let clearButtonComputed = Computed.make(() => {
             if Signal.get(attemptsCount) > 0 {
               [
                 <button
@@ -234,11 +238,12 @@ module AttemptHistory = {
             } else {
               []
             }
-          }),
-        )}
+          })
+          Component.signalFragment(clearButtonComputed.signal)
+        }
       </div>
-      {Component.signalFragment(
-        Computed.make(() => {
+      {
+        let attemptsListComputed = Computed.make(() => {
           let list = Signal.get(attempts)
           if Array.length(list) == 0 {
             [
@@ -266,8 +271,8 @@ module AttemptHistory = {
                       <span class="font-mono font-semibold text-stone-900 dark:text-white">
                         {Component.text(`${Int.toString(time)} ms`)}
                       </span>
-                      {Component.signalFragment(
-                        Computed.make(() => {
+                      {
+                        let bestBadgeComputed = Computed.make(() => {
                           if isBest {
                             [
                               <span class="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-semibold">
@@ -277,16 +282,18 @@ module AttemptHistory = {
                           } else {
                             []
                           }
-                        }),
-                      )}
+                        })
+                        Component.signalFragment(bestBadgeComputed.signal)
+                      }
                     </div>
                   },
                 )}
               </div>,
             ]
           }
-        }),
-      )}
+        })
+        Component.signalFragment(attemptsListComputed.signal)
+      }
     </div>
   }
 }
@@ -294,8 +301,8 @@ module AttemptHistory = {
 module Controls = {
   let component = () => {
     <div class="flex flex-wrap gap-3 justify-center">
-      {Component.signalFragment(
-        Computed.make(() => {
+      {
+        let controlsComputed = Computed.make(() => {
           switch Signal.get(state) {
           | Result(_) | TooEarly => [
               <button
@@ -311,8 +318,9 @@ module Controls = {
             ]
           | _ => []
           }
-        }),
-      )}
+        })
+        Component.signalFragment(controlsComputed.signal)
+      }
     </div>
   }
 }
