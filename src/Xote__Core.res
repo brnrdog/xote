@@ -113,12 +113,13 @@ let flush = () => {
     pending := IntSet.empty
 
     /* Convert to array and sort by level (lower levels first) */
-    let sorted = toRun->IntSet.toArray->Array.toSorted((a, b) => {
+    let arr = toRun->IntSet.toArray
+    let sorted = Belt.SortArray.stableSortBy(arr, (a, b) => {
       switch (IntMap.get(observers.contents, a), IntMap.get(observers.contents, b)) {
-      | (Some(obsA), Some(obsB)) => Float.fromInt(obsA.level - obsB.level)
-      | (Some(_), None) => -1.0
-      | (None, Some(_)) => 1.0
-      | (None, None) => 0.0
+      | (Some(obsA), Some(obsB)) => obsA.level - obsB.level
+      | (Some(_), None) => -1
+      | (None, Some(_)) => 1
+      | (None, None) => 0
       }
     })
 

@@ -30,13 +30,13 @@ The build process generates:
 
 The codebase follows a flat module hierarchy with the `Xote__` prefix for internal modules:
 
-- **`Xote__Core`**: Low-level runtime managing dependency tracking and observer scheduling. Contains global state (`observers`, `signalObservers`, `currentObserverId`, `pending`, `batching`) and implements the reactivity graph. This is the scheduler and dependency tracking engine.
+- **`Xote__Core`**: Low-level runtime managing dependency tracking and observer scheduling. Contains global state (`observers`, `signalObservers`, `currentObserverId`, `pending`, `batching`) and implements the reactivity graph. This is the scheduler and dependency tracking engine. **Uses iterative scheduling** (not recursive) to prevent stack overflow from cascading updates. **Exception handling** ensures tracking state is always restored even when observers throw.
 
-- **`Xote__Signal`**: User-facing reactive state cells. Implements `make`, `get`, `peek`, `set`, `update`. The `get` function automatically captures dependencies when called within a tracking context.
+- **`Xote__Signal`**: User-facing reactive state cells. Implements `make`, `get`, `peek`, `set`, `update`. The `get` function automatically captures dependencies when called within a tracking context. **Signal.set includes structural equality check** - only notifies dependents if the value has changed, preventing unnecessary updates and accidental infinite loops.
 
-- **`Xote__Computed`**: Derived signals that automatically recompute when dependencies change. Creates an internal observer that writes to a backing signal. **Important**: Computeds are **push-based** (eager) - they recompute immediately when upstream dependencies notify, not lazily on read.
+- **`Xote__Computed`**: Derived signals that automatically recompute when dependencies change. Creates an internal observer that writes to a backing signal. **Important**: Computeds are **push-based** (eager) - they recompute immediately when upstream dependencies notify, not lazily on read. **Returns a record** `{signal: Core.t<'a>, dispose: unit => unit}` - access the value via `.signal` and clean up via `.dispose()`.
 
-- **`Xote__Effect`**: Side effects that run when dependencies change. Returns a `disposer` with a `dispose()` method to stop tracking.
+- **`Xote__Effect`**: Side effects that run when dependencies change. **Effect functions can return cleanup callbacks** - signature is `unit => option<unit => unit>`. Return `None` for no cleanup, or `Some(cleanupFn)` to register cleanup that runs before re-execution and on disposal. Returns a `disposer` with a `dispose()` method to stop tracking.
 
 - **`Xote__Observer`**: Observer type definitions and structures used by the scheduler. Defines observer kinds: `#Effect` and `#Computed(int)`.
 
@@ -111,19 +111,23 @@ let app = () => {
 
 1. **Unified attributes API**: All attributes use the single `attrs` parameter. Use helper functions `attr()`, `signalAttr()`, or `computedAttr()` to create attribute entries. This replaces the old separate `attrs` and `signalAttrs` parameters.
 
-2. **Signals are always notified**: `Signal.set` always calls `notify`, even if the value didn't change. There's no built-in equality check.
+2. **Signal equality check**: `Signal.set` uses structural equality (`!=`) to check if the value has changed. Only notifies dependents when the value differs from the current value. This prevents accidental infinite loops and reduces unnecessary work.
 
-3. **Untracked reads**: Use `Signal.peek(signal)` to read without creating a dependency, or wrap code in `Core.untrack(() => ...)`.
+3. **Effect cleanup callbacks**: Effects can return `Some(cleanupFn)` to register cleanup that runs before re-execution and on disposal. Return `None` when no cleanup is needed. Signature is `unit => option<unit => unit>`.
 
-4. **Batching updates**: Wrap multiple signal updates in `Core.batch(() => ...)` to defer observer execution until the batch completes.
+4. **Computed disposal**: `Computed.make` returns `{signal: Core.t<'a>, dispose: unit => unit}`. Access the computed value via `.signal` and call `.dispose()` to stop tracking when no longer needed.
 
-5. **Module naming**: Internal modules use `Xote__ModuleName` convention. The public API is `Xote.ModuleName`.
+5. **Untracked reads**: Use `Signal.peek(signal)` to read without creating a dependency, or wrap code in `Core.untrack(() => ...)`.
 
-6. **Observer re-tracking**: Every time an observer runs, its dependencies are cleared and re-tracked. This ensures the dependency graph stays accurate even when control flow changes.
+6. **Batching updates**: Wrap multiple signal updates in `Core.batch(() => ...)` to defer observer execution until the batch completes.
 
-7. **No cleanup in effects**: Effects don't have a cleanup callback API. Call the returned `dispose()` method to stop tracking.
+7. **Module naming**: Internal modules use `Xote__ModuleName` convention. The public API is `Xote.ModuleName`.
 
-8. **ReScript compilation required**: Always compile ReScript before building with Vite. The Vite entry point is `src/Xote.res.mjs` (generated by ReScript compiler).
+8. **Observer re-tracking**: Every time an observer runs, its dependencies are cleared and re-tracked. This ensures the dependency graph stays accurate even when control flow changes.
+
+9. **Exception safety**: The scheduler and observer execution is wrapped in try/catch blocks to ensure tracking state is always restored, even when exceptions are thrown.
+
+10. **ReScript compilation required**: Always compile ReScript before building with Vite. The Vite entry point is `src/Xote.res.mjs` (generated by ReScript compiler).
 
 ## Common Patterns
 
@@ -131,11 +135,48 @@ let app = () => {
 ```rescript
 let count = Signal.make(0)
 let doubled = Computed.make(() => Signal.get(count) * 2)
+
+// Access computed value
+Console.log(Signal.get(doubled.signal)) // 0
+
+// Clean up when done
+doubled.dispose()
 ```
 
 ### Event handlers
 ```rescript
 let increment = (_evt: Dom.event) => Signal.update(count, n => n + 1)
+```
+
+### Effects with cleanup
+```rescript
+// Effect without cleanup
+Effect.run(() => {
+  Console.log(Signal.get(count))
+  None
+})
+
+// Effect with cleanup (e.g., timer)
+Effect.run(() => {
+  let timerId = setInterval(() => Console.log("Tick"), 1000)
+
+  Some(() => {
+    clearInterval(timerId)
+  })
+})
+
+// Effect with conditional cleanup
+Effect.run(() => {
+  switch Signal.get(url) {
+  | Some(u) => {
+      let controller = AbortController.make()
+      fetch(u, {signal: controller.signal})->ignore
+
+      Some(() => controller.abort())
+    }
+  | None => None
+  }
+})
 ```
 
 ### Reactive text
@@ -273,6 +314,15 @@ let app = () => {
 
 1. Computeds are push-based (eager), not pull-based (lazy) like the TC39 proposal
 2. No microtask-based scheduling (synchronous by default)
-3. No effect cleanup hooks
-4. No equality checks in `Signal.set`
-5. Fragment/list updates replace all children (no diffing algorithm)
+3. Fragment/list updates replace all children (no diffing algorithm)
+4. Structural equality check only (no custom equality functions)
+
+## Recent Improvements (v1.3+)
+
+The following limitations have been addressed:
+
+1. ~~No effect cleanup hooks~~ - **FIXED**: Effects now support cleanup callbacks via `option<unit => unit>` return type
+2. ~~No equality checks in `Signal.set`~~ - **FIXED**: Signal.set now includes structural equality check to prevent unnecessary notifications
+3. ~~Computeds cannot be disposed~~ - **FIXED**: Computed.make now returns `{signal, dispose}` record
+4. ~~Recursive scheduler can stack overflow~~ - **FIXED**: Scheduler is now iterative (uses `while` loop)
+5. ~~No exception handling~~ - **FIXED**: All observer execution wrapped in try/catch with proper state restoration

@@ -8,7 +8,7 @@ Computed values are **derived signals** that automatically recalculate when thei
 
 ## Creating Computed Values
 
-Use `Computed.make()` with a function that computes the derived value:
+Use `Computed.make()` with a function that computes the derived value. It returns a record with a `signal` property and a `dispose` function:
 
 ```rescript
 open Xote
@@ -20,6 +20,9 @@ let lastName = Signal.make("Doe")
 let fullName = Computed.make(() =>
   Signal.get(firstName) ++ " " ++ Signal.get(lastName)
 )
+
+// Read the computed value using the .signal property
+Console.log(Signal.get(fullName.signal)) // "John Doe"
 ```
 
 ## How Computed Values Work
@@ -35,17 +38,43 @@ This means computed values are **always up-to-date**, but they may recalculate e
 
 ## Reading Computed Values
 
-Computed values return a signal, so you read them using `Signal.get()`:
+Computed values return a record with a `signal` property. Read the computed value using `Signal.get()` on the signal:
 
 ```rescript
 let count = Signal.make(5)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 
-Console.log(Signal.get(doubled)) // Prints: 10
+Console.log(Signal.get(doubled.signal)) // Prints: 10
 
 Signal.set(count, 10)
-Console.log(Signal.get(doubled)) // Prints: 20
+Console.log(Signal.get(doubled.signal)) // Prints: 20
 ```
+
+## Disposing Computed Values
+
+Computed values can be disposed to stop tracking and free resources. This is important for preventing memory leaks:
+
+```rescript
+let count = Signal.make(0)
+let doubled = Computed.make(() => Signal.get(count) * 2)
+
+Console.log(Signal.get(doubled.signal)) // 0
+
+Signal.set(count, 5)
+Console.log(Signal.get(doubled.signal)) // 10
+
+// Stop the computed when no longer needed
+doubled.dispose()
+
+Signal.set(count, 10)
+// The computed no longer updates
+```
+
+**When to dispose:**
+- When a component is unmounted
+- When computed is no longer needed
+- When preventing memory leaks in long-running applications
+- When dynamically creating many computeds
 
 ## Chaining Computed Values
 
@@ -60,17 +89,17 @@ let subtotal = Computed.make(() =>
 )
 
 let tax = Computed.make(() =>
-  Signal.get(subtotal) * 0.1
+  Signal.get(subtotal.signal) * 0.1
 )
 
 let total = Computed.make(() =>
-  Signal.get(subtotal) + Signal.get(tax)
+  Signal.get(subtotal.signal) + Signal.get(tax.signal)
 )
 
-Console.log(Signal.get(total)) // 330
+Console.log(Signal.get(total.signal)) // 330
 
 Signal.set(quantity, 5)
-Console.log(Signal.get(total)) // 550
+Console.log(Signal.get(total.signal)) // 550
 ```
 
 ## Example: Shopping Cart
@@ -98,9 +127,9 @@ let subtotal = Computed.make(() => {
   })
 })
 
-let tax = Computed.make(() => Signal.get(subtotal) *. 0.08)
+let tax = Computed.make(() => Signal.get(subtotal.signal) *. 0.08)
 
-let total = Computed.make(() => Signal.get(subtotal) +. Signal.get(tax))
+let total = Computed.make(() => Signal.get(subtotal.signal) +. Signal.get(tax.signal))
 
 let app = Component.div(
   ~children=[
@@ -119,17 +148,17 @@ let app = Component.div(
     ),
     Component.div(~children=[
       Component.textSignal(() =>
-        "Subtotal: $" ++ Float.toString(Signal.get(subtotal))
+        "Subtotal: $" ++ Float.toString(Signal.get(subtotal.signal))
       )
     ], ()),
     Component.div(~children=[
       Component.textSignal(() =>
-        "Tax: $" ++ Float.toString(Signal.get(tax))
+        "Tax: $" ++ Float.toString(Signal.get(tax.signal))
       )
     ], ()),
     Component.div(~children=[
       Component.textSignal(() =>
-        "Total: $" ++ Float.toString(Signal.get(total))
+        "Total: $" ++ Float.toString(Signal.get(total.signal))
       )
     ], ()),
   ],
@@ -163,7 +192,7 @@ let doubled = Computed.make(() => Signal.get(count) * 2)
 
 let increment = () => {
   Signal.update(count, n => n + 1)
-  // doubled automatically updates!
+  // doubled.signal automatically updates!
 }
 ```
 
@@ -184,9 +213,12 @@ let temperature = Computed.make(() => {
   }
 })
 
+Console.log(Signal.get(temperature.signal)) // 20
+
 // Initially depends on: useMetric, celsius
 Signal.set(useMetric, false)
 // Now depends on: useMetric, fahrenheit
+Console.log(Signal.get(temperature.signal)) // 68
 ```
 
 ## Best Practices
@@ -195,6 +227,8 @@ Signal.set(useMetric, false)
 2. **Use for derived state**: Any value that can be calculated from other signals should be a computed
 3. **Avoid expensive operations**: Computed values recalculate eagerly, so keep them fast
 4. **Don't nest effects**: Computed values should not call `Effect.run()` internally
+5. **Dispose when done**: Call `dispose()` on computeds that are no longer needed to prevent memory leaks
+6. **Use the .signal property**: Always access computed values via the `.signal` property
 
 ## Important Notes
 
@@ -212,10 +246,27 @@ let expensive = Computed.make(() => {
 // "Computing..." is logged immediately
 
 Signal.set(count, 5)
-// "Computing..." is logged again, even if we never read 'expensive'
+// "Computing..." is logged again, even if we never read 'expensive.signal'
 ```
 
-This ensures computed values are always current but may do unnecessary work if the computed is never observed.
+This ensures computed values are always current but may do unnecessary work if the computed is never observed. If this is a concern, dispose the computed when it's not needed:
+
+```rescript
+let count = Signal.make(0)
+let expensive = Computed.make(() => {
+  Console.log("Computing...")
+  Signal.get(count) * 2
+})
+
+// Use it...
+Console.log(Signal.get(expensive.signal))
+
+// When done, stop recomputing
+expensive.dispose()
+
+Signal.set(count, 5)
+// "Computing..." is NOT logged - disposed computed doesn't recompute
+```
 
 ## Next Steps
 
