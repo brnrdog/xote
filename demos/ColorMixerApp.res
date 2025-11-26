@@ -49,21 +49,23 @@ let rgbToHsl = (r: int, g: int, b: int) => {
 }
 
 // Computed color values
-let hexColor = Computed.make(() => {
+let hexColorComputed = Computed.make(() => {
   let r = Signal.get(red)
   let g = Signal.get(green)
   let b = Signal.get(blue)
   "#" ++ toHex(r) ++ toHex(g) ++ toHex(b)
 })
+let hexColor = hexColorComputed.signal
 
-let rgbColor = Computed.make(() => {
+let rgbColorComputed = Computed.make(() => {
   let r = Signal.get(red)
   let g = Signal.get(green)
   let b = Signal.get(blue)
   `rgb(${Int.toString(r)}, ${Int.toString(g)}, ${Int.toString(b)})`
 })
+let rgbColor = rgbColorComputed.signal
 
-let hslColor = Computed.make(() => {
+let hslColorComputed = Computed.make(() => {
   let r = Signal.get(red)
   let g = Signal.get(green)
   let b = Signal.get(blue)
@@ -73,25 +75,28 @@ let hslColor = Computed.make(() => {
       ~digits=0,
     )}%)`
 })
+let hslColor = hslColorComputed.signal
 
 // Computed color variations
-let lighterColor = Computed.make(() => {
+let lighterColorComputed = Computed.make(() => {
   let r = Signal.get(red)
   let g = Signal.get(green)
   let b = Signal.get(blue)
   let lighten = (v: int) => Math.Int.min(255, v + 50)
   `rgb(${Int.toString(lighten(r))}, ${Int.toString(lighten(g))}, ${Int.toString(lighten(b))})`
 })
+let lighterColor = lighterColorComputed.signal
 
-let darkerColor = Computed.make(() => {
+let darkerColorComputed = Computed.make(() => {
   let r = Signal.get(red)
   let g = Signal.get(green)
   let b = Signal.get(blue)
   let darken = (v: int) => Math.Int.max(0, v - 50)
   `rgb(${Int.toString(darken(r))}, ${Int.toString(darken(g))}, ${Int.toString(darken(b))})`
 })
+let darkerColor = darkerColorComputed.signal
 
-let complementaryColor = Computed.make(() => {
+let complementaryColorComputed = Computed.make(() => {
   let r = Signal.get(red)
   let g = Signal.get(green)
   let b = Signal.get(blue)
@@ -100,6 +105,7 @@ let complementaryColor = Computed.make(() => {
       complement(b),
     )})`
 })
+let complementaryColor = complementaryColorComputed.signal
 
 // Event handlers
 let updateRed = (evt: Dom.event) => {
@@ -271,8 +277,8 @@ module SavedColors = {
           {Component.text("+ Save Current")}
         </button>
       </div>
-      {Component.signalFragment(
-        Computed.make(() => {
+      {
+        let savedColorsComputed = Computed.make(() => {
           let colors = Signal.get(savedColors)
           if Array.length(colors) == 0 {
             [
@@ -296,8 +302,9 @@ module SavedColors = {
               </div>,
             ]
           }
-        }),
-      )}
+        })
+        Component.signalFragment(savedColorsComputed.signal)
+      }
     </div>
   }
 }

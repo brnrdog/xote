@@ -5,7 +5,12 @@ module Core = Xote__Core
 module Observer = Xote__Observer
 module Id = Xote__Id
 
-let make = (calc: unit => 'a): Core.t<'a> => {
+type computed<'a> = {
+  signal: Core.t<'a>,
+  dispose: unit => unit,
+}
+
+let make = (calc: unit => 'a): computed<'a> => {
   /* create backing signal */
   let s = Signal.make((Obj.magic(): 'a))
   /* mark it as absent; force first compute */
@@ -50,7 +55,17 @@ let make = (calc: unit => 'a): Core.t<'a> => {
   /* Compute proper level after tracking dependencies */
   o.level = Core.computeLevel(o)
 
+  let dispose = () => {
+    switch IntMap.get(Core.observers.contents, id) {
+    | None => ()
+    | Some(obs) => {
+        Core.clearDeps(obs)
+        Core.observers := IntMap.remove(Core.observers.contents, id)
+      }
+    }
+  }
+
   /* When dependencies change, scheduler will run `recompute` which writes to s,
    and that write will notify s's own dependents. */
-  s
+  {signal: s, dispose}
 }

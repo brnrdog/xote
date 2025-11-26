@@ -84,35 +84,33 @@ type routeConfig = {
 
 // Single route component - renders if pattern matches
 let route = (pattern: string, render: Route.params => Component.node): Component.node => {
-  Component.signalFragment(
-    Computed.make(() => {
-      let loc = Signal.get(location)
-      switch Route.match(pattern, loc.pathname) {
-      | Match(params) => [render(params)]
-      | NoMatch => []
-      }
-    })
-  )
+  let computed = Computed.make(() => {
+    let loc = Signal.get(location)
+    switch Route.match(pattern, loc.pathname) {
+    | Match(params) => [render(params)]
+    | NoMatch => []
+    }
+  })
+  Component.signalFragment(computed.signal)
 }
 
 // Routes component - renders first matching route
 let routes = (configs: array<routeConfig>): Component.node => {
-  Component.signalFragment(
-    Computed.make(() => {
-      let loc = Signal.get(location)
-      let matched = configs->Array.findMap(config => {
-        switch Route.match(config.pattern, loc.pathname) {
-        | Match(params) => Some(config.render(params))
-        | NoMatch => None
-        }
-      })
-
-      switch matched {
-      | Some(node) => [node]
-      | None => [] // No matching route - render nothing
+  let computed = Computed.make(() => {
+    let loc = Signal.get(location)
+    let matched = configs->Array.findMap(config => {
+      switch Route.match(config.pattern, loc.pathname) {
+      | Match(params) => Some(config.render(params))
+      | NoMatch => None
       }
     })
-  )
+
+    switch matched {
+    | Some(node) => [node]
+    | None => [] // No matching route - render nothing
+    }
+  })
+  Component.signalFragment(computed.signal)
 }
 
 // Link component - handles navigation without page reload
