@@ -22,10 +22,13 @@ let get = (s: Core.t<'a>): 'a => {
 let peek = (s: Core.t<'a>): 'a => s.value.contents
 
 let set = (s: Core.t<'a>, v: 'a) => {
-  // Always update - skip equality check to avoid issues with complex types
-  s.value := v
-  s.version := s.version.contents + 1
-  Core.notify(s.id)
+  // Skip notification if value hasn't changed (structural equality)
+  // This prevents accidental infinite loops and reduces unnecessary work
+  if s.value.contents != v {
+    s.value := v
+    s.version := s.version.contents + 1
+    Core.notify(s.id)
+  }
 }
 
 let update = (s: Core.t<'a>, f: 'a => 'a) => set(s, f(s.value.contents))
