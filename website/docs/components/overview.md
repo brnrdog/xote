@@ -182,7 +182,7 @@ Component.button(
 **JSX:**
 ```rescript
 let isActive = Signal.make(false)
-let activeClass = Computed.make(() =>
+let (activeClass, _) = Computed.make(() =>
   Signal.get(isActive) ? "active" : "inactive"
 )
 

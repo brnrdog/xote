@@ -84,19 +84,19 @@ type routeConfig = {
 
 // Single route component - renders if pattern matches
 let route = (pattern: string, render: Route.params => Component.node): Component.node => {
-  let computed = Computed.make(() => {
+  let (signal, _) = Computed.make(() => {
     let loc = Signal.get(location)
     switch Route.match(pattern, loc.pathname) {
     | Match(params) => [render(params)]
     | NoMatch => []
     }
   })
-  Component.signalFragment(computed.signal)
+  Component.signalFragment(signal)
 }
 
 // Routes component - renders first matching route
 let routes = (configs: array<routeConfig>): Component.node => {
-  let computed = Computed.make(() => {
+  let (signal, _) = Computed.make(() => {
     let loc = Signal.get(location)
     let matched = configs->Array.findMap(config => {
       switch Route.match(config.pattern, loc.pathname) {
@@ -110,7 +110,7 @@ let routes = (configs: array<routeConfig>): Component.node => {
     | None => [] // No matching route - render nothing
     }
   })
-  Component.signalFragment(computed.signal)
+  Component.signalFragment(signal)
 }
 
 // Link component - handles navigation without page reload

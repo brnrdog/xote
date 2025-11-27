@@ -73,7 +73,7 @@ let resetGame = (_evt: Dom.event) => {
 }
 
 // Computed statistics
-let bestTimeComputed = Computed.make(() => {
+let (bestTime, _) = Computed.make(() => {
   let list = Signal.get(attempts)
   if Array.length(list) == 0 {
     None
@@ -86,9 +86,8 @@ let bestTimeComputed = Computed.make(() => {
     })
   }
 })
-let bestTime = bestTimeComputed.signal
 
-let averageTimeComputed = Computed.make(() => {
+let (averageTime, _) = Computed.make(() => {
   let list = Signal.get(attempts)
   if Array.length(list) == 0 {
     None
@@ -97,12 +96,10 @@ let averageTimeComputed = Computed.make(() => {
     Some(sum / Array.length(list))
   }
 })
-let averageTime = averageTimeComputed.signal
 
-let attemptsCountComputed = Computed.make(() => {
+let (attemptsCount, _) = Computed.make(() => {
   Signal.get(attempts)->Array.length
 })
-let attemptsCount = attemptsCountComputed.signal
 
 module GameArea = {
   let component = () => {
@@ -131,7 +128,7 @@ module GameArea = {
           })}
         </p>
         {
-          let gameAreaComputed = Computed.make(() => {
+          let (gameAreaSignal, _) = Computed.make(() => {
             switch Signal.get(state) {
             | Result(_) => [
                 <p class="text-sm text-stone-300 mt-2">
@@ -146,7 +143,7 @@ module GameArea = {
             | _ => []
             }
           })
-          Component.signalFragment(gameAreaComputed.signal)
+          Component.signalFragment(gameAreaSignal)
         }
       </div>
     </div>
@@ -226,7 +223,7 @@ module AttemptHistory = {
           {Component.text("Recent Attempts")}
         </h3>
         {
-          let clearButtonComputed = Computed.make(() => {
+          let (clearButtonSignal, _) = Computed.make(() => {
             if Signal.get(attemptsCount) > 0 {
               [
                 <button
@@ -239,11 +236,11 @@ module AttemptHistory = {
               []
             }
           })
-          Component.signalFragment(clearButtonComputed.signal)
+          Component.signalFragment(clearButtonSignal)
         }
       </div>
       {
-        let attemptsListComputed = Computed.make(() => {
+        let (attemptsListSignal, _) = Computed.make(() => {
           let list = Signal.get(attempts)
           if Array.length(list) == 0 {
             [
@@ -272,7 +269,7 @@ module AttemptHistory = {
                         {Component.text(`${Int.toString(time)} ms`)}
                       </span>
                       {
-                        let bestBadgeComputed = Computed.make(() => {
+                        let (bestBadgeSignal, _) = Computed.make(() => {
                           if isBest {
                             [
                               <span class="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-semibold">
@@ -283,7 +280,7 @@ module AttemptHistory = {
                             []
                           }
                         })
-                        Component.signalFragment(bestBadgeComputed.signal)
+                        Component.signalFragment(bestBadgeSignal)
                       }
                     </div>
                   },
@@ -292,7 +289,7 @@ module AttemptHistory = {
             ]
           }
         })
-        Component.signalFragment(attemptsListComputed.signal)
+        Component.signalFragment(attemptsListSignal)
       }
     </div>
   }
@@ -302,7 +299,7 @@ module Controls = {
   let component = () => {
     <div class="flex flex-wrap gap-3 justify-center">
       {
-        let controlsComputed = Computed.make(() => {
+        let (controlsSignal, _) = Computed.make(() => {
           switch Signal.get(state) {
           | Result(_) | TooEarly => [
               <button
@@ -319,7 +316,7 @@ module Controls = {
           | _ => []
           }
         })
-        Component.signalFragment(controlsComputed.signal)
+        Component.signalFragment(controlsSignal)
       }
     </div>
   }

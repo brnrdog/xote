@@ -153,7 +153,7 @@ See the TC39 draft for the intended semantics and motivations: `https://github.c
 - `Signal.peek : Core.t<'a> -> 'a`
 - `Signal.set : (Core.t<'a>, 'a) -> unit`
 - `Signal.update : (Core.t<'a>, 'a -> 'a) -> unit`
-- `Computed.make : (unit -> 'a) -> Core.t<'a>`
+- `Computed.make : (unit -> 'a) -> (Core.t<'a>, unit -> unit)`
 - `Effect.run : (unit -> unit) -> { dispose: unit -> unit }`
 - `Core.batch : (unit -> 'a) -> 'a`
 - `Core.untrack : (unit -> 'a) -> 'a`

@@ -14,7 +14,7 @@ Without batching, each signal update triggers observers immediately:
 let firstName = Signal.make("John")
 let lastName = Signal.make("Doe")
 
-let fullName = Computed.make(() =>
+let (fullName, _) = Computed.make(() =>
   Signal.get(firstName) ++ " " ++ Signal.get(lastName)
 )
 
@@ -85,7 +85,7 @@ let form = Signal.make({
   age: 0,
 })
 
-let errors = Computed.make(() => {
+let (errors, _) = Computed.make(() => {
   let data = Signal.get(form)
   let errors = []
 

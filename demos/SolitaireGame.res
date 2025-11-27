@@ -427,7 +427,7 @@ let emptySlot = (props: emptySlotProps) => {
 let stockAndWaste = () => {
   <div class="flex gap-4">
     {
-      let stockComputed = Computed.make(() => {
+      let (stockSignal, _) = Computed.make(() => {
         let state = Signal.get(gameState)
         if Array.length(state.stock) > 0 {
           [
@@ -447,10 +447,10 @@ let stockAndWaste = () => {
           ]
         }
       })
-      Component.signalFragment(stockComputed.signal)
+      Component.signalFragment(stockSignal)
     }
     {
-      let wasteComputed = Computed.make(() => {
+      let (wasteSignal, _) = Computed.make(() => {
         let state = Signal.get(gameState)
         let selection = Signal.get(selectedCard)
         if Array.length(state.waste) > 0 {
@@ -464,7 +464,7 @@ let stockAndWaste = () => {
           [emptySlot({label: "", onClick: _ => ()})]
         }
       })
-      Component.signalFragment(wasteComputed.signal)
+      Component.signalFragment(wasteSignal)
     }
   </div>
 }
@@ -473,7 +473,7 @@ let stockAndWaste = () => {
 let foundations = () => {
   <div class="flex gap-4">
     {
-      let foundationsComputed = Computed.make(() => {
+      let (foundationsSignal, _) = Computed.make(() => {
         let state = Signal.get(gameState)
         Array.mapWithIndex(state.foundations, (foundation, index) => {
           if Array.length(foundation) > 0 {
@@ -494,7 +494,7 @@ let foundations = () => {
           }
         })
       })
-      Component.signalFragment(foundationsComputed.signal)
+      Component.signalFragment(foundationsSignal)
     }
   </div>
 }
@@ -505,7 +505,7 @@ type tableauColumnProps = {colIndex: int}
 let tableauColumn = (props: tableauColumnProps) => {
   <div class="flex flex-col">
     {
-      let tableauComputed = Computed.make(() => {
+      let (tableauSignal, _) = Computed.make(() => {
         let state = Signal.get(gameState)
         let selection = Signal.get(selectedCard)
         let column = Array.getUnsafe(state.tableau, props.colIndex)
@@ -535,7 +535,7 @@ let tableauColumn = (props: tableauColumnProps) => {
           })
         }
       })
-      Component.signalFragment(tableauComputed.signal)
+      Component.signalFragment(tableauSignal)
     }
   </div>
 }
@@ -569,7 +569,7 @@ let app = () => {
       </button>
     </div>
     {
-      let gameWonComputed = Computed.make(() => {
+      let (gameWonSignal, _) = Computed.make(() => {
         if Signal.get(gameWon) {
           [
             <div
@@ -586,7 +586,7 @@ let app = () => {
           []
         }
       })
-      Component.signalFragment(gameWonComputed.signal)
+      Component.signalFragment(gameWonSignal)
     }
     <div class="bg-green-700 dark:bg-green-900 rounded-2xl p-6 min-h-[600px]">
       <div class="flex justify-between mb-8">

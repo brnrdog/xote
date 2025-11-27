@@ -38,8 +38,8 @@ let text = (content: string): node => Text(content)
 
 /* Create a reactive text node from a computed function */
 let textSignal = (compute: unit => string): node => {
-  let computed = Computed.make(compute)
-  SignalText(computed.signal)
+  let (signal, _) = Computed.make(compute)
+  SignalText(signal)
 }
 
 /* Create a fragment (multiple children without wrapper) */
@@ -50,10 +50,10 @@ let signalFragment = (signal: Core.t<array<node>>): node => SignalFragment(signa
 
 /* Create a reactive list from a signal and render function */
 let list = (signal: Core.t<array<'a>>, renderItem: 'a => node): node => {
-  let nodesComputed = Computed.make(() => {
+  let (nodesSignal, _) = Computed.make(() => {
     Signal.get(signal)->Array.map(renderItem)
   })
-  SignalFragment(nodesComputed.signal)
+  SignalFragment(nodesSignal)
 }
 
 /* Create an element */
@@ -161,10 +161,10 @@ let rec render = (node: node): Dom.element => {
           }
         | Compute(f) => {
             /* Computed attribute - create computed signal and subscribe */
-            let computed = Computed.make(() => f())
-            el->setAttribute(key, Signal.peek(computed.signal))
+            let (computedSignal, _) = Computed.make(() => f())
+            el->setAttribute(key, Signal.peek(computedSignal))
             let disposer = Effect.run(() => {
-              let v = Signal.get(computed.signal)
+              let v = Signal.get(computedSignal)
               el->setAttribute(key, v)
               None
             })
