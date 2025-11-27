@@ -16,7 +16,7 @@ let jsxKeyed = (
   component: component<'props>,
   props: 'props,
   ~key: option<string>=?,
-  @ignore _: unit,
+  _: unit,
 ): element => {
   let _ = key /* TODO: Implement key support for list reconciliation */
   component(props)
@@ -26,7 +26,7 @@ let jsxsKeyed = (
   component: component<'props>,
   props: 'props,
   ~key: option<string>=?,
-  @ignore _: unit,
+  _: unit,
 ): element => {
   let _ = key
   component(props)
@@ -100,11 +100,11 @@ module Elements = {
   /* Helper to convert any value to Component.attrValue */
   let convertAttrValue = (key: string, value: 'a): (string, Component.attrValue) => {
     // Check if it's a function (computed)
-    if Js.typeof(value) == "function" {
+    if typeof(value) == #function {
       // It's a computed function
       let f: unit => string = Obj.magic(value)
       Component.computedAttr(key, f)
-    } else if Js.typeof(value) == "object" && hasId(value)->Option.isSome {
+    } else if typeof(value) == #object && hasId(value)->Option.isSome {
       // It's a signal (has an id property)
       let sig: Xote__Core.t<string> = Obj.magic(value)
       Component.signalAttr(key, sig)
@@ -283,7 +283,7 @@ module Elements = {
     tag: string,
     props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
     ~key: option<string>=?,
-    @ignore _: unit,
+    _: unit,
   ): element => {
     let _ = key
     createElement(tag, props)
@@ -293,7 +293,7 @@ module Elements = {
     tag: string,
     props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
     ~key: option<string>=?,
-    @ignore _: unit,
+    _: unit,
   ): element => {
     let _ = key
     createElement(tag, props)

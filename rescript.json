@@ -16,10 +16,10 @@
     "in-source": true
   },
   "suffix": ".res.mjs",
-  "bs-dependencies": [
+  "dependencies": [
     "@rescript/core"
   ],
-  "bsc-flags": [
+  "compiler-flags": [
     "-open RescriptCore"
   ],
   "jsx": {
