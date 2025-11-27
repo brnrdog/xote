@@ -466,51 +466,52 @@ let aboutPage = () => {
   </div>
 }
 
-/* ProductCard Component using JSX */
-type productCardProps = {product: product}
+module ProductCard = {
+  /* ProductCard Component using JSX */
+  @jsx.component
+  let make = (~product: product) => {
+    let inCart = Computed.make(() => {
+      let item = getCartItem(product.id)
+      Option.isSome(item)
+    })
 
-let productCard = (props: productCardProps) => {
-  let inCart = Computed.make(() => {
-    let item = getCartItem(props.product.id)
-    Option.isSome(item)
-  })
-
-  <div
-    class="bg-white dark:bg-stone-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow border-2 border-stone-200 dark:border-stone-700"
-  >
-    <div class="text-6xl text-center mb-4"> {Component.text(props.product.cover)} </div>
-    <h3 class="text-xl font-bold text-stone-900 dark:text-white mb-2">
-      {Component.text(props.product.title)}
-    </h3>
-    <p class="text-sm text-stone-600 dark:text-stone-400 mb-2">
-      {Component.text("by " ++ props.product.author)}
-    </p>
-    <p class="text-stone-600 dark:text-stone-400 text-sm mb-4 line-clamp-3">
-      {Component.text(props.product.description)}
-    </p>
-    <div class="flex justify-between items-center">
-      <span class="text-2xl font-bold text-stone-700 dark:text-stone-300">
-        {Component.text(formatPrice(props.product.price))}
-      </span>
-      <button
-        class={() =>
-          if Signal.get(inCart) {
-            "px-4 py-2 bg-green-600 text-white rounded-lg font-semibold"
-          } else {
-            "px-4 py-2 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors"
-          }}
-        onClick={_ => addToCart(props.product.id)}
-      >
-        {Component.textSignal(() =>
-          if Signal.get(inCart) {
-            "✓ In Cart"
-          } else {
-            "Add to Cart"
-          }
-        )}
-      </button>
+    <div
+      class="bg-white dark:bg-stone-800 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow border-2 border-stone-200 dark:border-stone-700"
+    >
+      <div class="text-6xl text-center mb-4"> {Component.text(product.cover)} </div>
+      <h3 class="text-xl font-bold text-stone-900 dark:text-white mb-2">
+        {Component.text(product.title)}
+      </h3>
+      <p class="text-sm text-stone-600 dark:text-stone-400 mb-2">
+        {Component.text("by " ++ product.author)}
+      </p>
+      <p class="text-stone-600 dark:text-stone-400 text-sm mb-4 line-clamp-3">
+        {Component.text(product.description)}
+      </p>
+      <div class="flex justify-between items-center">
+        <span class="text-2xl font-bold text-stone-700 dark:text-stone-300">
+          {Component.text(formatPrice(product.price))}
+        </span>
+        <button
+          class={() =>
+            if Signal.get(inCart) {
+              "px-4 py-2 bg-green-600 text-white rounded-lg font-semibold"
+            } else {
+              "px-4 py-2 bg-stone-900 hover:bg-stone-700 dark:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg font-semibold transition-colors"
+            }}
+          onClick={_ => addToCart(product.id)}
+        >
+          {Component.textSignal(() =>
+            if Signal.get(inCart) {
+              "✓ In Cart"
+            } else {
+              "Add to Cart"
+            }
+          )}
+        </button>
+      </div>
     </div>
-  </div>
+  }
 }
 
 /* CatalogView Component using JSX */
@@ -520,7 +521,7 @@ let catalogView = () => {
       {Component.text("Available Books")}
     </h2>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {Component.fragment(products->Array.map(product => productCard({product: product})))}
+      {Component.fragment(products->Array.map(product => <ProductCard product />))}
     </div>
   </div>
 }
