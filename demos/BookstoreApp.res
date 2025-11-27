@@ -521,7 +521,7 @@ let catalogView = () => {
       {Component.text("Available Books")}
     </h2>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {Component.fragment(products->Array.map(product => <ProductCard product />))}
+      {products->Array.map(product => <ProductCard product />)->JSX.array}
     </div>
   </div>
 }
