@@ -94,7 +94,7 @@ let firstName = Signal.make("John")
 let lastName = Signal.make("Doe")
 
 // This computed automatically depends on both firstName and lastName
-let fullName = Computed.make(() =>
+let (fullName, _) = Computed.make(() =>
   Signal.get(firstName) ++ " " ++ Signal.get(lastName)
 )
 ```

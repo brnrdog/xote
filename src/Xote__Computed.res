@@ -5,12 +5,7 @@ module Core = Xote__Core
 module Observer = Xote__Observer
 module Id = Xote__Id
 
-type computed<'a> = {
-  signal: Core.t<'a>,
-  dispose: unit => unit,
-}
-
-let make = (calc: unit => 'a): computed<'a> => {
+let make = (calc: unit => 'a): (Core.t<'a>, unit => unit) => {
   /* create backing signal */
   let s = Signal.make((Obj.magic(): 'a))
   /* mark it as absent; force first compute */
@@ -67,5 +62,5 @@ let make = (calc: unit => 'a): computed<'a> => {
 
   /* When dependencies change, scheduler will run `recompute` which writes to s,
    and that write will notify s's own dependents. */
-  {signal: s, dispose}
+  (s, dispose)
 }

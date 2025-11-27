@@ -13,31 +13,27 @@ let nextId = ref(0)
 let inputValue = Signal.make("")
 
 // Computed values derived from todos
-let completedCountComputed = Computed.make(() => {
+let (completedCount, _) = Computed.make(() => {
   Signal.get(todos)->Array.filter(todo => todo.completed)->Array.length
 })
-let completedCount = completedCountComputed.signal
 
-let activeCountComputed = Computed.make(() => {
+let (activeCount, _) = Computed.make(() => {
   Signal.get(todos)->Array.filter(todo => !todo.completed)->Array.length
 })
-let activeCount = activeCountComputed.signal
 
-let totalCountComputed = Computed.make(() => {
+let (totalCount, _) = Computed.make(() => {
   Signal.get(todos)->Array.length
 })
-let totalCount = totalCountComputed.signal
 
 let filterState = Signal.make("all")
 
-let filteredTodosComputed = Computed.make(() => {
+let (filteredTodos, _) = Computed.make(() => {
   switch Signal.get(filterState) {
   | "active" => Signal.get(todos)->Array.filter(todo => !todo.completed)
   | "completed" => Signal.get(todos)->Array.filter(todo => todo.completed)
   | _ => Signal.get(todos)
   }
 })
-let filteredTodos = filteredTodosComputed.signal
 
 let addTodo = (text: string) => {
   if String.trim(text) != "" {
@@ -178,10 +174,9 @@ module FilterButton = {
 
   let make = (props: props) => {
     let {filterValue, onClick} = props
-    let isActiveComputed = Computed.make(() => Signal.get(filterState) == filterValue)
-    let isActive = isActiveComputed.signal
+    let (isActive, _) = Computed.make(() => Signal.get(filterState) == filterValue)
 
-    let classNameComputed = Computed.make(() => {
+    let (className, _) = Computed.make(() => {
       "capitalize px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs transition-colors " ++ if (
         Signal.get(isActive)
       ) {
@@ -190,7 +185,6 @@ module FilterButton = {
         "bg-stone-200 text-stone dark:bg-stone-800 dark:text-white"
       }
     })
-    let className = classNameComputed.signal
 
     <button class={className} onClick={onClick}>
       {Component.text(filterValue)}

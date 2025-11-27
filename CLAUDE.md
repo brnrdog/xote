@@ -34,7 +34,7 @@ The codebase follows a flat module hierarchy with the `Xote__` prefix for intern
 
 - **`Xote__Signal`**: User-facing reactive state cells. Implements `make`, `get`, `peek`, `set`, `update`. The `get` function automatically captures dependencies when called within a tracking context. **Signal.set includes structural equality check** - only notifies dependents if the value has changed, preventing unnecessary updates and accidental infinite loops.
 
-- **`Xote__Computed`**: Derived signals that automatically recompute when dependencies change. Creates an internal observer that writes to a backing signal. **Important**: Computeds are **push-based** (eager) - they recompute immediately when upstream dependencies notify, not lazily on read. **Returns a record** `{signal: Core.t<'a>, dispose: unit => unit}` - access the value via `.signal` and clean up via `.dispose()`.
+- **`Xote__Computed`**: Derived signals that automatically recompute when dependencies change. Creates an internal observer that writes to a backing signal. **Important**: Computeds are **push-based** (eager) - they recompute immediately when upstream dependencies notify, not lazily on read. **Returns a tuple** `(Core.t<'a>, unit => unit)` - destructure to access the signal and dispose function.
 
 - **`Xote__Effect`**: Side effects that run when dependencies change. **Effect functions can return cleanup callbacks** - signature is `unit => option<unit => unit>`. Return `None` for no cleanup, or `Some(cleanupFn)` to register cleanup that runs before re-execution and on disposal. Returns a `disposer` with a `dispose()` method to stop tracking.
 
@@ -115,7 +115,7 @@ let app = () => {
 
 3. **Effect cleanup callbacks**: Effects can return `Some(cleanupFn)` to register cleanup that runs before re-execution and on disposal. Return `None` when no cleanup is needed. Signature is `unit => option<unit => unit>`.
 
-4. **Computed disposal**: `Computed.make` returns `{signal: Core.t<'a>, dispose: unit => unit}`. Access the computed value via `.signal` and call `.dispose()` to stop tracking when no longer needed.
+4. **Computed disposal**: `Computed.make` returns `(Core.t<'a>, unit => unit)`. Destructure the tuple to access the signal and dispose function: `let (signal, dispose) = Computed.make(...)`. Call `dispose()` to stop tracking when no longer needed.
 
 5. **Untracked reads**: Use `Signal.peek(signal)` to read without creating a dependency, or wrap code in `Core.untrack(() => ...)`.
 
@@ -134,13 +134,13 @@ let app = () => {
 ### Creating reactive state
 ```rescript
 let count = Signal.make(0)
-let doubled = Computed.make(() => Signal.get(count) * 2)
+let (doubled, dispose) = Computed.make(() => Signal.get(count) * 2)
 
 // Access computed value
-Console.log(Signal.get(doubled.signal)) // 0
+Console.log(Signal.get(doubled)) // 0
 
 // Clean up when done
-doubled.dispose()
+dispose()
 ```
 
 ### Event handlers
@@ -323,6 +323,6 @@ The following limitations have been addressed:
 
 1. ~~No effect cleanup hooks~~ - **FIXED**: Effects now support cleanup callbacks via `option<unit => unit>` return type
 2. ~~No equality checks in `Signal.set`~~ - **FIXED**: Signal.set now includes structural equality check to prevent unnecessary notifications
-3. ~~Computeds cannot be disposed~~ - **FIXED**: Computed.make now returns `{signal, dispose}` record
+3. ~~Computeds cannot be disposed~~ - **FIXED**: Computed.make now returns `(signal, dispose)` tuple for convenient destructuring
 4. ~~Recursive scheduler can stack overflow~~ - **FIXED**: Scheduler is now iterative (uses `while` loop)
 5. ~~No exception handling~~ - **FIXED**: All observer execution wrapped in try/catch with proper state restoration
