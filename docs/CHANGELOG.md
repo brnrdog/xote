@@ -1,3 +1,14 @@
+# [2.0.0](https://github.com/brnrdog/xote/compare/v1.3.3...v2.0.0) (2025-11-27)
+
+
+* chore!: upgrade to ReScript v12.0.0 ([b20b9e0](https://github.com/brnrdog/xote/commit/b20b9e032cd62d6d2e1eea83adbe53ab412cea94)), closes [#function](https://github.com/brnrdog/xote/issues/function) [#object](https://github.com/brnrdog/xote/issues/object) [#function](https://github.com/brnrdog/xote/issues/function)
+
+
+### BREAKING CHANGES
+
+* ReScript v12 introduces API changes that affect the typeof operator and configuration fields. Projects upgrading will need to:
+- Update rescript.json to use 'dependencies' and 'compiler-flags' instead of 'bs-dependencies' and 'bsc-flags'
+
 ## [1.3.3](https://github.com/brnrdog/xote/compare/v1.3.2...v1.3.3) (2025-11-26)
 
 
