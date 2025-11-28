@@ -8,7 +8,7 @@ Computed values are **derived signals** that automatically recalculate when thei
 
 ## Creating Computed Values
 
-Use `Computed.make()` with a function that computes the derived value. It returns a tuple containing the signal and a dispose function:
+Use `Computed.make()` with a function that computes the derived value. It returns the computed signal:
 
 ```rescript
 open Xote
@@ -17,7 +17,7 @@ let firstName = Signal.make("John")
 let lastName = Signal.make("Doe")
 
 // Automatically updates when firstName or lastName changes
-let (fullName, dispose) = Computed.make(() =>
+let fullName = Computed.make(() =>
   Signal.get(firstName) ++ " " ++ Signal.get(lastName)
 )
 
@@ -38,11 +38,11 @@ This means computed values are **always up-to-date**, but they may recalculate e
 
 ## Reading Computed Values
 
-Computed values return a tuple where the first element is the signal. Use tuple destructuring to access it:
+Computed values return a signal that can be read with `Signal.get()`:
 
 ```rescript
 let count = Signal.make(5)
-let (doubled, _) = Computed.make(() => Signal.get(count) * 2)
+let doubled = Computed.make(() => Signal.get(count) * 2)
 
 Console.log(Signal.get(doubled)) // Prints: 10
 
@@ -52,11 +52,11 @@ Console.log(Signal.get(doubled)) // Prints: 20
 
 ## Disposing Computed Values
 
-Computed values can be disposed to stop tracking and free resources. This is important for preventing memory leaks:
+Computed values can be disposed to stop tracking and free resources using `Computed.dispose()`. This is important for preventing memory leaks:
 
 ```rescript
 let count = Signal.make(0)
-let (doubled, dispose) = Computed.make(() => Signal.get(count) * 2)
+let doubled = Computed.make(() => Signal.get(count) * 2)
 
 Console.log(Signal.get(doubled)) // 0
 
@@ -64,7 +64,7 @@ Signal.set(count, 5)
 Console.log(Signal.get(doubled)) // 10
 
 // Stop the computed when no longer needed
-dispose()
+Computed.dispose(doubled)
 
 Signal.set(count, 10)
 // The computed no longer updates
@@ -84,15 +84,15 @@ You can create computed values that depend on other computed values:
 let price = Signal.make(100)
 let quantity = Signal.make(3)
 
-let (subtotal, _) = Computed.make(() =>
+let subtotal = Computed.make(() =>
   Signal.get(price) * Signal.get(quantity)
 )
 
-let (tax, _) = Computed.make(() =>
+let tax = Computed.make(() =>
   Signal.get(subtotal) * 0.1
 )
 
-let (total, _) = Computed.make(() =>
+let total = Computed.make(() =>
   Signal.get(subtotal) + Signal.get(tax)
 )
 
@@ -120,16 +120,16 @@ let items = Signal.make([
   {name: "Banana", price: 0.75, quantity: 5},
 ])
 
-let (subtotal, _) = Computed.make(() => {
+let subtotal = Computed.make(() => {
   Signal.get(items)
   ->Array.reduce(0.0, (acc, item) => {
     acc +. item.price *. Int.toFloat(item.quantity)
   })
 })
 
-let (tax, _) = Computed.make(() => Signal.get(subtotal) *. 0.08)
+let tax = Computed.make(() => Signal.get(subtotal) *. 0.08)
 
-let (total, _) = Computed.make(() => Signal.get(subtotal) +. Signal.get(tax))
+let total = Computed.make(() => Signal.get(subtotal) +. Signal.get(tax))
 
 let app = Component.div(
   ~children=[
@@ -188,7 +188,7 @@ Use computed values for automatic updates:
 ```rescript
 // ✅ Automatic (safe)
 let count = Signal.make(0)
-let (doubled, _) = Computed.make(() => Signal.get(count) * 2)
+let doubled = Computed.make(() => Signal.get(count) * 2)
 
 let increment = () => {
   Signal.update(count, n => n + 1)
@@ -205,7 +205,7 @@ let useMetric = Signal.make(true)
 let celsius = Signal.make(20)
 let fahrenheit = Signal.make(68)
 
-let (temperature, _) = Computed.make(() => {
+let temperature = Computed.make(() => {
   if Signal.get(useMetric) {
     Signal.get(celsius)
   } else {
@@ -227,8 +227,7 @@ Console.log(Signal.get(temperature)) // 68
 2. **Use for derived state**: Any value that can be calculated from other signals should be a computed
 3. **Avoid expensive operations**: Computed values recalculate eagerly, so keep them fast
 4. **Don't nest effects**: Computed values should not call `Effect.run()` internally
-5. **Dispose when done**: Call the `dispose()` function from the tuple when computeds are no longer needed to prevent memory leaks
-6. **Use tuple destructuring**: Destructure the tuple to access the signal directly: `let (signal, dispose) = Computed.make(...)`
+5. **Dispose when done**: Call `Computed.dispose(signal)` when computeds are no longer needed to prevent memory leaks
 
 ## Important Notes
 
@@ -238,7 +237,7 @@ Unlike some reactive systems, Xote's computed values are **eager**:
 
 ```rescript
 let count = Signal.make(0)
-let (expensive, _) = Computed.make(() => {
+let expensive = Computed.make(() => {
   Console.log("Computing...")
   Signal.get(count) * 2
 })
@@ -253,7 +252,7 @@ This ensures computed values are always current but may do unnecessary work if t
 
 ```rescript
 let count = Signal.make(0)
-let (expensive, dispose) = Computed.make(() => {
+let expensive = Computed.make(() => {
   Console.log("Computing...")
   Signal.get(count) * 2
 })
@@ -262,7 +261,7 @@ let (expensive, dispose) = Computed.make(() => {
 Console.log(Signal.get(expensive))
 
 // When done, stop recomputing
-dispose()
+Computed.dispose(expensive)
 
 Signal.set(count, 5)
 // "Computing..." is NOT logged - disposed computed doesn't recompute
