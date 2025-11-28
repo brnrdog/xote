@@ -24,7 +24,14 @@ let peek = (s: Core.t<'a>): 'a => s.value.contents
 let set = (s: Core.t<'a>, v: 'a) => {
   // Skip notification if value hasn't changed (structural equality)
   // This prevents accidental infinite loops and reduces unnecessary work
-  if s.value.contents != v {
+  // Structural equality fails on objects with functions, fallbacks to always updating in that case
+  let shouldUpdate = try {
+    s.value.contents != v
+  } catch {
+  | _ => true // If comparison fails, assume values are different
+  }
+
+  if shouldUpdate {
     s.value := v
     s.version := s.version.contents + 1
     Core.notify(s.id)
