@@ -1,3 +1,42 @@
+# [3.0.0](https://github.com/brnrdog/xote/compare/v2.0.0...v3.0.0) (2025-11-28)
+
+
+* fix!: add cleanup callback support to effects ([7aade4f](https://github.com/brnrdog/xote/commit/7aade4f3cb95a284169c42fa6771e31d33613b7c))
+* refactor!: simplify Computed API with internal tracking ([5d9bc01](https://github.com/brnrdog/xote/commit/5d9bc0130208b8ebdde90f1207ae101695a6b6af))
+
+
+### Bug Fixes
+
+* add disposal support for computed observers ([f2e8a17](https://github.com/brnrdog/xote/commit/f2e8a177a37d87abc2477805a39e0eb896946664))
+* add equality check to Signal.set to prevent unnecessary notifications ([2680a19](https://github.com/brnrdog/xote/commit/2680a195e8adfa9cf2ed3d3c5bb236044bf04027))
+* convert recursive scheduler to iterative loop ([0b69c76](https://github.com/brnrdog/xote/commit/0b69c76d40130fb436b9df4feae8e4785deccc88))
+* restore global tracking state on exceptions ([a6e5b70](https://github.com/brnrdog/xote/commit/a6e5b7030e59fb7e8323896ba1b02c44668a81f9))
+* signal set structural equality check on objects with functions ([803aaba](https://github.com/brnrdog/xote/commit/803aaba12f75b7df660de1f11257b4eb1a3b4aa5))
+
+
+### Features
+
+* add automatic disposal for computed values ([d2f04db](https://github.com/brnrdog/xote/commit/d2f04dbe630388aa75a369c3785c4aa4ff2050b3))
+
+
+### BREAKING CHANGES
+
+* Computed.make now returns Core.t<'a> instead of
+(Core.t<'a>, unit => unit). Use Computed.dispose(signal) for manual
+disposal instead of calling the dispose function from the tuple.
+
+Before:
+  let (signal, dispose) = Computed.make(() => ...)
+  dispose()
+
+After:
+  let signal = Computed.make(() => ...)
+  Computed.dispose(signal)
+
+This aligns better with common patterns in other reactive libraries
+like Solid and Preact, providing a cleaner and more intuitive API.
+* Effect.run now expects functions to return option<unit => unit> instead of unit. All existing effects must be updated to return None or Some(cleanupFn).
+
 # [2.0.0](https://github.com/brnrdog/xote/compare/v1.3.3...v2.0.0) (2025-11-27)
 
 
