@@ -198,7 +198,7 @@ Signal.set(count, 2) // Logs: "Count changed: 2"
 
 ```rescript
 let count = Signal.make(5)
-let (doubled, _) = Computed.make(() => Signal.get(count) * 2)
+let doubled = Computed.make(() => Signal.get(count) * 2)
 
 Console.log(Signal.get(doubled)) // 10
 

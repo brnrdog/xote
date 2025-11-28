@@ -5,7 +5,10 @@ module Core = Xote__Core
 module Observer = Xote__Observer
 module Id = Xote__Id
 
-let make = (calc: unit => 'a): (Core.t<'a>, unit => unit) => {
+/* Internal tracking: map from signal ID to observer ID */
+let computedToObserver: ref<IntMap.t<int>> = ref(IntMap.empty)
+
+let make = (calc: unit => 'a): Core.t<'a> => {
   /* create backing signal */
   let s = Signal.make((Obj.magic(): 'a))
   /* mark it as absent; force first compute */
@@ -50,17 +53,28 @@ let make = (calc: unit => 'a): (Core.t<'a>, unit => unit) => {
   /* Compute proper level after tracking dependencies */
   o.level = Core.computeLevel(o)
 
-  let dispose = () => {
-    switch IntMap.get(Core.observers.contents, id) {
-    | None => ()
-    | Some(obs) => {
-        Core.clearDeps(obs)
-        Core.observers := IntMap.remove(Core.observers.contents, id)
-      }
-    }
-  }
+  /* Store mapping from signal ID to observer ID for disposal */
+  computedToObserver := IntMap.set(computedToObserver.contents, s.id, id)
 
   /* When dependencies change, scheduler will run `recompute` which writes to s,
    and that write will notify s's own dependents. */
-  (s, dispose)
+  s
+}
+
+let dispose = (signal: Core.t<'a>): unit => {
+  switch IntMap.get(computedToObserver.contents, signal.id) {
+  | None => () /* Not a computed signal, or already disposed */
+  | Some(observerId) => {
+      /* Remove from tracking map */
+      computedToObserver := IntMap.remove(computedToObserver.contents, signal.id)
+      /* Dispose the observer */
+      switch IntMap.get(Core.observers.contents, observerId) {
+      | None => ()
+      | Some(obs) => {
+          Core.clearDeps(obs)
+          Core.observers := IntMap.remove(Core.observers.contents, observerId)
+        }
+      }
+    }
+  }
 }

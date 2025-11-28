@@ -427,7 +427,7 @@ let emptySlot = (props: emptySlotProps) => {
 let stockAndWaste = () => {
   <div class="flex gap-4">
     {
-      let (stockSignal, _) = Computed.make(() => {
+      let stockSignal = Computed.make(() => {
         let state = Signal.get(gameState)
         if Array.length(state.stock) > 0 {
           [
@@ -450,7 +450,7 @@ let stockAndWaste = () => {
       Component.signalFragment(stockSignal)
     }
     {
-      let (wasteSignal, _) = Computed.make(() => {
+      let wasteSignal = Computed.make(() => {
         let state = Signal.get(gameState)
         let selection = Signal.get(selectedCard)
         if Array.length(state.waste) > 0 {
@@ -473,7 +473,7 @@ let stockAndWaste = () => {
 let foundations = () => {
   <div class="flex gap-4">
     {
-      let (foundationsSignal, _) = Computed.make(() => {
+      let foundationsSignal = Computed.make(() => {
         let state = Signal.get(gameState)
         Array.mapWithIndex(state.foundations, (foundation, index) => {
           if Array.length(foundation) > 0 {
@@ -505,7 +505,7 @@ type tableauColumnProps = {colIndex: int}
 let tableauColumn = (props: tableauColumnProps) => {
   <div class="flex flex-col">
     {
-      let (tableauSignal, _) = Computed.make(() => {
+      let tableauSignal = Computed.make(() => {
         let state = Signal.get(gameState)
         let selection = Signal.get(selectedCard)
         let column = Array.getUnsafe(state.tableau, props.colIndex)
@@ -569,7 +569,7 @@ let app = () => {
       </button>
     </div>
     {
-      let (gameWonSignal, _) = Computed.make(() => {
+      let gameWonSignal = Computed.make(() => {
         if Signal.get(gameWon) {
           [
             <div

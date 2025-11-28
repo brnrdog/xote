@@ -13,21 +13,21 @@ let nextId = ref(0)
 let inputValue = Signal.make("")
 
 // Computed values derived from todos
-let (completedCount, _) = Computed.make(() => {
+let completedCount = Computed.make(() => {
   Signal.get(todos)->Array.filter(todo => todo.completed)->Array.length
 })
 
-let (activeCount, _) = Computed.make(() => {
+let activeCount = Computed.make(() => {
   Signal.get(todos)->Array.filter(todo => !todo.completed)->Array.length
 })
 
-let (totalCount, _) = Computed.make(() => {
+let totalCount = Computed.make(() => {
   Signal.get(todos)->Array.length
 })
 
 let filterState = Signal.make("all")
 
-let (filteredTodos, _) = Computed.make(() => {
+let filteredTodos = Computed.make(() => {
   switch Signal.get(filterState) {
   | "active" => Signal.get(todos)->Array.filter(todo => !todo.completed)
   | "completed" => Signal.get(todos)->Array.filter(todo => todo.completed)
@@ -174,9 +174,9 @@ module FilterButton = {
 
   let make = (props: props) => {
     let {filterValue, onClick} = props
-    let (isActive, _) = Computed.make(() => Signal.get(filterState) == filterValue)
+    let isActive = Computed.make(() => Signal.get(filterState) == filterValue)
 
-    let (className, _) = Computed.make(() => {
+    let className = Computed.make(() => {
       "capitalize px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs transition-colors " ++ if (
         Signal.get(isActive)
       ) {

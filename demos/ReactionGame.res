@@ -73,7 +73,7 @@ let resetGame = (_evt: Dom.event) => {
 }
 
 // Computed statistics
-let (bestTime, _) = Computed.make(() => {
+let bestTime = Computed.make(() => {
   let list = Signal.get(attempts)
   if Array.length(list) == 0 {
     None
@@ -87,7 +87,7 @@ let (bestTime, _) = Computed.make(() => {
   }
 })
 
-let (averageTime, _) = Computed.make(() => {
+let averageTime = Computed.make(() => {
   let list = Signal.get(attempts)
   if Array.length(list) == 0 {
     None
@@ -97,7 +97,7 @@ let (averageTime, _) = Computed.make(() => {
   }
 })
 
-let (attemptsCount, _) = Computed.make(() => {
+let attemptsCount = Computed.make(() => {
   Signal.get(attempts)->Array.length
 })
 
@@ -128,7 +128,7 @@ module GameArea = {
           })}
         </p>
         {
-          let (gameAreaSignal, _) = Computed.make(() => {
+          let gameAreaSignal = Computed.make(() => {
             switch Signal.get(state) {
             | Result(_) => [
                 <p class="text-sm text-stone-300 mt-2">
@@ -223,7 +223,7 @@ module AttemptHistory = {
           {Component.text("Recent Attempts")}
         </h3>
         {
-          let (clearButtonSignal, _) = Computed.make(() => {
+          let clearButtonSignal = Computed.make(() => {
             if Signal.get(attemptsCount) > 0 {
               [
                 <button
@@ -240,7 +240,7 @@ module AttemptHistory = {
         }
       </div>
       {
-        let (attemptsListSignal, _) = Computed.make(() => {
+        let attemptsListSignal = Computed.make(() => {
           let list = Signal.get(attempts)
           if Array.length(list) == 0 {
             [
@@ -269,7 +269,7 @@ module AttemptHistory = {
                         {Component.text(`${Int.toString(time)} ms`)}
                       </span>
                       {
-                        let (bestBadgeSignal, _) = Computed.make(() => {
+                        let bestBadgeSignal = Computed.make(() => {
                           if isBest {
                             [
                               <span class="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-semibold">
@@ -299,7 +299,7 @@ module Controls = {
   let component = () => {
     <div class="flex flex-wrap gap-3 justify-center">
       {
-        let (controlsSignal, _) = Computed.make(() => {
+        let controlsSignal = Computed.make(() => {
           switch Signal.get(state) {
           | Result(_) | TooEarly => [
               <button

@@ -157,7 +157,7 @@ let checkoutForm = Signal.make({
 let orderNumber = Signal.make(0)
 
 // Computed values
-let (cartTotal, _) = Computed.make(() => {
+let cartTotal = Computed.make(() => {
   let items = Signal.get(cart)
   items->Array.reduce(0.0, (total, item) => {
     let product = products->Array.find(p => p.id == item.productId)
@@ -168,7 +168,7 @@ let (cartTotal, _) = Computed.make(() => {
   })
 })
 
-let (cartItemCount, _) = Computed.make(() => {
+let cartItemCount = Computed.make(() => {
   let items = Signal.get(cart)
   items->Array.reduce(0, (count, item) => count + item.quantity)
 })
@@ -466,7 +466,7 @@ let aboutPage = () => {
 type productCardProps = {product: product}
 
 let productCard = (props: productCardProps) => {
-  let (inCart, _) = Computed.make(() => {
+  let inCart = Computed.make(() => {
     let item = getCartItem(props.product.id)
     Option.isSome(item)
   })
@@ -574,7 +574,7 @@ let cartItemRow = (props: cartItemRowProps) => {
 
 /* CartView Component using JSX */
 let cartView = () => {
-  let (isEmpty, _) = Computed.make(() => Array.length(Signal.get(cart)) == 0)
+  let isEmpty = Computed.make(() => Array.length(Signal.get(cart)) == 0)
 
   <div class="max-w-4xl mx-auto p-6">
     <h2 class="text-3xl font-bold text-stone-900 dark:text-white mb-6">

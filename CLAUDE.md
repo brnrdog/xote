@@ -34,7 +34,7 @@ The codebase follows a flat module hierarchy with the `Xote__` prefix for intern
 
 - **`Xote__Signal`**: User-facing reactive state cells. Implements `make`, `get`, `peek`, `set`, `update`. The `get` function automatically captures dependencies when called within a tracking context. **Signal.set includes structural equality check** - only notifies dependents if the value has changed, preventing unnecessary updates and accidental infinite loops.
 
-- **`Xote__Computed`**: Derived signals that automatically recompute when dependencies change. Creates an internal observer that writes to a backing signal. **Important**: Computeds are **push-based** (eager) - they recompute immediately when upstream dependencies notify, not lazily on read. **Returns a tuple** `(Core.t<'a>, unit => unit)` - destructure to access the signal and dispose function.
+- **`Xote__Computed`**: Derived signals that automatically recompute when dependencies change. Creates an internal observer that writes to a backing signal. **Important**: Computeds are **push-based** (eager) - they recompute immediately when upstream dependencies notify, not lazily on read. **Returns a signal** `Core.t<'a>` directly. Use `Computed.dispose(signal)` to manually dispose when no longer needed.
 
 - **`Xote__Effect`**: Side effects that run when dependencies change. **Effect functions can return cleanup callbacks** - signature is `unit => option<unit => unit>`. Return `None` for no cleanup, or `Some(cleanupFn)` to register cleanup that runs before re-execution and on disposal. Returns a `disposer` with a `dispose()` method to stop tracking.
 
@@ -134,13 +134,13 @@ let app = () => {
 ### Creating reactive state
 ```rescript
 let count = Signal.make(0)
-let (doubled, dispose) = Computed.make(() => Signal.get(count) * 2)
+let doubled = Computed.make(() => Signal.get(count) * 2)
 
 // Access computed value
 Console.log(Signal.get(doubled)) // 0
 
 // Clean up when done
-dispose()
+Computed.dispose(doubled)
 ```
 
 ### Event handlers

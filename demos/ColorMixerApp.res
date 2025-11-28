@@ -49,21 +49,21 @@ let rgbToHsl = (r: int, g: int, b: int) => {
 }
 
 // Computed color values
-let (hexColor, _) = Computed.make(() => {
+let hexColor = Computed.make(() => {
   let r = Signal.get(red)
   let g = Signal.get(green)
   let b = Signal.get(blue)
   "#" ++ toHex(r) ++ toHex(g) ++ toHex(b)
 })
 
-let (rgbColor, _) = Computed.make(() => {
+let rgbColor = Computed.make(() => {
   let r = Signal.get(red)
   let g = Signal.get(green)
   let b = Signal.get(blue)
   `rgb(${Int.toString(r)}, ${Int.toString(g)}, ${Int.toString(b)})`
 })
 
-let (hslColor, _) = Computed.make(() => {
+let hslColor = Computed.make(() => {
   let r = Signal.get(red)
   let g = Signal.get(green)
   let b = Signal.get(blue)
@@ -75,7 +75,7 @@ let (hslColor, _) = Computed.make(() => {
 })
 
 // Computed color variations
-let (lighterColor, _) = Computed.make(() => {
+let lighterColor = Computed.make(() => {
   let r = Signal.get(red)
   let g = Signal.get(green)
   let b = Signal.get(blue)
@@ -83,7 +83,7 @@ let (lighterColor, _) = Computed.make(() => {
   `rgb(${Int.toString(lighten(r))}, ${Int.toString(lighten(g))}, ${Int.toString(lighten(b))})`
 })
 
-let (darkerColor, _) = Computed.make(() => {
+let darkerColor = Computed.make(() => {
   let r = Signal.get(red)
   let g = Signal.get(green)
   let b = Signal.get(blue)
@@ -91,7 +91,7 @@ let (darkerColor, _) = Computed.make(() => {
   `rgb(${Int.toString(darken(r))}, ${Int.toString(darken(g))}, ${Int.toString(darken(b))})`
 })
 
-let (complementaryColor, _) = Computed.make(() => {
+let complementaryColor = Computed.make(() => {
   let r = Signal.get(red)
   let g = Signal.get(green)
   let b = Signal.get(blue)
@@ -272,7 +272,7 @@ module SavedColors = {
         </button>
       </div>
       {
-        let (savedColorsSignal, _) = Computed.make(() => {
+        let savedColorsSignal = Computed.make(() => {
           let colors = Signal.get(savedColors)
           if Array.length(colors) == 0 {
             [
