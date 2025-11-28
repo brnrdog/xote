@@ -5,9 +5,6 @@ module Core = Xote__Core
 module Observer = Xote__Observer
 module Id = Xote__Id
 
-/* Internal tracking: map from signal ID to observer ID */
-let computedToObserver: ref<IntMap.t<int>> = ref(IntMap.empty)
-
 let make = (calc: unit => 'a): Core.t<'a> => {
   /* create backing signal */
   let s = Signal.make((Obj.magic(): 'a))
@@ -36,16 +33,19 @@ let make = (calc: unit => 'a): Core.t<'a> => {
   Core.observers := IntMap.set(Core.observers.contents, id, o)
 
   /* initial compute under tracking */
+  Core.retracking := true
   Core.clearDeps(o)
   let prev = Core.currentObserverId.contents
   Core.currentObserverId := Some(id)
   /* Use try/finally to ensure tracking state is restored even on exceptions */
   try {
     o.run()
+    Core.retracking := false
   } catch {
   | exn => {
       Core.currentObserverId := prev
-      raise(exn)
+      Core.retracking := false
+      throw(exn)
     }
   }
   Core.currentObserverId := prev
@@ -53,28 +53,15 @@ let make = (calc: unit => 'a): Core.t<'a> => {
   /* Compute proper level after tracking dependencies */
   o.level = Core.computeLevel(o)
 
-  /* Store mapping from signal ID to observer ID for disposal */
-  computedToObserver := IntMap.set(computedToObserver.contents, s.id, id)
+  /* Store mapping from signal ID to observer ID for auto-disposal */
+  Core.computedToObserver := IntMap.set(Core.computedToObserver.contents, s.id, id)
 
   /* When dependencies change, scheduler will run `recompute` which writes to s,
    and that write will notify s's own dependents. */
   s
 }
 
+/* Manual disposal - for explicit control when needed (auto-disposal happens automatically) */
 let dispose = (signal: Core.t<'a>): unit => {
-  switch IntMap.get(computedToObserver.contents, signal.id) {
-  | None => () /* Not a computed signal, or already disposed */
-  | Some(observerId) => {
-      /* Remove from tracking map */
-      computedToObserver := IntMap.remove(computedToObserver.contents, signal.id)
-      /* Dispose the observer */
-      switch IntMap.get(Core.observers.contents, observerId) {
-      | None => ()
-      | Some(obs) => {
-          Core.clearDeps(obs)
-          Core.observers := IntMap.remove(Core.observers.contents, observerId)
-        }
-      }
-    }
-  }
+  Core.autoDisposeComputed(signal.id)
 }

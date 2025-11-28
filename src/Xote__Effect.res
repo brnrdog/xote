@@ -31,15 +31,18 @@ let run = (fn: unit => option<unit => unit>): disposer => {
   }
   Core.observers := IntMap.set(Core.observers.contents, id, observer)
   /* initial run */
+  Core.retracking := true
   Core.clearDeps(observer)
   let prev = Core.currentObserverId.contents
   Core.currentObserverId := Some(id)
   /* Use try/catch to ensure tracking state is restored even on exceptions */
   try {
     observer.run()
+    Core.retracking := false
   } catch {
   | exn => {
       Core.currentObserverId := prev
+      Core.retracking := false
       raise(exn)
     }
   }
