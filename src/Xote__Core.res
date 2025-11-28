@@ -9,6 +9,7 @@ type t<'a> = {id: int, value: ref<'a>, version: ref<int>}
 let observers: ref<IntMap.t<Observer.t>> = ref(IntMap.empty)
 let signalObservers: ref<IntMap.t<IntSet.t>> = ref(IntMap.empty) /* signal id -> observer ids */
 let signalPeeks: ref<IntSet.t> = ref(IntSet.empty) /* optional; for debugging */
+let computedToObserver: ref<IntMap.t<int>> = ref(IntMap.empty) /* signal id -> computed observer id (for auto-disposal) */
 
 /* Currently running observer for tracking */
 let currentObserverId: ref<option<int>> = ref(None)
@@ -17,6 +18,7 @@ let currentObserverId: ref<option<int>> = ref(None)
 let pending: ref<IntSet.t> = ref(IntSet.empty)
 let batching = ref(false)
 let flushing = ref(false) /* Prevent nested flushes */
+let retracking = ref(false) /* Prevent auto-disposal during observer re-tracking */
 
 let ensureSignalBucket = (sid: int) => {
   switch IntMap.get(signalObservers.contents, sid) {
@@ -39,13 +41,42 @@ let addDep = (obsId: int, sid: int) => {
   }
 }
 
-let clearDeps = (obs: Observer.t) => {
+/* Auto-dispose a computed when it has no more subscribers */
+let rec autoDisposeComputed = (signalId: int): unit => {
+  /* Check if this signal has a backing computed observer */
+  switch IntMap.get(computedToObserver.contents, signalId) {
+  | Some(observerId) => {
+      /* Remove from tracking map */
+      computedToObserver := IntMap.remove(computedToObserver.contents, signalId)
+      /* Dispose the observer (this may trigger cascading auto-disposals) */
+      switch IntMap.get(observers.contents, observerId) {
+      | Some(obs) => {
+          clearDeps(obs)
+          observers := IntMap.remove(observers.contents, observerId)
+        }
+      | None => ()
+      }
+    }
+  | None => () /* Not a computed */
+  }
+}
+
+and clearDeps = (obs: Observer.t) => {
   /* remove obs from all signal buckets it was in */
   obs.deps->IntSet.forEach(sid => {
     switch IntMap.get(signalObservers.contents, sid) {
     | None => ()
-    | Some(sset) =>
-      signalObservers := IntMap.set(signalObservers.contents, sid, sset->IntSet.remove(obs.id))
+    | Some(sset) => {
+        let newSet = sset->IntSet.remove(obs.id)
+        signalObservers := IntMap.set(signalObservers.contents, sid, newSet)
+
+        /* AUTO-DISPOSAL: Check if this signal is a computed with no more subscribers
+           BUT skip auto-disposal during re-tracking phase to avoid disposing computeds
+           that are about to be re-subscribed */
+        if IntSet.isEmpty(newSet) && retracking.contents == false {
+          autoDisposeComputed(sid)
+        }
+      }
     }
   })
   obs.deps = IntSet.empty
@@ -127,6 +158,8 @@ let flush = () => {
       switch IntMap.get(observers.contents, id) {
       | None => ()
       | Some(o) => {
+          /* Set retracking flag to prevent auto-disposal during dependency updates */
+          retracking := true
           /* re-track */
           clearDeps(o)
           let prev = currentObserverId.contents
@@ -134,9 +167,11 @@ let flush = () => {
           /* Use try/catch to ensure tracking state is restored even on exceptions */
           try {
             o.run()
+            retracking := false
           } catch {
           | exn => {
               currentObserverId := prev
+              retracking := false
               raise(exn)
             }
           }

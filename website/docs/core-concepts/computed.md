@@ -50,31 +50,67 @@ Signal.set(count, 10)
 Console.log(Signal.get(doubled)) // Prints: 20
 ```
 
-## Disposing Computed Values
+## Automatic Disposal
 
-Computed values can be disposed to stop tracking and free resources using `Computed.dispose()`. This is important for preventing memory leaks:
+**Computed values automatically dispose when they lose all subscribers** - you don't need to manually call `Computed.dispose()` in most cases!
 
 ```rescript
 let count = Signal.make(0)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 
-Console.log(Signal.get(doubled)) // 0
+// Create an effect that subscribes to doubled
+let disposer = Effect.run(() => {
+  Console.log(Signal.get(doubled))  // doubled has 1 subscriber
+  None
+})
 
-Signal.set(count, 5)
-Console.log(Signal.get(doubled)) // 10
+Signal.set(count, 5)  // doubled recomputes and logs
 
-// Stop the computed when no longer needed
-Computed.dispose(doubled)
+// Dispose the effect
+disposer.dispose()
+// ↑ doubled now has 0 subscribers - automatically disposed! ✨
 
 Signal.set(count, 10)
-// The computed no longer updates
+// doubled doesn't recompute anymore (it was auto-disposed)
 ```
 
-**When to dispose:**
-- When a component is unmounted
-- When computed is no longer needed
-- When preventing memory leaks in long-running applications
-- When dynamically creating many computeds
+This works seamlessly with Components:
+
+```rescript
+let app = () => {
+  let count = Signal.make(0)
+  let doubled = Computed.make(() => Signal.get(count) * 2)
+
+  <div>
+    {Component.textSignal(() => Signal.get(doubled)->Int.toString)}
+  </div>
+}
+
+// When the component unmounts:
+// 1. The textSignal effect is disposed
+// 2. doubled loses its last subscriber
+// 3. doubled is automatically disposed ✨
+```
+
+### Manual Disposal (Optional)
+
+You can still manually dispose computeds when needed:
+
+```rescript
+let count = Signal.make(0)
+let doubled = Computed.make(() => Signal.get(count) * 2)
+
+// Use it...
+Console.log(Signal.get(doubled))
+
+// Manually dispose when done
+Computed.dispose(doubled)
+```
+
+**Manual disposal is useful when:**
+- You want explicit control over lifecycle
+- The computed has no subscribers but you want to stop it anyway
+- You're managing complex dependency graphs manually
 
 ## Chaining Computed Values
 
@@ -227,9 +263,32 @@ Console.log(Signal.get(temperature)) // 68
 2. **Use for derived state**: Any value that can be calculated from other signals should be a computed
 3. **Avoid expensive operations**: Computed values recalculate eagerly, so keep them fast
 4. **Don't nest effects**: Computed values should not call `Effect.run()` internally
-5. **Dispose when done**: Call `Computed.dispose(signal)` when computeds are no longer needed to prevent memory leaks
+5. **Trust auto-disposal**: In most cases, computeds will automatically clean up when their subscribers are disposed. Manual disposal is rarely needed
 
 ## Important Notes
+
+### Cascading Auto-Disposal
+
+Auto-disposal can cascade through chains of computeds:
+
+```rescript
+let count = Signal.make(0)
+let doubled = Computed.make(() => Signal.get(count) * 2)
+let quadrupled = Computed.make(() => Signal.get(doubled) * 2)
+
+let disposer = Effect.run(() => {
+  Console.log(Signal.get(quadrupled))
+  None
+})
+
+// Dependency chain: count → doubled → quadrupled → effect
+
+disposer.dispose()
+// Effect disposed → quadrupled has 0 subscribers → auto-dispose quadrupled
+// → doubled has 0 subscribers → auto-dispose doubled ✨
+```
+
+This ensures the entire chain is cleaned up automatically when the leaf subscriber is removed!
 
 ### Push-based, Not Lazy
 
