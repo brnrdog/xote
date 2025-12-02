@@ -1,3 +1,4 @@
+open Signals
 module Component = Xote__Component
 
 /* ReScript JSX transform type aliases */
@@ -57,7 +58,7 @@ module Elements = {
   external fromString: string => attributeValue = "%identity"
 
   /* Helper to convert a signal to an attributeValue */
-  let signal = (s: Xote__Core.t<string>): attributeValue => Any(s)
+  let signal = (s: Signals.Signal.t<string>): attributeValue => Any(s)
 
   /* Helper to convert a computed function to an attributeValue */
   let computed = (f: unit => string): attributeValue => Any(f)
@@ -106,7 +107,7 @@ module Elements = {
       Component.computedAttr(key, f)
     } else if typeof(value) == #object && hasId(value)->Option.isSome {
       // It's a signal (has an id property)
-      let sig: Xote__Core.t<string> = Obj.magic(value)
+      let sig: Signal.t<string> = Obj.magic(value)
       Component.signalAttr(key, sig)
     } else {
       // It's a static string

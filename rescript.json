@@ -17,7 +17,8 @@
   },
   "suffix": ".res.mjs",
   "dependencies": [
-    "@rescript/core"
+    "@rescript/core",
+    "rescript-signals"
   ],
   "compiler-flags": [
     "-open RescriptCore"

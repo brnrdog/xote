@@ -1,10 +1,6 @@
-// Router with signals and components
-
-module Signal = Xote__Signal
-module Computed = Xote__Computed
+open Signals
 module Component = Xote__Component
 module Route = Xote__Route
-module Core = Xote__Core
 
 // Browser location type
 type location = {
@@ -14,7 +10,7 @@ type location = {
 }
 
 // Global location signal - the core router state
-let location: Core.t<location> = Signal.make({
+let location: Signal.t<location> = Signal.make({
   pathname: "/",
   search: "",
   hash: "",
@@ -59,7 +55,7 @@ let init = (): unit => {
 }
 
 // Imperative navigation - push new history entry
-let push = (pathname: string, ~search: string = "", ~hash: string = "", ()): unit => {
+let push = (pathname: string, ~search: string="", ~hash: string="", ()): unit => {
   let newLocation = {pathname, search, hash}
   let url = pathname ++ search ++ hash
   let state: historyState = %raw("{}")
@@ -68,7 +64,7 @@ let push = (pathname: string, ~search: string = "", ~hash: string = "", ()): uni
 }
 
 // Imperative navigation - replace current history entry
-let replace = (pathname: string, ~search: string = "", ~hash: string = "", ()): unit => {
+let replace = (pathname: string, ~search: string="", ~hash: string="", ()): unit => {
   let newLocation = {pathname, search, hash}
   let url = pathname ++ search ++ hash
   let state: historyState = %raw("{}")
@@ -116,8 +112,8 @@ let routes = (configs: array<routeConfig>): Component.node => {
 // Link component - handles navigation without page reload
 let link = (
   ~to: string,
-  ~attrs: array<(string, Component.attrValue)> = [],
-  ~children: array<Component.node> = [],
+  ~attrs: array<(string, Component.attrValue)>=[],
+  ~children: array<Component.node>=[],
   (),
 ): Component.node => {
   let handleClick = (_evt: Dom.event) => {

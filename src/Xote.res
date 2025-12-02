@@ -1,21 +1,17 @@
-module Component = {
-  include Xote__Component
+module Signal = {
+  include Signals.Signal
 }
 
 module Computed = {
-  include Xote__Computed
-}
-
-module Core = {
-  include Xote__Core
+  include Signals.Computed
 }
 
 module Effect = {
-  include Xote__Effect
+  include Signals.Effect
 }
 
-module JSX = {
-  include Xote__JSX
+module Component = {
+  include Xote__Component
 }
 
 module Route = {
@@ -24,8 +20,4 @@ module Route = {
 
 module Router = {
   include Xote__Router
-}
-
-module Signal = {
-  include Xote__Signal
 }
