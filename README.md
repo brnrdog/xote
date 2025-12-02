@@ -1,19 +1,18 @@
-# xote 
+# xote
 ![NPM Version](https://img.shields.io/npm/v/xote)
 ![npm bundle size](https://img.shields.io/bundlephobia/min/xote)
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/xote)
 
-Xote is a lightweight, zero-dependency library for ReScript with fine-grained reactivity based on the [TC39 Signals proposal](https://github.com/tc39/proposal-signals). With Xote, you can build reactive web applications with automatic dependency tracking and efficient updates.
+Xote is a lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system. Built on [rescript-signals](https://github.com/pedrobslisboa/rescript-signals), it provides declarative components, JSX support, and signal-based routing for building reactive web applications.
 
 ## Features
 
-- Zero dependencies: pure ReScript implementation
-- Lightweight and efficient runtime (~12kb minified)
-- Declarative components for building reactive UIs with JSX support
-- Reactive primitives: signals, computed values, and effects
-- Automatic dependency tracking: no manual subscription management
-- Fine-grained updates: direct DOM updates without a virtual DOM
-- Signal-based router: SPA navigation with pattern matching and dynamic parameters
+- **Reactive Components**: Declarative UI building with JSX support and direct DOM updates
+- **Signal-based Reactivity**: Powered by [rescript-signals](https://github.com/pedrobslisboa/rescript-signals) for automatic dependency tracking
+- **Fine-grained Updates**: Direct DOM manipulation without virtual DOM diffing
+- **Signal-based Router**: SPA navigation with pattern matching and dynamic parameters
+- **Lightweight**: Minimal runtime footprint (~18kb minified)
+- **Type-safe**: Full ReScript type safety throughout
 
 ## Getting Started
 
@@ -35,9 +34,17 @@ Then, add it to your ReScript project’s dependencies in `rescript.json`:
 }
 ```
 
-## Philosophy
+## What Makes Xote Unique?
 
-Xote focuses on clarity, control, and performance. It brings reactive programming to ReScript with minimal abstractions and no runtime dependencies. The goal is to offer precise, fine-grained updates and predictable behavior without a virtual DOM.
+While Xote uses **rescript-signals** for reactive primitives (Signal, Computed, Effect), it adds:
+
+- **Component System**: A minimal but powerful component model with JSX support
+- **Direct DOM Updates**: Fine-grained reactivity that updates DOM elements directly, no virtual DOM
+- **Signal-based Router**: Client-side routing with pattern matching and reactive location state
+- **Reactive Attributes**: Support for static, signal-based, and computed attributes on elements
+- **Automatic Cleanup**: Effect disposal and memory management built into the component lifecycle
+
+Xote focuses on clarity, control, and performance. The goal is to offer precise, fine-grained updates and predictable behavior with minimal abstractions.
 
 ### Quick Example
 
@@ -73,11 +80,18 @@ Component.mountById(<App />, "app")
 
 ## Core Concepts
 
-- **Signal**: Reactive state container
-- **Computed**: Derived reactive value that updates automatically
-- **Effect**: Side-effect functions that re-runs when dependencies change. Dependencies are automatically tracked, unlike React.
-- **Component**: Declarative UI builder using ReScript functions
-- **Router**: Signal-based navigation for single-page applications
+### Reactive Primitives (from rescript-signals)
+
+- **Signal**: Reactive state container - `Signal.make(value)`
+- **Computed**: Derived reactive value that updates automatically - `Computed.make(() => ...)`
+- **Effect**: Side-effect functions that re-run when dependencies change - `Effect.run(() => ...)`
+
+All reactive primitives feature automatic dependency tracking - no manual subscriptions needed.
+
+### Xote Features
+
+- **Component**: Declarative UI builder with JSX syntax and function-based APIs
+- **Router**: Signal-based navigation for SPAs with pattern matching and dynamic routes
 
 ### Component Features
 

@@ -5,17 +5,17 @@ slug: /
 
 # Getting Started
 
-Welcome to **Xote** (pronounced [ˈʃɔtʃi]) - a lightweight, zero-dependency UI library for ReScript with fine-grained reactivity based on the [TC39 Signals proposal](https://github.com/tc39/proposal-signals).
+Welcome to **Xote** (pronounced [ˈʃɔtʃi]) - a lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system.
 
 ## What is Xote?
 
-Xote brings reactive programming to ReScript with minimal abstractions and no runtime dependencies. It focuses on:
+Xote provides a declarative component system and signal-based router built on top of [rescript-signals](https://github.com/pedrobslisboa/rescript-signals). It focuses on:
 
-- **Zero dependencies**: Pure ReScript implementation
-- **Lightweight**: Efficient runtime with minimal overhead
 - **Fine-grained reactivity**: Direct DOM updates without a virtual DOM
-- **Automatic dependency tracking**: No manual subscription management
+- **Automatic dependency tracking**: No manual subscription management (powered by rescript-signals)
+- **Lightweight**: Minimal runtime footprint
 - **Type-safe**: Leverages ReScript's powerful type system
+- **JSX Support**: Declarative component syntax with full ReScript type safety
 
 ## Quick Example
 
@@ -79,12 +79,18 @@ When you click the button, the counter updates reactively - only the text node d
 
 ## Core Concepts
 
-Xote is built on four fundamental primitives:
+Xote re-exports reactive primitives from **rescript-signals** and adds UI features:
+
+### Reactive Primitives (from rescript-signals)
 
 - **[Signals](/docs/core-concepts/signals)**: Reactive state containers that notify dependents when they change
 - **[Computed Values](/docs/core-concepts/computed)**: Derived values that automatically update when their dependencies change
 - **[Effects](/docs/core-concepts/effects)**: Side effects that re-run when dependencies change
-- **[Components](/docs/components/overview)**: Declarative UI builders using ReScript functions
+
+### Xote Features
+
+- **[Components](/docs/components/overview)**: Declarative UI builder with JSX support and fine-grained DOM updates
+- **Router**: Signal-based SPA navigation with pattern matching
 
 ## Installation
 
@@ -115,4 +121,6 @@ Then add it to your `rescript.json`:
 
 ## Philosophy
 
-Xote focuses on **clarity, control, and performance**. The goal is to offer precise, fine-grained updates and predictable behavior without a virtual DOM. By aligning with the TC39 Signals proposal, Xote ensures your code will feel familiar as JavaScript evolves to include native reactivity primitives.
+Xote focuses on **clarity, control, and performance**. The goal is to offer precise, fine-grained updates and predictable behavior without a virtual DOM.
+
+By building on [rescript-signals](https://github.com/pedrobslisboa/rescript-signals) (which implements the [TC39 Signals proposal](https://github.com/tc39/proposal-signals)), Xote ensures your reactive code aligns with emerging JavaScript standards while providing ReScript-specific UI features.

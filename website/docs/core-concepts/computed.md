@@ -6,6 +6,10 @@ sidebar_position: 2
 
 Computed values are **derived signals** that automatically recalculate when their dependencies change. They're perfect for deriving state from other reactive sources.
 
+:::info
+Xote re-exports `Computed` from [rescript-signals](https://github.com/pedrobslisboa/rescript-signals). The API and behavior are provided by that library.
+:::
+
 ## Creating Computed Values
 
 Use `Computed.make()` with a function that computes the derived value. It returns the computed signal:
