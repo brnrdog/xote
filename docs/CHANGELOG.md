@@ -1,3 +1,16 @@
+# [4.0.0](https://github.com/brnrdog/xote/compare/v3.0.0...v4.0.0) (2025-12-02)
+
+
+### Code Refactoring
+
+* move signals to rescript-signals ([848b3b8](https://github.com/brnrdog/xote/commit/848b3b825e620c72cfb309ca7a170c7d16833043))
+
+
+### BREAKING CHANGES
+
+* - Xote.Core.t -> Xote.Signal.t
+- Core.batch removed from API
+
 # [3.0.0](https://github.com/brnrdog/xote/compare/v2.0.0...v3.0.0) (2025-11-28)
 
 
