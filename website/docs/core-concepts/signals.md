@@ -4,7 +4,11 @@ sidebar_position: 1
 
 # Signals
 
-Signals are the foundation of Xote's reactive system. A signal is a **reactive state container** that automatically notifies its dependents when its value changes.
+Signals are the foundation of reactive state in Xote. A signal is a **reactive state container** that automatically notifies its dependents when its value changes.
+
+:::info
+Xote re-exports `Signal`, `Computed`, and `Effect` from [rescript-signals](https://github.com/pedrobslisboa/rescript-signals). The API and behavior are provided by that library.
+:::
 
 ## Creating Signals
 
@@ -71,9 +75,9 @@ Signal.update(count, n => n * 2) // count is now 2
 
 ## Important Behaviors
 
-### Always Notifies
+### Structural Equality Check
 
-Signals **always notify** their dependents when `set` is called, even if the new value is the same as the old value. There's no built-in equality check:
+Signals use **structural equality** (`==`) to check if a value has changed. If the new value equals the old value, dependents are **not notified**:
 
 ```rescript
 let count = Signal.make(5)
@@ -82,8 +86,11 @@ Effect.run(() => {
   Console.log(Signal.get(count))
 })
 
-Signal.set(count, 5) // Effect runs even though value didn't change
+Signal.set(count, 5) // Effect does NOT run - value didn't change
+Signal.set(count, 6) // Effect runs - value changed
 ```
+
+This prevents unnecessary updates and helps avoid accidental infinite loops in reactive code.
 
 ### Automatic Dependency Tracking
 

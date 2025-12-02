@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Xote (pronounced [ˈʃɔtʃi]) is a lightweight, zero-dependency UI library for ReScript with fine-grained reactivity based on the TC39 Signals proposal. It provides reactive primitives (signals, computed values, effects) and a minimal component system.
+Xote (pronounced [ˈʃɔtʃi]) is a lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system. It uses [rescript-signals](https://github.com/pedrobslisboa/rescript-signals) for reactive primitives and provides declarative components with JSX support.
 
 ## Development Commands
 
@@ -28,33 +28,31 @@ The build process generates:
 
 ### Module Structure
 
-The codebase follows a flat module hierarchy with the `Xote__` prefix for internal modules:
+The codebase uses the `Xote__` prefix for internal modules:
 
-- **`Xote__Core`**: Low-level runtime managing dependency tracking and observer scheduling. Contains global state (`observers`, `signalObservers`, `currentObserverId`, `pending`, `batching`) and implements the reactivity graph. This is the scheduler and dependency tracking engine. **Uses iterative scheduling** (not recursive) to prevent stack overflow from cascading updates. **Exception handling** ensures tracking state is always restored even when observers throw.
+**Reactive Primitives (from rescript-signals):**
+- **`Signals.Signal`**: Reactive state cells with `make`, `get`, `peek`, `set`, `update`. **Includes structural equality check** - only notifies dependents if the value has changed, preventing unnecessary updates and accidental infinite loops.
+- **`Signals.Computed`**: Derived signals that automatically recompute when dependencies change. **Push-based** (eager) - they recompute immediately when upstream dependencies notify. **Auto-disposal**: Automatically dispose when they lose all subscribers.
+- **`Signals.Effect`**: Side effects that run when dependencies change. **Can return cleanup callbacks** - signature is `unit => option<unit => unit>`. Returns a `disposer` with a `dispose()` method.
 
-- **`Xote__Signal`**: User-facing reactive state cells. Implements `make`, `get`, `peek`, `set`, `update`. The `get` function automatically captures dependencies when called within a tracking context. **Signal.set includes structural equality check** - only notifies dependents if the value has changed, preventing unnecessary updates and accidental infinite loops.
-
-- **`Xote__Computed`**: Derived signals that automatically recompute when dependencies change. Creates an internal observer that writes to a backing signal. **Important**: Computeds are **push-based** (eager) - they recompute immediately when upstream dependencies notify, not lazily on read. **Returns a signal** `Core.t<'a>` directly. **Auto-disposal**: Computed values automatically dispose when they lose all subscribers (reference counting). Manual disposal via `Computed.dispose(signal)` is available but rarely needed.
-
-- **`Xote__Effect`**: Side effects that run when dependencies change. **Effect functions can return cleanup callbacks** - signature is `unit => option<unit => unit>`. Return `None` for no cleanup, or `Some(cleanupFn)` to register cleanup that runs before re-execution and on disposal. Returns a `disposer` with a `dispose()` method to stop tracking.
-
-- **`Xote__Observer`**: Observer type definitions and structures used by the scheduler. Defines observer kinds: `#Effect` and `#Computed(int)`.
-
-- **`Xote__Id`**: Monotonic integer ID generator for signals and observers.
-
+**Xote Modules:**
 - **`Xote__Component`**: Minimal component/renderer with virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`). Provides element constructors (`div`, `button`, `input`, etc.) and reactive nodes that update DOM directly via effects.
-
 - **`Xote__JSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags.
-
-- **`Xote.res`**: Public API surface that re-exports the above modules as `Signal`, `Computed`, `Effect`, `Core`, `Component`, and `JSX`.
+- **`Xote__Router`**: Signal-based client-side router with pattern matching and dynamic routes.
+- **`Xote__Route`**: Route matching utilities.
+- **`Xote.res`**: Public API surface that re-exports `Signal`, `Computed`, `Effect` from rescript-signals, plus `Component`, `Router`, `Route`, and `JSX` from Xote modules.
 
 ### Reactivity Model
 
-**Dependency Tracking**: When an observer (effect or computed) runs, `Core.currentObserverId` is set. Any `Signal.get` calls during execution register the signal as a dependency via `Core.addDep`. Dependencies are re-tracked on every observer run.
+All reactive behavior is provided by **rescript-signals**:
 
-**Scheduling**: When `Signal.set` is called, `Core.notify` is invoked, which schedules all dependent observers. By default, scheduling is **synchronous** - observers run immediately unless wrapped in `Core.batch()`. Batching defers observer execution until the batch completes.
+**Dependency Tracking**: When an observer (effect or computed) runs, any `Signal.get` calls during execution register the signal as a dependency. Dependencies are re-tracked on every observer run.
 
-**Push-based Computeds**: Unlike pull-based systems, computeds eagerly recompute and push results to their backing signal when dependencies change. This means computed values are always current but may recompute even if never read.
+**Scheduling**: When `Signal.set` is called, all dependent observers are scheduled and run **synchronously**. The scheduler uses topological ordering to ensure correct execution order.
+
+**Push-based Computeds**: Computeds eagerly recompute when dependencies change and push results to their backing signal. This means computed values are always current but may recompute even if never read.
+
+**Structural Equality**: Signals use structural equality (`==`) to check if values have changed. Only when values differ are dependents notified.
 
 ### ReScript Configuration
 
@@ -62,7 +60,7 @@ The codebase follows a flat module hierarchy with the `Xote__` prefix for intern
 - **Output**: In-source compilation (`.res.mjs` files alongside `.res` files)
 - **Public module**: Only `Xote` is exported (controlled via `rescript.json` `sources.public`)
 - **Compiler flags**: `-open RescriptCore` (RescriptCore is auto-opened in all files)
-- **Dependencies**: `@rescript/core` only
+- **Dependencies**: `@rescript/core`, `rescript-signals`
 - **JSX**: ReScript JSX v4 configured to use `Xote__JSX` module (generic JSX transform)
 
 ### Component System
@@ -115,13 +113,13 @@ let app = () => {
 
 3. **Effect cleanup callbacks**: Effects can return `Some(cleanupFn)` to register cleanup that runs before re-execution and on disposal. Return `None` when no cleanup is needed. Signature is `unit => option<unit => unit>`.
 
-4. **Computed disposal**: `Computed.make` returns `(Core.t<'a>, unit => unit)`. Destructure the tuple to access the signal and dispose function: `let (signal, dispose) = Computed.make(...)`. Call `dispose()` to stop tracking when no longer needed.
+4. **Computed disposal**: `Computed.make` returns a `Signal.t<'a>` directly. For manual disposal, use `Computed.dispose(signal)` to stop tracking when no longer needed (auto-disposal happens automatically when subscribers drop to zero).
 
-5. **Untracked reads**: Use `Signal.peek(signal)` to read without creating a dependency, or wrap code in `Core.untrack(() => ...)`.
+5. **Untracked reads**: Use `Signal.peek(signal)` to read without creating a dependency.
 
-6. **Batching updates**: Wrap multiple signal updates in `Core.batch(() => ...)` to defer observer execution until the batch completes.
+6. **Module naming**: Internal modules use `Xote__ModuleName` convention. The public API is `Xote.ModuleName`.
 
-7. **Module naming**: Internal modules use `Xote__ModuleName` convention. The public API is `Xote.ModuleName`.
+7. **Batching not available**: The underlying rescript-signals library does not currently expose batching functionality. Updates run synchronously.
 
 8. **Observer re-tracking**: Every time an observer runs, its dependencies are cleared and re-tracked. This ensures the dependency graph stays accurate even when control flow changes.
 
@@ -304,25 +302,25 @@ let app = () => {
 
 - **Technical deep-dive**: See `docs/TECHNICAL_OVERVIEW.md` for detailed architecture
 - **Example apps**:
-  - `demos/TodoApp.res` - Todo list using function-based API
-  - `demos/CounterJSX.res` - Counter demo with JSX syntax
-  - `demos/TodoJSX.res` - Todo list with JSX syntax and custom components
+  - `demos/TodoApp.res` - Todo list with JSX syntax
+  - `demos/ColorMixerApp.res` - Color mixer with reactive sliders
+  - `demos/BookstoreApp.res` - Complex app with routing and state management
+- **rescript-signals**: https://github.com/pedrobslisboa/rescript-signals - The reactive primitives library
 - **TC39 Signals proposal**: https://github.com/tc39/proposal-signals
 - **ReScript JSX**: https://rescript-lang.org/docs/manual/latest/jsx
 
 ## Known Limitations
 
-1. Computeds are push-based (eager), not pull-based (lazy) like the TC39 proposal
-2. No microtask-based scheduling (synchronous by default)
-3. Fragment/list updates replace all children (no diffing algorithm)
-4. Structural equality check only (no custom equality functions)
+1. **No batching**: The underlying rescript-signals library doesn't expose batching functionality
+2. **Fragment/list updates**: Replace all children without diffing (no reconciliation algorithm)
+3. **Push-based computeds**: Computeds are eager (not lazy like TC39 proposal)
+4. **Structural equality only**: No custom equality functions for signals
 
-## Recent Improvements (v1.3+)
+## Architecture Changes (v3.0+)
 
-The following limitations have been addressed:
+Xote now uses **rescript-signals** for all reactive primitives:
 
-1. ~~No effect cleanup hooks~~ - **FIXED**: Effects now support cleanup callbacks via `option<unit => unit>` return type
-2. ~~No equality checks in `Signal.set`~~ - **FIXED**: Signal.set now includes structural equality check to prevent unnecessary notifications
-3. ~~Computeds cannot be disposed~~ - **FIXED**: Computed.make now returns `(signal, dispose)` tuple for convenient destructuring
-4. ~~Recursive scheduler can stack overflow~~ - **FIXED**: Scheduler is now iterative (uses `while` loop)
-5. ~~No exception handling~~ - **FIXED**: All observer execution wrapped in try/catch with proper state restoration
+1. **Reactive primitives externalized**: `Signal`, `Computed`, and `Effect` are re-exported from rescript-signals
+2. **Xote focuses on UI**: Component system, JSX support, and Router are Xote-specific features
+3. **No internal scheduler**: All reactive behavior delegated to rescript-signals
+4. **Simplified codebase**: Removed internal signal implementation (~1500 lines of code)

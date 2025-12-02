@@ -6,6 +6,10 @@ sidebar_position: 3
 
 Effects are functions that **run side effects** in response to reactive state changes. They automatically re-execute when any signal they depend on changes.
 
+:::info
+Xote re-exports `Effect` from [rescript-signals](https://github.com/pedrobslisboa/rescript-signals). The API and behavior are provided by that library.
+:::
+
 ## Creating Effects
 
 Use `Effect.run()` to create an effect. The effect function can optionally return a cleanup function:
