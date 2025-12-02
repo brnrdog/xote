@@ -112,7 +112,7 @@ module TodoItem = {
 }
 
 module TodoList = {
-  type props = {todos: Xote.Core.t<array<todo>>}
+  type props = {todos: Xote.Signal.t<array<todo>>}
 
   let make = (props: props) => {
     <ul class="todo-list space-y-2">

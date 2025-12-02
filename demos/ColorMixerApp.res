@@ -1,7 +1,6 @@
 module Signal = Xote.Signal
 module Computed = Xote.Computed
 module Component = Xote.Component
-module Core = Xote.Core
 
 // Color channel signals (0-255)
 let red = Signal.make(100)
@@ -135,17 +134,15 @@ let saveColor = (_evt: Dom.event) => {
 }
 
 let randomColor = (_evt: Dom.event) => {
-  Core.batch(() => {
-    Signal.set(red, Int.fromFloat(Math.random() *. 255.0))
-    Signal.set(green, Int.fromFloat(Math.random() *. 255.0))
-    Signal.set(blue, Int.fromFloat(Math.random() *. 255.0))
-  })
+  Signal.set(red, Int.fromFloat(Math.random() *. 255.0))
+  Signal.set(green, Int.fromFloat(Math.random() *. 255.0))
+  Signal.set(blue, Int.fromFloat(Math.random() *. 255.0))
 }
 
 module ColorSlider = {
   type props = {
     label: string,
-    value: Core.t<int>,
+    value: Signal.t<int>,
     color: string,
     onChange: Dom.event => unit,
   }
@@ -172,10 +169,14 @@ module ColorSlider = {
 
 module ColorPreview = {
   let component = () => {
-    <div class="rounded-2xl border-4 border-stone-200 dark:border-stone-700 overflow-hidden shadow-xl">
+    <div
+      class="rounded-2xl border-4 border-stone-200 dark:border-stone-700 overflow-hidden shadow-xl"
+    >
       <div
         class="h-48 md:h-64 relative transition-colors duration-200"
-        style={() => `background-color: ${Signal.get(rgbColor)}; transition: background-color 0.2s ease`}>
+        style={() =>
+          `background-color: ${Signal.get(rgbColor)}; transition: background-color 0.2s ease`}
+      >
         <div class="absolute inset-0 flex items-center justify-center bg-black/10">
           <div class="bg-white dark:bg-stone-800 px-6 py-3 rounded-xl shadow-lg backdrop-blur">
             <p class="font-mono font-bold text-xl text-stone-900 dark:text-white">
@@ -191,7 +192,7 @@ module ColorPreview = {
 module ColorInfo = {
   type colorValueRowProps = {
     label: string,
-    value: Core.t<string>,
+    value: Signal.t<string>,
   }
 
   let colorValueRow = (props: colorValueRowProps) => {
@@ -205,7 +206,8 @@ module ColorInfo = {
         </span>
         <button
           class="text-xs px-2 py-1 bg-stone-200 dark:bg-stone-600 hover:bg-stone-300 dark:hover:bg-stone-500 rounded transition-colors"
-          onClick={_evt => copyToClipboard(Signal.get(props.value))}>
+          onClick={_evt => copyToClipboard(Signal.get(props.value))}
+        >
           {Component.text("Copy")}
         </button>
       </div>
@@ -227,7 +229,7 @@ module ColorInfo = {
 module ColorPalette = {
   type paletteItemProps = {
     label: string,
-    color: Core.t<string>,
+    color: Signal.t<string>,
   }
 
   let paletteItem = (props: paletteItemProps) => {
@@ -267,7 +269,8 @@ module SavedColors = {
         </h3>
         <button
           class="text-xs px-3 py-1.5 bg-stone-900 dark:bg-stone-700 hover:bg-stone-700 dark:hover:bg-stone-600 text-white rounded-lg transition-colors"
-          onClick={saveColor}>
+          onClick={saveColor}
+        >
           {Component.text("+ Save Current")}
         </button>
       </div>
@@ -283,16 +286,13 @@ module SavedColors = {
           } else {
             [
               <div class="grid grid-cols-4 gap-2">
-                {Component.list(
-                  savedColors,
-                  color => {
-                    <div
-                      class="h-12 rounded-lg border-2 border-stone-200 dark:border-stone-700 cursor-pointer hover:scale-105 transition-transform"
-                      style={`background-color: ${color}`}
-                      onClick={_evt => copyToClipboard(color)}
-                    />
-                  },
-                )}
+                {Component.list(savedColors, color => {
+                  <div
+                    class="h-12 rounded-lg border-2 border-stone-200 dark:border-stone-700 cursor-pointer hover:scale-105 transition-transform"
+                    style={`background-color: ${color}`}
+                    onClick={_evt => copyToClipboard(color)}
+                  />
+                })}
               </div>,
             ]
           }
@@ -320,18 +320,26 @@ module ColorMixerApp = {
       {ColorPreview.component()}
 
       // RGB Sliders
-      <div class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6 space-y-4">
+      <div
+        class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6 space-y-4"
+      >
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-bold text-stone-900 dark:text-white">
             {Component.text("RGB Mixer")}
           </h2>
           <button
             class="text-sm px-4 py-2 bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 rounded-lg transition-colors"
-            onClick={randomColor}>
+            onClick={randomColor}
+          >
             {Component.text("🎲 Random")}
           </button>
         </div>
-        {ColorSlider.component({label: "Red", value: red, color: "bg-red-500", onChange: updateRed})}
+        {ColorSlider.component({
+          label: "Red",
+          value: red,
+          color: "bg-red-500",
+          onChange: updateRed,
+        })}
         {ColorSlider.component({
           label: "Green",
           value: green,
@@ -348,16 +356,22 @@ module ColorMixerApp = {
 
       // Two column layout for info and palette
       <div class="grid md:grid-cols-2 gap-6">
-        <div class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6">
+        <div
+          class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6"
+        >
           {ColorInfo.component()}
         </div>
-        <div class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6">
+        <div
+          class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6"
+        >
           {ColorPalette.component()}
         </div>
       </div>
 
       // Saved colors
-      <div class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6">
+      <div
+        class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6"
+      >
         {SavedColors.component()}
       </div>
     </div>
