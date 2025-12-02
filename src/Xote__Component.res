@@ -1,17 +1,14 @@
-module Signal = Xote__Signal
-module Effect = Xote__Effect
-module Core = Xote__Core
-module Computed = Xote__Computed
+open Signals
 
 /* Source for an attribute value - supports static strings, signals, or computed values */
 type attrValue =
   | Static(string)
-  | SignalValue(Core.t<string>)
+  | SignalValue(Signal.t<string>)
   | Compute(unit => string)
 
 /* Helpers to build attribute entries */
 let attr = (key: string, value: string): (string, attrValue) => (key, Static(value))
-let signalAttr = (key: string, signal: Core.t<string>): (string, attrValue) => (
+let signalAttr = (key: string, signal: Signal.t<string>): (string, attrValue) => (
   key,
   SignalValue(signal),
 )
@@ -29,9 +26,9 @@ type rec node =
       children: array<node>,
     })
   | Text(string)
-  | SignalText(Core.t<string>)
+  | SignalText(Signal.t<string>)
   | Fragment(array<node>)
-  | SignalFragment(Core.t<array<node>>)
+  | SignalFragment(Signal.t<array<node>>)
 
 /* Create a text node */
 let text = (content: string): node => Text(content)
@@ -46,10 +43,10 @@ let textSignal = (compute: unit => string): node => {
 let fragment = (children: array<node>): node => Fragment(children)
 
 /* Create a reactive fragment from a signal */
-let signalFragment = (signal: Core.t<array<node>>): node => SignalFragment(signal)
+let signalFragment = (signal: Signal.t<array<node>>): node => SignalFragment(signal)
 
 /* Create a reactive list from a signal and render function */
-let list = (signal: Core.t<array<'a>>, renderItem: 'a => node): node => {
+let list = (signal: Signal.t<array<'a>>, renderItem: 'a => node): node => {
   let nodesSignal = Computed.make(() => {
     Signal.get(signal)->Array.map(renderItem)
   })
