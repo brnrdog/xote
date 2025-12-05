@@ -21,31 +21,29 @@ module NotFoundPage = {
   }
 }
 
-// Main app component
-let app = () => {
-  Router.routes([
-    {
-      pattern: "/",
-      render: _params => <HomePage />,
-    },
-    {
-      pattern: "/demos",
-      render: _params => <DemosPage />,
-    },
-    {
-      pattern: "/docs",
-      render: _params => <DocsPage currentPath="/docs" content={IntroDoc.content()} />,
-    },
-    {
-      pattern: "/docs/",
-      render: _params => <DocsPage currentPath="/docs" content={IntroDoc.content()} />,
-    },
-    {
-      pattern: "*",
-      render: _params => <NotFoundPage />,
-    },
-  ])
-}
+// Main app - use routes directly as the root node
+let root = Router.routes([
+  {
+    pattern: "/",
+    render: _params => <HomePage />,
+  },
+  {
+    pattern: "/demos",
+    render: _params => <DemosPage />,
+  },
+  {
+    pattern: "/docs",
+    render: _params => <DocsPage currentPath="/docs" content={IntroDoc.content()} />,
+  },
+  {
+    pattern: "/docs/",
+    render: _params => <DocsPage currentPath="/docs" content={IntroDoc.content()} />,
+  },
+  {
+    pattern: "*",
+    render: _params => <NotFoundPage />,
+  },
+])
 
 // Mount the app
-Component.mountById(app(), "app")
+Component.mountById(root, "app")
