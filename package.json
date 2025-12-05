@@ -77,6 +77,6 @@
     "vite": "^7.1.12"
   },
   "dependencies": {
-    "rescript-signals": "^1.0.1"
+    "rescript-signals": "^1.2.0"
   }
 }
