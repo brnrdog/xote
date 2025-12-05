@@ -55,68 +55,79 @@ let demos = [
 ]
 
 // Demo card component
-let demoCard = (demo: demo) => {
-  <div class="demo-card">
-    <div class="demo-card-header">
-      <h3> {Component.text(demo.title)} </h3>
+module DemoCard = {
+  type props = {demo: demo}
+
+  let make = (props: props) => {
+    let {demo} = props
+    <div class="demo-card">
+      <div class="demo-card-header">
+        <h3> {Component.text(demo.title)} </h3>
+      </div>
+      <div class="demo-card-body">
+        <p> {Component.text(demo.description)} </p>
+      </div>
+      <div class="demo-card-footer">
+        <a href={demo.path} class="button button-primary">
+          {Component.text("Try Demo")}
+        </a>
+        <a href={demo.source} target="_blank" class="button button-outline">
+          {Component.text("View Source")}
+        </a>
+      </div>
     </div>
-    <div class="demo-card-body">
-      <p> {Component.text(demo.description)} </p>
-    </div>
-    <div class="demo-card-footer">
-      <a href={demo.path} class="button button-primary">
-        {Component.text("Try Demo")}
-      </a>
-      <a href={demo.source} target="_blank" class="button button-outline">
-        {Component.text("View Source")}
-      </a>
-    </div>
-  </div>
+  }
 }
 
 // Info alert component
-let infoAlert = () => {
-  <div class="alert alert-info">
-    <h4> {Component.text("Running Demos Locally")} </h4>
-    <p> {Component.text("To run these demos on your machine:")} </p>
-    <ol>
-      <li>
-        {Component.text("Clone the repository: ")}
-        <code> {Component.text("git clone https://github.com/brnrdog/xote.git")} </code>
-      </li>
-      <li>
-        {Component.text("Install dependencies: ")}
-        <code> {Component.text("npm install")} </code>
-      </li>
-      <li>
-        {Component.text("Start ReScript compiler: ")}
-        <code> {Component.text("npm run res:dev")} </code>
-        {Component.text(" (in one terminal)")}
-      </li>
-      <li>
-        {Component.text("Start dev server: ")}
-        <code> {Component.text("npm run dev")} </code>
-        {Component.text(" (in another terminal)")}
-      </li>
-      <li>
-        {Component.text("Open ")}
-        <code> {Component.text("http://localhost:5173")} </code>
-        {Component.text(" in your browser")}
-      </li>
-    </ol>
-  </div>
+module InfoAlert = {
+  type props = {}
+
+  let make = (_props: props) => {
+    <div class="alert alert-info">
+      <h4> {Component.text("Running Demos Locally")} </h4>
+      <p> {Component.text("To run these demos on your machine:")} </p>
+      <ol>
+        <li>
+          {Component.text("Clone the repository: ")}
+          <code> {Component.text("git clone https://github.com/brnrdog/xote.git")} </code>
+        </li>
+        <li>
+          {Component.text("Install dependencies: ")}
+          <code> {Component.text("npm install")} </code>
+        </li>
+        <li>
+          {Component.text("Start ReScript compiler: ")}
+          <code> {Component.text("npm run res:dev")} </code>
+          {Component.text(" (in one terminal)")}
+        </li>
+        <li>
+          {Component.text("Start dev server: ")}
+          <code> {Component.text("npm run dev")} </code>
+          {Component.text(" (in another terminal)")}
+        </li>
+        <li>
+          {Component.text("Open ")}
+          <code> {Component.text("http://localhost:5173")} </code>
+          {Component.text(" in your browser")}
+        </li>
+      </ol>
+    </div>
+  }
 }
 
 // Main demos page component
-let make = () => {
-  Layout.make(~children={
+type props = {}
+
+let make = (_props: props) => {
+  <Layout children={
     <div class="container">
       <h1> {Component.text("Xote Demos")} </h1>
       <p class="hero-subtitle">
         {Component.text("Explore interactive examples showcasing Xote's capabilities")}
       </p>
-      {infoAlert()}
-      <div class="demos-grid"> {Component.fragment(demos->Array.map(demoCard))} </div>
+      <InfoAlert />
+      <div class="demos-grid"> {Component.fragment(demos->Array.map(d => <DemoCard demo={d} />))} </div>
       <div style="margin-top: 4rem; text-align: center;">
         <h2> {Component.text("Want to contribute?")} </h2>
         <p>
@@ -126,5 +137,5 @@ let make = () => {
         </p>
       </div>
     </div>
-  })
+  } />
 }

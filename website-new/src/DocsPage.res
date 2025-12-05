@@ -44,37 +44,48 @@ let docsNav = [
 ]
 
 // Sidebar component
-let sidebar = (~currentPath) => {
-  <aside class="docs-sidebar">
-    {Component.fragment(
-      docsNav->Array.map(category => {
-        <div style="margin-bottom: 1.5rem;">
-          <h4 style="margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase; color: var(--text-secondary);">
-            {Component.text(category.label)}
-          </h4>
-          <ul>
-            {Component.fragment(
-              category.items->Array.map(item => {
-                let isActive = currentPath == item.path
-                let className = isActive ? "active" : ""
-                <li>
-                  <a href={item.path} class={className}> {Component.text(item.title)} </a>
-                </li>
-              }),
-            )}
-          </ul>
-        </div>
-      }),
-    )}
-  </aside>
+module Sidebar = {
+  type props = {currentPath: string}
+
+  let make = (props: props) => {
+    let {currentPath} = props
+    <aside class="docs-sidebar">
+      {Component.fragment(
+        docsNav->Array.map(category => {
+          <div style="margin-bottom: 1.5rem;">
+            <h4 style="margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase; color: var(--text-secondary);">
+              {Component.text(category.label)}
+            </h4>
+            <ul>
+              {Component.fragment(
+                category.items->Array.map(item => {
+                  let isActive = currentPath == item.path
+                  let className = isActive ? "active" : ""
+                  <li>
+                    <a href={item.path} class={className}> {Component.text(item.title)} </a>
+                  </li>
+                }),
+              )}
+            </ul>
+          </div>
+        }),
+      )}
+    </aside>
+  }
 }
 
 // Main docs page component
-let make = (~currentPath, ~content) => {
-  Layout.make(~children={
+type props = {
+  currentPath: string,
+  content: Component.node,
+}
+
+let make = (props: props) => {
+  let {currentPath, content} = props
+  <Layout children={
     <div class="docs-container">
-      {sidebar(~currentPath)}
+      <Sidebar currentPath={currentPath} />
       <article class="docs-content"> {content} </article>
     </div>
-  })
+  } />
 }

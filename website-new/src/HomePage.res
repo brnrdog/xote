@@ -26,48 +26,66 @@ let features = [
 ]
 
 // Feature card component
-let featureCard = (feature: feature) => {
-  <div class="feature-card">
-    <div class="feature-icon"> {Component.text(feature.icon)} </div>
-    <h3> {Component.text(feature.title)} </h3>
-    <p> {Component.text(feature.description)} </p>
-  </div>
+module FeatureCard = {
+  type props = {feature: feature}
+
+  let make = (props: props) => {
+    let {feature} = props
+    <div class="feature-card">
+      <div class="feature-icon"> {Component.text(feature.icon)} </div>
+      <h3> {Component.text(feature.title)} </h3>
+      <p> {Component.text(feature.description)} </p>
+    </div>
+  }
 }
 
 // Hero section
-let hero = () => {
-  <section class="hero">
-    <div class="hero-container">
-      <h1> {Component.text("Xote")} </h1>
-      <p class="hero-subtitle">
-        {Component.text(
-          "Lightweight, zero-dependency UI library for ReScript with fine-grained reactivity",
-        )}
-      </p>
-      <div class="hero-buttons">
-        <a href="/docs" class="button button-primary">
-          {Component.text("Get Started")}
-        </a>
-        <a href="/demos" class="button button-outline">
-          {Component.text("View Demos")}
-        </a>
+module Hero = {
+  type props = {}
+
+  let make = (_props: props) => {
+    <section class="hero">
+      <div class="hero-container">
+        <h1> {Component.text("Xote")} </h1>
+        <p class="hero-subtitle">
+          {Component.text(
+            "Lightweight, zero-dependency UI library for ReScript with fine-grained reactivity",
+          )}
+        </p>
+        <div class="hero-buttons">
+          <a href="/docs" class="button button-primary">
+            {Component.text("Get Started")}
+          </a>
+          <a href="/demos" class="button button-outline">
+            {Component.text("View Demos")}
+          </a>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  }
 }
 
 // Features section
-let featuresSection = () => {
-  <section class="features">
-    <div class="features-grid">
-      {Component.fragment(features->Array.map(f => featureCard(f)))}
-    </div>
-  </section>
+module Features = {
+  type props = {}
+
+  let make = (_props: props) => {
+    <section class="features">
+      <div class="features-grid">
+        {Component.fragment(features->Array.map(f => <FeatureCard feature={f} />))}
+      </div>
+    </section>
+  }
 }
 
 // Main homepage component
-let make = () => {
-  Layout.make(~children={
-    Component.fragment([hero(), featuresSection()])
-  })
+type props = {}
+
+let make = (_props: props) => {
+  <Layout children={
+    Component.fragment([
+      <Hero />,
+      <Features />
+    ])
+  } />
 }
