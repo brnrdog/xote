@@ -1,0 +1,27 @@
+{
+  "name": "xote-website",
+  "version": "1.0.0",
+  "sources": [
+    {
+      "dir": "src",
+      "subdirs": true
+    },
+    {
+      "dir": "../src",
+      "subdirs": true
+    }
+  ],
+  "package-specs": [
+    {
+      "module": "esmodule",
+      "in-source": true
+    }
+  ],
+  "suffix": ".res.mjs",
+  "dependencies": ["@rescript/core", "rescript-signals"],
+  "jsx": {
+    "version": 4,
+    "module": "Xote__JSX"
+  },
+  "compiler-flags": ["-open RescriptCore"]
+}
