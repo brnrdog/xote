@@ -132,3 +132,29 @@ let link = (
     (),
   )
 }
+
+module Link = {
+  type props = {
+    to: string,
+    class?: string,
+    children?: Component.node,
+  }
+
+  let make = (props: props) => {
+    let {to, class, children} = props
+    let to = globalBaseUrl.contents->String.length > 0 ? globalBaseUrl.contents ++ to : to
+    let handleClick = (_evt: Dom.event) => {
+      %raw(`_evt.preventDefault()`)
+      push(to, ())
+    }
+
+    let attrs = [Component.attr("class", class)]
+
+    Component.a(
+      ~attrs=Array.concat(attrs, [Component.attr("href", to)]),
+      ~events=[("click", handleClick)],
+      ~children=[children],
+      (),
+    )
+  }
+}
