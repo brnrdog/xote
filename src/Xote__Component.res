@@ -141,11 +141,29 @@ let rec render = (node: node): Dom.element => {
       el
     }
   | Element({tag, attrs, events, children}) => {
-      /* Use createElementNS for SVG elements */
       let el = switch tag {
-      | "svg" | "path" | "circle" | "rect" | "line" | "polyline" | "polygon" | "ellipse" | "g" |
-        "defs" | "use" | "symbol" | "marker" | "clipPath" | "mask" | "pattern" | "linearGradient" |
-        "radialGradient" | "stop" | "text" | "tspan" | "textPath" =>
+      | "svg"
+      | "path"
+      | "circle"
+      | "rect"
+      | "line"
+      | "polyline"
+      | "polygon"
+      | "ellipse"
+      | "g"
+      | "defs"
+      | "use"
+      | "symbol"
+      | "marker"
+      | "clipPath"
+      | "mask"
+      | "pattern"
+      | "linearGradient"
+      | "radialGradient"
+      | "stop"
+      | "text"
+      | "tspan"
+      | "textPath" =>
         createElementNS("http://www.w3.org/2000/svg", tag)
       | _ => createElement(tag)
       }
@@ -160,25 +178,23 @@ let rec render = (node: node): Dom.element => {
           } else {
             el->setAttribute(key, value)
           }
-        | SignalValue(s) => {
-            /* Signal attribute - set initial value and subscribe to changes */
-            if key == "value" && tag == "input" {
-              el->setValue(Signal.peek(s))
-              let disposer = Effect.run(() => {
-                let v = Signal.get(s)
-                el->setValue(v)
-                None
-              })
-              addDisposer(el, disposer)
-            } else {
-              el->setAttribute(key, Signal.peek(s))
-              let disposer = Effect.run(() => {
-                let v = Signal.get(s)
-                el->setAttribute(key, v)
-                None
-              })
-              addDisposer(el, disposer)
-            }
+        | SignalValue(s) => /* Signal attribute - set initial value and subscribe to changes */
+          if key == "value" && tag == "input" {
+            el->setValue(Signal.peek(s))
+            let disposer = Effect.run(() => {
+              let v = Signal.get(s)
+              el->setValue(v)
+              None
+            })
+            addDisposer(el, disposer)
+          } else {
+            el->setAttribute(key, Signal.peek(s))
+            let disposer = Effect.run(() => {
+              let v = Signal.get(s)
+              el->setAttribute(key, v)
+              None
+            })
+            addDisposer(el, disposer)
           }
         | Compute(f) => {
             /* Computed attribute - create computed signal and subscribe */
