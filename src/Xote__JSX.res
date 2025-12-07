@@ -64,11 +64,42 @@ module Elements = {
   let computed = (f: unit => string): attributeValue => Any(f)
 
   /* Props type for HTML elements - supports common attributes and events */
-  type props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data> = {
+  type props<
+    'id,
+    'class,
+    'style,
+    'typ,
+    'value,
+    'placeholder,
+    'href,
+    'target,
+    'data,
+    'width,
+    'height,
+    'src,
+    'fill,
+    'viewBox,
+    'stroke,
+    'strokeWidth,
+    'strokeLinecap,
+    'strokeMiterlimit,
+    'd,
+  > = {
     /* Standard attributes - can be static strings or reactive values */
     id?: 'id,
     class?: 'class,
+    width?: 'width,
+    height?: 'height,
+    src?: 'src,
     style?: 'style,
+    fill?: 'fill,
+    /* SVG attributes */
+    viewBox?: 'viewBox,
+    stroke?: 'stroke,
+    strokeWidth?: 'strokeWidth,
+    strokeLinecap?: 'strokeLinecap,
+    strokeMiterlimit?: 'strokeMiterlimit,
+    d?: 'd,
     /* Input attributes */
     @as("type") type_?: 'typ,
     value?: 'value,
@@ -117,9 +148,7 @@ module Elements = {
   }
 
   /* Convert props to attrs array */
-  let propsToAttrs = (
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-  ): array<(string, Component.attrValue)> => {
+  let propsToAttrs = (props): array<(string, Component.attrValue)> => {
     let attrs = []
 
     switch props.id {
@@ -172,6 +201,56 @@ module Elements = {
     | None => ()
     }
 
+    switch props.width {
+    | Some(v) => attrs->Array.push(convertAttrValue("width", v))
+    | None => ()
+    }
+
+    switch props.height {
+    | Some(v) => attrs->Array.push(convertAttrValue("height", v))
+    | None => ()
+    }
+
+    switch props.src {
+    | Some(v) => attrs->Array.push(convertAttrValue("src", v))
+    | None => ()
+    }
+
+    switch props.fill {
+    | Some(v) => attrs->Array.push(convertAttrValue("fill", v))
+    | None => ()
+    }
+
+    switch props.viewBox {
+    | Some(v) => attrs->Array.push(convertAttrValue("viewBox", v))
+    | None => ()
+    }
+
+    switch props.stroke {
+    | Some(v) => attrs->Array.push(convertAttrValue("stroke", v))
+    | None => ()
+    }
+
+    switch props.strokeWidth {
+    | Some(v) => attrs->Array.push(convertAttrValue("stroke-width", v))
+    | None => ()
+    }
+
+    switch props.strokeLinecap {
+    | Some(v) => attrs->Array.push(convertAttrValue("stroke-linecap", v))
+    | None => ()
+    }
+
+    switch props.strokeMiterlimit {
+    | Some(v) => attrs->Array.push(convertAttrValue("stroke-miterlimit", v))
+    | None => ()
+    }
+
+    switch props.d {
+    | Some(v) => attrs->Array.push(convertAttrValue("d", v))
+    | None => ()
+    }
+
     switch props.data {
     | Some(_dataObj) => {
         let _ = %raw(`
@@ -187,9 +266,7 @@ module Elements = {
   }
 
   /* Convert props to events array */
-  let propsToEvents = (
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-  ): array<(string, Dom.event => unit)> => {
+  let propsToEvents = (props): array<(string, Dom.event => unit)> => {
     let events = []
 
     switch props.onClick {
@@ -246,9 +323,7 @@ module Elements = {
   }
 
   /* Extract children from props */
-  let getChildren = (
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-  ): array<element> => {
+  let getChildren = (props): array<element> => {
     switch props.children {
     | Some(Fragment(children)) => children
     | Some(child) => [child]
@@ -257,10 +332,7 @@ module Elements = {
   }
 
   /* Create an element from a tag string and props */
-  let createElement = (
-    tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-  ): element => {
+  let createElement = (tag: string, props): element => {
     Component.Element({
       tag,
       attrs: propsToAttrs(props),
@@ -270,32 +342,16 @@ module Elements = {
   }
 
   /* JSX functions for HTML elements */
-  let jsx = (
-    tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-  ): element => createElement(tag, props)
+  let jsx = (tag: string, props): element => createElement(tag, props)
 
-  let jsxs = (
-    tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-  ): element => createElement(tag, props)
+  let jsxs = (tag: string, props): element => createElement(tag, props)
 
-  let jsxKeyed = (
-    tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-    ~key: option<string>=?,
-    _: unit,
-  ): element => {
+  let jsxKeyed = (tag: string, props, ~key: option<string>=?, _: unit): element => {
     let _ = key
     createElement(tag, props)
   }
 
-  let jsxsKeyed = (
-    tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-    ~key: option<string>=?,
-    _: unit,
-  ): element => {
+  let jsxsKeyed = (tag: string, props, ~key: option<string>=?, _: unit): element => {
     let _ = key
     createElement(tag, props)
   }
