@@ -93,6 +93,7 @@ external getElementById: string => Nullable.t<Dom.element> = "getElementById"
 external addEventListener: (Dom.element, string, Dom.event => unit) => unit = "addEventListener"
 @send external appendChild: (Dom.element, Dom.element) => unit = "appendChild"
 @set external setTextContent: (Dom.element, string) => unit = "textContent"
+@set external setValue: (Dom.element, string) => unit = "value"
 
 /* Disposer management for reactive nodes */
 type disposerList = array<Effect.disposer>
@@ -140,6 +141,7 @@ let rec render = (node: node): Dom.element => {
       el
     }
   | Element({tag, attrs, events, children}) => {
+      /* Use createElementNS for SVG elements */
       let el = switch tag {
       | "svg" | "path" | "circle" | "rect" | "line" | "polyline" | "polygon" | "ellipse" | "g" |
         "defs" | "use" | "symbol" | "marker" | "clipPath" | "mask" | "pattern" | "linearGradient" |
@@ -153,27 +155,51 @@ let rec render = (node: node): Dom.element => {
         switch source {
         | Static(value) =>
           /* Static attribute - set once */
-          el->setAttribute(key, value)
+          if key == "value" && tag == "input" {
+            el->setValue(value)
+          } else {
+            el->setAttribute(key, value)
+          }
         | SignalValue(s) => {
             /* Signal attribute - set initial value and subscribe to changes */
-            el->setAttribute(key, Signal.peek(s))
-            let disposer = Effect.run(() => {
-              let v = Signal.get(s)
-              el->setAttribute(key, v)
-              None
-            })
-            addDisposer(el, disposer)
+            if key == "value" && tag == "input" {
+              el->setValue(Signal.peek(s))
+              let disposer = Effect.run(() => {
+                let v = Signal.get(s)
+                el->setValue(v)
+                None
+              })
+              addDisposer(el, disposer)
+            } else {
+              el->setAttribute(key, Signal.peek(s))
+              let disposer = Effect.run(() => {
+                let v = Signal.get(s)
+                el->setAttribute(key, v)
+                None
+              })
+              addDisposer(el, disposer)
+            }
           }
         | Compute(f) => {
             /* Computed attribute - create computed signal and subscribe */
             let computedSignal = Computed.make(() => f())
-            el->setAttribute(key, Signal.peek(computedSignal))
-            let disposer = Effect.run(() => {
-              let v = Signal.get(computedSignal)
-              el->setAttribute(key, v)
-              None
-            })
-            addDisposer(el, disposer)
+            if key == "value" && tag == "input" {
+              el->setValue(Signal.peek(computedSignal))
+              let disposer = Effect.run(() => {
+                let v = Signal.get(computedSignal)
+                el->setValue(v)
+                None
+              })
+              addDisposer(el, disposer)
+            } else {
+              el->setAttribute(key, Signal.peek(computedSignal))
+              let disposer = Effect.run(() => {
+                let v = Signal.get(computedSignal)
+                el->setAttribute(key, v)
+                None
+              })
+              addDisposer(el, disposer)
+            }
           }
         }
       })
