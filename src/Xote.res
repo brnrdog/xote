@@ -21,3 +21,7 @@ module Route = {
 module Router = {
   include Xote__Router
 }
+
+module JSX = {
+  include Xote__JSX
+}
