@@ -80,6 +80,8 @@ let a = (~attrs=?, ~events=?, ~children=?, ()) => element("a", ~attrs?, ~events?
 
 /* External bindings for DOM manipulation */
 @val @scope("document") external createElement: string => Dom.element = "createElement"
+@val @scope("document")
+external createElementNS: (string, string) => Dom.element = "createElementNS"
 @val @scope("document") external createTextNode: string => Dom.element = "createTextNode"
 @val @scope("document")
 external createDocumentFragment: unit => Dom.element = "createDocumentFragment"
@@ -138,7 +140,13 @@ let rec render = (node: node): Dom.element => {
       el
     }
   | Element({tag, attrs, events, children}) => {
-      let el = createElement(tag)
+      let el = switch tag {
+      | "svg" | "path" | "circle" | "rect" | "line" | "polyline" | "polygon" | "ellipse" | "g" |
+        "defs" | "use" | "symbol" | "marker" | "clipPath" | "mask" | "pattern" | "linearGradient" |
+        "radialGradient" | "stop" | "text" | "tspan" | "textPath" =>
+        createElementNS("http://www.w3.org/2000/svg", tag)
+      | _ => createElement(tag)
+      }
 
       /* Set attributes - handle static, signal, and computed values */
       attrs->Array.forEach(((key, source)) => {
