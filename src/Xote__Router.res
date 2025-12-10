@@ -90,12 +90,16 @@ let route = (pattern: string, render: Route.params => Component.node): Component
   Component.signalFragment(signal)
 }
 
+let globalBaseUrl = ref("")
+
 // Routes component - renders first matching route
-let routes = (configs: array<routeConfig>): Component.node => {
+let routes = (configs: array<routeConfig>, ~baseUrl=""): Component.node => {
+  globalBaseUrl := baseUrl
   let signal = Computed.make(() => {
     let loc = Signal.get(location)
     let matched = configs->Array.findMap(config => {
-      switch Route.match(config.pattern, loc.pathname) {
+      let pathname = String.replace(loc.pathname, baseUrl, "")
+      switch Route.match(config.pattern, pathname) {
       | Match(params) => Some(config.render(params))
       | NoMatch => None
       }
@@ -109,13 +113,13 @@ let routes = (configs: array<routeConfig>): Component.node => {
   Component.signalFragment(signal)
 }
 
-// Link component - handles navigation without page reload
 let link = (
   ~to: string,
   ~attrs: array<(string, Component.attrValue)>=[],
   ~children: array<Component.node>=[],
   (),
 ): Component.node => {
+  let to = globalBaseUrl.contents->String.length > 0 ? globalBaseUrl.contents ++ to : to
   let handleClick = (_evt: Dom.event) => {
     %raw(`_evt.preventDefault()`)
     push(to, ())
@@ -127,4 +131,30 @@ let link = (
     ~children,
     (),
   )
+}
+
+module Link = {
+  type props = {
+    to: string,
+    class?: string,
+    children?: Component.node,
+  }
+
+  let make = (props: props) => {
+    let {to, class, children} = props
+    let to = globalBaseUrl.contents->String.length > 0 ? globalBaseUrl.contents ++ to : to
+    let handleClick = (_evt: Dom.event) => {
+      %raw(`_evt.preventDefault()`)
+      push(to, ())
+    }
+
+    let attrs = [Component.attr("class", class)]
+
+    Component.a(
+      ~attrs=Array.concat(attrs, [Component.attr("href", to)]),
+      ~events=[("click", handleClick)],
+      ~children=[children],
+      (),
+    )
+  }
 }

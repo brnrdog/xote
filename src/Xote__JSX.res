@@ -64,11 +64,42 @@ module Elements = {
   let computed = (f: unit => string): attributeValue => Any(f)
 
   /* Props type for HTML elements - supports common attributes and events */
-  type props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data> = {
+  type props<
+    'id,
+    'class,
+    'style,
+    'typ,
+    'value,
+    'placeholder,
+    'href,
+    'target,
+    'data,
+    'width,
+    'height,
+    'src,
+    'fill,
+    'viewBox,
+    'stroke,
+    'strokeWidth,
+    'strokeLinecap,
+    'strokeMiterlimit,
+    'd,
+  > = {
     /* Standard attributes - can be static strings or reactive values */
     id?: 'id,
     class?: 'class,
+    width?: 'width,
+    height?: 'height,
+    src?: 'src,
     style?: 'style,
+    fill?: 'fill,
+    /* SVG attributes */
+    viewBox?: 'viewBox,
+    stroke?: 'stroke,
+    strokeWidth?: 'strokeWidth,
+    strokeLinecap?: 'strokeLinecap,
+    strokeMiterlimit?: 'strokeMiterlimit,
+    d?: 'd,
     /* Input attributes */
     @as("type") type_?: 'typ,
     value?: 'value,
@@ -116,62 +147,55 @@ module Elements = {
     }
   }
 
+  /* Helper to add optional attribute to attrs array */
+  let addAttr = (attrs, attrName, value) => {
+    switch value {
+    | Some(v) => attrs->Array.push(convertAttrValue(attrName, v))
+    | None => ()
+    }
+  }
+
+  /* Helper to add boolean attribute to attrs array */
+  let addBoolAttr = (attrs, attrName, value) => {
+    switch value {
+    | Some(true) => attrs->Array.push(Component.attr(attrName, "true"))
+    | _ => ()
+    }
+  }
+
   /* Convert props to attrs array */
-  let propsToAttrs = (
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-  ): array<(string, Component.attrValue)> => {
+  let propsToAttrs = (props): array<(string, Component.attrValue)> => {
     let attrs = []
 
-    switch props.id {
-    | Some(v) => attrs->Array.push(convertAttrValue("id", v))
-    | None => ()
-    }
+    // Standard HTML attributes
+    addAttr(attrs, "id", props.id)
+    addAttr(attrs, "class", props.class)
+    addAttr(attrs, "style", props.style)
+    addAttr(attrs, "width", props.width)
+    addAttr(attrs, "height", props.height)
+    addAttr(attrs, "src", props.src)
 
-    switch props.class {
-    | Some(v) => attrs->Array.push(convertAttrValue("class", v))
-    | None => ()
-    }
+    // Input attributes
+    addAttr(attrs, "type", props.type_)
+    addAttr(attrs, "value", props.value)
+    addAttr(attrs, "placeholder", props.placeholder)
+    addBoolAttr(attrs, "disabled", props.disabled)
+    addBoolAttr(attrs, "checked", props.checked)
 
-    switch props.style {
-    | Some(v) => attrs->Array.push(convertAttrValue("style", v))
-    | None => ()
-    }
+    // Link attributes
+    addAttr(attrs, "href", props.href)
+    addAttr(attrs, "target", props.target)
 
-    switch props.type_ {
-    | Some(v) => attrs->Array.push(convertAttrValue("type", v))
-    | None => ()
-    }
+    // SVG attributes
+    addAttr(attrs, "fill", props.fill)
+    addAttr(attrs, "viewBox", props.viewBox)
+    addAttr(attrs, "stroke", props.stroke)
+    addAttr(attrs, "stroke-width", props.strokeWidth)
+    addAttr(attrs, "stroke-linecap", props.strokeLinecap)
+    addAttr(attrs, "stroke-miterlimit", props.strokeMiterlimit)
+    addAttr(attrs, "d", props.d)
 
-    switch props.value {
-    | Some(v) => attrs->Array.push(convertAttrValue("value", v))
-    | None => ()
-    }
-
-    switch props.placeholder {
-    | Some(v) => attrs->Array.push(convertAttrValue("placeholder", v))
-    | None => ()
-    }
-
-    switch props.disabled {
-    | Some(true) => attrs->Array.push(Component.attr("disabled", "true"))
-    | _ => ()
-    }
-
-    switch props.checked {
-    | Some(true) => attrs->Array.push(Component.attr("checked", "true"))
-    | _ => ()
-    }
-
-    switch props.href {
-    | Some(v) => attrs->Array.push(convertAttrValue("href", v))
-    | None => ()
-    }
-
-    switch props.target {
-    | Some(v) => attrs->Array.push(convertAttrValue("target", v))
-    | None => ()
-    }
-
+    // Data attributes
     switch props.data {
     | Some(_dataObj) => {
         let _ = %raw(`
@@ -186,69 +210,34 @@ module Elements = {
     attrs
   }
 
+  /* Helper to add optional event handler to events array */
+  let addEvent = (events, eventName, handler) => {
+    switch handler {
+    | Some(h) => events->Array.push((eventName, h))
+    | None => ()
+    }
+  }
+
   /* Convert props to events array */
-  let propsToEvents = (
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-  ): array<(string, Dom.event => unit)> => {
+  let propsToEvents = (props): array<(string, Dom.event => unit)> => {
     let events = []
 
-    switch props.onClick {
-    | Some(handler) => events->Array.push(("click", handler))
-    | None => ()
-    }
-
-    switch props.onInput {
-    | Some(handler) => events->Array.push(("input", handler))
-    | None => ()
-    }
-
-    switch props.onChange {
-    | Some(handler) => events->Array.push(("change", handler))
-    | None => ()
-    }
-
-    switch props.onSubmit {
-    | Some(handler) => events->Array.push(("submit", handler))
-    | None => ()
-    }
-
-    switch props.onFocus {
-    | Some(handler) => events->Array.push(("focus", handler))
-    | None => ()
-    }
-
-    switch props.onBlur {
-    | Some(handler) => events->Array.push(("blur", handler))
-    | None => ()
-    }
-
-    switch props.onKeyDown {
-    | Some(handler) => events->Array.push(("keydown", handler))
-    | None => ()
-    }
-
-    switch props.onKeyUp {
-    | Some(handler) => events->Array.push(("keyup", handler))
-    | None => ()
-    }
-
-    switch props.onMouseEnter {
-    | Some(handler) => events->Array.push(("mouseenter", handler))
-    | None => ()
-    }
-
-    switch props.onMouseLeave {
-    | Some(handler) => events->Array.push(("mouseleave", handler))
-    | None => ()
-    }
+    addEvent(events, "click", props.onClick)
+    addEvent(events, "input", props.onInput)
+    addEvent(events, "change", props.onChange)
+    addEvent(events, "submit", props.onSubmit)
+    addEvent(events, "focus", props.onFocus)
+    addEvent(events, "blur", props.onBlur)
+    addEvent(events, "keydown", props.onKeyDown)
+    addEvent(events, "keyup", props.onKeyUp)
+    addEvent(events, "mouseenter", props.onMouseEnter)
+    addEvent(events, "mouseleave", props.onMouseLeave)
 
     events
   }
 
   /* Extract children from props */
-  let getChildren = (
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-  ): array<element> => {
+  let getChildren = (props): array<element> => {
     switch props.children {
     | Some(Fragment(children)) => children
     | Some(child) => [child]
@@ -257,10 +246,7 @@ module Elements = {
   }
 
   /* Create an element from a tag string and props */
-  let createElement = (
-    tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-  ): element => {
+  let createElement = (tag: string, props): element => {
     Component.Element({
       tag,
       attrs: propsToAttrs(props),
@@ -270,32 +256,16 @@ module Elements = {
   }
 
   /* JSX functions for HTML elements */
-  let jsx = (
-    tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-  ): element => createElement(tag, props)
+  let jsx = (tag: string, props): element => createElement(tag, props)
 
-  let jsxs = (
-    tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-  ): element => createElement(tag, props)
+  let jsxs = (tag: string, props): element => createElement(tag, props)
 
-  let jsxKeyed = (
-    tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-    ~key: option<string>=?,
-    _: unit,
-  ): element => {
+  let jsxKeyed = (tag: string, props, ~key: option<string>=?, _: unit): element => {
     let _ = key
     createElement(tag, props)
   }
 
-  let jsxsKeyed = (
-    tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'value, 'placeholder, 'href, 'target, 'data>,
-    ~key: option<string>=?,
-    _: unit,
-  ): element => {
+  let jsxsKeyed = (tag: string, props, ~key: option<string>=?, _: unit): element => {
     let _ = key
     createElement(tag, props)
   }
