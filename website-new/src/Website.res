@@ -2,6 +2,14 @@ open Xote
 
 // Import doc content
 module IntroDoc = IntroDoc
+module SignalsDoc = SignalsDoc
+module ComputedDoc = ComputedDoc
+module EffectsDoc = EffectsDoc
+module BatchingDoc = BatchingDoc
+module ComponentsDoc = ComponentsDoc
+module RouterDoc = RouterDoc
+module ApiSignalsDoc = ApiSignalsDoc
+module TechnicalOverviewDoc = TechnicalOverviewDoc
 
 // Initialize router
 Router.init()
@@ -43,6 +51,38 @@ module App = {
         {
           pattern: "/docs/",
           render: _params => <DocsPage currentPath="/docs" content={IntroDoc.content()} />,
+        },
+        {
+          pattern: "/docs/core-concepts/signals",
+          render: _params => <DocsPage currentPath="/docs/core-concepts/signals" content={SignalsDoc.content()} />,
+        },
+        {
+          pattern: "/docs/core-concepts/computed",
+          render: _params => <DocsPage currentPath="/docs/core-concepts/computed" content={ComputedDoc.content()} />,
+        },
+        {
+          pattern: "/docs/core-concepts/effects",
+          render: _params => <DocsPage currentPath="/docs/core-concepts/effects" content={EffectsDoc.content()} />,
+        },
+        {
+          pattern: "/docs/core-concepts/batching",
+          render: _params => <DocsPage currentPath="/docs/core-concepts/batching" content={BatchingDoc.content()} />,
+        },
+        {
+          pattern: "/docs/components/overview",
+          render: _params => <DocsPage currentPath="/docs/components/overview" content={ComponentsDoc.content()} />,
+        },
+        {
+          pattern: "/docs/router/overview",
+          render: _params => <DocsPage currentPath="/docs/router/overview" content={RouterDoc.content()} />,
+        },
+        {
+          pattern: "/docs/api/signals",
+          render: _params => <DocsPage currentPath="/docs/api/signals" content={ApiSignalsDoc.content()} />,
+        },
+        {
+          pattern: "/docs/technical-overview",
+          render: _params => <DocsPage currentPath="/docs/technical-overview" content={TechnicalOverviewDoc.content()} />,
         },
         {
           pattern: "*",
