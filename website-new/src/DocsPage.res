@@ -38,6 +38,10 @@ let docsNav = [
     items: [{title: "Signals", path: "/docs/api/signals"}],
   },
   {
+    label: "Comparisons",
+    items: [{title: "React", path: "/docs/comparisons/react"}],
+  },
+  {
     label: "Advanced",
     items: [{title: "Technical Overview", path: "/docs/technical-overview"}],
   },

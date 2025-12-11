@@ -9,6 +9,7 @@ module BatchingDoc = BatchingDoc
 module ComponentsDoc = ComponentsDoc
 module RouterDoc = RouterDoc
 module ApiSignalsDoc = ApiSignalsDoc
+module ReactComparisonDoc = ReactComparisonDoc
 module TechnicalOverviewDoc = TechnicalOverviewDoc
 
 // Initialize router
@@ -79,6 +80,10 @@ module App = {
         {
           pattern: "/docs/api/signals",
           render: _params => <DocsPage currentPath="/docs/api/signals" content={ApiSignalsDoc.content()} />,
+        },
+        {
+          pattern: "/docs/comparisons/react",
+          render: _params => <DocsPage currentPath="/docs/comparisons/react" content={ReactComparisonDoc.content()} />,
         },
         {
           pattern: "/docs/technical-overview",
