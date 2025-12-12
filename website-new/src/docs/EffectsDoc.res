@@ -30,7 +30,7 @@ let content = () => {
       {Component.text(" to create an effect. The effect function can optionally return a cleanup function:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 let count = Signal.make(0)
@@ -68,7 +68,7 @@ Signal.set(count, 1)
       {Component.text("Effects can return an optional cleanup function that runs before the effect re-executes or when the effect is disposed:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 let url = Signal.make("https://api.example.com/data")
@@ -125,7 +125,7 @@ Signal.set(url, "https://api.example.com/other-data")`)}
       {Component.text("Properly clean up timers:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let interval = Signal.make(1000)
 
 Effect.run(() => {
@@ -147,7 +147,7 @@ Effect.run(() => {
       {Component.text("Track state changes for debugging:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let user = Signal.make({id: 1, name: "Alice"})
 
 Effect.run(() => {
@@ -162,7 +162,7 @@ Effect.run(() => {
       {Component.text("Sync reactive state with external systems:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let settings = Signal.make({theme: "dark", language: "en"})
 
 Effect.run(() => {
@@ -178,7 +178,7 @@ Effect.run(() => {
       {Component.text("Effect.run() returns a disposer object with a dispose() method to stop the effect. When disposed, any registered cleanup function is called:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 
 let disposer = Effect.run(() => {
@@ -198,7 +198,7 @@ Signal.set(count, 3) // Effect does NOT run`)}
       <strong> {Component.text("With cleanup:")} </strong>
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let disposer = Effect.run(() => {
   let timerId = setInterval(() => Console.log("Tick"), 1000)
 
@@ -218,7 +218,7 @@ disposer.dispose() // Runs cleanup, prints "Timer cleared"`)}
       {Component.text("Effects re-track dependencies on each execution, adapting to conditional logic:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let showDetails = Signal.make(false)
 let name = Signal.make("Alice")
 let age = Signal.make(30)
@@ -244,7 +244,7 @@ Effect.run(() => {
       {Component.text(" to read signals without creating dependencies:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 let debug = Signal.make(true)
 
@@ -265,7 +265,7 @@ Effect.run(() => {
       {Component.text("Here's a practical example of an auto-save effect with proper cleanup:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 type draft = {

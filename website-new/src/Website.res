@@ -15,6 +15,9 @@ module TechnicalOverviewDoc = TechnicalOverviewDoc
 // Initialize router
 Router.init()
 
+// Initialize syntax highlighting
+SyntaxHighlight.init()
+
 // 404 Page component
 module NotFoundPage = {
   type props = {}
@@ -100,3 +103,6 @@ module App = {
 }
 // Mount the app
 Component.mountById(<App />, "app")
+
+// Highlight code blocks after mount
+SyntaxHighlight.highlightAllDelayed()

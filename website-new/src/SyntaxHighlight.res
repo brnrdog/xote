@@ -1,111 +1,32 @@
-// Simple ReScript syntax highlighter
-open Xote
+// Syntax highlighting using Prism.js
 
-let keywords = [
-  "let",
-  "type",
-  "module",
-  "open",
-  "switch",
-  "if",
-  "else",
-  "true",
-  "false",
-  "and",
-  "or",
-  "rec",
-  "external",
-  "include",
-  "when",
-]
+@module("prismjs") external prism: {..} = "default"
 
-let types = ["int", "string", "bool", "float", "array", "option", "unit"]
+@module("./prism-rescript.js")
+external addReScriptLanguage: ({..}) => unit = "addReScriptLanguage"
 
-let operators = ["=>", "->", "|>", "==", "!=", "+", "-", "*", "/", "="]
+// Initialize Prism with ReScript language support
+let init = () => {
+  addReScriptLanguage(prism)
+}
 
-// Simple tokenizer for ReScript code
-let highlight = (code: string): Component.node => {
-  let lines = code->String.split("\n")
+// Highlight all code blocks on the page
+let highlightAll = () => {
+  %raw(`typeof window !== 'undefined' && window.Prism && window.Prism.highlightAll()`)
+}
 
-  let highlightLine = (line: string, lineNumber: int): Component.node => {
-    let lineNum = (lineNumber + 1)->Int.toString
+// Highlight all after a short delay to ensure DOM is ready
+let highlightAllDelayed = () => {
+  %raw(`
+    typeof window !== 'undefined' && setTimeout(() => {
+      window.Prism && window.Prism.highlightAll();
+    }, 100)
+  `)
+}
 
-    // Check if line is a comment
-    let lineContent = if line->String.trim->String.startsWith("//") {
-      Component.element(
-        "span",
-        ~attrs=[Component.attr("class", "syntax-comment")],
-        ~children=[Component.text(line)],
-        (),
-      )
-    } else {
-      // Simple word-based highlighting
-      let words = line->String.split(" ")
-      let highlightedWords = words->Array.mapWithIndex((word, idx) => {
-        let trimmed = word->String.trim
-
-        // Check for keywords
-        let isKeyword = keywords->Array.some(k => trimmed == k || trimmed->String.startsWith(k ++ "("))
-
-        // Check for types
-        let isType = types->Array.some(t => trimmed == t)
-
-        // Check for strings
-        let isString = trimmed->String.startsWith("\"") || trimmed->String.startsWith("`")
-
-        // Check for numbers
-        let isNumber =
-          trimmed->String.match(%re("/^[0-9]+$/")) != None ||
-            trimmed->String.match(%re("/^[0-9]+\.[0-9]+$/")) != None
-
-        let className = if isKeyword {
-          "syntax-keyword"
-        } else if isType {
-          "syntax-type"
-        } else if isString {
-          "syntax-string"
-        } else if isNumber {
-          "syntax-number"
-        } else {
-          "syntax-text"
-        }
-
-        Component.fragment([
-          Component.element(
-            "span",
-            ~attrs=[Component.attr("class", className)],
-            ~children=[Component.text(word)],
-            (),
-          ),
-          idx < Array.length(words) - 1
-            ? Component.text(" ")
-            : Component.fragment([]),
-        ])
-      })
-
-      Component.fragment(highlightedWords)
-    }
-
-    Component.element(
-      "div",
-      ~attrs=[Component.attr("class", "syntax-line")],
-      ~children=[
-        Component.element(
-          "span",
-          ~attrs=[Component.attr("class", "syntax-line-number")],
-          ~children=[Component.text(lineNum)],
-          (),
-        ),
-        Component.element(
-          "span",
-          ~attrs=[Component.attr("class", "syntax-line-content")],
-          ~children=[lineContent],
-          (),
-        ),
-      ],
-      (),
-    )
-  }
-
-  Component.fragment(lines->Array.mapWithIndex((line, idx) => highlightLine(line, idx)))
+// Highlight a code snippet and return as Component.node
+let highlight = (code: string): Xote.Component.node => {
+  open Xote
+  // For now, return plain text - will be highlighted by highlightAll after render
+  Component.text(code)
 }

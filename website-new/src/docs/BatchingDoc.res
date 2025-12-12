@@ -28,7 +28,7 @@ let content = () => {
       {Component.text("Without batching, each signal update triggers observers immediately:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let firstName = Signal.make("John")
 let lastName = Signal.make("Doe")
 
@@ -51,7 +51,7 @@ Signal.set(lastName, "Smith")  // Logs: "Jane Smith"
       {Component.text("With batching, observers run once after all updates:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`Signal.batch(() => {
   Signal.set(firstName, "Jane")  // Queued
   Signal.set(lastName, "Smith")  // Queued
@@ -65,7 +65,7 @@ Signal.set(lastName, "Smith")  // Logs: "Jane Smith"
       {Component.text("Wrap multiple signal updates in a batch:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 let x = Signal.make(0)
@@ -104,7 +104,7 @@ Signal.batch(() => {
       {Component.text("Batching is especially useful when updating related state:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`type formData = {
   name: string,
   email: string,
@@ -150,7 +150,7 @@ let handleSubmit = () => {
       {Component.text("Batches can be nested. The observers run when the outermost batch completes:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 
 Effect.run(() => {
@@ -177,7 +177,7 @@ Signal.batch(() => {
       {Component.text(" returns the result of the batch function:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let result = Signal.batch(() => {
   Signal.set(count, 10)
   Signal.set(name, "Alice")
@@ -231,7 +231,7 @@ Console.log(result) // "Success"`)}
       {Component.text("Batching is useful for coordinated updates in animations:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let x = Signal.make(0)
 let y = Signal.make(0)
 let rotation = Signal.make(0)
@@ -269,7 +269,7 @@ let intervalId = setInterval(animationFrame, 16) // ~60fps`)}
       {Component.text("In simple cases, batching overhead might not be worth it:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`// Simple case: batching adds minimal benefit
 let count = Signal.make(0)
 
@@ -302,7 +302,7 @@ Signal.batch(() => {
       {Component.text("Here's a complete example showing effective batching:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`type item = {id: int, quantity: int}
 type cart = {
   items: array<item>,

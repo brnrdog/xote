@@ -30,7 +30,7 @@ let content = () => {
       {Component.text(" with a function that computes the derived value. It returns the computed signal:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 let firstName = Signal.make("John")
@@ -73,7 +73,7 @@ Console.log(Signal.get(fullName)) // "John Doe"`)}
       {Component.text(":")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(5)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 
@@ -88,7 +88,7 @@ Console.log(Signal.get(doubled)) // Prints: 20`)}
       <strong> {Component.text("Computed values automatically dispose when they lose all subscribers - you don't need to manually call Computed.dispose() in most cases!")} </strong>
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 
@@ -112,7 +112,7 @@ Signal.set(count, 10)
       {Component.text("This works seamlessly with Components:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let app = () => {
   let count = Signal.make(0)
   let doubled = Computed.make(() => Signal.get(count) * 2)
@@ -133,7 +133,7 @@ Signal.set(count, 10)
       {Component.text("You can still manually dispose computeds when needed:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 
@@ -163,7 +163,7 @@ Computed.dispose(doubled)`)}
       {Component.text("You can create computed values that depend on other computed values:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let price = Signal.make(100)
 let quantity = Signal.make(3)
 
@@ -190,7 +190,7 @@ Console.log(Signal.get(total)) // 550`)}
       {Component.text("Instead of manually updating derived state:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`// ❌ Manual (error-prone)
 let count = Signal.make(0)
 let doubled = Signal.make(0)
@@ -205,7 +205,7 @@ let increment = () => {
       {Component.text("Use computed values for automatic updates:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`// ✅ Automatic (safe)
 let count = Signal.make(0)
 let doubled = Computed.make(() => Signal.get(count) * 2)
@@ -221,7 +221,7 @@ let increment = () => {
       {Component.text("Computed values re-track dependencies on every execution, so they adapt to control flow:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let useMetric = Signal.make(true)
 let celsius = Signal.make(20)
 let fahrenheit = Signal.make(68)
@@ -271,7 +271,7 @@ Console.log(Signal.get(temperature)) // 68`)}
       {Component.text("Auto-disposal can cascade through chains of computeds:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 let quadrupled = Computed.make(() => Signal.get(doubled) * 2)
@@ -296,7 +296,7 @@ disposer.dispose()
       {Component.text("Unlike some reactive systems, Xote's computed values are eager:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 let expensive = Computed.make(() => {
   Console.log("Computing...")

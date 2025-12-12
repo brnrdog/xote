@@ -15,7 +15,7 @@ let content = () => {
     </p>
     <h2> {Component.text("Type")} </h2>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`type t<'a>`)}
       </code>
     </pre>
@@ -27,7 +27,7 @@ let content = () => {
     <h2> {Component.text("Functions")} </h2>
     <h3> <code> {Component.text("make")} </code> </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let make: 'a => t<'a>`)}
       </code>
     </pre>
@@ -56,7 +56,7 @@ let content = () => {
       <strong> {Component.text("Example:")} </strong>
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 let name = Signal.make("Alice")
 let items = Signal.make([1, 2, 3])`)}
@@ -65,7 +65,7 @@ let items = Signal.make([1, 2, 3])`)}
     <hr />
     <h3> <code> {Component.text("get")} </code> </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let get: t<'a> => 'a`)}
       </code>
     </pre>
@@ -94,7 +94,7 @@ let items = Signal.make([1, 2, 3])`)}
       <strong> {Component.text("Example:")} </strong>
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(5)
 let value = Signal.get(count) // Returns 5
 
@@ -114,7 +114,7 @@ Effect.run(() => {
     <hr />
     <h3> <code> {Component.text("peek")} </code> </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let peek: t<'a> => 'a`)}
       </code>
     </pre>
@@ -145,7 +145,7 @@ Effect.run(() => {
       <strong> {Component.text("Example:")} </strong>
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(5)
 
 Effect.run(() => {
@@ -175,7 +175,7 @@ Signal.set(count, 10) // Effect will NOT re-run`)}
     <hr />
     <h3> <code> {Component.text("set")} </code> </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let set: (t<'a>, 'a) => unit`)}
       </code>
     </pre>
@@ -207,7 +207,7 @@ Signal.set(count, 10) // Effect will NOT re-run`)}
       <strong> {Component.text("Example:")} </strong>
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 Signal.set(count, 10) // count is now 10, observers notified
 
@@ -229,7 +229,7 @@ Signal.set(count, 10) // Same value - no notification`)}
     <hr />
     <h3> <code> {Component.text("update")} </code> </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let update: (t<'a>, 'a => 'a) => unit`)}
       </code>
     </pre>
@@ -261,7 +261,7 @@ Signal.set(count, 10) // Same value - no notification`)}
       <strong> {Component.text("Example:")} </strong>
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 Signal.update(count, n => n + 1) // count is now 1
 Signal.update(count, n => n * 2) // count is now 2
@@ -279,7 +279,7 @@ Signal.update(items, arr => Array.concat(arr, [4, 5])) // [1, 2, 3, 4, 5]`)}
     <hr />
     <h3> <code> {Component.text("batch")} </code> </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let batch: (unit => 'a) => 'a`)}
       </code>
     </pre>
@@ -308,7 +308,7 @@ Signal.update(items, arr => Array.concat(arr, [4, 5])) // [1, 2, 3, 4, 5]`)}
       <strong> {Component.text("Example:")} </strong>
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`Signal.batch(() => {
   Signal.set(firstName, "Jane")
   Signal.set(lastName, "Smith")
@@ -319,7 +319,7 @@ Signal.update(items, arr => Array.concat(arr, [4, 5])) // [1, 2, 3, 4, 5]`)}
     <hr />
     <h3> <code> {Component.text("untrack")} </code> </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let untrack: (unit => 'a) => 'a`)}
       </code>
     </pre>
@@ -348,7 +348,7 @@ Signal.update(items, arr => Array.concat(arr, [4, 5])) // [1, 2, 3, 4, 5]`)}
       <strong> {Component.text("Example:")} </strong>
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`Effect.run(() => {
   let tracked = Signal.get(count)
 
@@ -364,7 +364,7 @@ Signal.update(items, arr => Array.concat(arr, [4, 5])) // [1, 2, 3, 4, 5]`)}
     <h2> {Component.text("Examples")} </h2>
     <h3> {Component.text("Basic Usage")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 let count = Signal.make(0)
@@ -383,7 +383,7 @@ Console.log(Signal.get(count)) // 6`)}
     </pre>
     <h3> {Component.text("With Effects")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 
 Effect.run(() => {
@@ -397,7 +397,7 @@ Signal.set(count, 2) // Logs: "Count changed: 2"`)}
     </pre>
     <h3> {Component.text("With Computed")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(5)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 
@@ -409,7 +409,7 @@ Console.log(Signal.get(doubled)) // 20`)}
     </pre>
     <h3> {Component.text("Complex State")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`type user = {
   id: int,
   name: string,
@@ -429,7 +429,7 @@ Signal.update(user, u => {...u, email: "alice.smith@example.com"})`)}
     </pre>
     <h3> {Component.text("Array Operations")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let todos = Signal.make([])
 
 // Add item

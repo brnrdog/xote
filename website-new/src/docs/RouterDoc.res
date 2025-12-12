@@ -45,7 +45,7 @@ let content = () => {
       {Component.text(" once at application startup:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 Router.init()`)}
@@ -61,7 +61,7 @@ Router.init()`)}
       {Component.text(" to define your application routes:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let app = () => {
   <div>
     {Router.routes([
@@ -93,7 +93,7 @@ Component.mountById(app(), "app")`)}
       {Component.text(" to navigate:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`// Imperative navigation
 let goToAbout = (_evt: Dom.event) => {
   Router.push("/about", ())
@@ -113,7 +113,7 @@ Router.link(
       {Component.text(" is a signal containing the current route information:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`type location = {
   pathname: string,  // e.g., "/users/123"
   search: string,    // e.g., "?sort=name"
@@ -125,7 +125,7 @@ Router.link(
       {Component.text("Read it like any signal:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`Effect.run(() => {
   let currentLocation = Signal.get(Router.location)
   Console.log2("Current path:", currentLocation.pathname)
@@ -138,7 +138,7 @@ Router.link(
     </p>
     <h3> {Component.text("Static Routes")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`{pattern: "/", render: _params => <HomePage />}
 {pattern: "/about", render: _params => <AboutPage />}
 {pattern: "/contact", render: _params => <ContactPage />}`)}
@@ -151,7 +151,7 @@ Router.link(
       {Component.text(" syntax for dynamic segments:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`{pattern: "/users/:id", render: params =>
   switch params->Dict.get("id") {
   | Some(id) => <UserPage userId={id} />
@@ -172,7 +172,7 @@ Router.link(
       {Component.text("Navigate to a new route with a new history entry:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`Router.push("/users/123", ())
 
 // With query string
@@ -187,7 +187,7 @@ Router.push("/docs", ~hash="#installation", ())`)}
       {Component.text("Navigate without creating a new history entry:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`Router.replace("/login", ())`)}
       </code>
     </pre>
@@ -199,7 +199,7 @@ Router.push("/docs", ~hash="#installation", ())`)}
       {Component.text("Create links that navigate without page reload:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`Router.link(
   ~to="/about",
   ~children=[Component.text("About Us")],
@@ -217,7 +217,7 @@ Router.link(
     </pre>
     <h2> {Component.text("Complete Example")} </h2>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 // Initialize router

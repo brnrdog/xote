@@ -34,7 +34,7 @@ let content = () => {
       {Component.text(" to create a new signal with an initial value:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 let count = Signal.make(0)
@@ -50,7 +50,7 @@ let isActive = Signal.make(true)`)}
       {Component.text(" to read a signal's value. When called inside a tracking context (like an effect or computed value), it automatically registers the signal as a dependency:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(5)
 let value = Signal.get(count) // Returns 5`)}
       </code>
@@ -62,7 +62,7 @@ let value = Signal.get(count) // Returns 5`)}
       {Component.text(" to read a signal's value without creating a dependency:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(5)
 
 Effect.run(() => {
@@ -83,7 +83,7 @@ Effect.run(() => {
       {Component.text("Replace a signal's value entirely:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 Signal.set(count, 10) // count is now 10`)}
       </code>
@@ -93,7 +93,7 @@ Signal.set(count, 10) // count is now 10`)}
       {Component.text("Update a signal based on its current value:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 Signal.update(count, n => n + 1) // count is now 1
 Signal.update(count, n => n * 2) // count is now 2`)}
@@ -107,7 +107,7 @@ Signal.update(count, n => n * 2) // count is now 2`)}
       {Component.text(") to check if a value has changed. If the new value equals the old value, dependents are not notified:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(5)
 
 Effect.run(() => {
@@ -128,7 +128,7 @@ Signal.set(count, 6) // Effect runs - value changed`)}
       {Component.text(" inside a tracking context, the dependency is automatically registered:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let firstName = Signal.make("John")
 let lastName = Signal.make("Doe")
 
@@ -143,7 +143,7 @@ let fullName = Computed.make(() =>
       {Component.text("Here's a complete example showing signals in action:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 let count = Signal.make(0)

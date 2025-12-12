@@ -43,7 +43,7 @@ let content = () => {
     </p>
     <h3> {Component.text("Using JSX Syntax")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 // Create reactive state
@@ -106,7 +106,7 @@ Component.mountById(app(), "app")`)}
       {Component.text("Get started with Xote in your ReScript project:")}
     </p>
     <pre>
-      <code>
+      <code class="language-bash">
         {Component.text(`npm install xote
 # or
 yarn add xote
@@ -120,7 +120,7 @@ pnpm add xote`)}
       {Component.text(":")}
     </p>
     <pre>
-      <code>
+      <code class="language-json">
         {Component.text(`{
   "bs-dependencies": ["xote"]
 }`)}

@@ -12,9 +12,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "xote": "file:..",
     "@rescript/core": "^1.6.1",
-    "rescript-signals": "^1.2.0"
+    "prismjs": "^1.30.0",
+    "rescript-signals": "^1.2.0",
+    "xote": "file:.."
   },
   "devDependencies": {
     "rescript": "^12.0.0",

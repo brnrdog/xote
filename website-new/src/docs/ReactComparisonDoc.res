@@ -58,7 +58,7 @@ let content = () => {
     <h2> {Component.text("Code Comparison: Counter Example")} </h2>
     <h3> {Component.text("React Version")} </h3>
     <pre>
-      <code>
+      <code class="language-javascript">
         {Component.text(`import { useState } from 'react';
 
 function Counter() {
@@ -77,7 +77,7 @@ function Counter() {
     </pre>
     <h3> {Component.text("Xote Version")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 let counter = () => {
@@ -137,7 +137,7 @@ let counter = () => {
       <strong> {Component.text("React useEffect:")} </strong>
     </p>
     <pre>
-      <code>
+      <code class="language-javascript">
         {Component.text(`// React - Manual dependency array
 useEffect(() => {
   console.log("Count changed:", count);
@@ -148,7 +148,7 @@ useEffect(() => {
       <strong> {Component.text("Xote Effect:")} </strong>
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`// Xote - Automatic dependency tracking
 Effect.run(() => {
   Console.log2("Count changed:", Signal.get(count))
@@ -172,7 +172,7 @@ Effect.run(() => {
       <strong> {Component.text("React useMemo:")} </strong>
     </p>
     <pre>
-      <code>
+      <code class="language-javascript">
         {Component.text(`// React - Must specify dependencies
 const doubled = useMemo(() => count * 2, [count]);`)}
       </code>
@@ -181,7 +181,7 @@ const doubled = useMemo(() => count * 2, [count]);`)}
       <strong> {Component.text("Xote Computed:")} </strong>
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`// Xote - Automatic tracking
 let doubled = Computed.make(() => Signal.get(count) * 2)`)}
       </code>
@@ -218,7 +218,7 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
     <h2> {Component.text("Code Comparison: Todo List")} </h2>
     <h3> {Component.text("React Version")} </h3>
     <pre>
-      <code>
+      <code class="language-javascript">
         {Component.text(`function TodoList() {
   const [todos, setTodos] = useState([]);
   const [input, setInput] = useState("");
@@ -247,7 +247,7 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
     </pre>
     <h3> {Component.text("Xote Version")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let todoList = () => {
   let todos = Signal.make([])
   let input = Signal.make("")

@@ -149,7 +149,7 @@ let content = () => {
       {Component.text("Xote supports ReScript's generic JSX v4 for declarative component syntax:")}
     </p>
     <pre>
-      <code>
+      <code class="language-json">
         {Component.text(`{
   "jsx": {
     "version": 4,
@@ -270,7 +270,7 @@ let content = () => {
     <h2> {Component.text("API Summary")} </h2>
     <h3> {Component.text("Reactive Primitives")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`Signal.make : 'a => t<'a>
 Signal.get : t<'a> => 'a
 Signal.peek : t<'a> => 'a
@@ -285,7 +285,7 @@ Effect.run : (unit => option<unit => unit>) => {dispose: unit => unit}`)}
     </pre>
     <h3> {Component.text("Component Helpers")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`Component.text : string => node
 Component.textSignal : (unit => string) => node
 Component.list : (t<array<'a>>, 'a => node) => node
@@ -296,7 +296,7 @@ Component.mountById : (node, string) => unit`)}
     </pre>
     <h3> {Component.text("Router Helpers")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`Router.init : unit => unit
 Router.location : t<{pathname: string, search: string, hash: string}>
 Router.push : (string, ~search: string=?, ~hash: string=?, unit) => unit

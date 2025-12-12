@@ -34,7 +34,7 @@ let content = () => {
     </p>
     <h3> {Component.text("JSX Syntax")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 let greeting = () => {
@@ -46,7 +46,7 @@ let greeting = () => {
     </pre>
     <h3> {Component.text("Function API")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 let greeting = () => {
@@ -66,7 +66,7 @@ let greeting = () => {
       {Component.text(":")}
     </p>
     <pre>
-      <code>
+      <code class="language-json">
         {Component.text(`{
   "jsx": {
     "version": 4,
@@ -83,7 +83,7 @@ let greeting = () => {
       {Component.text(" for static text:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`<div>
   {Component.text("This text never changes")}
 </div>`)}
@@ -96,7 +96,7 @@ let greeting = () => {
       {Component.text(" for text that updates with signals:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 
 <div>
@@ -155,7 +155,7 @@ let greeting = () => {
       </li>
     </ul>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`<button
   class="btn btn-primary"
   type_="button"
@@ -166,7 +166,7 @@ let greeting = () => {
     </pre>
     <h3> {Component.text("Static Attributes (Function API)")} </h3>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`Component.button(
   ~attrs=[
     Component.attr("class", "btn btn-primary"),
@@ -182,7 +182,7 @@ let greeting = () => {
       {Component.text("Function API supports reactive attributes:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let isActive = Signal.make(false)
 
 Component.div(
@@ -231,7 +231,7 @@ Component.div(
       </li>
     </ul>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let count = Signal.make(0)
 
 let increment = (_evt: Dom.event) => {
@@ -251,7 +251,7 @@ let increment = (_evt: Dom.event) => {
       {Component.text(" for simple lists where the entire list re-renders on any change:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let items = Signal.make(["Apple", "Banana", "Cherry"])
 
 <ul>
@@ -272,7 +272,7 @@ let increment = (_evt: Dom.event) => {
       {Component.text(" for efficient list rendering with DOM element reuse:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`type todo = {id: int, text: string, completed: bool}
 let todos = Signal.make([
   {id: 1, text: "Buy milk", completed: false},
@@ -333,7 +333,7 @@ let todos = Signal.make([
       {Component.text(" to attach your component to an existing DOM element:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`let app = () => {
   <div> {Component.text("Hello, World!")} </div>
 }
@@ -346,7 +346,7 @@ Component.mountById(app(), "app")`)}
       {Component.text("Here's a complete counter component using JSX:")}
     </p>
     <pre>
-      <code>
+      <code class="language-rescript">
         {Component.text(`open Xote
 
 type counterProps = {initialValue: int}

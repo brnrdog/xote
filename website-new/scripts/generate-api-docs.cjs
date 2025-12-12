@@ -66,6 +66,7 @@ function convertMarkdownToNodes(markdown) {
         // End of code block
         nodes.push({
           type: 'pre',
+          lang: codeBlockLang || '',
           children: [{
             type: 'code',
             text: codeBlockContent.join('\n')
@@ -73,6 +74,7 @@ function convertMarkdownToNodes(markdown) {
         });
         inCodeBlock = false;
         codeBlockContent = [];
+        codeBlockLang = '';
       }
       i++;
       continue;
@@ -317,7 +319,8 @@ function generateJSX(nodes) {
         return `    <div class="info-box">\n      <p>\n        ${generateInlineJSX(node.text)}\n      </p>\n    </div>`;
       case 'pre':
         const codeText = escapeForReScript(node.children[0].text);
-        return `    <pre>\n      <code>\n        {Component.text(\`${codeText}\`)}\n      </code>\n    </pre>`;
+        const langClass = node.lang ? ` class="language-${node.lang}"` : '';
+        return `    <pre>\n      <code${langClass}>\n        {Component.text(\`${codeText}\`)}\n      </code>\n    </pre>`;
       case 'ul':
         const ulItems = node.items.map(item =>
           `      <li>\n        ${generateInlineJSX(item)}\n      </li>`
