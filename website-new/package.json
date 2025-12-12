@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "res:build": "rescript",
+    "generate-api-docs": "node scripts/generate-api-docs.cjs",
+    "res:build": "npm run generate-api-docs && rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript -w",
     "dev": "vite",
