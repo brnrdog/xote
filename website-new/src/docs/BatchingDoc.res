@@ -1,27 +1,32 @@
+// ****************************************************
+// * THIS FILE IS GENERATED - DO NOT EDIT MANUALLY! *
+// * Generated from: ../../content/core-concepts/batching.md
+// * To update: modify the markdown file and run:
+// *   npm run generate-api-docs
+// ****************************************************
+
 open Xote
 
 let content = () => {
   <div>
     <h1> {Component.text("Batching Updates")} </h1>
     <p>
-      {Component.text(
-        "Batching allows you to group multiple signal updates together, ensuring that observers (effects and computed values) run only once after all updates complete, rather than after each individual update.",
-      )}
+      {Component.text("Batching allows you to group multiple signal updates together, ensuring that observers (effects and computed values) run only once after all updates complete, rather than after each individual update.")}
     </p>
     <div class="info-box">
       <p>
         <strong> {Component.text("Info:")} </strong>
-        {Component.text("Batching is available through ")}
-        <code> {Component.text("Signal.batch")} </code>
-        {Component.text(" which is re-exported from ")}
-        <a href="https://github.com/pedrobslisboa/rescript-signals" target="_blank">
-          {Component.text("rescript-signals")}
-        </a>
-        {Component.text(".")}
+      {Component.text(" Batching is available through ")}
+      <code> {Component.text("Signal.batch")} </code>
+      {Component.text(" which is re-exported from ")}
+      <a href="https://github.com/pedrobslisboa/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
+      {Component.text(".")}
       </p>
     </div>
     <h2> {Component.text("Why Batch?")} </h2>
-    <p> {Component.text("Without batching, each signal update triggers observers immediately:")} </p>
+    <p>
+      {Component.text("Without batching, each signal update triggers observers immediately:")}
+    </p>
     <pre>
       <code>
         {Component.text(`let firstName = Signal.make("John")
@@ -42,7 +47,9 @@ Signal.set(lastName, "Smith")  // Logs: "Jane Smith"
 // Effect runs twice, computed recalculates twice`)}
       </code>
     </pre>
-    <p> {Component.text("With batching, observers run once after all updates:")} </p>
+    <p>
+      {Component.text("With batching, observers run once after all updates:")}
+    </p>
     <pre>
       <code>
         {Component.text(`Signal.batch(() => {
@@ -54,7 +61,9 @@ Signal.set(lastName, "Smith")  // Logs: "Jane Smith"
       </code>
     </pre>
     <h2> {Component.text("Using Signal.batch()")} </h2>
-    <p> {Component.text("Wrap multiple signal updates in a batch:")} </p>
+    <p>
+      {Component.text("Wrap multiple signal updates in a batch:")}
+    </p>
     <pre>
       <code>
         {Component.text(`open Xote
@@ -77,13 +86,23 @@ Signal.batch(() => {
     </pre>
     <h2> {Component.text("How Batching Works")} </h2>
     <ol>
-      <li> {Component.text("When Signal.batch() is called, a batching flag is set")} </li>
-      <li> {Component.text("Signal updates queue their observers instead of running them immediately")} </li>
-      <li> {Component.text("When the batch function completes, all queued observers run")} </li>
-      <li> {Component.text("Each observer runs only once, even if multiple dependencies changed")} </li>
+      <li>
+        {Component.text("When Signal.batch() is called, a batching flag is set")}
+      </li>
+      <li>
+        {Component.text("Signal updates queue their observers instead of running them immediately")}
+      </li>
+      <li>
+        {Component.text("When the batch function completes, all queued observers run")}
+      </li>
+      <li>
+        {Component.text("Each observer runs only once, even if multiple dependencies changed")}
+      </li>
     </ol>
     <h2> {Component.text("Example: Form Updates")} </h2>
-    <p> {Component.text("Batching is especially useful when updating related state:")} </p>
+    <p>
+      {Component.text("Batching is especially useful when updating related state:")}
+    </p>
     <pre>
       <code>
         {Component.text(`type formData = {
@@ -128,9 +147,7 @@ let handleSubmit = () => {
     </pre>
     <h2> {Component.text("Nested Batches")} </h2>
     <p>
-      {Component.text(
-        "Batches can be nested. The observers run when the outermost batch completes:",
-      )}
+      {Component.text("Batches can be nested. The observers run when the outermost batch completes:")}
     </p>
     <pre>
       <code>
@@ -171,42 +188,48 @@ Console.log(result) // "Success"`)}
       </code>
     </pre>
     <h2> {Component.text("When to Use Batching")} </h2>
-    <p> {Component.text("Use batching when:")} </p>
+    <p>
+      {Component.text("Use batching when:")}
+    </p>
     <ul>
       <li>
         <strong> {Component.text("Updating multiple related signals:")} </strong>
-        {Component.text(" Form state, coordinates, settings")}
+      {Component.text(" Form state, coordinates, settings")}
       </li>
       <li>
         <strong> {Component.text("Performing complex state transitions:")} </strong>
-        {Component.text(" Multi-step updates that should appear atomic")}
+      {Component.text(" Multi-step updates that should appear atomic")}
       </li>
       <li>
         <strong> {Component.text("Optimizing performance:")} </strong>
-        {Component.text(" Reducing unnecessary recomputations")}
+      {Component.text(" Reducing unnecessary recomputations")}
       </li>
       <li>
         <strong> {Component.text("Maintaining consistency:")} </strong>
-        {Component.text(" Ensuring observers see a consistent state")}
+      {Component.text(" Ensuring observers see a consistent state")}
       </li>
     </ul>
-    <p> {Component.text("Don't batch when:")} </p>
+    <p>
+      {Component.text("Don't batch when:")}
+    </p>
     <ul>
       <li>
         <strong> {Component.text("Single signal updates:")} </strong>
-        {Component.text(" No benefit from batching")}
+      {Component.text(" No benefit from batching")}
       </li>
       <li>
         <strong> {Component.text("Updates need to be visible immediately:")} </strong>
-        {Component.text(" Rare, but sometimes intermediate states matter")}
+      {Component.text(" Rare, but sometimes intermediate states matter")}
       </li>
       <li>
         <strong> {Component.text("Debugging:")} </strong>
-        {Component.text(" Batching can make it harder to trace state changes")}
+      {Component.text(" Batching can make it harder to trace state changes")}
       </li>
     </ul>
     <h2> {Component.text("Example: Animation")} </h2>
-    <p> {Component.text("Batching is useful for coordinated updates in animations:")} </p>
+    <p>
+      {Component.text("Batching is useful for coordinated updates in animations:")}
+    </p>
     <pre>
       <code>
         {Component.text(`let x = Signal.make(0)
@@ -228,13 +251,23 @@ let intervalId = setInterval(animationFrame, 16) // ~60fps`)}
       </code>
     </pre>
     <h2> {Component.text("Performance Considerations")} </h2>
-    <p> {Component.text("Batching provides benefits when:")} </p>
+    <p>
+      {Component.text("Batching provides benefits when:")}
+    </p>
     <ol>
-      <li> {Component.text("Multiple signals feed into the same computed/effect")} </li>
-      <li> {Component.text("Computed values have expensive calculations")} </li>
-      <li> {Component.text("Effects perform costly side effects (DOM updates, network requests)")} </li>
+      <li>
+        {Component.text("Multiple signals feed into the same computed/effect")}
+      </li>
+      <li>
+        {Component.text("Computed values have expensive calculations")}
+      </li>
+      <li>
+        {Component.text("Effects perform costly side effects (DOM updates, network requests)")}
+      </li>
     </ol>
-    <p> {Component.text("In simple cases, batching overhead might not be worth it:")} </p>
+    <p>
+      {Component.text("In simple cases, batching overhead might not be worth it:")}
+    </p>
     <pre>
       <code>
         {Component.text(`// Simple case: batching adds minimal benefit
@@ -249,23 +282,25 @@ Signal.batch(() => {
     <ul>
       <li>
         <strong> {Component.text("Batch related updates:")} </strong>
-        {Component.text(" Group changes that logically belong together")}
+      {Component.text(" Group changes that logically belong together")}
       </li>
       <li>
         <strong> {Component.text("Keep batches small:")} </strong>
-        {Component.text(" Don't batch unrelated updates")}
+      {Component.text(" Don't batch unrelated updates")}
       </li>
       <li>
         <strong> {Component.text("Batch at the right level:")} </strong>
-        {Component.text(" Batch where updates originate, not deep in the stack")}
+      {Component.text(" Batch where updates originate, not deep in the stack")}
       </li>
       <li>
         <strong> {Component.text("Document batching:")} </strong>
-        {Component.text(" Comment why batching is needed if it's not obvious")}
+      {Component.text(" Comment why batching is needed if it's not obvious")}
       </li>
     </ul>
     <h2> {Component.text("Example: Shopping Cart")} </h2>
-    <p> {Component.text("Here's a complete example showing effective batching:")} </p>
+    <p>
+      {Component.text("Here's a complete example showing effective batching:")}
+    </p>
     <pre>
       <code>
         {Component.text(`type item = {id: int, quantity: int}
@@ -305,17 +340,17 @@ let applyDiscount = (code: string) => {
     <ul>
       <li>
         {Component.text("See how batching works with ")}
-        {Router.link(~to="/docs/core-concepts/effects", ~children=[Component.text("Effects")], ())}
+      {Router.link(~to="/docs/core-concepts/effects", ~children=[Component.text("Effects")], ())}
       </li>
       <li>
         {Component.text("Learn about ")}
-        {Router.link(~to="/docs/components/overview", ~children=[Component.text("Components")], ())}
-        {Component.text(" which benefit from batching")}
+      {Router.link(~to="/docs/components/overview", ~children=[Component.text("Components")], ())}
+      {Component.text(" which benefit from batching")}
       </li>
       <li>
         {Component.text("Try the ")}
-        {Router.link(~to="/demos", ~children=[Component.text("Demos")], ())}
-        {Component.text(" to see batching in action")}
+      {Router.link(~to="/demos", ~children=[Component.text("Demos")], ())}
+      {Component.text(" to see batching in action")}
       </li>
     </ul>
   </div>

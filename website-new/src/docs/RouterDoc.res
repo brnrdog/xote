@@ -1,22 +1,41 @@
+// ****************************************************
+// * THIS FILE IS GENERATED - DO NOT EDIT MANUALLY! *
+// * Generated from: ../../content/router/overview.md
+// * To update: modify the markdown file and run:
+// *   npm run generate-api-docs
+// ****************************************************
+
 open Xote
 
 let content = () => {
   <div>
     <h1> {Component.text("Router Overview")} </h1>
     <p>
-      {Component.text(
-        "Xote includes a built-in signal-based router for building single-page applications (SPAs). The router uses the browser's History API and provides both imperative and declarative navigation.",
-      )}
+      {Component.text("Xote includes a built-in signal-based router for building single-page applications (SPAs). The router uses the browser's History API and provides both imperative and declarative navigation.")}
     </p>
     <h2> {Component.text("Features")} </h2>
     <ul>
-      <li> {Component.text("Signal-based reactive routing")} </li>
-      <li> {Component.text("Browser History API integration")} </li>
-      <li> {Component.text("Pattern matching with dynamic parameters")} </li>
-      <li> {Component.text("Imperative navigation (push/replace)")} </li>
-      <li> {Component.text("Declarative routing components")} </li>
-      <li> {Component.text("SPA navigation links (no page reload)")} </li>
-      <li> {Component.text("Zero dependencies")} </li>
+      <li>
+        {Component.text("Signal-based reactive routing")}
+      </li>
+      <li>
+        {Component.text("Browser History API integration")}
+      </li>
+      <li>
+        {Component.text("Pattern matching with dynamic parameters")}
+      </li>
+      <li>
+        {Component.text("Imperative navigation (push/replace)")}
+      </li>
+      <li>
+        {Component.text("Declarative routing components")}
+      </li>
+      <li>
+        {Component.text("SPA navigation links (no page reload)")}
+      </li>
+      <li>
+        {Component.text("Zero dependencies")}
+      </li>
     </ul>
     <h2> {Component.text("Quick Start")} </h2>
     <h3> {Component.text("1. Initialize the Router")} </h3>
@@ -33,9 +52,7 @@ Router.init()`)}
       </code>
     </pre>
     <p>
-      {Component.text(
-        "This sets the initial location from the browser URL and adds a popstate listener for back/forward button support.",
-      )}
+      {Component.text("This sets the initial location from the browser URL and adds a popstate listener for back/forward button support.")}
     </p>
     <h3> {Component.text("2. Define Routes")} </h3>
     <p>
@@ -104,7 +121,9 @@ Router.link(
 }`)}
       </code>
     </pre>
-    <p> {Component.text("Read it like any signal:")} </p>
+    <p>
+      {Component.text("Read it like any signal:")}
+    </p>
     <pre>
       <code>
         {Component.text(`Effect.run(() => {
@@ -114,7 +133,9 @@ Router.link(
       </code>
     </pre>
     <h2> {Component.text("Route Patterns")} </h2>
-    <p> {Component.text("Patterns support static segments and dynamic parameters:")} </p>
+    <p>
+      {Component.text("Patterns support static segments and dynamic parameters:")}
+    </p>
     <h3> {Component.text("Static Routes")} </h3>
     <pre>
       <code>
@@ -146,10 +167,10 @@ Router.link(
       </code>
     </pre>
     <h2> {Component.text("Navigation Methods")} </h2>
-    <h3>
-      <code> {Component.text("Router.push()")} </code>
-    </h3>
-    <p> {Component.text("Navigate to a new route with a new history entry:")} </p>
+    <h3> <code> {Component.text("Router.push()")} </code> </h3>
+    <p>
+      {Component.text("Navigate to a new route with a new history entry:")}
+    </p>
     <pre>
       <code>
         {Component.text(`Router.push("/users/123", ())
@@ -161,22 +182,22 @@ Router.push("/search", ~search="?q=xote", ())
 Router.push("/docs", ~hash="#installation", ())`)}
       </code>
     </pre>
-    <h3>
-      <code> {Component.text("Router.replace()")} </code>
-    </h3>
-    <p> {Component.text("Navigate without creating a new history entry:")} </p>
+    <h3> <code> {Component.text("Router.replace()")} </code> </h3>
+    <p>
+      {Component.text("Navigate without creating a new history entry:")}
+    </p>
     <pre>
       <code>
         {Component.text(`Router.replace("/login", ())`)}
       </code>
     </pre>
     <p>
-      {Component.text(
-        "This replaces the current history entry, so clicking the back button will skip this route.",
-      )}
+      {Component.text("This replaces the current history entry, so clicking the back button will skip this route.")}
     </p>
     <h2> {Component.text("Navigation Links")} </h2>
-    <p> {Component.text("Create links that navigate without page reload:")} </p>
+    <p>
+      {Component.text("Create links that navigate without page reload:")}
+    </p>
     <pre>
       <code>
         {Component.text(`Router.link(
@@ -240,66 +261,64 @@ Component.mountById(app(), "app")`)}
     <ol>
       <li>
         <strong> {Component.text("Initialization:")} </strong>
-        {Component.text(" Router.init() reads the current URL and sets up the location signal")}
+      {Component.text(" Router.init() reads the current URL and sets up the location signal")}
       </li>
       <li>
         <strong> {Component.text("History Integration:")} </strong>
-        {Component.text(" Listens to popstate events for back/forward navigation")}
+      {Component.text(" Listens to popstate events for back/forward navigation")}
       </li>
       <li>
         <strong> {Component.text("Pattern Matching:")} </strong>
-        {Component.text(" Routes use simple string-based matching with :param syntax")}
+      {Component.text(" Routes use simple string-based matching with :param syntax")}
       </li>
       <li>
         <strong> {Component.text("Reactive Rendering:")} </strong>
-        {Component.text(" Route components are wrapped in SignalFragment + Computed")}
+      {Component.text(" Route components are wrapped in SignalFragment + Computed")}
       </li>
       <li>
         <strong> {Component.text("Link Handling:")} </strong>
-        {Component.text(
-          " Router.link() intercepts clicks and calls Router.push() instead of following the href",
-        )}
+      {Component.text(" Router.link() intercepts clicks and calls Router.push() instead of following the href")}
       </li>
     </ol>
     <h2> {Component.text("Best Practices")} </h2>
     <ul>
       <li>
         <strong> {Component.text("Initialize once:")} </strong>
-        {Component.text(" Call Router.init() at the top level, not in components")}
+      {Component.text(" Call Router.init() at the top level, not in components")}
       </li>
       <li>
         <strong> {Component.text("Order routes carefully:")} </strong>
-        {Component.text(" More specific routes should come before generic ones")}
+      {Component.text(" More specific routes should come before generic ones")}
       </li>
       <li>
         <strong> {Component.text("Handle 404s:")} </strong>
-        {Component.text(" Add a catch-all route at the end for unmatched paths")}
+      {Component.text(" Add a catch-all route at the end for unmatched paths")}
       </li>
       <li>
         <strong> {Component.text("Use links for navigation:")} </strong>
-        {Component.text(" Prefer Router.link() over manual Router.push() calls")}
+      {Component.text(" Prefer Router.link() over manual Router.push() calls")}
       </li>
       <li>
         <strong> {Component.text("Extract parameters safely:")} </strong>
-        {Component.text(" Use Option methods when accessing route parameters")}
+      {Component.text(" Use Option methods when accessing route parameters")}
       </li>
     </ul>
     <h2> {Component.text("Next Steps")} </h2>
     <ul>
       <li>
         {Component.text("Try the ")}
-        {Router.link(~to="/demos", ~children=[Component.text("Demos")], ())}
-        {Component.text(" to see routing in action")}
+      {Router.link(~to="/demos", ~children=[Component.text("Demos")], ())}
+      {Component.text(" to see routing in action")}
       </li>
       <li>
         {Component.text("Learn about ")}
-        {Router.link(~to="/docs/core-concepts/signals", ~children=[Component.text("Signals")], ())}
-        {Component.text(" for reactive state")}
+      {Router.link(~to="/docs/core-concepts/signals", ~children=[Component.text("Signals")], ())}
+      {Component.text(" for reactive state")}
       </li>
       <li>
         {Component.text("Explore ")}
-        {Router.link(~to="/docs/components/overview", ~children=[Component.text("Components")], ())}
-        {Component.text(" for building UIs")}
+      {Router.link(~to="/docs/components/overview", ~children=[Component.text("Components")], ())}
+      {Component.text(" for building UIs")}
       </li>
     </ul>
   </div>

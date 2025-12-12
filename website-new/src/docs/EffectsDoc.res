@@ -1,23 +1,26 @@
+// ****************************************************
+// * THIS FILE IS GENERATED - DO NOT EDIT MANUALLY! *
+// * Generated from: ../../content/core-concepts/effects.md
+// * To update: modify the markdown file and run:
+// *   npm run generate-api-docs
+// ****************************************************
+
 open Xote
 
 let content = () => {
   <div>
     <h1> {Component.text("Effects")} </h1>
     <p>
-      {Component.text(
-        "Effects are functions that run side effects in response to reactive state changes. They automatically re-execute when any signal they depend on changes.",
-      )}
+      {Component.text("Effects are functions that run side effects in response to reactive state changes. They automatically re-execute when any signal they depend on changes.")}
     </p>
     <div class="info-box">
       <p>
         <strong> {Component.text("Info:")} </strong>
-        {Component.text("Xote re-exports ")}
-        <code> {Component.text("Effect")} </code>
-        {Component.text(" from ")}
-        <a href="https://github.com/pedrobslisboa/rescript-signals" target="_blank">
-          {Component.text("rescript-signals")}
-        </a>
-        {Component.text(". The API and behavior are provided by that library.")}
+      {Component.text(" Xote re-exports ")}
+      <code> {Component.text("Effect")} </code>
+      {Component.text(" from ")}
+      <a href="https://github.com/pedrobslisboa/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
+      {Component.text(". The API and behavior are provided by that library.")}
       </p>
     </div>
     <h2> {Component.text("Creating Effects")} </h2>
@@ -44,17 +47,25 @@ Signal.set(count, 1)
     </pre>
     <h2> {Component.text("How Effects Work")} </h2>
     <ol>
-      <li> {Component.text("The effect function runs immediately when created")} </li>
-      <li> {Component.text("Any Signal.get() calls during execution are tracked as dependencies")} </li>
-      <li> {Component.text("When a dependency changes, the effect re-runs")} </li>
-      <li> {Component.text("Dependencies are re-tracked on every execution")} </li>
-      <li> {Component.text("If a cleanup function was returned, it runs before re-execution")} </li>
+      <li>
+        {Component.text("The effect function runs immediately when created")}
+      </li>
+      <li>
+        {Component.text("Any Signal.get() calls during execution are tracked as dependencies")}
+      </li>
+      <li>
+        {Component.text("When a dependency changes, the effect re-runs")}
+      </li>
+      <li>
+        {Component.text("Dependencies are re-tracked on every execution")}
+      </li>
+      <li>
+        {Component.text("If a cleanup function was returned, it runs before re-execution")}
+      </li>
     </ol>
     <h2> {Component.text("Cleanup Callbacks")} </h2>
     <p>
-      {Component.text(
-        "Effects can return an optional cleanup function that runs before the effect re-executes or when the effect is disposed:",
-      )}
+      {Component.text("Effects can return an optional cleanup function that runs before the effect re-executes or when the effect is disposed:")}
     </p>
     <pre>
       <code>
@@ -88,21 +99,31 @@ Effect.run(() => {
 Signal.set(url, "https://api.example.com/other-data")`)}
       </code>
     </pre>
-    <p> <strong> {Component.text("Key points about cleanup:")} </strong> </p>
+    <p>
+      <strong> {Component.text("Key points about cleanup:")} </strong>
+    </p>
     <ul>
-      <li> {Component.text("Return None when no cleanup is needed")} </li>
-      <li> {Component.text("Return Some(cleanupFn) to register cleanup")} </li>
-      <li> {Component.text("Cleanup runs before the effect re-executes")} </li>
-      <li> {Component.text("Cleanup runs when the effect is disposed via dispose()")} </li>
       <li>
-        {Component.text(
-          "Cleanup is useful for canceling requests, clearing timers, removing event listeners, etc.",
-        )}
+        {Component.text("Return None when no cleanup is needed")}
+      </li>
+      <li>
+        {Component.text("Return Some(cleanupFn) to register cleanup")}
+      </li>
+      <li>
+        {Component.text("Cleanup runs before the effect re-executes")}
+      </li>
+      <li>
+        {Component.text("Cleanup runs when the effect is disposed via dispose()")}
+      </li>
+      <li>
+        {Component.text("Cleanup is useful for canceling requests, clearing timers, removing event listeners, etc.")}
       </li>
     </ul>
     <h2> {Component.text("Common Use Cases")} </h2>
     <h3> {Component.text("Timers with Cleanup")} </h3>
-    <p> {Component.text("Properly clean up timers:")} </p>
+    <p>
+      {Component.text("Properly clean up timers:")}
+    </p>
     <pre>
       <code>
         {Component.text(`let interval = Signal.make(1000)
@@ -122,7 +143,9 @@ Effect.run(() => {
       </code>
     </pre>
     <h3> {Component.text("Logging and Debugging")} </h3>
-    <p> {Component.text("Track state changes for debugging:")} </p>
+    <p>
+      {Component.text("Track state changes for debugging:")}
+    </p>
     <pre>
       <code>
         {Component.text(`let user = Signal.make({id: 1, name: "Alice"})
@@ -135,7 +158,9 @@ Effect.run(() => {
       </code>
     </pre>
     <h3> {Component.text("Synchronization")} </h3>
-    <p> {Component.text("Sync reactive state with external systems:")} </p>
+    <p>
+      {Component.text("Sync reactive state with external systems:")}
+    </p>
     <pre>
       <code>
         {Component.text(`let settings = Signal.make({theme: "dark", language: "en"})
@@ -169,7 +194,9 @@ disposer.dispose() // Stop the effect
 Signal.set(count, 3) // Effect does NOT run`)}
       </code>
     </pre>
-    <p> <strong> {Component.text("With cleanup:")} </strong> </p>
+    <p>
+      <strong> {Component.text("With cleanup:")} </strong>
+    </p>
     <pre>
       <code>
         {Component.text(`let disposer = Effect.run(() => {
@@ -187,7 +214,9 @@ disposer.dispose() // Runs cleanup, prints "Timer cleared"`)}
       </code>
     </pre>
     <h2> {Component.text("Dynamic Dependencies")} </h2>
-    <p> {Component.text("Effects re-track dependencies on each execution, adapting to conditional logic:")} </p>
+    <p>
+      {Component.text("Effects re-track dependencies on each execution, adapting to conditional logic:")}
+    </p>
     <pre>
       <code>
         {Component.text(`let showDetails = Signal.make(false)
@@ -232,7 +261,9 @@ Effect.run(() => {
       </code>
     </pre>
     <h2> {Component.text("Example: Auto-save")} </h2>
-    <p> {Component.text("Here's a practical example of an auto-save effect with proper cleanup:")} </p>
+    <p>
+      {Component.text("Here's a practical example of an auto-save effect with proper cleanup:")}
+    </p>
     <pre>
       <code>
         {Component.text(`open Xote
@@ -273,31 +304,27 @@ Effect.run(() => {
     <ul>
       <li>
         <strong> {Component.text("Keep effects focused:")} </strong>
-        {Component.text(" Each effect should do one thing")}
+      {Component.text(" Each effect should do one thing")}
       </li>
       <li>
         <strong> {Component.text("Clean up resources:")} </strong>
-        {Component.text(" Return cleanup functions for timers, listeners, subscriptions, etc.")}
+      {Component.text(" Return cleanup functions for timers, listeners, subscriptions, etc.")}
       </li>
       <li>
         <strong> {Component.text("Dispose effects:")} </strong>
-        {Component.text(
-          " Use the disposer when effects are no longer needed (e.g., component unmount)",
-        )}
+      {Component.text(" Use the disposer when effects are no longer needed (e.g., component unmount)")}
       </li>
       <li>
         <strong> {Component.text("Avoid infinite loops:")} </strong>
-        {Component.text(
-          " Don't set signals that the effect depends on (unless using equality checks)",
-        )}
+      {Component.text(" Don't set signals that the effect depends on (unless using equality checks)")}
       </li>
       <li>
         <strong> {Component.text("Use for side effects only:")} </strong>
-        {Component.text(" Effects should not compute values (use Computed instead)")}
+      {Component.text(" Effects should not compute values (use Computed instead)")}
       </li>
       <li>
         <strong> {Component.text("Return None when no cleanup needed:")} </strong>
-        {Component.text(" Be explicit about cleanup needs")}
+      {Component.text(" Be explicit about cleanup needs")}
       </li>
     </ul>
     <h2> {Component.text("Effects vs Computed")} </h2>
@@ -343,17 +370,17 @@ Effect.run(() => {
     <ul>
       <li>
         {Component.text("Learn about ")}
-        {Router.link(~to="/docs/core-concepts/batching", ~children=[Component.text("Batching")], ())}
-        {Component.text(" to optimize multiple updates")}
+      {Router.link(~to="/docs/core-concepts/batching", ~children=[Component.text("Batching")], ())}
+      {Component.text(" to optimize multiple updates")}
       </li>
       <li>
         {Component.text("See how effects work in ")}
-        {Router.link(~to="/docs/components/overview", ~children=[Component.text("Components")], ())}
+      {Router.link(~to="/docs/components/overview", ~children=[Component.text("Components")], ())}
       </li>
       <li>
         {Component.text("Try the ")}
-        {Router.link(~to="/demos", ~children=[Component.text("Demos")], ())}
-        {Component.text(" to see effects in action")}
+      {Router.link(~to="/demos", ~children=[Component.text("Demos")], ())}
+      {Component.text(" to see effects in action")}
       </li>
     </ul>
   </div>

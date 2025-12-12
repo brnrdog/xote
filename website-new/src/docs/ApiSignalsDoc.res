@@ -1,6 +1,6 @@
 // ****************************************************
 // * THIS FILE IS GENERATED - DO NOT EDIT MANUALLY! *
-// * Generated from: ../../api-docs/signals.md
+// * Generated from: ../../content/api-reference/signals.md
 // * To update: modify the markdown file and run:
 // *   npm run generate-api-docs
 // ****************************************************

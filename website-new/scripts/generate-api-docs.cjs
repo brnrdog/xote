@@ -3,15 +3,30 @@
 /**
  * Generate ReScript documentation components from Markdown files
  *
- * This script converts markdown files in api-docs/ to ReScript
+ * This script converts markdown files in content/ to ReScript
  * components in src/docs/ with proper Xote JSX syntax.
  */
 
 const fs = require('fs');
 const path = require('path');
+const { glob } = require('glob');
 
-const API_DOCS_DIR = path.join(__dirname, '../api-docs');
+const CONTENT_DIR = path.join(__dirname, '../content');
 const OUTPUT_DIR = path.join(__dirname, '../src/docs');
+
+// Mapping from markdown file paths to output component names
+const FILE_MAPPING = {
+  'getting-started/introduction.md': 'IntroDoc.res',
+  'core-concepts/signals.md': 'SignalsDoc.res',
+  'core-concepts/computed.md': 'ComputedDoc.res',
+  'core-concepts/effects.md': 'EffectsDoc.res',
+  'core-concepts/batching.md': 'BatchingDoc.res',
+  'components/overview.md': 'ComponentsDoc.res',
+  'router/overview.md': 'RouterDoc.res',
+  'api-reference/signals.md': 'ApiSignalsDoc.res',
+  'comparisons/react.md': 'ReactComparisonDoc.res',
+  'advanced/technical-overview.md': 'TechnicalOverviewDoc.res'
+};
 
 /**
  * Escape special characters for ReScript strings
@@ -33,6 +48,10 @@ function convertMarkdownToNodes(markdown) {
   let inCodeBlock = false;
   let codeBlockContent = [];
   let codeBlockLang = '';
+  let inBlockquote = false;
+  let blockquoteContent = [];
+  let inTable = false;
+  let tableLines = [];
 
   while (i < lines.length) {
     const line = lines[i];
@@ -65,6 +84,46 @@ function convertMarkdownToNodes(markdown) {
       continue;
     }
 
+    // Blockquotes (info boxes)
+    if (line.startsWith('> ')) {
+      if (!inBlockquote) {
+        inBlockquote = true;
+        blockquoteContent = [];
+      }
+      blockquoteContent.push(line.slice(2));
+      i++;
+      continue;
+    } else if (inBlockquote && line.trim() === '') {
+      // Continue blockquote on empty line
+      i++;
+      continue;
+    } else if (inBlockquote) {
+      // End of blockquote
+      nodes.push({ type: 'blockquote', text: blockquoteContent.join('\n') });
+      inBlockquote = false;
+      blockquoteContent = [];
+      // Don't increment i, process this line
+      continue;
+    }
+
+    // Tables
+    if (line.startsWith('|')) {
+      if (!inTable) {
+        inTable = true;
+        tableLines = [];
+      }
+      tableLines.push(line);
+      i++;
+      continue;
+    } else if (inTable) {
+      // End of table
+      nodes.push({ type: 'table', lines: tableLines });
+      inTable = false;
+      tableLines = [];
+      // Don't increment i, process this line
+      continue;
+    }
+
     // Headings
     if (line.startsWith('# ')) {
       nodes.push({ type: 'h1', text: line.slice(2) });
@@ -87,6 +146,16 @@ function convertMarkdownToNodes(markdown) {
         i++;
       }
       nodes.push({ type: 'ul', items });
+      continue;
+    }
+    // Ordered lists
+    else if (/^\d+\. /.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\d+\. /.test(lines[i])) {
+        items.push(lines[i].replace(/^\d+\. /, ''));
+        i++;
+      }
+      nodes.push({ type: 'ol', items });
       continue;
     }
     // Paragraphs
@@ -198,7 +267,7 @@ function generateInlineJSX(text) {
       case 'code':
         return `<code> {Component.text("${escapeForReScript(part.value)}")} </code>`;
       case 'link':
-        if (part.url.startsWith('/docs/')) {
+        if (part.url.startsWith('/')) {
           return `{Router.link(~to="${part.url}", ~children=[Component.text("${escapeForReScript(part.text)}")], ())}`;
         } else {
           return `<a href="${part.url}" target="_blank"> {Component.text("${escapeForReScript(part.text)}")} </a>`;
@@ -209,6 +278,23 @@ function generateInlineJSX(text) {
   });
 
   return elements.join('\n      ');
+}
+
+/**
+ * Parse table markdown
+ */
+function parseTable(lines) {
+  // Extract rows
+  const rows = lines.filter(line => line.trim() !== '' && !line.includes('---'));
+
+  if (rows.length === 0) return null;
+
+  const headers = rows[0].split('|').map(h => h.trim()).filter(h => h);
+  const bodyRows = rows.slice(1).map(row =>
+    row.split('|').map(cell => cell.trim()).filter(cell => cell !== '')
+  );
+
+  return { headers, bodyRows };
 }
 
 /**
@@ -227,14 +313,37 @@ function generateJSX(nodes) {
         return `    <h4> {Component.text("${escapeForReScript(node.text)}")} </h4>`;
       case 'p':
         return `    <p>\n      ${generateInlineJSX(node.text)}\n    </p>`;
+      case 'blockquote':
+        return `    <div class="info-box">\n      <p>\n        ${generateInlineJSX(node.text)}\n      </p>\n    </div>`;
       case 'pre':
         const codeText = escapeForReScript(node.children[0].text);
         return `    <pre>\n      <code>\n        {Component.text(\`${codeText}\`)}\n      </code>\n    </pre>`;
       case 'ul':
-        const items = node.items.map(item =>
+        const ulItems = node.items.map(item =>
           `      <li>\n        ${generateInlineJSX(item)}\n      </li>`
         ).join('\n');
-        return `    <ul>\n${items}\n    </ul>`;
+        return `    <ul>\n${ulItems}\n    </ul>`;
+      case 'ol':
+        const olItems = node.items.map(item =>
+          `      <li>\n        ${generateInlineJSX(item)}\n      </li>`
+        ).join('\n');
+        return `    <ol>\n${olItems}\n    </ol>`;
+      case 'table':
+        const table = parseTable(node.lines);
+        if (!table) return '';
+
+        const headerCells = table.headers.map(h =>
+          `          <th> ${generateInlineJSX(h)} </th>`
+        ).join('\n');
+
+        const bodyRowsJSX = table.bodyRows.map(row => {
+          const cells = row.map(cell =>
+            `          <td> ${generateInlineJSX(cell)} </td>`
+          ).join('\n');
+          return `        <tr>\n${cells}\n        </tr>`;
+        }).join('\n');
+
+        return `    <table>\n      <thead>\n        <tr>\n${headerCells}\n        </tr>\n      </thead>\n      <tbody>\n${bodyRowsJSX}\n      </tbody>\n    </table>`;
       case 'hr':
         return `    <hr />`;
       default:
@@ -277,8 +386,8 @@ ${jsx}
  * Main function
  */
 function main() {
-  if (!fs.existsSync(API_DOCS_DIR)) {
-    console.error(`Error: API docs directory not found: ${API_DOCS_DIR}`);
+  if (!fs.existsSync(CONTENT_DIR)) {
+    console.error(`Error: Content directory not found: ${CONTENT_DIR}`);
     process.exit(1);
   }
 
@@ -286,26 +395,23 @@ function main() {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
-  const files = fs.readdirSync(API_DOCS_DIR)
-    .filter(file => file.endsWith('.md'));
+  console.log(`Generating documentation components...\n`);
 
-  if (files.length === 0) {
-    console.log('No markdown files found in api-docs/');
-    return;
-  }
+  let count = 0;
+  for (const [relativePath, outputName] of Object.entries(FILE_MAPPING)) {
+    const markdownPath = path.join(CONTENT_DIR, relativePath);
+    const outputPath = path.join(OUTPUT_DIR, outputName);
 
-  console.log(`Generating API documentation components...\n`);
-
-  files.forEach(file => {
-    const baseName = path.basename(file, '.md');
-    const componentName = baseName.charAt(0).toUpperCase() + baseName.slice(1) + 'Doc';
-    const markdownPath = path.join(API_DOCS_DIR, file);
-    const outputPath = path.join(OUTPUT_DIR, `Api${componentName}.res`);
+    if (!fs.existsSync(markdownPath)) {
+      console.warn(`⚠ Warning: Markdown file not found: ${relativePath}`);
+      continue;
+    }
 
     convertMarkdownToComponent(markdownPath, outputPath);
-  });
+    count++;
+  }
 
-  console.log(`\n✓ Generated ${files.length} component(s)`);
+  console.log(`\n✓ Generated ${count} component(s)`);
 }
 
 main();

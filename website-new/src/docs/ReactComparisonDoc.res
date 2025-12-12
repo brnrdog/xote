@@ -1,12 +1,17 @@
+// ****************************************************
+// * THIS FILE IS GENERATED - DO NOT EDIT MANUALLY! *
+// * Generated from: ../../content/comparisons/react.md
+// * To update: modify the markdown file and run:
+// *   npm run generate-api-docs
+// ****************************************************
+
 open Xote
 
 let content = () => {
   <div>
     <h1> {Component.text("Comparing Xote with React")} </h1>
     <p>
-      {Component.text(
-        "This guide compares Xote with React to help you understand the differences in philosophy, API design, and when to choose each framework.",
-      )}
+      {Component.text("This guide compares Xote with React to help you understand the differences in philosophy, API design, and when to choose each framework.")}
     </p>
     <h2> {Component.text("Philosophy")} </h2>
     <table>
@@ -93,22 +98,44 @@ let counter = () => {
     </pre>
     <h2> {Component.text("Key Differences")} </h2>
     <h3> {Component.text("1. Reactivity Model")} </h3>
-    <p> <strong> {Component.text("React:")} </strong> </p>
+    <p>
+      <strong> {Component.text("React:")} </strong>
+    </p>
     <ul>
-      <li> {Component.text("Re-renders entire component on state change")} </li>
-      <li> {Component.text("Virtual DOM diffing determines what changed")} </li>
-      <li> {Component.text("Batches updates automatically")} </li>
-      <li> {Component.text("May re-render child components unnecessarily")} </li>
+      <li>
+        {Component.text("Re-renders entire component on state change")}
+      </li>
+      <li>
+        {Component.text("Virtual DOM diffing determines what changed")}
+      </li>
+      <li>
+        {Component.text("Batches updates automatically")}
+      </li>
+      <li>
+        {Component.text("May re-render child components unnecessarily")}
+      </li>
     </ul>
-    <p> <strong> {Component.text("Xote:")} </strong> </p>
+    <p>
+      <strong> {Component.text("Xote:")} </strong>
+    </p>
     <ul>
-      <li> {Component.text("Updates only the specific DOM nodes that depend on changed signals")} </li>
-      <li> {Component.text("No virtual DOM - direct DOM manipulation")} </li>
-      <li> {Component.text("Synchronous updates by default")} </li>
-      <li> {Component.text("Minimal overhead per update")} </li>
+      <li>
+        {Component.text("Updates only the specific DOM nodes that depend on changed signals")}
+      </li>
+      <li>
+        {Component.text("No virtual DOM - direct DOM manipulation")}
+      </li>
+      <li>
+        {Component.text("Synchronous updates by default")}
+      </li>
+      <li>
+        {Component.text("Minimal overhead per update")}
+      </li>
     </ul>
     <h3> {Component.text("2. Side Effects and Dependencies")} </h3>
-    <p> <strong> {Component.text("React useEffect:")} </strong> </p>
+    <p>
+      <strong> {Component.text("React useEffect:")} </strong>
+    </p>
     <pre>
       <code>
         {Component.text(`// React - Manual dependency array
@@ -117,7 +144,9 @@ useEffect(() => {
 }, [count]); // Must manually specify dependencies`)}
       </code>
     </pre>
-    <p> <strong> {Component.text("Xote Effect:")} </strong> </p>
+    <p>
+      <strong> {Component.text("Xote Effect:")} </strong>
+    </p>
     <pre>
       <code>
         {Component.text(`// Xote - Automatic dependency tracking
@@ -127,7 +156,9 @@ Effect.run(() => {
 })`)}
       </code>
     </pre>
-    <p> <strong> {Component.text("Key difference:")} </strong> </p>
+    <p>
+      <strong> {Component.text("Key difference:")} </strong>
+    </p>
     <ul>
       <li>
         {Component.text("React requires manual dependency arrays - risk of stale closures and bugs")}
@@ -137,14 +168,18 @@ Effect.run(() => {
       </li>
     </ul>
     <h3> {Component.text("3. Derived State")} </h3>
-    <p> <strong> {Component.text("React useMemo:")} </strong> </p>
+    <p>
+      <strong> {Component.text("React useMemo:")} </strong>
+    </p>
     <pre>
       <code>
         {Component.text(`// React - Must specify dependencies
 const doubled = useMemo(() => count * 2, [count]);`)}
       </code>
     </pre>
-    <p> <strong> {Component.text("Xote Computed:")} </strong> </p>
+    <p>
+      <strong> {Component.text("Xote Computed:")} </strong>
+    </p>
     <pre>
       <code>
         {Component.text(`// Xote - Automatic tracking
@@ -152,17 +187,33 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
       </code>
     </pre>
     <h3> {Component.text("4. Component Lifecycle")} </h3>
-    <p> <strong> {Component.text("React:")} </strong> </p>
+    <p>
+      <strong> {Component.text("React:")} </strong>
+    </p>
     <ul>
-      <li> {Component.text("Components are functions that re-execute on every render")} </li>
-      <li> {Component.text("Hooks must follow rules of hooks (order matters)")} </li>
-      <li> {Component.text("useEffect cleanup functions for teardown")} </li>
+      <li>
+        {Component.text("Components are functions that re-execute on every render")}
+      </li>
+      <li>
+        {Component.text("Hooks must follow rules of hooks (order matters)")}
+      </li>
+      <li>
+        {Component.text("useEffect cleanup functions for teardown")}
+      </li>
     </ul>
-    <p> <strong> {Component.text("Xote:")} </strong> </p>
+    <p>
+      <strong> {Component.text("Xote:")} </strong>
+    </p>
     <ul>
-      <li> {Component.text("Components are functions that execute once")} </li>
-      <li> {Component.text("Signals/effects created inside persist")} </li>
-      <li> {Component.text("Effect cleanup via Some(cleanupFn) return values")} </li>
+      <li>
+        {Component.text("Components are functions that execute once")}
+      </li>
+      <li>
+        {Component.text("Signals/effects created inside persist")}
+      </li>
+      <li>
+        {Component.text("Effect cleanup via Some(cleanupFn) return values")}
+      </li>
     </ul>
     <h2> {Component.text("Code Comparison: Todo List")} </h2>
     <h3> {Component.text("React Version")} </h3>
@@ -230,128 +281,170 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
     <ul>
       <li>
         <strong> {Component.text("Large ecosystem needed:")} </strong>
-        {Component.text(
-          " Need access to thousands of React libraries, UI components, and tools",
-        )}
+      {Component.text(" Need access to thousands of React libraries, UI components, and tools")}
       </li>
       <li>
         <strong> {Component.text("Team experience:")} </strong>
-        {Component.text(" Team is already proficient in React and JavaScript/TypeScript")}
+      {Component.text(" Team is already proficient in React and JavaScript/TypeScript")}
       </li>
       <li>
         <strong> {Component.text("Server-side rendering:")} </strong>
-        {Component.text(" Need Next.js or other mature SSR solutions")}
+      {Component.text(" Need Next.js or other mature SSR solutions")}
       </li>
       <li>
         <strong> {Component.text("Mobile apps:")} </strong>
-        {Component.text(" Want to use React Native for cross-platform development")}
+      {Component.text(" Want to use React Native for cross-platform development")}
       </li>
       <li>
         <strong> {Component.text("Hiring:")} </strong>
-        {Component.text(" Easier to find React developers in the job market")}
+      {Component.text(" Easier to find React developers in the job market")}
       </li>
     </ul>
     <h2> {Component.text("When to Choose Xote")} </h2>
     <ul>
       <li>
         <strong> {Component.text("Fine-grained reactivity:")} </strong>
-        {Component.text(" Need precise, efficient updates without virtual DOM overhead")}
+      {Component.text(" Need precise, efficient updates without virtual DOM overhead")}
       </li>
       <li>
         <strong> {Component.text("Type safety:")} </strong>
-        {Component.text(" Want ReScript's powerful type system and compiler guarantees")}
+      {Component.text(" Want ReScript's powerful type system and compiler guarantees")}
       </li>
       <li>
         <strong> {Component.text("Small bundle size:")} </strong>
-        {Component.text(" Every kilobyte counts for your use case")}
+      {Component.text(" Every kilobyte counts for your use case")}
       </li>
       <li>
         <strong> {Component.text("Learning signals:")} </strong>
-        {Component.text(
-          " Want to explore signal-based reactivity aligned with TC39 proposal",
-        )}
+      {Component.text(" Want to explore signal-based reactivity aligned with TC39 proposal")}
       </li>
       <li>
         <strong> {Component.text("Functional programming:")} </strong>
-        {Component.text(" Prefer ReScript's functional approach over JavaScript")}
+      {Component.text(" Prefer ReScript's functional approach over JavaScript")}
       </li>
       <li>
         <strong> {Component.text("Minimal dependencies:")} </strong>
-        {Component.text(" Want a focused library without a large ecosystem dependency")}
+      {Component.text(" Want a focused library without a large ecosystem dependency")}
       </li>
     </ul>
     <h2> {Component.text("Performance Comparison")} </h2>
     <h3> {Component.text("React")} </h3>
-    <p> <strong> {Component.text("Pros:")} </strong> </p>
+    <p>
+      <strong> {Component.text("Pros:")} </strong>
+    </p>
     <ul>
-      <li> {Component.text("Highly optimized virtual DOM diffing")} </li>
-      <li> {Component.text("Automatic batching of updates in React 18+")} </li>
-      <li> {Component.text("Concurrent rendering features")} </li>
-      <li> {Component.text("Memo and useMemo for optimization")} </li>
+      <li>
+        {Component.text("Highly optimized virtual DOM diffing")}
+      </li>
+      <li>
+        {Component.text("Automatic batching of updates in React 18+")}
+      </li>
+      <li>
+        {Component.text("Concurrent rendering features")}
+      </li>
+      <li>
+        {Component.text("Memo and useMemo for optimization")}
+      </li>
     </ul>
-    <p> <strong> {Component.text("Cons:")} </strong> </p>
+    <p>
+      <strong> {Component.text("Cons:")} </strong>
+    </p>
     <ul>
-      <li> {Component.text("Virtual DOM overhead for all updates")} </li>
-      <li> {Component.text("Re-renders can cascade through component tree")} </li>
-      <li> {Component.text("Requires manual optimization (React.memo, useMemo)")} </li>
-      <li> {Component.text("Larger bundle size")} </li>
+      <li>
+        {Component.text("Virtual DOM overhead for all updates")}
+      </li>
+      <li>
+        {Component.text("Re-renders can cascade through component tree")}
+      </li>
+      <li>
+        {Component.text("Requires manual optimization (React.memo, useMemo)")}
+      </li>
+      <li>
+        {Component.text("Larger bundle size")}
+      </li>
     </ul>
     <h3> {Component.text("Xote")} </h3>
-    <p> <strong> {Component.text("Pros:")} </strong> </p>
+    <p>
+      <strong> {Component.text("Pros:")} </strong>
+    </p>
     <ul>
-      <li> {Component.text("Direct DOM updates - no virtual DOM overhead")} </li>
-      <li> {Component.text("Fine-grained reactivity - only affected nodes update")} </li>
-      <li> {Component.text("No unnecessary component re-renders")} </li>
-      <li> {Component.text("Smaller bundle size (~5x smaller)")} </li>
+      <li>
+        {Component.text("Direct DOM updates - no virtual DOM overhead")}
+      </li>
+      <li>
+        {Component.text("Fine-grained reactivity - only affected nodes update")}
+      </li>
+      <li>
+        {Component.text("No unnecessary component re-renders")}
+      </li>
+      <li>
+        {Component.text("Smaller bundle size (~5x smaller)")}
+      </li>
     </ul>
-    <p> <strong> {Component.text("Cons:")} </strong> </p>
+    <p>
+      <strong> {Component.text("Cons:")} </strong>
+    </p>
     <ul>
-      <li> {Component.text("List updates replace all children (no diffing/reconciliation)")} </li>
-      <li> {Component.text("Less battle-tested than React")} </li>
-      <li> {Component.text("Smaller community and fewer optimization resources")} </li>
+      <li>
+        {Component.text("List updates replace all children (no diffing/reconciliation)")}
+      </li>
+      <li>
+        {Component.text("Less battle-tested than React")}
+      </li>
+      <li>
+        {Component.text("Smaller community and fewer optimization resources")}
+      </li>
     </ul>
     <h2> {Component.text("Migration Considerations")} </h2>
     <h3> {Component.text("From React to Xote")} </h3>
-    <p> {Component.text("Key concepts that map over:")} </p>
+    <p>
+      {Component.text("Key concepts that map over:")}
+    </p>
     <ul>
       <li>
         <code> {Component.text("useState")} </code>
-        {Component.text(" → ")}
-        <code> {Component.text("Signal.make")} </code>
+      {Component.text(" → ")}
+      <code> {Component.text("Signal.make")} </code>
       </li>
       <li>
         <code> {Component.text("useMemo")} </code>
-        {Component.text(" → ")}
-        <code> {Component.text("Computed.make")} </code>
+      {Component.text(" → ")}
+      <code> {Component.text("Computed.make")} </code>
       </li>
       <li>
         <code> {Component.text("useEffect")} </code>
-        {Component.text(" → ")}
-        <code> {Component.text("Effect.run")} </code>
+      {Component.text(" → ")}
+      <code> {Component.text("Effect.run")} </code>
       </li>
       <li>
         <code> {Component.text("JSX")} </code>
-        {Component.text(" → ")}
-        <code> {Component.text("Xote JSX (similar syntax)")} </code>
+      {Component.text(" → ")}
+      <code> {Component.text("Xote JSX (similar syntax)")} </code>
       </li>
     </ul>
-    <p> {Component.text("Challenges:")} </p>
+    <p>
+      {Component.text("Challenges:")}
+    </p>
     <ul>
-      <li> {Component.text("Learning ReScript syntax and type system")} </li>
-      <li> {Component.text("Different mental model (signals vs. re-renders)")} </li>
-      <li> {Component.text("No direct equivalent for many React libraries")} </li>
-      <li> {Component.text("Need to rethink component composition patterns")} </li>
+      <li>
+        {Component.text("Learning ReScript syntax and type system")}
+      </li>
+      <li>
+        {Component.text("Different mental model (signals vs. re-renders)")}
+      </li>
+      <li>
+        {Component.text("No direct equivalent for many React libraries")}
+      </li>
+      <li>
+        {Component.text("Need to rethink component composition patterns")}
+      </li>
     </ul>
     <h2> {Component.text("Conclusion")} </h2>
     <p>
-      {Component.text(
-        "React and Xote take fundamentally different approaches to reactivity. React's virtual DOM and re-rendering model is mature, well-understood, and backed by a massive ecosystem. Xote's signal-based fine-grained reactivity offers performance benefits and a simpler mental model, but with a smaller ecosystem.",
-      )}
+      {Component.text("React and Xote take fundamentally different approaches to reactivity. React's virtual DOM and re-rendering model is mature, well-understood, and backed by a massive ecosystem. Xote's signal-based fine-grained reactivity offers performance benefits and a simpler mental model, but with a smaller ecosystem.")}
     </p>
     <p>
-      {Component.text(
-        "Choose React if you need the ecosystem, tooling, and community. Choose Xote if you value type safety, minimal bundle size, and want to explore signal-based reactivity with ReScript.",
-      )}
+      {Component.text("Choose React if you need the ecosystem, tooling, and community. Choose Xote if you value type safety, minimal bundle size, and want to explore signal-based reactivity with ReScript.")}
     </p>
     <h2> {Component.text("Further Reading")} </h2>
     <ul>
@@ -362,14 +455,10 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
         {Router.link(~to="/docs/components/overview", ~children=[Component.text("Xote Components")], ())}
       </li>
       <li>
-        <a href="https://react.dev" target="_blank">
-          {Component.text("React Documentation")}
-        </a>
+        <a href="https://react.dev" target="_blank"> {Component.text("React Documentation")} </a>
       </li>
       <li>
-        <a href="https://github.com/tc39/proposal-signals" target="_blank">
-          {Component.text("TC39 Signals Proposal")}
-        </a>
+        <a href="https://github.com/tc39/proposal-signals" target="_blank"> {Component.text("TC39 Signals Proposal")} </a>
       </li>
     </ul>
   </div>

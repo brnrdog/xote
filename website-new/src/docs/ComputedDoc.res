@@ -1,32 +1,33 @@
+// ****************************************************
+// * THIS FILE IS GENERATED - DO NOT EDIT MANUALLY! *
+// * Generated from: ../../content/core-concepts/computed.md
+// * To update: modify the markdown file and run:
+// *   npm run generate-api-docs
+// ****************************************************
+
 open Xote
 
 let content = () => {
   <div>
     <h1> {Component.text("Computed Values")} </h1>
     <p>
-      {Component.text(
-        "Computed values are derived signals that automatically recalculate when their dependencies change. They're perfect for deriving state from other reactive sources.",
-      )}
+      {Component.text("Computed values are derived signals that automatically recalculate when their dependencies change. They're perfect for deriving state from other reactive sources.")}
     </p>
     <div class="info-box">
       <p>
         <strong> {Component.text("Info:")} </strong>
-        {Component.text("Xote re-exports ")}
-        <code> {Component.text("Computed")} </code>
-        {Component.text(" from ")}
-        <a href="https://github.com/pedrobslisboa/rescript-signals" target="_blank">
-          {Component.text("rescript-signals")}
-        </a>
-        {Component.text(". The API and behavior are provided by that library.")}
+      {Component.text(" Xote re-exports ")}
+      <code> {Component.text("Computed")} </code>
+      {Component.text(" from ")}
+      <a href="https://github.com/pedrobslisboa/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
+      {Component.text(". The API and behavior are provided by that library.")}
       </p>
     </div>
     <h2> {Component.text("Creating Computed Values")} </h2>
     <p>
       {Component.text("Use ")}
       <code> {Component.text("Computed.make()")} </code>
-      {Component.text(
-        " with a function that computes the derived value. It returns the computed signal:",
-      )}
+      {Component.text(" with a function that computes the derived value. It returns the computed signal:")}
     </p>
     <pre>
       <code>
@@ -45,17 +46,25 @@ Console.log(Signal.get(fullName)) // "John Doe"`)}
       </code>
     </pre>
     <h2> {Component.text("How Computed Values Work")} </h2>
-    <p> {Component.text("Computed values are push-based (eager), not pull-based (lazy):")} </p>
+    <p>
+      {Component.text("Computed values are push-based (eager), not pull-based (lazy):")}
+    </p>
     <ol>
-      <li> {Component.text("When created, the computation runs immediately to establish dependencies")} </li>
-      <li> {Component.text("When any dependency changes, the computed automatically recalculates")} </li>
-      <li> {Component.text("The new value is pushed to a backing signal")} </li>
-      <li> {Component.text("Any observers of the computed are notified")} </li>
+      <li>
+        {Component.text("When created, the computation runs immediately to establish dependencies")}
+      </li>
+      <li>
+        {Component.text("When any dependency changes, the computed automatically recalculates")}
+      </li>
+      <li>
+        {Component.text("The new value is pushed to a backing signal")}
+      </li>
+      <li>
+        {Component.text("Any observers of the computed are notified")}
+      </li>
     </ol>
     <p>
-      {Component.text(
-        "This means computed values are always up-to-date, but they may recalculate even if their value is never read.",
-      )}
+      {Component.text("This means computed values are always up-to-date, but they may recalculate even if their value is never read.")}
     </p>
     <h2> {Component.text("Reading Computed Values")} </h2>
     <p>
@@ -76,11 +85,7 @@ Console.log(Signal.get(doubled)) // Prints: 20`)}
     </pre>
     <h2> {Component.text("Automatic Disposal")} </h2>
     <p>
-      <strong>
-        {Component.text(
-          "Computed values automatically dispose when they lose all subscribers - you don't need to manually call Computed.dispose() in most cases!",
-        )}
-      </strong>
+      <strong> {Component.text("Computed values automatically dispose when they lose all subscribers - you don't need to manually call Computed.dispose() in most cases!")} </strong>
     </p>
     <pre>
       <code>
@@ -103,7 +108,9 @@ Signal.set(count, 10)
 // doubled doesn't recompute anymore (it was auto-disposed)`)}
       </code>
     </pre>
-    <p> {Component.text("This works seamlessly with Components:")} </p>
+    <p>
+      {Component.text("This works seamlessly with Components:")}
+    </p>
     <pre>
       <code>
         {Component.text(`let app = () => {
@@ -122,7 +129,9 @@ Signal.set(count, 10)
       </code>
     </pre>
     <h3> {Component.text("Manual Disposal (Optional)")} </h3>
-    <p> {Component.text("You can still manually dispose computeds when needed:")} </p>
+    <p>
+      {Component.text("You can still manually dispose computeds when needed:")}
+    </p>
     <pre>
       <code>
         {Component.text(`let count = Signal.make(0)
@@ -135,14 +144,24 @@ Console.log(Signal.get(doubled))
 Computed.dispose(doubled)`)}
       </code>
     </pre>
-    <p> <strong> {Component.text("Manual disposal is useful when:")} </strong> </p>
+    <p>
+      <strong> {Component.text("Manual disposal is useful when:")} </strong>
+    </p>
     <ul>
-      <li> {Component.text("You want explicit control over lifecycle")} </li>
-      <li> {Component.text("The computed has no subscribers but you want to stop it anyway")} </li>
-      <li> {Component.text("You're managing complex dependency graphs manually")} </li>
+      <li>
+        {Component.text("You want explicit control over lifecycle")}
+      </li>
+      <li>
+        {Component.text("The computed has no subscribers but you want to stop it anyway")}
+      </li>
+      <li>
+        {Component.text("You're managing complex dependency graphs manually")}
+      </li>
     </ul>
     <h2> {Component.text("Chaining Computed Values")} </h2>
-    <p> {Component.text("You can create computed values that depend on other computed values:")} </p>
+    <p>
+      {Component.text("You can create computed values that depend on other computed values:")}
+    </p>
     <pre>
       <code>
         {Component.text(`let price = Signal.make(100)
@@ -167,7 +186,9 @@ Console.log(Signal.get(total)) // 550`)}
       </code>
     </pre>
     <h2> {Component.text("Computed vs Manual Updates")} </h2>
-    <p> {Component.text("Instead of manually updating derived state:")} </p>
+    <p>
+      {Component.text("Instead of manually updating derived state:")}
+    </p>
     <pre>
       <code>
         {Component.text(`// ❌ Manual (error-prone)
@@ -180,7 +201,9 @@ let increment = () => {
 }`)}
       </code>
     </pre>
-    <p> {Component.text("Use computed values for automatic updates:")} </p>
+    <p>
+      {Component.text("Use computed values for automatic updates:")}
+    </p>
     <pre>
       <code>
         {Component.text(`// ✅ Automatic (safe)
@@ -195,9 +218,7 @@ let increment = () => {
     </pre>
     <h2> {Component.text("Dynamic Dependencies")} </h2>
     <p>
-      {Component.text(
-        "Computed values re-track dependencies on every execution, so they adapt to control flow:",
-      )}
+      {Component.text("Computed values re-track dependencies on every execution, so they adapt to control flow:")}
     </p>
     <pre>
       <code>
@@ -225,32 +246,30 @@ Console.log(Signal.get(temperature)) // 68`)}
     <ul>
       <li>
         <strong> {Component.text("Keep computations pure:")} </strong>
-        {Component.text(" Computed functions should not have side effects")}
+      {Component.text(" Computed functions should not have side effects")}
       </li>
       <li>
         <strong> {Component.text("Use for derived state:")} </strong>
-        {Component.text(
-          " Any value that can be calculated from other signals should be a computed",
-        )}
+      {Component.text(" Any value that can be calculated from other signals should be a computed")}
       </li>
       <li>
         <strong> {Component.text("Avoid expensive operations:")} </strong>
-        {Component.text(" Computed values recalculate eagerly, so keep them fast")}
+      {Component.text(" Computed values recalculate eagerly, so keep them fast")}
       </li>
       <li>
         <strong> {Component.text("Don't nest effects:")} </strong>
-        {Component.text(" Computed values should not call Effect.run() internally")}
+      {Component.text(" Computed values should not call Effect.run() internally")}
       </li>
       <li>
         <strong> {Component.text("Trust auto-disposal:")} </strong>
-        {Component.text(
-          " In most cases, computeds will automatically clean up when their subscribers are disposed. Manual disposal is rarely needed",
-        )}
+      {Component.text(" In most cases, computeds will automatically clean up when their subscribers are disposed. Manual disposal is rarely needed")}
       </li>
     </ul>
     <h2> {Component.text("Important Notes")} </h2>
     <h3> {Component.text("Cascading Auto-Disposal")} </h3>
-    <p> {Component.text("Auto-disposal can cascade through chains of computeds:")} </p>
+    <p>
+      {Component.text("Auto-disposal can cascade through chains of computeds:")}
+    </p>
     <pre>
       <code>
         {Component.text(`let count = Signal.make(0)
@@ -270,12 +289,12 @@ disposer.dispose()
       </code>
     </pre>
     <p>
-      {Component.text(
-        "This ensures the entire chain is cleaned up automatically when the leaf subscriber is removed!",
-      )}
+      {Component.text("This ensures the entire chain is cleaned up automatically when the leaf subscriber is removed!")}
     </p>
     <h3> {Component.text("Push-based, Not Lazy")} </h3>
-    <p> {Component.text("Unlike some reactive systems, Xote's computed values are eager:")} </p>
+    <p>
+      {Component.text("Unlike some reactive systems, Xote's computed values are eager:")}
+    </p>
     <pre>
       <code>
         {Component.text(`let count = Signal.make(0)
@@ -294,18 +313,18 @@ Signal.set(count, 5)
     <ul>
       <li>
         {Component.text("Learn about ")}
-        {Router.link(~to="/docs/core-concepts/effects", ~children=[Component.text("Effects")], ())}
-        {Component.text(" for side effects")}
+      {Router.link(~to="/docs/core-concepts/effects", ~children=[Component.text("Effects")], ())}
+      {Component.text(" for side effects")}
       </li>
       <li>
         {Component.text("Understand ")}
-        {Router.link(~to="/docs/core-concepts/batching", ~children=[Component.text("Batching")], ())}
-        {Component.text(" for grouping updates")}
+      {Router.link(~to="/docs/core-concepts/batching", ~children=[Component.text("Batching")], ())}
+      {Component.text(" for grouping updates")}
       </li>
       <li>
         {Component.text("See ")}
-        {Router.link(~to="/docs/components/overview", ~children=[Component.text("Components")], ())}
-        {Component.text(" to use computed values in UIs")}
+      {Router.link(~to="/docs/components/overview", ~children=[Component.text("Components")], ())}
+      {Component.text(" to use computed values in UIs")}
       </li>
     </ul>
   </div>
