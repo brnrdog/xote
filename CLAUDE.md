@@ -119,7 +119,7 @@ let app = () => {
 
 6. **Module naming**: Internal modules use `Xote__ModuleName` convention. The public API is `Xote.ModuleName`.
 
-7. **Batching not available**: The underlying rescript-signals library does not currently expose batching functionality. Updates run synchronously.
+7. **Batching**: Use `Signal.batch(() => { ... })` to group multiple signal updates and run observers only once after all updates complete. This is provided by rescript-signals.
 
 8. **Observer re-tracking**: Every time an observer runs, its dependencies are cleared and re-tracked. This ensures the dependency graph stays accurate even when control flow changes.
 
@@ -311,10 +311,9 @@ let app = () => {
 
 ## Known Limitations
 
-1. **No batching**: The underlying rescript-signals library doesn't expose batching functionality
-2. **Fragment/list updates**: Replace all children without diffing (no reconciliation algorithm)
-3. **Push-based computeds**: Computeds are eager (not lazy like TC39 proposal)
-4. **Structural equality only**: No custom equality functions for signals
+1. **Fragment/list updates**: Replace all children without diffing (no reconciliation algorithm)
+2. **Push-based computeds**: Computeds are eager (not lazy like TC39 proposal)
+3. **Structural equality by default**: Signals use structural equality by default (custom equality functions are available via `Signal.make(value, ~equals=...)`)
 
 ## Architecture Changes (v3.0+)
 
