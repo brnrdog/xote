@@ -7,6 +7,11 @@
       "public": ["Xote"]
     },
     {
+      "dir": "devtools",
+      "subdirs": false,
+      "public": ["XoteDevTools"]
+    },
+    {
       "dir": "demos",
       "subdirs": false
     }
