@@ -23,6 +23,9 @@ let content = () => {
       {Component.text(". The API and behavior are provided by that library.")}
       </p>
     </div>
+    <p>
+      {Component.text("Test")}
+    </p>
     <h2> {Component.text("Creating Computed Values")} </h2>
     <p>
       {Component.text("Use ")}

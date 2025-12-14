@@ -40,6 +40,7 @@ let incrementVersion = XoteDevTools__Registry.incrementVersion
 
 // Enable automatic tracking by patching global functions
 let enable = () => {
+  Console.log("=== XoteDevTools: AutoTrack enabled")
   if isEnabled.contents {
     () // Already enabled
   } else {

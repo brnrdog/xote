@@ -83,6 +83,7 @@ module Elements = {
     'strokeWidth,
     'strokeLinecap,
     'strokeMiterlimit,
+    'preserveAspectRatio,
     'd,
   > = {
     /* Standard attributes - can be static strings or reactive values */
@@ -99,6 +100,7 @@ module Elements = {
     strokeWidth?: 'strokeWidth,
     strokeLinecap?: 'strokeLinecap,
     strokeMiterlimit?: 'strokeMiterlimit,
+    preserveAspectRatio?: 'preserveAspectRatio,
     d?: 'd,
     /* Input attributes */
     @as("type") type_?: 'typ,
@@ -193,6 +195,7 @@ module Elements = {
     addAttr(attrs, "stroke-width", props.strokeWidth)
     addAttr(attrs, "stroke-linecap", props.strokeLinecap)
     addAttr(attrs, "stroke-miterlimit", props.strokeMiterlimit)
+    addAttr(attrs, "preserve-aspect-ratio", props.preserveAspectRatio)
     addAttr(attrs, "d", props.d)
 
     // Data attributes

@@ -45,7 +45,7 @@ module Hero = {
     <section class="hero">
       <div class="hero-container">
         <div class="hero-logo">
-          <Logo size=96 color="var(--secondary-color)" />
+          <Logo size=48 color="var(--secondary-color)" />
           <div class="logo"> {Component.text("xote")} </div>
         </div>
         <h1>
@@ -102,32 +102,34 @@ module CounterExample = {
     type props = {}
 
     let make = (_props: props) => {
-      let count = Signal.make(0)
+      Component.component(() => {
+        let count = Signal.make(0, ~name="HomePage.Counter.count")
 
-      let increment = (_evt: Dom.event) => {
-        Signal.update(count, n => n + 1)
-      }
+        let increment = (_evt: Dom.event) => {
+          Signal.update(count, n => n + 1)
+        }
 
-      let decrement = (_evt: Dom.event) => {
-        Signal.update(count, n => n - 1)
-      }
+        let decrement = (_evt: Dom.event) => {
+          Signal.update(count, n => n - 1)
+        }
 
-      let reset = (_evt: Dom.event) => {
-        Signal.set(count, 0)
-      }
+        let reset = (_evt: Dom.event) => {
+          Signal.set(count, 0)
+        }
 
-      <div class="counter-app">
-        <div class="counter-display">
-          {Component.textSignal(() => Signal.get(count)->Int.toString)}
+        <div class="counter-app">
+          <div class="counter-display">
+            {Component.textSignal(() => Signal.get(count)->Int.toString)}
+          </div>
+          <div class="counter-buttons">
+            <button onClick={decrement} class="counter-btn"> {Component.text("-")} </button>
+            <button onClick={reset} class="counter-btn counter-btn-reset">
+              {Component.text("Reset")}
+            </button>
+            <button onClick={increment} class="counter-btn"> {Component.text("+")} </button>
+          </div>
         </div>
-        <div class="counter-buttons">
-          <button onClick={decrement} class="counter-btn"> {Component.text("-")} </button>
-          <button onClick={reset} class="counter-btn counter-btn-reset">
-            {Component.text("Reset")}
-          </button>
-          <button onClick={increment} class="counter-btn"> {Component.text("+")} </button>
-        </div>
-      </div>
+      })
     }
   }
 
@@ -135,52 +137,54 @@ module CounterExample = {
     type props = {}
 
     let make = (_props: props) => {
-      let celsius = Signal.make(0.0)
+      Component.component(() => {
+        let celsius = Signal.make(0.0, ~name="HomePage.Temperature.celsius")
 
-      let fahrenheit = Computed.make(() => {
-        Signal.get(celsius) *. 9.0 /. 5.0 +. 32.0
-      })
+        let fahrenheit = Computed.make(() => {
+          Signal.get(celsius) *. 9.0 /. 5.0 +. 32.0
+        }, ~name="HomePage.Temperature.fahrenheit")
 
-      let kelvin = Computed.make(() => {
-        Signal.get(celsius) +. 273.15
-      })
+        let kelvin = Computed.make(() => {
+          Signal.get(celsius) +. 273.15
+        }, ~name="HomePage.Temperature.kelvin")
 
-      let handleInput = (evt: Dom.event) => {
-        let value = DomHelpers.targetValue(evt)
-        switch value->Float.fromString {
-        | Some(num) => Signal.set(celsius, num)
-        | None => ()
+        let handleInput = (evt: Dom.event) => {
+          let value = DomHelpers.targetValue(evt)
+          switch value->Float.fromString {
+          | Some(num) => Signal.set(celsius, num)
+          | None => ()
+          }
         }
-      }
 
-      <div class="temp-app">
-        <div class="temp-input-group">
-          <label class="temp-label"> {Component.text("Celsius")} </label>
-          {Component.input(
-            ~attrs=[
-              Component.attr("type", "number"),
-              Component.attr("class", "temp-input"),
-              Component.attr("placeholder", "0"),
-            ],
-            ~events=[("input", handleInput)],
-            (),
-          )}
-        </div>
-        <div class="temp-results">
-          <div class="temp-result">
-            <span class="temp-result-label"> {Component.text("Fahrenheit:")} </span>
-            <span class="temp-result-value">
-              {Component.textSignal(() => Signal.get(fahrenheit)->Float.toFixed(~digits=1))}
-            </span>
+        <div class="temp-app">
+          <div class="temp-input-group">
+            <label class="temp-label"> {Component.text("Celsius")} </label>
+            {Component.input(
+              ~attrs=[
+                Component.attr("type", "number"),
+                Component.attr("class", "temp-input"),
+                Component.attr("placeholder", "0"),
+              ],
+              ~events=[("input", handleInput)],
+              (),
+            )}
           </div>
-          <div class="temp-result">
-            <span class="temp-result-label"> {Component.text("Kelvin:")} </span>
-            <span class="temp-result-value">
-              {Component.textSignal(() => Signal.get(kelvin)->Float.toFixed(~digits=1))}
-            </span>
+          <div class="temp-results">
+            <div class="temp-result">
+              <span class="temp-result-label"> {Component.text("Fahrenheit:")} </span>
+              <span class="temp-result-value">
+                {Component.textSignal(() => Signal.get(fahrenheit)->Float.toFixed(~digits=1))}
+              </span>
+            </div>
+            <div class="temp-result">
+              <span class="temp-result-label"> {Component.text("Kelvin:")} </span>
+              <span class="temp-result-value">
+                {Component.textSignal(() => Signal.get(kelvin)->Float.toFixed(~digits=1))}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      })
     }
   }
 
@@ -188,51 +192,53 @@ module CounterExample = {
     type props = {}
 
     let make = (_props: props) => {
-      let isRunning = Signal.make(false)
-      let seconds = Signal.make(0)
+      Component.component(() => {
+        let isRunning = Signal.make(false, ~name="HomePage.Timer.isRunning")
+        let seconds = Signal.make(0, ~name="HomePage.Timer.seconds")
 
-      // Effect to run the timer
-      let _ = Effect.run(() => {
-        if Signal.get(isRunning) {
-          let id = DomHelpers.setInterval(() => Signal.update(seconds, s => s + 1), 1000)
-          Some(() => DomHelpers.clearInterval(id))
-        } else {
-          None
+        // Effect to run the timer
+        let _ = Effect.run(() => {
+          if Signal.get(isRunning) {
+            let id = DomHelpers.setInterval(() => Signal.update(seconds, s => s + 1), 1000)
+            Some(() => DomHelpers.clearInterval(id))
+          } else {
+            None
+          }
+        }, ~name="HomePage.Timer.timerEffect")
+
+        let toggleTimer = (_evt: Dom.event) => {
+          Signal.update(isRunning, running => !running)
         }
+
+        let resetTimer = (_evt: Dom.event) => {
+          Signal.set(isRunning, false)
+          Signal.set(seconds, 0)
+        }
+
+        <div class="timer-app">
+          <div class="timer-display">
+            {Component.textSignal(() => {
+              let s = Signal.get(seconds)
+              let mins = s / 60
+              let secs = mod(s, 60)
+              `${mins->Int.toString->String.padStart(2, "0")}:${secs
+                ->Int.toString
+                ->String.padStart(2, "0")}`
+            })}
+          </div>
+          <div class="timer-buttons">
+            <button onClick={toggleTimer} class="timer-btn timer-btn-primary">
+              {Component.textSignal(() => Signal.get(isRunning) ? "Pause" : "Start")}
+            </button>
+            <button onClick={resetTimer} class="timer-btn"> {Component.text("Reset")} </button>
+          </div>
+        </div>
       })
-
-      let toggleTimer = (_evt: Dom.event) => {
-        Signal.update(isRunning, running => !running)
-      }
-
-      let resetTimer = (_evt: Dom.event) => {
-        Signal.set(isRunning, false)
-        Signal.set(seconds, 0)
-      }
-
-      <div class="timer-app">
-        <div class="timer-display">
-          {Component.textSignal(() => {
-            let s = Signal.get(seconds)
-            let mins = s / 60
-            let secs = mod(s, 60)
-            `${mins->Int.toString->String.padStart(2, "0")}:${secs
-              ->Int.toString
-              ->String.padStart(2, "0")}`
-          })}
-        </div>
-        <div class="timer-buttons">
-          <button onClick={toggleTimer} class="timer-btn timer-btn-primary">
-            {Component.textSignal(() => Signal.get(isRunning) ? "Pause" : "Start")}
-          </button>
-          <button onClick={resetTimer} class="timer-btn"> {Component.text("Reset")} </button>
-        </div>
-      </div>
     }
   }
 
   let make = (_props: props) => {
-    let activeTab = Signal.make("counter")
+    let activeTab = Signal.make("counter", ~name="HomePage.CounterExample.activeTab")
 
     let domHelpersSnippet = `// Helper bindings for DOM APIs
 module DomHelpers = {
@@ -435,7 +441,7 @@ let make = () => {
       Signal.set(activeTab, "domhelpers")
     }
 
-    let copied = Signal.make(false)
+    let copied = Signal.make(false, ~name="HomePage.CounterExample.copied")
 
     let handleCopy = (_evt: Dom.event) => {
       let currentSnippet = switch Signal.get(activeTab) {
@@ -541,7 +547,7 @@ let make = () => {
                       } else {
                         [SyntaxHighlight.highlight(domHelpersSnippet)]
                       }
-                    }),
+                    }, ~name="HomePage.CodeExample.syntaxHighlight"),
                   )}
                 </code>
               </pre>
@@ -577,7 +583,7 @@ let make = () => {
                       </div>,
                     ]
                   }
-                }),
+                }, ~name="HomePage.BrowserPreview.content"),
               )}
             </div>
           </div>

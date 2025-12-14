@@ -4,7 +4,9 @@ sidebar_position: 2
 
 # Computed Values
 
-Computed values are **derived signals** that automatically recalculate when their dependencies change. They're perfect for deriving state from other reactive sources.
+Computed values are **derived signals** that automatically recalculate when their dependencies change. They're perfect for deriving state from other reactive sources. 
+
+Testing
 
 :::info
 Xote re-exports `Computed` from [rescript-signals](https://github.com/pedrobslisboa/rescript-signals). The API and behavior are provided by that library.

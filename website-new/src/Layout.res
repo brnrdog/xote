@@ -130,7 +130,7 @@ module SunIcon = {
 }
 
 // Theme management
-let theme = Signal.make("light")
+let theme = Signal.make("light", ~name="Layout.theme")
 
 let toggleTheme = _evt => {
   Signal.update(theme, current =>
@@ -154,7 +154,7 @@ module Header = {
 
   let make = (_props: props) => {
     // Track scroll position
-    let isScrolled = Signal.make(false)
+    let isScrolled = Signal.make(false, ~name="Layout.Header.isScrolled")
 
     // Set up scroll listener - use ref to store handler so removeEventListener works
     let _ = Effect.run(() => {
@@ -178,13 +178,13 @@ module Header = {
           }
         },
       )
-    })
+    }, ~name="Layout.Header.scrollListener")
 
     // Debug: log when isScrolled changes
     let _ = Effect.run(() => {
       Console.log2("isScrolled changed:", Signal.get(isScrolled))
       None
-    })
+    }, ~name="Layout.Header.debugScrolled")
 
     {
       Component.element(
@@ -233,7 +233,7 @@ module Header = {
                   Component.signalFragment(
                     Computed.make(() =>
                       Signal.get(theme) == "light" ? [MoonIcon.make()] : [SunIcon.make()]
-                    ),
+                    , ~name="Layout.Header.themeIcon"),
                   ),
                 ],
                 (),
@@ -316,14 +316,65 @@ module Footer = {
   }
 }
 
+// DevTools Toggle Button
+module DevToolsButton = {
+  type props = {}
+
+  let make = (_props: props) => {
+    Component.element(
+      "button",
+      ~attrs=[
+        Component.attr("class", "devtools-toggle"),
+        Component.attr("title", "Open DevTools (Ctrl+Shift+D)"),
+        Component.attr(
+          "style",
+          "position: fixed; bottom: 20px; right: 20px; z-index: 9999; padding: 12px 16px; background: #007acc; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.2s;",
+        ),
+      ],
+      ~events=[("click", _ => XoteDevTools.openDevTools())],
+      ~children=[Component.text("🔍 DevTools")],
+      (),
+    )
+  }
+}
+
+// Keyboard shortcut setup (external)
+@val @scope("window") external addEventListener: (string, 'a) => unit = "addEventListener"
+@val @scope("window") external removeEventListener: (string, 'a) => unit = "removeEventListener"
+
 // Main layout wrapper
 type props = {children: Component.node}
 
 let make = (props: props) => {
   let {children} = props
+
+  // Initialize global DevTools API and enable auto-tracking
+  let _ = Effect.run(() => {
+    XoteDevTools.initGlobal()
+    XoteDevTools.AutoTrack.enable()
+    None
+  }, ~name="Layout.initDevTools")
+
+  // Setup keyboard shortcut (Ctrl/Cmd + Shift + D)
+  let _ = Effect.run(() => {
+    let handler = %raw(`function(evt) {
+      if ((evt.ctrlKey || evt.metaKey) && evt.shiftKey && evt.key === 'D') {
+        evt.preventDefault();
+        if (window.XoteDevTools) {
+          window.XoteDevTools.toggle();
+        }
+      }
+    }`)
+
+    addEventListener("keydown", handler)
+
+    Some(() => removeEventListener("keydown", handler))
+  }, ~name="Layout.keyboardShortcut")
+
   <div>
     <Header />
     <main> {children} </main>
     <Footer />
+    <DevToolsButton />
   </div>
 }

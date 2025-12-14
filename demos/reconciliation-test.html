@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reconciliation Test - Xote</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      .console-hint {
+        background: #f0f0f0;
+        border-left: 4px solid #3b82f6;
+        padding: 12px;
+        margin-bottom: 16px;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 min-h-screen">
+    <div class="max-w-4xl mx-auto py-8">
+      <div class="console-hint">
+        📋 <strong>Open your browser console (F12)</strong> to see reconciliation in action!
+        <br />
+        ✅ Items should only be created once, not recreated on every update.
+        <br />
+        🔀 Shuffling should reorder DOM nodes, not recreate them.
+      </div>
+      <div id="app"></div>
+    </div>
+    <script type="module" src="./ReconciliationTest.res.mjs"></script>
+  </body>
+</html>

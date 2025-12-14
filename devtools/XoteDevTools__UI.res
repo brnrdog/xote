@@ -49,8 +49,120 @@ let getTypeColor = itemType =>
   | Effect => "#c586c0"
   }
 
+// Expandable Object Display Component
+module ExpandableValue = {
+  type expandedState = Dict.t<bool>
+
+  let parseValue = (value: string): Obj.t => {
+    try {
+      %raw(`JSON.parse(value)`)
+    } catch {
+    | _ => Obj.magic(value)
+    }
+  }
+
+  let rec renderValue = (~value: Obj.t, ~path: string, ~expanded: expandedState, ~onToggle: string => unit, ~depth: int): Xote__Component.node => {
+    let valueType: string = %raw(`typeof value`)
+
+    switch valueType {
+    | "string" => Component.text(`"${Obj.magic(value)}"`)
+    | "number" | "boolean" => Component.text(Obj.magic(value)->String.make)
+    | "object" =>
+      if %raw(`value === null`) {
+        Component.text("null")
+      } else if %raw(`Array.isArray(value)`) {
+        let arr: array<Obj.t> = Obj.magic(value)
+        let isExpanded = expanded->Dict.get(path)->Option.getOr(false)
+
+        if arr->Array.length == 0 {
+          Component.text("[]")
+        } else if isExpanded {
+          <div>
+            <span
+              onClick={_ => onToggle(path)}
+              style="cursor: pointer; color: #569cd6; user-select: none;">
+              {Component.text("▼ ")}
+            </span>
+            <span style="color: #999;"> {Component.text("[")} </span>
+            <div style="margin-left: 16px;">
+              {Component.fragment(
+                arr->Array.mapWithIndex((item, idx) => {
+                  let itemPath = `${path}[${Int.toString(idx)}]`
+                  <div key={itemPath}>
+                    <span style="color: #999;"> {Component.text(`${Int.toString(idx)}: `)} </span>
+                    {renderValue(~value=item, ~path=itemPath, ~expanded, ~onToggle, ~depth=depth + 1)}
+                  </div>
+                }),
+              )}
+            </div>
+            <span style="color: #999;"> {Component.text("]")} </span>
+          </div>
+        } else {
+          <span>
+            <span
+              onClick={_ => onToggle(path)}
+              style="cursor: pointer; color: #569cd6; user-select: none;">
+              {Component.text("▶ ")}
+            </span>
+            <span style="color: #999;">
+              {Component.text(`[${Int.toString(arr->Array.length)} items]`)}
+            </span>
+          </span>
+        }
+      } else {
+        let obj: Dict.t<Obj.t> = Obj.magic(value)
+        let keys = obj->Dict.keysToArray
+        let isExpanded = expanded->Dict.get(path)->Option.getOr(false)
+
+        if keys->Array.length == 0 {
+          Component.text("{}")
+        } else if isExpanded {
+          <div>
+            <span
+              onClick={_ => onToggle(path)}
+              style="cursor: pointer; color: #569cd6; user-select: none;">
+              {Component.text("▼ ")}
+            </span>
+            <span style="color: #999;"> {Component.text("{")} </span>
+            <div style="margin-left: 16px;">
+              {Component.fragment(
+                keys->Array.map(key => {
+                  let itemPath = `${path}.${key}`
+                  let val = obj->Dict.get(key)->Option.getOr(Obj.magic("undefined"))
+                  <div key={itemPath}>
+                    <span style="color: #9cdcfe;"> {Component.text(`${key}: `)} </span>
+                    {renderValue(~value=val, ~path=itemPath, ~expanded, ~onToggle, ~depth=depth + 1)}
+                  </div>
+                }),
+              )}
+            </div>
+            <span style="color: #999;"> {Component.text("}")} </span>
+          </div>
+        } else {
+          <span>
+            <span
+              onClick={_ => onToggle(path)}
+              style="cursor: pointer; color: #569cd6; user-select: none;">
+              {Component.text("▶ ")}
+            </span>
+            <span style="color: #999;">
+              {Component.text(`{${Int.toString(keys->Array.length)} props}`)}
+            </span>
+          </span>
+        }
+      }
+    | _ => Component.text(valueType)
+    }
+  }
+}
+
 // Registry View Component
 let registryView = (~searchTerm: Signals.Signal.t<string>) => {
+  let filterSignals = Signals.Signal.make(true, ~name="DevTools.UI.Registry.filterSignals")
+  let filterComputeds = Signals.Signal.make(true, ~name="DevTools.UI.Registry.filterComputeds")
+  let filterEffects = Signals.Signal.make(true, ~name="DevTools.UI.Registry.filterEffects")
+  let expandedItems = Signals.Signal.make(Dict.make(), ~name="DevTools.UI.Registry.expandedItems")
+
   let contentSignal = Signals.Computed.make(() => {
     // Access version signal to trigger updates when any tracked signal value changes
     let _ = Signals.Signal.get(XoteDevTools__Registry.getVersionSignal())
@@ -58,9 +170,22 @@ let registryView = (~searchTerm: Signals.Signal.t<string>) => {
     // Directly access the items signal for reactivity
     let itemsDict = Signals.Signal.get(XoteDevTools__Registry.getItemsSignal())
     let items = itemsDict->Dict.valuesToArray
+
+    // Build filter types array based on checkboxes
+    let itemTypes = []
+    if Signals.Signal.get(filterSignals) {
+      itemTypes->Array.push(Signal)->ignore
+    }
+    if Signals.Signal.get(filterComputeds) {
+      itemTypes->Array.push(Computed)->ignore
+    }
+    if Signals.Signal.get(filterEffects) {
+      itemTypes->Array.push(Effect)->ignore
+    }
+
     let filter = {
       searchTerm: Signals.Signal.get(searchTerm),
-      itemTypes: [],
+      itemTypes: itemTypes,
     }
     let filtered = XoteDevTools__Registry.filterItems(items, ~filter)
 
@@ -74,13 +199,26 @@ let registryView = (~searchTerm: Signals.Signal.t<string>) => {
         | None => item.id
         }
 
-        let value = switch item.getValue {
+        let valueStr = switch item.getValue {
         | Some(fn) => fn()
         | None => "-"
         }
 
         let opacity = item.disposed ? "0.5" : "1"
         let textDecoration = item.disposed ? "line-through" : "none"
+
+        let expanded = Signals.Signal.get(expandedItems)
+        let onToggle = path => {
+          Signals.Signal.update(expandedItems, exp => {
+            let newExp = exp->Dict.toArray->Dict.fromArray
+            let current = newExp->Dict.get(path)->Option.getOr(false)
+            newExp->Dict.set(path, !current)
+            newExp
+          })
+        }
+
+        let parsedValue = ExpandableValue.parseValue(valueStr)
+        let valuePath = `item_${item.id}`
 
         <div
           key={item.id}
@@ -105,7 +243,13 @@ let registryView = (~searchTerm: Signals.Signal.t<string>) => {
             </span>
           </div>
           <div style="color: #9cdcfe; font-size: 12px; margin-bottom: 2px; text-decoration: {textDecoration};">
-            {text(value)}
+            {ExpandableValue.renderValue(
+              ~value=parsedValue,
+              ~path=valuePath,
+              ~expanded,
+              ~onToggle,
+              ~depth=0,
+            )}
           </div>
           <div style="color: #666; font-size: 11px;">
             {text(`ID: ${item.id} • Created: ${formatTime(item.createdAt)}`)}
@@ -126,18 +270,81 @@ let registryView = (~searchTerm: Signals.Signal.t<string>) => {
       }}
       style={searchInputStyle}
     />
+    {signalFragment(
+      Signals.Computed.make(() => {
+        let _ = Signals.Signal.get(filterSignals)
+        let _ = Signals.Signal.get(filterComputeds)
+        let _ = Signals.Signal.get(filterEffects)
+
+        [
+          <div style="display: flex; gap: 12px; margin-bottom: 16px; padding: 8px; background: #1e1e1e; border-radius: 4px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+              <input
+                type_="checkbox"
+                checked={Signals.Signal.peek(filterSignals)}
+                onChange={_ => Signals.Signal.update(filterSignals, v => !v)}
+                style="cursor: pointer;"
+              />
+              <span style="color: {getTypeColor(Signal)}; font-size: 13px;">
+                {text("Signals")}
+              </span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+              <input
+                type_="checkbox"
+                checked={Signals.Signal.peek(filterComputeds)}
+                onChange={_ => Signals.Signal.update(filterComputeds, v => !v)}
+                style="cursor: pointer;"
+              />
+              <span style="color: {getTypeColor(Computed)}; font-size: 13px;">
+                {text("Computeds")}
+              </span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+              <input
+                type_="checkbox"
+                checked={Signals.Signal.peek(filterEffects)}
+                onChange={_ => Signals.Signal.update(filterEffects, v => !v)}
+                style="cursor: pointer;"
+              />
+              <span style="color: {getTypeColor(Effect)}; font-size: 13px;">
+                {text("Effects")}
+              </span>
+            </label>
+          </div>,
+        ]
+      }),
+    )}
     {signalFragment(contentSignal)}
   </div>
 }
 
 // Timeline View Component
 let timelineView = (~searchTerm: Signals.Signal.t<string>) => {
+  let filterSignals = Signals.Signal.make(true, ~name="DevTools.UI.Timeline.filterSignals")
+  let filterComputeds = Signals.Signal.make(true, ~name="DevTools.UI.Timeline.filterComputeds")
+  let filterEffects = Signals.Signal.make(true, ~name="DevTools.UI.Timeline.filterEffects")
+
   let contentSignal = Signals.Computed.make(() => {
     // Directly access the events signal for reactivity
     let events = Signals.Signal.get(XoteDevTools__Timeline.getEventsSignal())
+
+    // Build filter types array based on checkboxes
+    let itemTypes = []
+    if Signals.Signal.get(filterSignals) {
+      itemTypes->Array.push(Signal)->ignore
+    }
+    if Signals.Signal.get(filterComputeds) {
+      itemTypes->Array.push(Computed)->ignore
+    }
+    if Signals.Signal.get(filterEffects) {
+      itemTypes->Array.push(Effect)->ignore
+    }
+
     let filtered = XoteDevTools__Timeline.filterEvents(
       events,
       ~searchTerm=Signals.Signal.get(searchTerm),
+      ~itemTypes,
     )
 
     [
@@ -192,22 +399,201 @@ let timelineView = (~searchTerm: Signals.Signal.t<string>) => {
       }}
       style={searchInputStyle}
     />
+    {signalFragment(
+      Signals.Computed.make(() => {
+        let _ = Signals.Signal.get(filterSignals)
+        let _ = Signals.Signal.get(filterComputeds)
+        let _ = Signals.Signal.get(filterEffects)
+
+        [
+          <div style="display: flex; gap: 12px; margin-bottom: 16px; padding: 8px; background: #1e1e1e; border-radius: 4px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+              <input
+                type_="checkbox"
+                checked={Signals.Signal.peek(filterSignals)}
+                onChange={_ => Signals.Signal.update(filterSignals, v => !v)}
+                style="cursor: pointer;"
+              />
+              <span style={`color: ${getTypeColor(Signal)}; font-size: 13px;`}>
+                {text("Signals")}
+              </span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+              <input
+                type_="checkbox"
+                checked={Signals.Signal.peek(filterComputeds)}
+                onChange={_ => Signals.Signal.update(filterComputeds, v => !v)}
+                style="cursor: pointer;"
+              />
+              <span style={`color: ${getTypeColor(Computed)}; font-size: 13px;`}>
+                {text("Computeds")}
+              </span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+              <input
+                type_="checkbox"
+                checked={Signals.Signal.peek(filterEffects)}
+                onChange={_ => Signals.Signal.update(filterEffects, v => !v)}
+                style="cursor: pointer;"
+              />
+              <span style={`color: ${getTypeColor(Effect)}; font-size: 13px;`}>
+                {text("Effects")}
+              </span>
+            </label>
+          </div>,
+        ]
+      }),
+    )}
     {signalFragment(contentSignal)}
   </div>
 }
 
+// Graph Visual Layout Types
+type graphViewMode = ListView | VisualView
+
+type nodePosition = {
+  x: float,
+  y: float,
+  width: float,
+  height: float,
+}
+
+type layoutNode = {
+  id: id,
+  label: string,
+  itemType: itemType,
+  position: nodePosition,
+  dependsOn: array<id>,
+  dependents: array<id>,
+}
+
+// Calculate hierarchical layout for graph visualization
+let calculateGraphLayout = (nodes: array<XoteDevTools__Graph.graphNode>): array<layoutNode> => {
+  // Build layers using topological sort
+  let layers = ref([])
+  let nodeToLayer = Dict.make()
+  let processed = Dict.make()
+
+  // Recursive function to calculate layer depth
+  let rec calculateLayer = (nodeId: id): int => {
+    switch nodeToLayer->Dict.get(nodeId) {
+    | Some(layer) => layer
+    | None => {
+        let node = nodes->Array.find(n => n.id == nodeId)
+        switch node {
+        | None => 0
+        | Some(n) => {
+            if n.dependsOn->Array.length == 0 {
+              // Signals (no dependencies) go to layer 0
+              nodeToLayer->Dict.set(nodeId, 0)
+              0
+            } else {
+              // Calculate max layer of dependencies + 1
+              let maxDepLayer = n.dependsOn
+                ->Array.map(calculateLayer)
+                ->Array.reduce(0, (max, layer) => max > layer ? max : layer)
+              let layer = maxDepLayer + 1
+              nodeToLayer->Dict.set(nodeId, layer)
+              layer
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Calculate layer for each node
+  nodes->Array.forEach(node => {
+    calculateLayer(node.id)->ignore
+  })
+
+  // Group nodes by layer
+  let layerArrays = []
+  nodes->Array.forEach(node => {
+    let layer = nodeToLayer->Dict.get(node.id)->Option.getOr(0)
+    // Ensure layer array exists
+    while layerArrays->Array.length <= layer {
+      layerArrays->Array.push([])->ignore
+    }
+    layerArrays->Array.getUnsafe(layer)->Array.push(node)->ignore
+  })
+
+  // Calculate positions
+  let nodeWidth = 120.0
+  let nodeHeight = 40.0
+  let horizontalSpacing = 180.0
+  let verticalSpacing = 60.0
+  let paddingX = 20.0
+  let paddingY = 20.0
+
+  let layoutNodes = []
+  layerArrays->Array.forEachWithIndex((layerNodes, layerIndex) => {
+    let x = paddingX +. Float.fromInt(layerIndex) *. horizontalSpacing
+
+    layerNodes->Array.forEachWithIndex((node, nodeIndexInLayer) => {
+      let y = paddingY +. Float.fromInt(nodeIndexInLayer) *. verticalSpacing
+
+      layoutNodes->Array.push({
+        id: node.id,
+        label: node.label,
+        itemType: node.itemType,
+        position: {
+          x,
+          y,
+          width: nodeWidth,
+          height: nodeHeight,
+        },
+        dependsOn: node.dependsOn,
+        dependents: node.dependents,
+      })->ignore
+    })
+  })
+
+  layoutNodes
+}
+
 // Graph View Component
 let graphView = (~searchTerm: Signals.Signal.t<string>) => {
+  let filterSignals = Signals.Signal.make(true, ~name="DevTools.UI.Graph.filterSignals")
+  let filterComputeds = Signals.Signal.make(true, ~name="DevTools.UI.Graph.filterComputeds")
+  let filterEffects = Signals.Signal.make(true, ~name="DevTools.UI.Graph.filterEffects")
+  let viewMode = Signals.Signal.make(VisualView, ~name="DevTools.UI.Graph.viewMode")
+
   let contentSignal = Signals.Computed.make(() => {
     let nodes = XoteDevTools__Graph.buildGraph()
     let cycles = XoteDevTools__Graph.detectCycles()
+    let mode = Signals.Signal.get(viewMode)
+
+    // Build filter types array based on checkboxes
+    let itemTypes = []
+    if Signals.Signal.get(filterSignals) {
+      itemTypes->Array.push(Signal)->ignore
+    }
+    if Signals.Signal.get(filterComputeds) {
+      itemTypes->Array.push(Computed)->ignore
+    }
+    if Signals.Signal.get(filterEffects) {
+      itemTypes->Array.push(Effect)->ignore
+    }
 
     let term = Signals.Signal.get(searchTerm)->String.toLowerCase
-    let filtered = if term == "" {
-      nodes
-    } else {
-      nodes->Array.filter(node => node.label->String.toLowerCase->String.includes(term))
-    }
+    let filtered = nodes->Array.filter(node => {
+      // Filter by search term
+      let searchMatch = if term == "" {
+        true
+      } else {
+        node.label->String.toLowerCase->String.includes(term)
+      }
+
+      // Filter by item type
+      let typeMatch = if itemTypes->Array.length == 0 {
+        true
+      } else {
+        itemTypes->Array.includes(node.itemType)
+      }
+
+      searchMatch && typeMatch
+    })
 
     let cycleWarning = if cycles->Array.length > 0 {
       [
@@ -225,14 +611,15 @@ let graphView = (~searchTerm: Signals.Signal.t<string>) => {
       []
     }
 
-    [
-      cycleWarning,
-      [
-        <div style="margin-bottom: 16px; color: #999;">
-          {text(`${Int.toString(filtered->Array.length)} nodes`)}
-        </div>,
-      ],
-      filtered->Array.map(node => {
+    switch mode {
+    | ListView => [
+          cycleWarning,
+          [
+            <div style="margin-bottom: 16px; color: #999;">
+              {text(`${Int.toString(filtered->Array.length)} nodes`)}
+            </div>,
+          ],
+          filtered->Array.map(node => {
         <div
           key={node.id}
           style="background: #252525; padding: 12px; margin-bottom: 8px; border-radius: 4px; border-left: 3px solid; border-left-color: {getTypeColor(
@@ -307,6 +694,99 @@ let graphView = (~searchTerm: Signals.Signal.t<string>) => {
         </div>
       }),
     ]->Array.flat
+    | VisualView => {
+        // Calculate layout for visual graph
+        let layoutNodes = calculateGraphLayout(filtered)
+
+        // Calculate SVG dimensions
+        let maxX = layoutNodes
+          ->Array.map(n => n.position.x +. n.position.width)
+          ->Array.reduce(0.0, (max, x) => max > x ? max : x)
+        let maxY = layoutNodes
+          ->Array.map(n => n.position.y +. n.position.height)
+          ->Array.reduce(0.0, (max, y) => max > y ? max : y)
+        let svgWidth = maxX +. 40.0
+        let svgHeight = maxY +. 40.0
+
+        // Build edges array
+        let edges = []
+        layoutNodes->Array.forEach(node => {
+          node.dependsOn->Array.forEach(depId => {
+            // Find the dependency node position
+            layoutNodes->Array.forEach(depNode => {
+              if depNode.id == depId {
+                edges->Array.push((node, depNode))->ignore
+              }
+            })
+          })
+        })
+
+        // Build edge SVG elements
+        let edgeElements = edges->Array.map(((fromNode, toNode)) => {
+          let fromX = fromNode.position.x +. fromNode.position.width
+          let fromY = fromNode.position.y +. fromNode.position.height /. 2.0
+          let toX = toNode.position.x
+          let toY = toNode.position.y +. toNode.position.height /. 2.0
+
+          `<line x1="${Float.toString(fromX)}" y1="${Float.toString(fromY)}" x2="${Float.toString(toX)}" y2="${Float.toString(toY)}" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)" />`
+        })
+
+        // Build node SVG elements
+        let nodeElements = layoutNodes->Array.map(node => {
+          let color = switch node.itemType {
+          | Signal => "#4fc1ff"
+          | Computed => "#4ec9b0"
+          | Effect => "#c586c0"
+          }
+          let x = node.position.x
+          let y = node.position.y
+          let width = node.position.width
+          let height = node.position.height
+          let textX = x +. width /. 2.0
+          let textY = y +. height /. 2.0
+          let displayLabel = if node.label->String.length > 14 {
+            node.label->String.substring(~start=0, ~end=12) ++ "..."
+          } else {
+            node.label
+          }
+
+          `<g><rect x="${Float.toString(x)}" y="${Float.toString(y)}" width="${Float.toString(width)}" height="${Float.toString(height)}" fill="#252525" stroke="${color}" stroke-width="2" rx="4" /><text x="${Float.toString(textX)}" y="${Float.toString(textY)}" text-anchor="middle" dominant-baseline="middle" fill="${color}" font-size="12" font-family="monospace">${displayLabel}</text></g>`
+        })
+
+        // Build SVG HTML string
+        let edgesHtml = edgeElements->Array.joinWith("")
+        let nodesHtml = nodeElements->Array.joinWith("")
+        let svgHtml = `<svg width="${Float.toString(svgWidth)}" height="${Float.toString(svgHeight)}" style="display: block;"><defs><marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><polygon points="0 0, 10 3, 0 6" fill="#666" /></marker></defs>${edgesHtml}${nodesHtml}</svg>`
+
+        // Create a unique container ID based on the SVG content hash
+        let containerId = "xote-devtools-graph-svg-" ++ Int.toString(String.length(svgHtml))
+
+        // Schedule DOM update after render
+        let _ = %raw(`
+          setTimeout(() => {
+            const container = document.getElementById(containerId);
+            if (container !== null && container.innerHTML !== svgHtml) {
+              container.innerHTML = svgHtml;
+            }
+          }, 0)
+        `)
+
+        [
+          cycleWarning,
+          [
+            <div style="margin-bottom: 16px; color: #999;">
+              {text(`${Int.toString(filtered->Array.length)} nodes`)}
+            </div>,
+          ],
+          [
+            <div
+              id={containerId}
+              style="overflow: auto; background: #1a1a1a; border-radius: 4px; padding: 20px;"
+            />,
+          ],
+        ]->Array.flat
+      }
+    }
   })
 
   <div>
@@ -320,6 +800,68 @@ let graphView = (~searchTerm: Signals.Signal.t<string>) => {
       }}
       style={searchInputStyle}
     />
+    {signalFragment(
+      Signals.Computed.make(() => {
+        let _ = Signals.Signal.get(filterSignals)
+        let _ = Signals.Signal.get(filterComputeds)
+        let _ = Signals.Signal.get(filterEffects)
+        let _ = Signals.Signal.get(viewMode)
+
+        let mode = Signals.Signal.peek(viewMode)
+
+        [
+          <div style="display: flex; gap: 12px; margin-bottom: 16px; padding: 8px; background: #1e1e1e; border-radius: 4px; align-items: center; justify-content: space-between;">
+            <div style="display: flex; gap: 12px;">
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                <input
+                  type_="checkbox"
+                  checked={Signals.Signal.peek(filterSignals)}
+                  onChange={_ => Signals.Signal.update(filterSignals, v => !v)}
+                  style="cursor: pointer;"
+                />
+                <span style={`color: ${getTypeColor(Signal)}; font-size: 13px;`}>
+                  {text("Signals")}
+                </span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                <input
+                  type_="checkbox"
+                  checked={Signals.Signal.peek(filterComputeds)}
+                  onChange={_ => Signals.Signal.update(filterComputeds, v => !v)}
+                  style="cursor: pointer;"
+                />
+                <span style={`color: ${getTypeColor(Computed)}; font-size: 13px;`}>
+                  {text("Computeds")}
+                </span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                <input
+                  type_="checkbox"
+                  checked={Signals.Signal.peek(filterEffects)}
+                  onChange={_ => Signals.Signal.update(filterEffects, v => !v)}
+                  style="cursor: pointer;"
+                />
+                <span style={`color: ${getTypeColor(Effect)}; font-size: 13px;`}>
+                  {text("Effects")}
+                </span>
+              </label>
+            </div>
+            <div style="display: flex; gap: 4px;">
+              <button
+                onClick={_ => Signals.Signal.set(viewMode, ListView)}
+                style={`padding: 4px 12px; border-radius: 4px; border: 1px solid ${mode == ListView ? "#4fc1ff" : "#444"}; background: ${mode == ListView ? "#1a3a52" : "#252525"}; color: ${mode == ListView ? "#4fc1ff" : "#999"}; cursor: pointer; font-size: 12px;`}>
+                {text("List")}
+              </button>
+              <button
+                onClick={_ => Signals.Signal.set(viewMode, VisualView)}
+                style={`padding: 4px 12px; border-radius: 4px; border: 1px solid ${mode == VisualView ? "#4fc1ff" : "#444"}; background: ${mode == VisualView ? "#1a3a52" : "#252525"}; color: ${mode == VisualView ? "#4fc1ff" : "#999"}; cursor: pointer; font-size: 12px;`}>
+                {text("Visual")}
+              </button>
+            </div>
+          </div>,
+        ]
+      }),
+    )}
     {signalFragment(contentSignal)}
   </div>
 }

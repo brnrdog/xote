@@ -68,13 +68,14 @@ let setMaxEvents = max => {
   })
 }
 
-// Filter events by search term
-let filterEvents = (events: array<updateEvent>, ~searchTerm: string) => {
-  if searchTerm == "" {
-    events
-  } else {
-    let term = searchTerm->String.toLowerCase
-    events->Array.filter(event => {
+// Filter events by search term and item types
+let filterEvents = (events: array<updateEvent>, ~searchTerm: string, ~itemTypes: array<itemType>) => {
+  events->Array.filter(event => {
+    // Filter by search term
+    let searchMatch = if searchTerm == "" {
+      true
+    } else {
+      let term = searchTerm->String.toLowerCase
       let labelMatch = switch event.itemLabel {
       | Some(label) => label->String.toLowerCase->String.includes(term)
       | None => false
@@ -88,6 +89,19 @@ let filterEvents = (events: array<updateEvent>, ~searchTerm: string) => {
         }
 
       labelMatch || idMatch || valueMatch
-    })
-  }
+    }
+
+    // Filter by item type
+    let typeMatch = if itemTypes->Array.length == 0 {
+      true
+    } else {
+      // Look up the item type from Registry
+      switch XoteDevTools__Registry.getItem(event.itemId) {
+      | Some(item) => itemTypes->Array.includes(item.itemType)
+      | None => true // Include events for items that no longer exist
+      }
+    }
+
+    searchMatch && typeMatch
+  })
 }

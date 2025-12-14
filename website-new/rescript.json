@@ -9,6 +9,10 @@
     {
       "dir": "../src",
       "subdirs": true
+    },
+    {
+      "dir": "../devtools",
+      "subdirs": false
     }
   ],
   "package-specs": [

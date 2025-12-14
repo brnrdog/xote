@@ -116,7 +116,11 @@ module TodoList = {
 
   let make = (props: props) => {
     <ul class="todo-list space-y-2">
-      {Component.list(props.todos, todo => <TodoItem todo={todo} />)}
+      {Component.keyedList(
+        props.todos,
+        todo => Int.toString(todo.id),
+        todo => <TodoItem todo={todo} />,
+      )}
     </ul>
   }
 }

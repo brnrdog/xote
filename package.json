@@ -28,7 +28,9 @@
     ".": {
       "import": "./dist/xote.mjs",
       "require": "./dist/xote.cjs"
-    }
+    },
+    "./src/*": "./src/*",
+    "./devtools/XoteDevTools.res.mjs": "./devtools/XoteDevTools.res.mjs"
   },
   "keywords": [
     "rescript",
