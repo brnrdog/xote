@@ -94,7 +94,8 @@ module TodoItem = {
         "completed"
       } else {
         ""
-      }}>
+      }}
+    >
       <input
         type_="checkbox"
         checked={todo.completed}
@@ -104,7 +105,8 @@ module TodoItem = {
       <span class="flex-1 text-stone-900 dark:text-stone-100"> {Component.text(todo.text)} </span>
       <button
         class="cursor-pointer text-xs text-stone-400 dark:text-stone-700 font-semibold uppercase tracking-wide"
-        onClick={_ => removeTodo(todo.id)}>
+        onClick={_ => removeTodo(todo.id)}
+      >
         {Component.text("Delete")}
       </button>
     </li>
@@ -116,7 +118,11 @@ module TodoList = {
 
   let make = (props: props) => {
     <ul class="todo-list space-y-2">
-      {Component.list(props.todos, todo => <TodoItem todo={todo} />)}
+      {Component.keyedList(
+        props.todos,
+        todo => todo.id->Int.toString,
+        todo => <TodoItem todo={todo} />,
+      )}
     </ul>
   }
 }
@@ -159,7 +165,8 @@ module TodoForm = {
       />
       <button
         class="px-6 py-2 bg-stone-900 dark:bg-stone-700 min-w-24 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors focus:outline-none focus:outline-none focus:ring-2 focus:ring-stone-900/25 focus:ring-offset-2 focus:border-stone-900"
-        onClick={handleAddClick}>
+        onClick={handleAddClick}
+      >
         {Component.text("Add")}
       </button>
     </div>
