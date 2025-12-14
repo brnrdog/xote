@@ -7,7 +7,7 @@ sidebar_position: 1
 Signals are the foundation of reactive state in Xote. A signal is a **reactive state container** that automatically notifies its dependents when its value changes.
 
 :::info
-Xote re-exports `Signal`, `Computed`, and `Effect` from [rescript-signals](https://github.com/pedrobslisboa/rescript-signals). The API and behavior are provided by that library.
+Xote re-exports `Signal`, `Computed`, and `Effect` from [rescript-signals](https://github.com/brnrdog/rescript-signals). The API and behavior are provided by that library.
 :::
 
 ## Creating Signals

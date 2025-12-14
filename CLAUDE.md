@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Xote (pronounced [ˈʃɔtʃi]) is a lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system. It uses [rescript-signals](https://github.com/pedrobslisboa/rescript-signals) for reactive primitives and provides declarative components with JSX support.
+Xote is a lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system. It uses [rescript-signals](https://github.com/brnrdog/rescript-signals) for reactive primitives and provides declarative components with JSX support.
 
 ## Development Commands
 
@@ -305,7 +305,7 @@ let app = () => {
   - `demos/TodoApp.res` - Todo list with JSX syntax
   - `demos/ColorMixerApp.res` - Color mixer with reactive sliders
   - `demos/BookstoreApp.res` - Complex app with routing and state management
-- **rescript-signals**: https://github.com/pedrobslisboa/rescript-signals - The reactive primitives library
+- **rescript-signals**: https://github.com/brnrdog/rescript-signals - The reactive primitives library
 - **TC39 Signals proposal**: https://github.com/tc39/proposal-signals
 - **ReScript JSX**: https://rescript-lang.org/docs/manual/latest/jsx
 

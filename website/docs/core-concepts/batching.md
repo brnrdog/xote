@@ -5,7 +5,7 @@ sidebar_position: 4
 # Batching Updates
 
 :::warning Not Currently Available
-Batching is not currently available in Xote as the underlying [rescript-signals](https://github.com/pedrobslisboa/rescript-signals) library does not expose batching functionality. This page is kept for reference and may be implemented in a future version.
+Batching is not currently available in Xote as the underlying [rescript-signals](https://github.com/brnrdog/rescript-signals) library does not expose batching functionality. This page is kept for reference and may be implemented in a future version.
 :::
 
 By default, effects and computed values run **synchronously** when signals change. Batching would allow grouping multiple updates to defer observer execution until the batch completes.

@@ -9,7 +9,7 @@ Welcome to **Xote** (pronounced [ˈʃɔtʃi]) - a lightweight UI library for ReS
 
 ## What is Xote?
 
-Xote provides a declarative component system and signal-based router built on top of [rescript-signals](https://github.com/pedrobslisboa/rescript-signals). It focuses on:
+Xote provides a declarative component system and signal-based router built on top of [rescript-signals](https://github.com/brnrdog/rescript-signals). It focuses on:
 
 - **Fine-grained reactivity**: Direct DOM updates without a virtual DOM
 - **Automatic dependency tracking**: No manual subscription management (powered by rescript-signals)
@@ -123,4 +123,4 @@ Then add it to your `rescript.json`:
 
 Xote focuses on **clarity, control, and performance**. The goal is to offer precise, fine-grained updates and predictable behavior without a virtual DOM.
 
-By building on [rescript-signals](https://github.com/pedrobslisboa/rescript-signals) (which implements the [TC39 Signals proposal](https://github.com/tc39/proposal-signals)), Xote ensures your reactive code aligns with emerging JavaScript standards while providing ReScript-specific UI features.
+By building on [rescript-signals](https://github.com/brnrdog/rescript-signals) (which implements the [TC39 Signals proposal](https://github.com/tc39/proposal-signals)), Xote ensures your reactive code aligns with emerging JavaScript standards while providing ReScript-specific UI features.
