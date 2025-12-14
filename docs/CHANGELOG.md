@@ -1,3 +1,10 @@
+## [4.1.1](https://github.com/brnrdog/xote/compare/v4.1.0...v4.1.1) (2025-12-14)
+
+
+### Bug Fixes
+
+* **components:** fix component disposal ([adbfcce](https://github.com/brnrdog/xote/commit/adbfccefa088d87f0c00a38fd2b20792c911f4a0))
+
 # [4.1.0](https://github.com/brnrdog/xote/compare/v4.0.0...v4.1.0) (2025-12-05)
 
 
