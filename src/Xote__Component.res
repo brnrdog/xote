@@ -1,5 +1,9 @@
 open Signals
 
+/* External DOM methods */
+@send external replaceChild: (Dom.element, Dom.element, Dom.element) => unit = "replaceChild"
+@send external insertBefore: (Dom.element, Dom.element, Dom.element) => unit = "insertBefore"
+
 /* Source for an attribute value - supports static strings, signals, or computed values */
 type attrValue =
   | Static(string)
@@ -30,6 +34,11 @@ type rec node =
   | Fragment(array<node>)
   | SignalFragment(Signal.t<array<node>>)
   | LazyComponent(unit => node)
+  | KeyedList({
+      signal: Signal.t<array<Obj.t>>,
+      keyFn: Obj.t => string,
+      renderItem: Obj.t => node,
+    })
 
 /* Create a text node */
 let text = (content: string): node => Text(content)
@@ -86,6 +95,7 @@ external createElementNS: (string, string) => Dom.element = "createElementNS"
 @val @scope("document") external createTextNode: string => Dom.element = "createTextNode"
 @val @scope("document")
 external createDocumentFragment: unit => Dom.element = "createDocumentFragment"
+@val @scope("document") external createComment: string => Dom.element = "createComment"
 @val @scope("document")
 external getElementById: string => Nullable.t<Dom.element> = "getElementById"
 
@@ -95,6 +105,8 @@ external addEventListener: (Dom.element, string, Dom.event => unit) => unit = "a
 @send external appendChild: (Dom.element, Dom.element) => unit = "appendChild"
 @set external setTextContent: (Dom.element, string) => unit = "textContent"
 @set external setValue: (Dom.element, string) => unit = "value"
+@get external getParentNode: Dom.element => Nullable.t<Dom.element> = "parentNode"
+@get external getNextSibling: Dom.element => Nullable.t<Dom.element> = "nextSibling"
 
 /* Owner system for component-scoped reactive state */
 type owner = {
@@ -231,6 +243,13 @@ let rec disposeElement = (el: Dom.element): unit => {
   children->Array.forEach(disposeElement)
 }
 
+/* Type for tracking keyed list items */
+type keyedItem<'a> = {
+  key: string,
+  item: 'a,
+  element: Dom.element,
+}
+
 /* Render a virtual node to a real DOM element */
 let rec render = (node: node): Dom.element => {
   switch node {
@@ -304,22 +323,27 @@ let rec render = (node: node): Dom.element => {
             } else {
               el->setAttribute(key, value)
             }
-          | SignalValue(s) => /* Signal attribute - set initial value and subscribe to changes */
+          | SignalValue(s) =>
+            /* Signal attribute - set initial value and subscribe to changes */
             if key == "value" && tag == "input" {
               el->setValue(Signal.peek(s))
-              let disposer = Effect.run(() => {
-                let v = Signal.get(s)
-                el->setValue(v)
-                None
-              })
+              let disposer = Effect.run(
+                () => {
+                  let v = Signal.get(s)
+                  el->setValue(v)
+                  None
+                },
+              )
               addDisposer(el, disposer)
             } else {
               el->setAttribute(key, Signal.peek(s))
-              let disposer = Effect.run(() => {
-                let v = Signal.get(s)
-                el->setAttribute(key, v)
-                None
-              })
+              let disposer = Effect.run(
+                () => {
+                  let v = Signal.get(s)
+                  el->setAttribute(key, v)
+                  None
+                },
+              )
               addDisposer(el, disposer)
             }
           | Compute(f) => {
@@ -327,19 +351,23 @@ let rec render = (node: node): Dom.element => {
               let computedSignal = Computed.make(() => f())
               if key == "value" && tag == "input" {
                 el->setValue(Signal.peek(computedSignal))
-                let disposer = Effect.run(() => {
-                  let v = Signal.get(computedSignal)
-                  el->setValue(v)
-                  None
-                })
+                let disposer = Effect.run(
+                  () => {
+                    let v = Signal.get(computedSignal)
+                    el->setValue(v)
+                    None
+                  },
+                )
                 addDisposer(el, disposer)
               } else {
                 el->setAttribute(key, Signal.peek(computedSignal))
-                let disposer = Effect.run(() => {
-                  let v = Signal.get(computedSignal)
-                  el->setAttribute(key, v)
-                  None
-                })
+                let disposer = Effect.run(
+                  () => {
+                    let v = Signal.get(computedSignal)
+                    el->setAttribute(key, v)
+                    None
+                  },
+                )
                 addDisposer(el, disposer)
               }
             }
@@ -390,10 +418,12 @@ let rec render = (node: node): Dom.element => {
           /* Clear existing children */
           %raw(`container.innerHTML = ''`)
           /* Render and append new children */
-          children->Array.forEach(child => {
-            let childEl = render(child)
-            container->appendChild(childEl)
-          })
+          children->Array.forEach(
+            child => {
+              let childEl = render(child)
+              container->appendChild(childEl)
+            },
+          )
           None
         })
 
@@ -417,6 +447,172 @@ let rec render = (node: node): Dom.element => {
 
       el
     }
+  | KeyedList({signal, keyFn, renderItem}) => {
+      /* Create owner for this list's reactive state */
+      let owner = createOwner()
+
+      /* Create comment anchors to mark the list boundaries */
+      let startAnchor = createComment(" keyed-list-start ")
+      let endAnchor = createComment(" keyed-list-end ")
+
+      /* Attach owner to start anchor */
+      setOwner(startAnchor, owner)
+
+      /* Track keyed items in a mutable map */
+      let keyedItems: Dict.t<keyedItem<Obj.t>> = Dict.make()
+
+      /* Helper function to reconcile the list */
+      let reconcile = (): unit => {
+        /* Get the parent from the end anchor - use fragment for initial render */
+        let parentOpt = getParentNode(endAnchor)->Nullable.toOption
+
+        switch parentOpt {
+        | None => () /* Not mounted yet, will be handled after mount */
+        | Some(parent) => {
+            let newItems = Signal.get(signal)
+
+            /* Build a map of new keys for quick lookup */
+            let newKeyMap: Dict.t<Obj.t> = Dict.make()
+            newItems->Array.forEach(item => {
+              let key = keyFn(item)
+              newKeyMap->Dict.set(key, item)
+            })
+
+            /* Phase 1: Remove items that are no longer in the list */
+            let keysToRemove = []
+            keyedItems
+            ->Dict.keysToArray
+            ->Array.forEach(key => {
+              switch newKeyMap->Dict.get(key) {
+              | None => {
+                  /* Key no longer exists - mark for removal */
+                  keysToRemove->Array.push(key)->ignore
+                }
+              | Some(_) => ()
+              }
+            })
+
+            /* Dispose and remove old items */
+            keysToRemove->Array.forEach(key => {
+              switch keyedItems->Dict.get(key) {
+              | Some(keyedItem) => {
+                  /* Dispose the element and its reactive state */
+                  disposeElement(keyedItem.element)
+                  /* Remove from DOM */
+                  %raw(`keyedItem.element.remove()`)
+                  /* Remove from tracking map */
+                  keyedItems->Dict.delete(key)->ignore
+                }
+              | None => ()
+              }
+            })
+
+            /* Phase 2: Build new order and identify changes */
+            let newOrder: array<keyedItem<Obj.t>> = []
+            let elementsToReplace: Dict.t<bool> = Dict.make()
+
+            newItems->Array.forEach(item => {
+              let key = keyFn(item)
+
+              switch keyedItems->Dict.get(key) {
+              | Some(existing) => {
+                  /* Item exists - check if data has changed */
+                  if existing.item !== item {
+                    /* Item data changed - mark for replacement and re-render */
+                    elementsToReplace->Dict.set(key, true)
+                    let node = renderItem(item)
+                    let element = render(node)
+                    let keyedItem = {key, item, element}
+                    newOrder->Array.push(keyedItem)->ignore
+                    keyedItems->Dict.set(key, keyedItem)
+                  } else {
+                    /* Item unchanged - reuse existing element */
+                    newOrder->Array.push(existing)->ignore
+                  }
+                }
+              | None => {
+                  /* New item - create and render it */
+                  let node = renderItem(item)
+                  let element = render(node)
+                  let keyedItem = {key, item, element}
+                  newOrder->Array.push(keyedItem)->ignore
+                  keyedItems->Dict.set(key, keyedItem)
+                }
+              }
+            })
+
+            /* Phase 3: Reconcile DOM to match new order */
+            /* We insert all elements before the end anchor */
+            let marker = ref(getNextSibling(startAnchor))
+
+            newOrder->Array.forEach(keyedItem => {
+              /* Get current element at this position (between start anchor and end anchor) */
+              let currentElement = marker.contents
+
+              switch currentElement->Nullable.toOption {
+              | Some(elem) when elem === endAnchor => {
+                  /* Reached end anchor - insert here */
+                  insertBefore(parent, keyedItem.element, endAnchor)
+                }
+              | Some(elem) when elem === keyedItem.element => {
+                  /* Element is already in correct position */
+                  marker := getNextSibling(elem)
+                }
+              | Some(elem) => {
+                  /* Check if this element was marked for replacement */
+                  let needsReplacement =
+                    elementsToReplace->Dict.get(keyedItem.key)->Option.getOr(false)
+
+                  if needsReplacement {
+                    /* Replace old element with new one */
+                    disposeElement(elem)
+                    replaceChild(parent, keyedItem.element, elem)
+                    marker := getNextSibling(keyedItem.element)
+                  } else {
+                    /* Element needs to be moved here */
+                    insertBefore(parent, keyedItem.element, elem)
+                    marker := getNextSibling(keyedItem.element)
+                  }
+                }
+              | None => {
+                  /* No more elements - should not happen between anchors */
+                  insertBefore(parent, keyedItem.element, endAnchor)
+                }
+              }
+            })
+          }
+        }
+      }
+
+      /* Return a document fragment with both anchors and initial items */
+      let fragment = createDocumentFragment()
+      fragment->appendChild(startAnchor)
+
+      /* Render initial items into the fragment */
+      let initialItems = Signal.peek(signal)
+      initialItems->Array.forEach(item => {
+        let key = keyFn(item)
+        let node = renderItem(item)
+        let element = render(node)
+        let keyedItem = {key, item, element}
+        keyedItems->Dict.set(key, keyedItem)
+        fragment->appendChild(element)
+      })
+
+      fragment->appendChild(endAnchor)
+
+      /* Set up effect to reconcile list when signal changes */
+      runWithOwner(owner, () => {
+        let disposer = Effect.run(() => {
+          reconcile()
+          None
+        })
+
+        addDisposer(startAnchor, disposer)
+      })
+
+      fragment
+    }
   }
 }
 
@@ -432,4 +628,18 @@ let mountById = (node: node, containerId: string): unit => {
   | Some(container) => mount(node, container)
   | None => Console.error("Container element not found: " ++ containerId)
   }
+}
+
+/* Create a reactive keyed list with efficient reconciliation */
+let keyedList = (
+  signal: Signal.t<array<'a>>,
+  keyFn: 'a => string,
+  renderItem: 'a => node,
+): node => {
+  /* Use Obj.magic to erase the type parameter 'a */
+  KeyedList({
+    signal: Obj.magic(signal),
+    keyFn: Obj.magic(keyFn),
+    renderItem: Obj.magic(renderItem),
+  })
 }
