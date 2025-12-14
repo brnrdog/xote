@@ -1,3 +1,10 @@
+# [4.2.0](https://github.com/brnrdog/xote/compare/v4.1.1...v4.2.0) (2025-12-14)
+
+
+### Features
+
+* **component:** introduce keyedList for list reconciliation ([#24](https://github.com/brnrdog/xote/issues/24)) ([96800de](https://github.com/brnrdog/xote/commit/96800dec3c9bbd32305643c0b36c74b993055650))
+
 ## [4.1.1](https://github.com/brnrdog/xote/compare/v4.1.0...v4.1.1) (2025-12-14)
 
 
