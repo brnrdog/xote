@@ -11,7 +11,7 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - **Signal-based Reactivity**: Powered by [rescript-signals](https://github.com/brnrdog/rescript-signals) for automatic dependency tracking
 - **Fine-grained Updates**: Direct DOM manipulation without virtual DOM diffing
 - **Signal-based Router**: SPA navigation with pattern matching and dynamic parameters
-- **Lightweight**: Minimal runtime footprint (~18kb minified)
+- **Lightweight**: Minimal runtime footprint
 - **Type-safe**: Full ReScript type safety throughout
 
 ## Getting Started
@@ -36,15 +36,15 @@ Then, add it to your ReScript project’s dependencies in `rescript.json`:
 
 ## What Makes Xote Unique?
 
-While Xote uses **rescript-signals** for reactive primitives (Signal, Computed, Effect), it adds:
+Xote uses **rescript-signals** for reactive primitives (Signal, Computed, Effect), and it adds:
 
-- **Component System**: A minimal but powerful component model with JSX support
+- **Component System**: A minimal but powerful component model with JSX support for declarative UI
 - **Direct DOM Updates**: Fine-grained reactivity that updates DOM elements directly, no virtual DOM
 - **Signal-based Router**: Client-side routing with pattern matching and reactive location state
 - **Reactive Attributes**: Support for static, signal-based, and computed attributes on elements
 - **Automatic Cleanup**: Effect disposal and memory management built into the component lifecycle
 
-Xote focuses on clarity, control, and performance. The goal is to offer precise, fine-grained updates and predictable behavior with minimal abstractions.
+Xote focuses on clarity, control, and performance. The goal is to offer precise, fine-grained updates and predictable behavior with minimal abstractions, while leveraging the robust type system from ReScript.
 
 ### Quick Example
 
