@@ -34,7 +34,7 @@ Then, add it to your ReScript project’s dependencies in `rescript.json`:
 }
 ```
 
-## What Makes Xote Unique?
+## Why Xote?
 
 Xote uses **rescript-signals** for reactive primitives (Signal, Computed, Effect), and it adds:
 
