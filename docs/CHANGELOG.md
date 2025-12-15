@@ -1,3 +1,10 @@
+# [4.3.0](https://github.com/brnrdog/xote/compare/v4.2.0...v4.3.0) (2025-12-15)
+
+
+### Features
+
+* update rescript-signals from 1.2.0 to 1.3.0 ([f5f5c1b](https://github.com/brnrdog/xote/commit/f5f5c1bfd78dd2fedb89aa0bc6cfe26221b70f20))
+
 # [4.2.0](https://github.com/brnrdog/xote/compare/v4.1.1...v4.2.0) (2025-12-14)
 
 
