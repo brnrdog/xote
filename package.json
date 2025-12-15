@@ -24,12 +24,6 @@
     "docs:build": "npm run prepare:demos && cd website && npm run build",
     "docs:serve": "cd website && npm run serve"
   },
-  "exports": {
-    ".": {
-      "import": "./dist/xote.mjs",
-      "require": "./dist/xote.cjs"
-    }
-  },
   "keywords": [
     "rescript",
     "signals",
