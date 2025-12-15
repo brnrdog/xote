@@ -78,10 +78,12 @@ module Reactivity = {
   }
 
   /* Owner storage on DOM elements */
+  @warning("-27")
   let setOwner = (element: Dom.element, owner: owner): unit => {
     %raw(`element["__xote_owner__"] = owner`)
   }
 
+  @warning("-27")
   let getOwner = (element: Dom.element): option<owner> => {
     let owner: Nullable.t<owner> = %raw(`element["__xote_owner__"]`)
     owner->Nullable.toOption
@@ -111,11 +113,7 @@ type rec node =
   | Fragment(array<node>)
   | SignalFragment(Signal.t<array<node>>)
   | LazyComponent(unit => node)
-  | KeyedList({
-      signal: Signal.t<array<Obj.t>>,
-      keyFn: Obj.t => string,
-      renderItem: Obj.t => node,
-    })
+  | KeyedList({signal: Signal.t<array<Obj.t>>, keyFn: Obj.t => string, renderItem: Obj.t => node})
 
 /* ============================================================================
  * Attribute Helpers
@@ -212,13 +210,15 @@ module Render = {
             childNodes->Array.forEach(disposeElement)
 
             /* Clear existing children */
-            %raw(`container.innerHTML = ''`)
+            let _ = (%raw(`container.innerHTML = ''`): unit)
 
             /* Render and append new children */
-            children->Array.forEach(child => {
-              let childEl = render(child)
-              container->DOM.appendChild(childEl)
-            })
+            children->Array.forEach(
+              child => {
+                let childEl = render(child)
+                container->DOM.appendChild(childEl)
+              },
+            )
 
             None
           })
@@ -241,18 +241,22 @@ module Render = {
             | Static(v) => DOM.setAttribute(el, key, v)
             | SignalValue(signal) => {
                 DOM.setAttribute(el, key, Signal.peek(signal))
-                let disposer = Effect.run(() => {
-                  DOM.setAttribute(el, key, Signal.get(signal))
-                  None
-                })
+                let disposer = Effect.run(
+                  () => {
+                    DOM.setAttribute(el, key, Signal.get(signal))
+                    None
+                  },
+                )
                 addDisposer(owner, disposer)
               }
             | Compute(compute) => {
                 DOM.setAttribute(el, key, compute())
-                let disposer = Effect.run(() => {
-                  DOM.setAttribute(el, key, compute())
-                  None
-                })
+                let disposer = Effect.run(
+                  () => {
+                    DOM.setAttribute(el, key, compute())
+                    None
+                  },
+                )
                 addDisposer(owner, disposer)
               }
             }
@@ -306,7 +310,9 @@ module Render = {
 
               /* Phase 1: Remove */
               let keysToRemove = []
-              keyedItems->Dict.keysToArray->Array.forEach(key => {
+              keyedItems
+              ->Dict.keysToArray
+              ->Array.forEach(key => {
                 switch newKeyMap->Dict.get(key) {
                 | None => keysToRemove->Array.push(key)->ignore
                 | Some(_) => ()
@@ -317,7 +323,7 @@ module Render = {
                 switch keyedItems->Dict.get(key) {
                 | Some(keyedItem) => {
                     disposeElement(keyedItem.element)
-                    %raw(`keyedItem.element.remove()`)
+                    let _ = (%raw(`keyedItem.element.remove()`): unit)
                     keyedItems->Dict.delete(key)->ignore
                   }
                 | None => ()
@@ -332,17 +338,16 @@ module Render = {
                 let key = keyFn(item)
 
                 switch keyedItems->Dict.get(key) {
-                | Some(existing) => {
-                    if existing.item !== item {
-                      elementsToReplace->Dict.set(key, true)
-                      let node = renderItem(item)
-                      let element = render(node)
-                      let keyedItem = {key, item, element}
-                      newOrder->Array.push(keyedItem)->ignore
-                      keyedItems->Dict.set(key, keyedItem)
-                    } else {
-                      newOrder->Array.push(existing)->ignore
-                    }
+                | Some(existing) =>
+                  if existing.item !== item {
+                    elementsToReplace->Dict.set(key, true)
+                    let node = renderItem(item)
+                    let element = render(node)
+                    let keyedItem = {key, item, element}
+                    newOrder->Array.push(keyedItem)->ignore
+                    keyedItems->Dict.set(key, keyedItem)
+                  } else {
+                    newOrder->Array.push(existing)->ignore
                   }
                 | None => {
                     let node = renderItem(item)
@@ -361,12 +366,9 @@ module Render = {
                 let currentElement = marker.contents
 
                 switch currentElement->Nullable.toOption {
-                | Some(elem) when elem === endAnchor => {
-                    DOM.insertBefore(parent, keyedItem.element, endAnchor)
-                  }
-                | Some(elem) when elem === keyedItem.element => {
-                    marker := DOM.getNextSibling(elem)
-                  }
+                | Some(elem) if elem === endAnchor =>
+                  DOM.insertBefore(parent, keyedItem.element, endAnchor)
+                | Some(elem) if elem === keyedItem.element => marker := DOM.getNextSibling(elem)
                 | Some(elem) => {
                     let needsReplacement =
                       elementsToReplace->Dict.get(keyedItem.key)->Option.getOr(false)
@@ -380,9 +382,7 @@ module Render = {
                       marker := DOM.getNextSibling(keyedItem.element)
                     }
                   }
-                | None => {
-                    DOM.insertBefore(parent, keyedItem.element, endAnchor)
-                  }
+                | None => DOM.insertBefore(parent, keyedItem.element, endAnchor)
                 }
               })
             }
@@ -473,17 +473,12 @@ let span = (~attrs=?, ~events=?, ~children=?, ()) =>
 let button = (~attrs=?, ~events=?, ~children=?, ()) =>
   element("button", ~attrs?, ~events?, ~children?, ())
 let input = (~attrs=?, ~events=?, ()) => element("input", ~attrs?, ~events?, ())
-let h1 = (~attrs=?, ~events=?, ~children=?, ()) =>
-  element("h1", ~attrs?, ~events?, ~children?, ())
-let h2 = (~attrs=?, ~events=?, ~children=?, ()) =>
-  element("h2", ~attrs?, ~events?, ~children?, ())
-let h3 = (~attrs=?, ~events=?, ~children=?, ()) =>
-  element("h3", ~attrs?, ~events?, ~children?, ())
+let h1 = (~attrs=?, ~events=?, ~children=?, ()) => element("h1", ~attrs?, ~events?, ~children?, ())
+let h2 = (~attrs=?, ~events=?, ~children=?, ()) => element("h2", ~attrs?, ~events?, ~children?, ())
+let h3 = (~attrs=?, ~events=?, ~children=?, ()) => element("h3", ~attrs?, ~events?, ~children?, ())
 let p = (~attrs=?, ~events=?, ~children=?, ()) => element("p", ~attrs?, ~events?, ~children?, ())
-let ul = (~attrs=?, ~events=?, ~children=?, ()) =>
-  element("ul", ~attrs?, ~events?, ~children?, ())
-let li = (~attrs=?, ~events=?, ~children=?, ()) =>
-  element("li", ~attrs?, ~events?, ~children?, ())
+let ul = (~attrs=?, ~events=?, ~children=?, ()) => element("ul", ~attrs?, ~events?, ~children?, ())
+let li = (~attrs=?, ~events=?, ~children=?, ()) => element("li", ~attrs?, ~events?, ~children?, ())
 let a = (~attrs=?, ~events=?, ~children=?, ()) => element("a", ~attrs?, ~events?, ~children?, ())
 
 /* Mounting */
@@ -498,13 +493,3 @@ let mountById = (node: node, containerId: string): unit => {
   | None => Console.error("Container element not found: " ++ containerId)
   }
 }
-
-/* Re-export for backwards compatibility */
-let createOwner = Reactivity.createOwner
-let runWithOwner = Reactivity.runWithOwner
-let addDisposer = Reactivity.addDisposer
-let disposeOwner = Reactivity.disposeOwner
-let setOwner = Reactivity.setOwner
-let getOwner = Reactivity.getOwner
-let render = Render.render
-let disposeElement = Render.disposeElement
