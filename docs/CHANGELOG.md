@@ -1,3 +1,10 @@
+## [4.3.1](https://github.com/brnrdog/xote/compare/v4.3.0...v4.3.1) (2025-12-18)
+
+
+### Bug Fixes
+
+* expose missing source files for rescript projects ([4d93ebb](https://github.com/brnrdog/xote/commit/4d93ebbe77260381ca7058562626697c42da1aa1))
+
 # [4.3.0](https://github.com/brnrdog/xote/compare/v4.2.0...v4.3.0) (2025-12-15)
 
 
