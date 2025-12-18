@@ -8,7 +8,11 @@
   "module": "./dist/xote.mjs",
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "src/**/*.res",
+    "src/**/*.resi",
+    "src/**/*.res.mjs",
+    "rescript.json"
   ],
   "scripts": {
     "res:build": "rescript",
