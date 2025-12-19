@@ -63,24 +63,76 @@ module Elements = {
   /* Helper to convert a computed function to an attributeValue */
   let computed = (f: unit => string): attributeValue => Any(f)
 
-  /* Props type for HTML elements - supports common attributes and events */
-  type props<'id, 'class, 'style, 'typ, 'name, 'value, 'placeholder, 'href, 'target, 'data> = {
-    /* Standard attributes - can be static strings or reactive values */
+  /* Props type for HTML elements - supports common attributes and events
+   * String-like attributes use polymorphic types to accept strings, signals, or computed functions
+   */
+  type props<
+    'id,
+    'class,
+    'style,
+    'typ,
+    'name,
+    'value,
+    'placeholder,
+    'min,
+    'max,
+    'step,
+    'pattern,
+    'autoComplete,
+    'accept,
+    'forAttr,
+    'href,
+    'target,
+    'src,
+    'alt,
+    'width,
+    'height,
+    'role,
+    'ariaLabel,
+  > = {
+    /* Standard attributes - can be static strings, signals, or computed values */
     id?: 'id,
     class?: 'class,
     style?: 'style,
-    /* Input attributes */
+    /* Form/Input attributes */
     @as("type") type_?: 'typ,
     name?: 'name,
     value?: 'value,
     placeholder?: 'placeholder,
     disabled?: bool,
     checked?: bool,
+    required?: bool,
+    readOnly?: bool,
+    maxLength?: int,
+    minLength?: int,
+    min?: 'min,
+    max?: 'max,
+    step?: 'step,
+    pattern?: 'pattern,
+    autoComplete?: 'autoComplete,
+    multiple?: bool,
+    accept?: 'accept,
+    rows?: int,
+    cols?: int,
+    /* Label attributes */
+    @as("for") for_?: 'forAttr,
     /* Link attributes */
     href?: 'href,
     target?: 'target,
+    /* Image attributes */
+    src?: 'src,
+    alt?: 'alt,
+    width?: 'width,
+    height?: 'height,
+    /* Accessibility attributes */
+    role?: 'role,
+    tabIndex?: int,
+    @as("aria-label") ariaLabel?: 'ariaLabel,
+    @as("aria-hidden") ariaHidden?: bool,
+    @as("aria-expanded") ariaExpanded?: bool,
+    @as("aria-selected") ariaSelected?: bool,
     /* Data attributes */
-    data?: 'data,
+    data?: Obj.t,
     /* Event handlers */
     onClick?: Dom.event => unit,
     onInput?: Dom.event => unit,
@@ -119,10 +171,34 @@ module Elements = {
 
   /* Convert props to attrs array */
   let propsToAttrs = (
-    props: props<'id, 'class, 'style, 'typ, 'name, 'value, 'placeholder, 'href, 'target, 'data>,
+    props: props<
+      'id,
+      'class,
+      'style,
+      'typ,
+      'name,
+      'value,
+      'placeholder,
+      'min,
+      'max,
+      'step,
+      'pattern,
+      'autoComplete,
+      'accept,
+      'forAttr,
+      'href,
+      'target,
+      'src,
+      'alt,
+      'width,
+      'height,
+      'role,
+      'ariaLabel,
+    >,
   ): array<(string, Component.attrValue)> => {
     let attrs = []
 
+    /* Standard attributes */
     switch props.id {
     | Some(v) => attrs->Array.push(convertAttrValue("id", v))
     | None => ()
@@ -138,6 +214,7 @@ module Elements = {
     | None => ()
     }
 
+    /* Form/Input attributes */
     switch props.type_ {
     | Some(v) => attrs->Array.push(convertAttrValue("type", v))
     | None => ()
@@ -168,6 +245,78 @@ module Elements = {
     | _ => ()
     }
 
+    switch props.required {
+    | Some(true) => attrs->Array.push(Component.attr("required", "true"))
+    | _ => ()
+    }
+
+    switch props.readOnly {
+    | Some(true) => attrs->Array.push(Component.attr("readonly", "true"))
+    | _ => ()
+    }
+
+    switch props.maxLength {
+    | Some(v) => attrs->Array.push(Component.attr("maxlength", Int.toString(v)))
+    | None => ()
+    }
+
+    switch props.minLength {
+    | Some(v) => attrs->Array.push(Component.attr("minlength", Int.toString(v)))
+    | None => ()
+    }
+
+    switch props.min {
+    | Some(v) => attrs->Array.push(convertAttrValue("min", v))
+    | None => ()
+    }
+
+    switch props.max {
+    | Some(v) => attrs->Array.push(convertAttrValue("max", v))
+    | None => ()
+    }
+
+    switch props.step {
+    | Some(v) => attrs->Array.push(convertAttrValue("step", v))
+    | None => ()
+    }
+
+    switch props.pattern {
+    | Some(v) => attrs->Array.push(convertAttrValue("pattern", v))
+    | None => ()
+    }
+
+    switch props.autoComplete {
+    | Some(v) => attrs->Array.push(convertAttrValue("autocomplete", v))
+    | None => ()
+    }
+
+    switch props.multiple {
+    | Some(true) => attrs->Array.push(Component.attr("multiple", "true"))
+    | _ => ()
+    }
+
+    switch props.accept {
+    | Some(v) => attrs->Array.push(convertAttrValue("accept", v))
+    | None => ()
+    }
+
+    switch props.rows {
+    | Some(v) => attrs->Array.push(Component.attr("rows", Int.toString(v)))
+    | None => ()
+    }
+
+    switch props.cols {
+    | Some(v) => attrs->Array.push(Component.attr("cols", Int.toString(v)))
+    | None => ()
+    }
+
+    /* Label attributes */
+    switch props.for_ {
+    | Some(v) => attrs->Array.push(convertAttrValue("for", v))
+    | None => ()
+    }
+
+    /* Link attributes */
     switch props.href {
     | Some(v) => attrs->Array.push(convertAttrValue("href", v))
     | None => ()
@@ -178,6 +327,62 @@ module Elements = {
     | None => ()
     }
 
+    /* Image attributes */
+    switch props.src {
+    | Some(v) => attrs->Array.push(convertAttrValue("src", v))
+    | None => ()
+    }
+
+    switch props.alt {
+    | Some(v) => attrs->Array.push(convertAttrValue("alt", v))
+    | None => ()
+    }
+
+    switch props.width {
+    | Some(v) => attrs->Array.push(convertAttrValue("width", v))
+    | None => ()
+    }
+
+    switch props.height {
+    | Some(v) => attrs->Array.push(convertAttrValue("height", v))
+    | None => ()
+    }
+
+    /* Accessibility attributes */
+    switch props.role {
+    | Some(v) => attrs->Array.push(convertAttrValue("role", v))
+    | None => ()
+    }
+
+    switch props.tabIndex {
+    | Some(v) => attrs->Array.push(Component.attr("tabindex", Int.toString(v)))
+    | None => ()
+    }
+
+    switch props.ariaLabel {
+    | Some(v) => attrs->Array.push(convertAttrValue("aria-label", v))
+    | None => ()
+    }
+
+    switch props.ariaHidden {
+    | Some(true) => attrs->Array.push(Component.attr("aria-hidden", "true"))
+    | Some(false) => attrs->Array.push(Component.attr("aria-hidden", "false"))
+    | None => ()
+    }
+
+    switch props.ariaExpanded {
+    | Some(true) => attrs->Array.push(Component.attr("aria-expanded", "true"))
+    | Some(false) => attrs->Array.push(Component.attr("aria-expanded", "false"))
+    | None => ()
+    }
+
+    switch props.ariaSelected {
+    | Some(true) => attrs->Array.push(Component.attr("aria-selected", "true"))
+    | Some(false) => attrs->Array.push(Component.attr("aria-selected", "false"))
+    | None => ()
+    }
+
+    /* Data attributes */
     switch props.data {
     | Some(_dataObj) => {
         let _ = %raw(`
@@ -194,7 +399,30 @@ module Elements = {
 
   /* Convert props to events array */
   let propsToEvents = (
-    props: props<'id, 'class, 'style, 'typ, 'name, 'value, 'placeholder, 'href, 'target, 'data>,
+    props: props<
+      'id,
+      'class,
+      'style,
+      'typ,
+      'name,
+      'value,
+      'placeholder,
+      'min,
+      'max,
+      'step,
+      'pattern,
+      'autoComplete,
+      'accept,
+      'forAttr,
+      'href,
+      'target,
+      'src,
+      'alt,
+      'width,
+      'height,
+      'role,
+      'ariaLabel,
+    >,
   ): array<(string, Dom.event => unit)> => {
     let events = []
 
@@ -253,7 +481,30 @@ module Elements = {
 
   /* Extract children from props */
   let getChildren = (
-    props: props<'id, 'class, 'style, 'typ, 'name, 'value, 'placeholder, 'href, 'target, 'data>,
+    props: props<
+      'id,
+      'class,
+      'style,
+      'typ,
+      'name,
+      'value,
+      'placeholder,
+      'min,
+      'max,
+      'step,
+      'pattern,
+      'autoComplete,
+      'accept,
+      'forAttr,
+      'href,
+      'target,
+      'src,
+      'alt,
+      'width,
+      'height,
+      'role,
+      'ariaLabel,
+    >,
   ): array<element> => {
     switch props.children {
     | Some(Fragment(children)) => children
@@ -265,7 +516,30 @@ module Elements = {
   /* Create an element from a tag string and props */
   let createElement = (
     tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'name, 'value, 'placeholder, 'href, 'target, 'data>,
+    props: props<
+      'id,
+      'class,
+      'style,
+      'typ,
+      'name,
+      'value,
+      'placeholder,
+      'min,
+      'max,
+      'step,
+      'pattern,
+      'autoComplete,
+      'accept,
+      'forAttr,
+      'href,
+      'target,
+      'src,
+      'alt,
+      'width,
+      'height,
+      'role,
+      'ariaLabel,
+    >,
   ): element => {
     Component.Element({
       tag,
@@ -278,17 +552,86 @@ module Elements = {
   /* JSX functions for HTML elements */
   let jsx = (
     tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'name, 'value, 'placeholder, 'href, 'target, 'data>,
+    props: props<
+      'id,
+      'class,
+      'style,
+      'typ,
+      'name,
+      'value,
+      'placeholder,
+      'min,
+      'max,
+      'step,
+      'pattern,
+      'autoComplete,
+      'accept,
+      'forAttr,
+      'href,
+      'target,
+      'src,
+      'alt,
+      'width,
+      'height,
+      'role,
+      'ariaLabel,
+    >,
   ): element => createElement(tag, props)
 
   let jsxs = (
     tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'name, 'value, 'placeholder, 'href, 'target, 'data>,
+    props: props<
+      'id,
+      'class,
+      'style,
+      'typ,
+      'name,
+      'value,
+      'placeholder,
+      'min,
+      'max,
+      'step,
+      'pattern,
+      'autoComplete,
+      'accept,
+      'forAttr,
+      'href,
+      'target,
+      'src,
+      'alt,
+      'width,
+      'height,
+      'role,
+      'ariaLabel,
+    >,
   ): element => createElement(tag, props)
 
   let jsxKeyed = (
     tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'name, 'value, 'placeholder, 'href, 'target, 'data>,
+    props: props<
+      'id,
+      'class,
+      'style,
+      'typ,
+      'name,
+      'value,
+      'placeholder,
+      'min,
+      'max,
+      'step,
+      'pattern,
+      'autoComplete,
+      'accept,
+      'forAttr,
+      'href,
+      'target,
+      'src,
+      'alt,
+      'width,
+      'height,
+      'role,
+      'ariaLabel,
+    >,
     ~key: option<string>=?,
     _: unit,
   ): element => {
@@ -298,7 +641,30 @@ module Elements = {
 
   let jsxsKeyed = (
     tag: string,
-    props: props<'id, 'class, 'style, 'typ, 'name, 'value, 'placeholder, 'href, 'target, 'data>,
+    props: props<
+      'id,
+      'class,
+      'style,
+      'typ,
+      'name,
+      'value,
+      'placeholder,
+      'min,
+      'max,
+      'step,
+      'pattern,
+      'autoComplete,
+      'accept,
+      'forAttr,
+      'href,
+      'target,
+      'src,
+      'alt,
+      'width,
+      'height,
+      'role,
+      'ariaLabel,
+    >,
     ~key: option<string>=?,
     _: unit,
   ): element => {
