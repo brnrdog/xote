@@ -1,3 +1,11 @@
+# [4.4.0](https://github.com/brnrdog/xote/compare/v4.3.1...v4.4.0) (2025-12-19)
+
+
+### Features
+
+* **jsx:** add support to many other common attributes ([d3460d8](https://github.com/brnrdog/xote/commit/d3460d84012964c5dc6a5659f42ada62465a8e18))
+* **jsx:** add support to name attributes ([07de33d](https://github.com/brnrdog/xote/commit/07de33d9ac86c955efd1f04bc088217689288f08))
+
 ## [4.3.1](https://github.com/brnrdog/xote/compare/v4.3.0...v4.3.1) (2025-12-18)
 
 
