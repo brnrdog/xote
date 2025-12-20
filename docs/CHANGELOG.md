@@ -1,3 +1,10 @@
+## [4.4.2](https://github.com/brnrdog/xote/compare/v4.4.1...v4.4.2) (2025-12-20)
+
+
+### Bug Fixes
+
+* **jsx:** reactive support for boolean attributes ([c54ed60](https://github.com/brnrdog/xote/commit/c54ed60f174bd2049f27809f21f354546ba65912))
+
 ## [4.4.1](https://github.com/brnrdog/xote/compare/v4.4.0...v4.4.1) (2025-12-20)
 
 
