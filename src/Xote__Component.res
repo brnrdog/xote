@@ -25,17 +25,27 @@ module DOM = {
   external addEventListener: (Dom.element, string, Dom.event => unit) => unit = "addEventListener"
   @send external appendChild: (Dom.element, Dom.element) => unit = "appendChild"
   @send external setAttribute: (Dom.element, string, string) => unit = "setAttribute"
+  @send external removeAttribute: (Dom.element, string) => unit = "removeAttribute"
   @send external replaceChild: (Dom.element, Dom.element, Dom.element) => unit = "replaceChild"
   @send external insertBefore: (Dom.element, Dom.element, Dom.element) => unit = "insertBefore"
   @set external setTextContent: (Dom.element, string) => unit = "textContent"
   @set external setValue: (Dom.element, string) => unit = "value"
   @set external setChecked: (Dom.element, bool) => unit = "checked"
+  @set external setDisabled: (Dom.element, bool) => unit = "disabled"
 
   /* Set attribute or property depending on attribute name */
   let setAttrOrProp = (el: Dom.element, key: string, value: string): unit => {
     switch key {
     | "value" => setValue(el, value)
     | "checked" => setChecked(el, value == "true")
+    | "disabled" => setDisabled(el, value == "true")
+    /* Boolean attributes that should be added/removed based on value */
+    | "required" | "readonly" | "multiple" | "aria-hidden" | "aria-expanded" | "aria-selected" =>
+      if value == "true" {
+        setAttribute(el, key, "")
+      } else {
+        removeAttribute(el, key)
+      }
     | _ => setAttribute(el, key, value)
     }
   }
