@@ -29,6 +29,16 @@ module DOM = {
   @send external insertBefore: (Dom.element, Dom.element, Dom.element) => unit = "insertBefore"
   @set external setTextContent: (Dom.element, string) => unit = "textContent"
   @set external setValue: (Dom.element, string) => unit = "value"
+  @set external setChecked: (Dom.element, bool) => unit = "checked"
+
+  /* Set attribute or property depending on attribute name */
+  let setAttrOrProp = (el: Dom.element, key: string, value: string): unit => {
+    switch key {
+    | "value" => setValue(el, value)
+    | "checked" => setChecked(el, value == "true")
+    | _ => setAttribute(el, key, value)
+    }
+  }
 }
 
 /* ============================================================================
@@ -238,22 +248,22 @@ module Render = {
           /* Set attributes */
           attrs->Array.forEach(((key, value)) => {
             switch value {
-            | Static(v) => DOM.setAttribute(el, key, v)
+            | Static(v) => DOM.setAttrOrProp(el, key, v)
             | SignalValue(signal) => {
-                DOM.setAttribute(el, key, Signal.peek(signal))
+                DOM.setAttrOrProp(el, key, Signal.peek(signal))
                 let disposer = Effect.run(
                   () => {
-                    DOM.setAttribute(el, key, Signal.get(signal))
+                    DOM.setAttrOrProp(el, key, Signal.get(signal))
                     None
                   },
                 )
                 addDisposer(owner, disposer)
               }
             | Compute(compute) => {
-                DOM.setAttribute(el, key, compute())
+                DOM.setAttrOrProp(el, key, compute())
                 let disposer = Effect.run(
                   () => {
-                    DOM.setAttribute(el, key, compute())
+                    DOM.setAttrOrProp(el, key, compute())
                     None
                   },
                 )
