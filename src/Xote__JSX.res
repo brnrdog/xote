@@ -65,6 +65,7 @@ module Elements = {
 
   /* Props type for HTML elements - supports common attributes and events
    * String-like attributes use polymorphic types to accept strings, signals, or computed functions
+   * Boolean attributes also use polymorphic types to accept bools, signals, or computed functions
    */
   type props<
     'id,
@@ -89,6 +90,14 @@ module Elements = {
     'height,
     'role,
     'ariaLabel,
+    'disabled,
+    'checked,
+    'required,
+    'readOnly,
+    'multiple,
+    'ariaHidden,
+    'ariaExpanded,
+    'ariaSelected,
   > = {
     /* Standard attributes - can be static strings, signals, or computed values */
     id?: 'id,
@@ -99,10 +108,10 @@ module Elements = {
     name?: 'name,
     value?: 'value,
     placeholder?: 'placeholder,
-    disabled?: bool,
-    checked?: bool,
-    required?: bool,
-    readOnly?: bool,
+    disabled?: 'disabled,
+    checked?: 'checked,
+    required?: 'required,
+    readOnly?: 'readOnly,
     maxLength?: int,
     minLength?: int,
     min?: 'min,
@@ -110,7 +119,7 @@ module Elements = {
     step?: 'step,
     pattern?: 'pattern,
     autoComplete?: 'autoComplete,
-    multiple?: bool,
+    multiple?: 'multiple,
     accept?: 'accept,
     rows?: int,
     cols?: int,
@@ -128,9 +137,9 @@ module Elements = {
     role?: 'role,
     tabIndex?: int,
     @as("aria-label") ariaLabel?: 'ariaLabel,
-    @as("aria-hidden") ariaHidden?: bool,
-    @as("aria-expanded") ariaExpanded?: bool,
-    @as("aria-selected") ariaSelected?: bool,
+    @as("aria-hidden") ariaHidden?: 'ariaHidden,
+    @as("aria-expanded") ariaExpanded?: 'ariaExpanded,
+    @as("aria-selected") ariaSelected?: 'ariaSelected,
     /* Data attributes */
     data?: Obj.t,
     /* Event handlers */
@@ -169,6 +178,26 @@ module Elements = {
     }
   }
 
+  /* Helper to convert boolean attribute values (static bool, signal, or computed) to Component.attrValue */
+  let convertBoolAttrValue = (key: string, value: 'a): (string, Component.attrValue) => {
+    // Check if it's a function (computed)
+    if typeof(value) == #function {
+      // It's a computed function that returns bool
+      let f: unit => bool = Obj.magic(value)
+      Component.computedAttr(key, () => f() ? "true" : "false")
+    } else if typeof(value) == #object && hasId(value)->Option.isSome {
+      // It's a signal of bool
+      let sig: Signal.t<bool> = Obj.magic(value)
+      // Create a computed signal that converts bool to string
+      let strSignal = Computed.make(() => Signal.get(sig) ? "true" : "false")
+      Component.signalAttr(key, strSignal)
+    } else {
+      // It's a static bool
+      let b: bool = Obj.magic(value)
+      Component.attr(key, b ? "true" : "false")
+    }
+  }
+
   /* Convert props to attrs array */
   let propsToAttrs = (
     props: props<
@@ -194,6 +223,14 @@ module Elements = {
       'height,
       'role,
       'ariaLabel,
+      'disabled,
+      'checked,
+      'required,
+      'readOnly,
+      'multiple,
+      'ariaHidden,
+      'ariaExpanded,
+      'ariaSelected,
     >,
   ): array<(string, Component.attrValue)> => {
     let attrs = []
@@ -236,23 +273,23 @@ module Elements = {
     }
 
     switch props.disabled {
-    | Some(true) => attrs->Array.push(Component.attr("disabled", "true"))
-    | _ => ()
+    | Some(v) => attrs->Array.push(convertBoolAttrValue("disabled", v))
+    | None => ()
     }
 
     switch props.checked {
-    | Some(true) => attrs->Array.push(Component.attr("checked", "true"))
-    | _ => ()
+    | Some(v) => attrs->Array.push(convertBoolAttrValue("checked", v))
+    | None => ()
     }
 
     switch props.required {
-    | Some(true) => attrs->Array.push(Component.attr("required", "true"))
-    | _ => ()
+    | Some(v) => attrs->Array.push(convertBoolAttrValue("required", v))
+    | None => ()
     }
 
     switch props.readOnly {
-    | Some(true) => attrs->Array.push(Component.attr("readonly", "true"))
-    | _ => ()
+    | Some(v) => attrs->Array.push(convertBoolAttrValue("readonly", v))
+    | None => ()
     }
 
     switch props.maxLength {
@@ -291,8 +328,8 @@ module Elements = {
     }
 
     switch props.multiple {
-    | Some(true) => attrs->Array.push(Component.attr("multiple", "true"))
-    | _ => ()
+    | Some(v) => attrs->Array.push(convertBoolAttrValue("multiple", v))
+    | None => ()
     }
 
     switch props.accept {
@@ -365,20 +402,17 @@ module Elements = {
     }
 
     switch props.ariaHidden {
-    | Some(true) => attrs->Array.push(Component.attr("aria-hidden", "true"))
-    | Some(false) => attrs->Array.push(Component.attr("aria-hidden", "false"))
+    | Some(v) => attrs->Array.push(convertBoolAttrValue("aria-hidden", v))
     | None => ()
     }
 
     switch props.ariaExpanded {
-    | Some(true) => attrs->Array.push(Component.attr("aria-expanded", "true"))
-    | Some(false) => attrs->Array.push(Component.attr("aria-expanded", "false"))
+    | Some(v) => attrs->Array.push(convertBoolAttrValue("aria-expanded", v))
     | None => ()
     }
 
     switch props.ariaSelected {
-    | Some(true) => attrs->Array.push(Component.attr("aria-selected", "true"))
-    | Some(false) => attrs->Array.push(Component.attr("aria-selected", "false"))
+    | Some(v) => attrs->Array.push(convertBoolAttrValue("aria-selected", v))
     | None => ()
     }
 
@@ -422,6 +456,14 @@ module Elements = {
       'height,
       'role,
       'ariaLabel,
+      'disabled,
+      'checked,
+      'required,
+      'readOnly,
+      'multiple,
+      'ariaHidden,
+      'ariaExpanded,
+      'ariaSelected,
     >,
   ): array<(string, Dom.event => unit)> => {
     let events = []
@@ -504,6 +546,14 @@ module Elements = {
       'height,
       'role,
       'ariaLabel,
+      'disabled,
+      'checked,
+      'required,
+      'readOnly,
+      'multiple,
+      'ariaHidden,
+      'ariaExpanded,
+      'ariaSelected,
     >,
   ): array<element> => {
     switch props.children {
@@ -539,6 +589,14 @@ module Elements = {
       'height,
       'role,
       'ariaLabel,
+      'disabled,
+      'checked,
+      'required,
+      'readOnly,
+      'multiple,
+      'ariaHidden,
+      'ariaExpanded,
+      'ariaSelected,
     >,
   ): element => {
     Component.Element({
@@ -575,6 +633,14 @@ module Elements = {
       'height,
       'role,
       'ariaLabel,
+      'disabled,
+      'checked,
+      'required,
+      'readOnly,
+      'multiple,
+      'ariaHidden,
+      'ariaExpanded,
+      'ariaSelected,
     >,
   ): element => createElement(tag, props)
 
@@ -603,6 +669,14 @@ module Elements = {
       'height,
       'role,
       'ariaLabel,
+      'disabled,
+      'checked,
+      'required,
+      'readOnly,
+      'multiple,
+      'ariaHidden,
+      'ariaExpanded,
+      'ariaSelected,
     >,
   ): element => createElement(tag, props)
 
@@ -631,6 +705,14 @@ module Elements = {
       'height,
       'role,
       'ariaLabel,
+      'disabled,
+      'checked,
+      'required,
+      'readOnly,
+      'multiple,
+      'ariaHidden,
+      'ariaExpanded,
+      'ariaSelected,
     >,
     ~key: option<string>=?,
     _: unit,
@@ -664,6 +746,14 @@ module Elements = {
       'height,
       'role,
       'ariaLabel,
+      'disabled,
+      'checked,
+      'required,
+      'readOnly,
+      'multiple,
+      'ariaHidden,
+      'ariaExpanded,
+      'ariaSelected,
     >,
     ~key: option<string>=?,
     _: unit,
