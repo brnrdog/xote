@@ -1,3 +1,10 @@
+## [4.4.3](https://github.com/brnrdog/xote/compare/v4.4.2...v4.4.3) (2025-12-20)
+
+
+### Bug Fixes
+
+* **component:** boolean attributes ([60e1155](https://github.com/brnrdog/xote/commit/60e11557f1d2b38560da593f153f4f5ea0267471))
+
 ## [4.4.2](https://github.com/brnrdog/xote/compare/v4.4.1...v4.4.2) (2025-12-20)
 
 
