@@ -8,10 +8,10 @@ type component<'props> = 'props => element
 
 type componentLike<'props, 'return> = 'props => 'return
 
-/* JSX functions for component creation */
+/* JSX functions for component creation - all delegate to the component function */
 let jsx = (component: component<'props>, props: 'props): element => component(props)
 
-let jsxs = (component: component<'props>, props: 'props): element => component(props)
+let jsxs = jsx
 
 let jsxKeyed = (
   component: component<'props>,
@@ -20,18 +20,10 @@ let jsxKeyed = (
   _: unit,
 ): element => {
   let _ = key /* TODO: Implement key support for list reconciliation */
-  component(props)
+  jsx(component, props)
 }
 
-let jsxsKeyed = (
-  component: component<'props>,
-  props: 'props,
-  ~key: option<string>=?,
-  _: unit,
-): element => {
-  let _ = key
-  component(props)
-}
+let jsxsKeyed = jsxKeyed
 
 /* Fragment support */
 type fragmentProps = {children?: element}
@@ -198,223 +190,72 @@ module Elements = {
     }
   }
 
-  /* Convert props to attrs array */
-  let propsToAttrs = (
-    props: props<
-      'id,
-      'class,
-      'style,
-      'typ,
-      'name,
-      'value,
-      'placeholder,
-      'min,
-      'max,
-      'step,
-      'pattern,
-      'autoComplete,
-      'accept,
-      'forAttr,
-      'href,
-      'target,
-      'src,
-      'alt,
-      'width,
-      'height,
-      'role,
-      'ariaLabel,
-      'disabled,
-      'checked,
-      'required,
-      'readOnly,
-      'multiple,
-      'ariaHidden,
-      'ariaExpanded,
-      'ariaSelected,
-    >,
-  ): array<(string, Component.attrValue)> => {
+  /* Helper to add optional attribute to attrs array */
+  let addAttr = (attrs, opt, key, converter) => {
+    switch opt {
+    | Some(v) => attrs->Array.push(converter(key, v))
+    | None => ()
+    }
+  }
+
+  /* Helper to add optional int attribute */
+  let addIntAttr = (attrs, opt, key) => {
+    switch opt {
+    | Some(v) => attrs->Array.push(Component.attr(key, Int.toString(v)))
+    | None => ()
+    }
+  }
+
+  /* Convert props to attrs array - uses wildcard types to accept any prop types */
+  let propsToAttrs = (props: props<_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _>): array<(string, Component.attrValue)> => {
     let attrs = []
 
     /* Standard attributes */
-    switch props.id {
-    | Some(v) => attrs->Array.push(convertAttrValue("id", v))
-    | None => ()
-    }
-
-    switch props.class {
-    | Some(v) => attrs->Array.push(convertAttrValue("class", v))
-    | None => ()
-    }
-
-    switch props.style {
-    | Some(v) => attrs->Array.push(convertAttrValue("style", v))
-    | None => ()
-    }
+    addAttr(attrs, props.id, "id", convertAttrValue)
+    addAttr(attrs, props.class, "class", convertAttrValue)
+    addAttr(attrs, props.style, "style", convertAttrValue)
 
     /* Form/Input attributes */
-    switch props.type_ {
-    | Some(v) => attrs->Array.push(convertAttrValue("type", v))
-    | None => ()
-    }
-
-    switch props.name {
-    | Some(v) => attrs->Array.push(convertAttrValue("name", v))
-    | None => ()
-    }
-
-    switch props.value {
-    | Some(v) => attrs->Array.push(convertAttrValue("value", v))
-    | None => ()
-    }
-
-    switch props.placeholder {
-    | Some(v) => attrs->Array.push(convertAttrValue("placeholder", v))
-    | None => ()
-    }
-
-    switch props.disabled {
-    | Some(v) => attrs->Array.push(convertBoolAttrValue("disabled", v))
-    | None => ()
-    }
-
-    switch props.checked {
-    | Some(v) => attrs->Array.push(convertBoolAttrValue("checked", v))
-    | None => ()
-    }
-
-    switch props.required {
-    | Some(v) => attrs->Array.push(convertBoolAttrValue("required", v))
-    | None => ()
-    }
-
-    switch props.readOnly {
-    | Some(v) => attrs->Array.push(convertBoolAttrValue("readonly", v))
-    | None => ()
-    }
-
-    switch props.maxLength {
-    | Some(v) => attrs->Array.push(Component.attr("maxlength", Int.toString(v)))
-    | None => ()
-    }
-
-    switch props.minLength {
-    | Some(v) => attrs->Array.push(Component.attr("minlength", Int.toString(v)))
-    | None => ()
-    }
-
-    switch props.min {
-    | Some(v) => attrs->Array.push(convertAttrValue("min", v))
-    | None => ()
-    }
-
-    switch props.max {
-    | Some(v) => attrs->Array.push(convertAttrValue("max", v))
-    | None => ()
-    }
-
-    switch props.step {
-    | Some(v) => attrs->Array.push(convertAttrValue("step", v))
-    | None => ()
-    }
-
-    switch props.pattern {
-    | Some(v) => attrs->Array.push(convertAttrValue("pattern", v))
-    | None => ()
-    }
-
-    switch props.autoComplete {
-    | Some(v) => attrs->Array.push(convertAttrValue("autocomplete", v))
-    | None => ()
-    }
-
-    switch props.multiple {
-    | Some(v) => attrs->Array.push(convertBoolAttrValue("multiple", v))
-    | None => ()
-    }
-
-    switch props.accept {
-    | Some(v) => attrs->Array.push(convertAttrValue("accept", v))
-    | None => ()
-    }
-
-    switch props.rows {
-    | Some(v) => attrs->Array.push(Component.attr("rows", Int.toString(v)))
-    | None => ()
-    }
-
-    switch props.cols {
-    | Some(v) => attrs->Array.push(Component.attr("cols", Int.toString(v)))
-    | None => ()
-    }
+    addAttr(attrs, props.type_, "type", convertAttrValue)
+    addAttr(attrs, props.name, "name", convertAttrValue)
+    addAttr(attrs, props.value, "value", convertAttrValue)
+    addAttr(attrs, props.placeholder, "placeholder", convertAttrValue)
+    addAttr(attrs, props.disabled, "disabled", convertBoolAttrValue)
+    addAttr(attrs, props.checked, "checked", convertBoolAttrValue)
+    addAttr(attrs, props.required, "required", convertBoolAttrValue)
+    addAttr(attrs, props.readOnly, "readonly", convertBoolAttrValue)
+    addIntAttr(attrs, props.maxLength, "maxlength")
+    addIntAttr(attrs, props.minLength, "minlength")
+    addAttr(attrs, props.min, "min", convertAttrValue)
+    addAttr(attrs, props.max, "max", convertAttrValue)
+    addAttr(attrs, props.step, "step", convertAttrValue)
+    addAttr(attrs, props.pattern, "pattern", convertAttrValue)
+    addAttr(attrs, props.autoComplete, "autocomplete", convertAttrValue)
+    addAttr(attrs, props.multiple, "multiple", convertBoolAttrValue)
+    addAttr(attrs, props.accept, "accept", convertAttrValue)
+    addIntAttr(attrs, props.rows, "rows")
+    addIntAttr(attrs, props.cols, "cols")
 
     /* Label attributes */
-    switch props.for_ {
-    | Some(v) => attrs->Array.push(convertAttrValue("for", v))
-    | None => ()
-    }
+    addAttr(attrs, props.for_, "for", convertAttrValue)
 
     /* Link attributes */
-    switch props.href {
-    | Some(v) => attrs->Array.push(convertAttrValue("href", v))
-    | None => ()
-    }
-
-    switch props.target {
-    | Some(v) => attrs->Array.push(convertAttrValue("target", v))
-    | None => ()
-    }
+    addAttr(attrs, props.href, "href", convertAttrValue)
+    addAttr(attrs, props.target, "target", convertAttrValue)
 
     /* Image attributes */
-    switch props.src {
-    | Some(v) => attrs->Array.push(convertAttrValue("src", v))
-    | None => ()
-    }
-
-    switch props.alt {
-    | Some(v) => attrs->Array.push(convertAttrValue("alt", v))
-    | None => ()
-    }
-
-    switch props.width {
-    | Some(v) => attrs->Array.push(convertAttrValue("width", v))
-    | None => ()
-    }
-
-    switch props.height {
-    | Some(v) => attrs->Array.push(convertAttrValue("height", v))
-    | None => ()
-    }
+    addAttr(attrs, props.src, "src", convertAttrValue)
+    addAttr(attrs, props.alt, "alt", convertAttrValue)
+    addAttr(attrs, props.width, "width", convertAttrValue)
+    addAttr(attrs, props.height, "height", convertAttrValue)
 
     /* Accessibility attributes */
-    switch props.role {
-    | Some(v) => attrs->Array.push(convertAttrValue("role", v))
-    | None => ()
-    }
-
-    switch props.tabIndex {
-    | Some(v) => attrs->Array.push(Component.attr("tabindex", Int.toString(v)))
-    | None => ()
-    }
-
-    switch props.ariaLabel {
-    | Some(v) => attrs->Array.push(convertAttrValue("aria-label", v))
-    | None => ()
-    }
-
-    switch props.ariaHidden {
-    | Some(v) => attrs->Array.push(convertBoolAttrValue("aria-hidden", v))
-    | None => ()
-    }
-
-    switch props.ariaExpanded {
-    | Some(v) => attrs->Array.push(convertBoolAttrValue("aria-expanded", v))
-    | None => ()
-    }
-
-    switch props.ariaSelected {
-    | Some(v) => attrs->Array.push(convertBoolAttrValue("aria-selected", v))
-    | None => ()
-    }
+    addAttr(attrs, props.role, "role", convertAttrValue)
+    addIntAttr(attrs, props.tabIndex, "tabindex")
+    addAttr(attrs, props.ariaLabel, "aria-label", convertAttrValue)
+    addAttr(attrs, props.ariaHidden, "aria-hidden", convertBoolAttrValue)
+    addAttr(attrs, props.ariaExpanded, "aria-expanded", convertBoolAttrValue)
+    addAttr(attrs, props.ariaSelected, "aria-selected", convertBoolAttrValue)
 
     /* Data attributes */
     switch props.data {
@@ -431,131 +272,34 @@ module Elements = {
     attrs
   }
 
-  /* Convert props to events array */
-  let propsToEvents = (
-    props: props<
-      'id,
-      'class,
-      'style,
-      'typ,
-      'name,
-      'value,
-      'placeholder,
-      'min,
-      'max,
-      'step,
-      'pattern,
-      'autoComplete,
-      'accept,
-      'forAttr,
-      'href,
-      'target,
-      'src,
-      'alt,
-      'width,
-      'height,
-      'role,
-      'ariaLabel,
-      'disabled,
-      'checked,
-      'required,
-      'readOnly,
-      'multiple,
-      'ariaHidden,
-      'ariaExpanded,
-      'ariaSelected,
-    >,
-  ): array<(string, Dom.event => unit)> => {
+  /* Helper to add optional event handler to events array */
+  let addEvent = (events, opt, eventName) => {
+    switch opt {
+    | Some(handler) => events->Array.push((eventName, handler))
+    | None => ()
+    }
+  }
+
+  /* Convert props to events array - uses wildcard types to accept any prop types */
+  let propsToEvents = (props: props<_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _>): array<(string, Dom.event => unit)> => {
     let events = []
 
-    switch props.onClick {
-    | Some(handler) => events->Array.push(("click", handler))
-    | None => ()
-    }
-
-    switch props.onInput {
-    | Some(handler) => events->Array.push(("input", handler))
-    | None => ()
-    }
-
-    switch props.onChange {
-    | Some(handler) => events->Array.push(("change", handler))
-    | None => ()
-    }
-
-    switch props.onSubmit {
-    | Some(handler) => events->Array.push(("submit", handler))
-    | None => ()
-    }
-
-    switch props.onFocus {
-    | Some(handler) => events->Array.push(("focus", handler))
-    | None => ()
-    }
-
-    switch props.onBlur {
-    | Some(handler) => events->Array.push(("blur", handler))
-    | None => ()
-    }
-
-    switch props.onKeyDown {
-    | Some(handler) => events->Array.push(("keydown", handler))
-    | None => ()
-    }
-
-    switch props.onKeyUp {
-    | Some(handler) => events->Array.push(("keyup", handler))
-    | None => ()
-    }
-
-    switch props.onMouseEnter {
-    | Some(handler) => events->Array.push(("mouseenter", handler))
-    | None => ()
-    }
-
-    switch props.onMouseLeave {
-    | Some(handler) => events->Array.push(("mouseleave", handler))
-    | None => ()
-    }
+    addEvent(events, props.onClick, "click")
+    addEvent(events, props.onInput, "input")
+    addEvent(events, props.onChange, "change")
+    addEvent(events, props.onSubmit, "submit")
+    addEvent(events, props.onFocus, "focus")
+    addEvent(events, props.onBlur, "blur")
+    addEvent(events, props.onKeyDown, "keydown")
+    addEvent(events, props.onKeyUp, "keyup")
+    addEvent(events, props.onMouseEnter, "mouseenter")
+    addEvent(events, props.onMouseLeave, "mouseleave")
 
     events
   }
 
   /* Extract children from props */
-  let getChildren = (
-    props: props<
-      'id,
-      'class,
-      'style,
-      'typ,
-      'name,
-      'value,
-      'placeholder,
-      'min,
-      'max,
-      'step,
-      'pattern,
-      'autoComplete,
-      'accept,
-      'forAttr,
-      'href,
-      'target,
-      'src,
-      'alt,
-      'width,
-      'height,
-      'role,
-      'ariaLabel,
-      'disabled,
-      'checked,
-      'required,
-      'readOnly,
-      'multiple,
-      'ariaHidden,
-      'ariaExpanded,
-      'ariaSelected,
-    >,
-  ): array<element> => {
+  let getChildren = (props: props<_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _>): array<element> => {
     switch props.children {
     | Some(Fragment(children)) => children
     | Some(child) => [child]
@@ -564,41 +308,7 @@ module Elements = {
   }
 
   /* Create an element from a tag string and props */
-  let createElement = (
-    tag: string,
-    props: props<
-      'id,
-      'class,
-      'style,
-      'typ,
-      'name,
-      'value,
-      'placeholder,
-      'min,
-      'max,
-      'step,
-      'pattern,
-      'autoComplete,
-      'accept,
-      'forAttr,
-      'href,
-      'target,
-      'src,
-      'alt,
-      'width,
-      'height,
-      'role,
-      'ariaLabel,
-      'disabled,
-      'checked,
-      'required,
-      'readOnly,
-      'multiple,
-      'ariaHidden,
-      'ariaExpanded,
-      'ariaSelected,
-    >,
-  ): element => {
+  let createElement = (tag: string, props: props<_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _>): element => {
     Component.Element({
       tag,
       attrs: propsToAttrs(props),
@@ -607,160 +317,17 @@ module Elements = {
     })
   }
 
-  /* JSX functions for HTML elements */
-  let jsx = (
-    tag: string,
-    props: props<
-      'id,
-      'class,
-      'style,
-      'typ,
-      'name,
-      'value,
-      'placeholder,
-      'min,
-      'max,
-      'step,
-      'pattern,
-      'autoComplete,
-      'accept,
-      'forAttr,
-      'href,
-      'target,
-      'src,
-      'alt,
-      'width,
-      'height,
-      'role,
-      'ariaLabel,
-      'disabled,
-      'checked,
-      'required,
-      'readOnly,
-      'multiple,
-      'ariaHidden,
-      'ariaExpanded,
-      'ariaSelected,
-    >,
-  ): element => createElement(tag, props)
+  /* JSX functions for HTML elements - all delegate to createElement */
+  let jsx = (tag: string, props: props<_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _>): element => createElement(tag, props)
 
-  let jsxs = (
-    tag: string,
-    props: props<
-      'id,
-      'class,
-      'style,
-      'typ,
-      'name,
-      'value,
-      'placeholder,
-      'min,
-      'max,
-      'step,
-      'pattern,
-      'autoComplete,
-      'accept,
-      'forAttr,
-      'href,
-      'target,
-      'src,
-      'alt,
-      'width,
-      'height,
-      'role,
-      'ariaLabel,
-      'disabled,
-      'checked,
-      'required,
-      'readOnly,
-      'multiple,
-      'ariaHidden,
-      'ariaExpanded,
-      'ariaSelected,
-    >,
-  ): element => createElement(tag, props)
+  let jsxs = jsx
 
-  let jsxKeyed = (
-    tag: string,
-    props: props<
-      'id,
-      'class,
-      'style,
-      'typ,
-      'name,
-      'value,
-      'placeholder,
-      'min,
-      'max,
-      'step,
-      'pattern,
-      'autoComplete,
-      'accept,
-      'forAttr,
-      'href,
-      'target,
-      'src,
-      'alt,
-      'width,
-      'height,
-      'role,
-      'ariaLabel,
-      'disabled,
-      'checked,
-      'required,
-      'readOnly,
-      'multiple,
-      'ariaHidden,
-      'ariaExpanded,
-      'ariaSelected,
-    >,
-    ~key: option<string>=?,
-    _: unit,
-  ): element => {
+  let jsxKeyed = (tag: string, props: props<_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _>, ~key: option<string>=?, _: unit): element => {
     let _ = key
-    createElement(tag, props)
+    jsx(tag, props)
   }
 
-  let jsxsKeyed = (
-    tag: string,
-    props: props<
-      'id,
-      'class,
-      'style,
-      'typ,
-      'name,
-      'value,
-      'placeholder,
-      'min,
-      'max,
-      'step,
-      'pattern,
-      'autoComplete,
-      'accept,
-      'forAttr,
-      'href,
-      'target,
-      'src,
-      'alt,
-      'width,
-      'height,
-      'role,
-      'ariaLabel,
-      'disabled,
-      'checked,
-      'required,
-      'readOnly,
-      'multiple,
-      'ariaHidden,
-      'ariaExpanded,
-      'ariaSelected,
-    >,
-    ~key: option<string>=?,
-    _: unit,
-  ): element => {
-    let _ = key
-    createElement(tag, props)
-  }
+  let jsxsKeyed = jsxKeyed
 
   /* Element helper for ReScript JSX type checking */
   external someElement: element => option<element> = "%identity"
