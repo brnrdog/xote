@@ -1,3 +1,10 @@
+## [4.4.1](https://github.com/brnrdog/xote/compare/v4.4.0...v4.4.1) (2025-12-20)
+
+
+### Bug Fixes
+
+* **component:** attribute and property handling ([c49cbc0](https://github.com/brnrdog/xote/commit/c49cbc0d3b486c7a68b59a65671b139ae8b1eac5))
+
 # [4.4.0](https://github.com/brnrdog/xote/compare/v4.3.1...v4.4.0) (2025-12-19)
 
 
