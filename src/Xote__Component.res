@@ -501,6 +501,18 @@ let ul = (~attrs=?, ~events=?, ~children=?, ()) => element("ul", ~attrs?, ~event
 let li = (~attrs=?, ~events=?, ~children=?, ()) => element("li", ~attrs?, ~events?, ~children?, ())
 let a = (~attrs=?, ~events=?, ~children=?, ()) => element("a", ~attrs?, ~events?, ~children?, ())
 
+/* Defines a property that can either be a signal (Reactive) or a static value
+ (Static) */
+module ReactiveProp = {
+  type t<'a> = Reactive(Signal.t<'a>) | Static('a)
+
+  let get = value =>
+    switch value {
+    | Reactive(signal) => Signal.get(signal)
+    | Static(value) => value
+    }
+}
+
 /* Mounting */
 let mount = (node: node, container: Dom.element): unit => {
   let el = Render.render(node)
