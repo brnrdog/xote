@@ -1,3 +1,11 @@
+# [4.7.0](https://github.com/brnrdog/xote/compare/v4.6.0...v4.7.0) (2025-12-29)
+
+
+### Features
+
+* **jsx:** allow ReactiveProp.t besides raw values ([0e082f5](https://github.com/brnrdog/xote/commit/0e082f575199d97433d27a3aa58199ac3cd5cfee))
+* **reactive-prop:** add helper functions for static and reactive ([2e82b1a](https://github.com/brnrdog/xote/commit/2e82b1a396b5e29ad11c7f76062f53130c1113aa))
+
 # [4.6.0](https://github.com/brnrdog/xote/compare/v4.5.0...v4.6.0) (2025-12-29)
 
 
