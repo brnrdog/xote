@@ -1,5 +1,6 @@
 open Signals
 module Component = Xote__Component
+module ReactiveProp = Xote__ReactiveProp
 
 /* ReScript JSX transform type aliases */
 type element = Component.node
@@ -42,22 +43,8 @@ let null = (): element => Component.text("")
 
 /* Elements module for lowercase HTML tags */
 module Elements = {
-  /* Attribute value type that can be static, signal, or computed */
-  @unboxed
-  type rec attributeValue = Any('a): attributeValue
-
-  /* Automatic conversion from string to attributeValue */
-  external fromString: string => attributeValue = "%identity"
-
-  /* Helper to convert a signal to an attributeValue */
-  let signal = (s: Signals.Signal.t<string>): attributeValue => Any(s)
-
-  /* Helper to convert a computed function to an attributeValue */
-  let computed = (f: unit => string): attributeValue => Any(f)
-
-  /* Props type for HTML elements - supports common attributes and events
-   * String-like attributes use polymorphic types to accept strings, signals, or computed functions
-   * Boolean attributes also use polymorphic types to accept bools, signals, or computed functions
+  /* Props type for HTML elements - accepts both raw values and ReactiveProp.t for flexibility
+   * This allows ergonomic JSX like class="foo" while also supporting class={ReactiveProp.reactive(signal)}
    */
   type props<
     'id,
@@ -91,7 +78,7 @@ module Elements = {
     'ariaExpanded,
     'ariaSelected,
   > = {
-    /* Standard attributes - can be static strings, signals, or computed values */
+    /* Standard attributes - accept raw strings or ReactiveProp.t<string> */
     id?: 'id,
     class?: 'class,
     style?: 'style,
@@ -149,42 +136,58 @@ module Elements = {
     children?: element,
   }
 
-  /* Helper to detect if a value is a signal (has an id property) */
-  @get external hasId: 'a => option<int> = "id"
+  /* Helper to detect if a value is a ReactiveProp variant (checks for Static/Reactive tags) */
+  let isReactiveProp = (value: 'a): bool => {
+    %raw(`value && typeof value === 'object' && ('TAG' in value) && (value.TAG === 'Static' || value.TAG === 'Reactive')`)
+  }
 
-  /* Helper to convert any value to Component.attrValue */
+  /* Helper to convert string attribute value (supports raw string, ReactiveProp, Signal, or computed function) */
   let convertAttrValue = (key: string, value: 'a): (string, Component.attrValue) => {
-    // Check if it's a function (computed)
-    if typeof(value) == #function {
-      // It's a computed function
+    if isReactiveProp(value) {
+      // It's a ReactiveProp variant - pattern match on it
+      let rp: ReactiveProp.t<string> = Obj.magic(value)
+      switch rp {
+      | Static(s) => Component.attr(key, s)
+      | Reactive(signal) => Component.signalAttr(key, signal)
+      }
+    } else if typeof(value) == #function {
+      // It's a computed function (for backward compatibility)
       let f: unit => string = Obj.magic(value)
       Component.computedAttr(key, f)
-    } else if typeof(value) == #object && hasId(value)->Option.isSome {
-      // It's a signal (has an id property)
+    } else if typeof(value) == #object {
+      // It's a raw signal (for backward compatibility)
       let sig: Signal.t<string> = Obj.magic(value)
       Component.signalAttr(key, sig)
     } else {
-      // It's a static string
+      // It's a raw string
       let s: string = Obj.magic(value)
       Component.attr(key, s)
     }
   }
 
-  /* Helper to convert boolean attribute values (static bool, signal, or computed) to Component.attrValue */
+  /* Helper to convert boolean attribute value (supports raw bool, ReactiveProp, Signal, or computed function) */
   let convertBoolAttrValue = (key: string, value: 'a): (string, Component.attrValue) => {
-    // Check if it's a function (computed)
-    if typeof(value) == #function {
-      // It's a computed function that returns bool
+    if isReactiveProp(value) {
+      // It's a ReactiveProp variant - pattern match on it
+      let rp: ReactiveProp.t<bool> = Obj.magic(value)
+      switch rp {
+      | Static(b) => Component.attr(key, b ? "true" : "false")
+      | Reactive(signal) => {
+          let strSignal = Computed.make(() => Signal.get(signal) ? "true" : "false")
+          Component.signalAttr(key, strSignal)
+        }
+      }
+    } else if typeof(value) == #function {
+      // It's a computed function that returns bool (for backward compatibility)
       let f: unit => bool = Obj.magic(value)
       Component.computedAttr(key, () => f() ? "true" : "false")
-    } else if typeof(value) == #object && hasId(value)->Option.isSome {
-      // It's a signal of bool
+    } else if typeof(value) == #object {
+      // It's a raw signal (for backward compatibility)
       let sig: Signal.t<bool> = Obj.magic(value)
-      // Create a computed signal that converts bool to string
       let strSignal = Computed.make(() => Signal.get(sig) ? "true" : "false")
       Component.signalAttr(key, strSignal)
     } else {
-      // It's a static bool
+      // It's a raw bool
       let b: bool = Obj.magic(value)
       Component.attr(key, b ? "true" : "false")
     }
@@ -206,7 +209,7 @@ module Elements = {
     }
   }
 
-  /* Convert props to attrs array - uses wildcard types to accept any prop types */
+  /* Convert props to attrs array */
   let propsToAttrs = (props: props<_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _>): array<(string, Component.attrValue)> => {
     let attrs = []
 
@@ -280,7 +283,7 @@ module Elements = {
     }
   }
 
-  /* Convert props to events array - uses wildcard types to accept any prop types */
+  /* Convert props to events array */
   let propsToEvents = (props: props<_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _>): array<(string, Dom.event => unit)> => {
     let events = []
 
