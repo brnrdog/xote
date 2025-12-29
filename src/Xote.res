@@ -21,3 +21,7 @@ module Route = {
 module Router = {
   include Xote__Router
 }
+
+module ReactiveProp = {
+  include Xote__ReactiveProp
+}
