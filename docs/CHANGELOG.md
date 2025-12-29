@@ -1,3 +1,10 @@
+# [4.5.0](https://github.com/brnrdog/xote/compare/v4.4.3...v4.5.0) (2025-12-29)
+
+
+### Features
+
+* introduce ReactiveProp module ([0dde3b8](https://github.com/brnrdog/xote/commit/0dde3b81c3d2872455e20f110a2793e845179bcf))
+
 ## [4.4.3](https://github.com/brnrdog/xote/compare/v4.4.2...v4.4.3) (2025-12-20)
 
 
