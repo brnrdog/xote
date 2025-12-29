@@ -1,3 +1,10 @@
+# [4.6.0](https://github.com/brnrdog/xote/compare/v4.5.0...v4.6.0) (2025-12-29)
+
+
+### Features
+
+* expose ReactiveProp from Xote module ([3704a62](https://github.com/brnrdog/xote/commit/3704a6218cabe7a5e89b1c00bda17db989aa1a5c))
+
 # [4.5.0](https://github.com/brnrdog/xote/compare/v4.4.3...v4.5.0) (2025-12-29)
 
 
