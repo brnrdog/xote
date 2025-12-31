@@ -1,3 +1,10 @@
+# [4.8.0](https://github.com/brnrdog/xote/compare/v4.7.0...v4.8.0) (2025-12-31)
+
+
+### Features
+
+* **router:** add Link component ([0e8d215](https://github.com/brnrdog/xote/commit/0e8d2152f478d30025c3886ca6047836628b9868))
+
 # [4.7.0](https://github.com/brnrdog/xote/compare/v4.6.0...v4.7.0) (2025-12-29)
 
 
