@@ -17,6 +17,7 @@ export default defineConfig({
         solitaire: resolve(__dirname, 'demos/solitaire.html'),
         match: resolve(__dirname, 'demos/match.html'),
         bookstore: resolve(__dirname, 'demos/bookstore.html'),
+        snake: resolve(__dirname, 'demos/snake.html'),
       }
     }
   }
