@@ -128,3 +128,119 @@ let link = (
     (),
   )
 }
+
+// JSX Link component
+module Link = {
+  module ReactiveProp = Xote__ReactiveProp
+
+  type props<'class, 'id, 'style, 'target, 'ariaLabel> = {
+    /* Required navigation prop */
+    to: string,
+    /* Common attributes - can be static or reactive */
+    class?: 'class,
+    id?: 'id,
+    style?: 'style,
+    target?: 'target,
+    @as("aria-label") ariaLabel?: 'ariaLabel,
+    /* Event handlers */
+    onClick?: Dom.event => unit,
+    /* Children */
+    children?: Component.node,
+  }
+
+  /* Helper to detect if a value is a ReactiveProp variant */
+  let isReactiveProp = (value: 'a): bool => {
+    %raw(`value && typeof value === 'object' && ('TAG' in value) && (value.TAG === 'Static' || value.TAG === 'Reactive')`)
+  }
+
+  /* Helper to convert string attribute value */
+  let convertAttrValue = (key: string, value: 'a): (string, Component.attrValue) => {
+    if isReactiveProp(value) {
+      let rp: ReactiveProp.t<string> = Obj.magic(value)
+      switch rp {
+      | Static(s) => Component.attr(key, s)
+      | Reactive(signal) => Component.signalAttr(key, signal)
+      }
+    } else if typeof(value) == #function {
+      let f: unit => string = Obj.magic(value)
+      Component.computedAttr(key, f)
+    } else if typeof(value) == #object {
+      let sig: Signal.t<string> = Obj.magic(value)
+      Component.signalAttr(key, sig)
+    } else {
+      let s: string = Obj.magic(value)
+      Component.attr(key, s)
+    }
+  }
+
+  /* Convert props to attrs array */
+  let propsToAttrs = (props: props<_, _, _, _, _>): array<(string, Component.attrValue)> => {
+    let attrs = []
+
+    switch props.class {
+    | Some(v) => attrs->Array.push(convertAttrValue("class", v))
+    | None => ()
+    }
+
+    switch props.id {
+    | Some(v) => attrs->Array.push(convertAttrValue("id", v))
+    | None => ()
+    }
+
+    switch props.style {
+    | Some(v) => attrs->Array.push(convertAttrValue("style", v))
+    | None => ()
+    }
+
+    switch props.target {
+    | Some(v) => attrs->Array.push(convertAttrValue("target", v))
+    | None => ()
+    }
+
+    switch props.ariaLabel {
+    | Some(v) => attrs->Array.push(convertAttrValue("aria-label", v))
+    | None => ()
+    }
+
+    attrs
+  }
+
+  /* Extract children from props */
+  let getChildren = (props: props<_, _, _, _, _>): array<Component.node> => {
+    switch props.children {
+    | Some(Component.Fragment(children)) => children
+    | Some(child) => [child]
+    | None => []
+    }
+  }
+
+  /* JSX component function */
+  let make = (props: props<_, _, _, _, _>): Component.node => {
+    let handleClick = (evt: Dom.event) => {
+      %raw(`evt.preventDefault()`)
+      push(props.to, ())
+
+      // Call user's onClick if provided
+      switch props.onClick {
+      | Some(handler) => handler(evt)
+      | None => ()
+      }
+    }
+
+    Component.a(
+      ~attrs=Array.concat(propsToAttrs(props), [Component.attr("href", props.to)]),
+      ~events=[("click", handleClick)],
+      ~children=getChildren(props),
+      (),
+    )
+  }
+
+  /* JSX transform functions */
+  let jsx = make
+  let jsxs = make
+  let jsxKeyed = (props: props<_, _, _, _, _>, ~key: option<string>=?, _: unit) => {
+    let _ = key
+    make(props)
+  }
+  let jsxsKeyed = jsxKeyed
+}
