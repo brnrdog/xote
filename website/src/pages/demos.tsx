@@ -47,6 +47,13 @@ const demos = [
     source: 'https://github.com/brnrdog/xote/blob/main/demos/MatchGame.res',
   },
   {
+    title: 'Snake Game',
+    description: 'Classic Snake with 10 challenging levels, obstacles, and progressive difficulty',
+    path: '/demos/snake',
+    route: '/snake',
+    source: 'https://github.com/brnrdog/xote/blob/main/demos/SnakeGame.res',
+  },
+  {
     title: 'Functional Bookstore',
     description: 'E-commerce app with routing, cart management, checkout flow, and absurd FP-themed books',
     path: '/demos/bookstore',
