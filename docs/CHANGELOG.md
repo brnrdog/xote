@@ -1,3 +1,10 @@
+# [4.9.0](https://github.com/brnrdog/xote/compare/v4.8.0...v4.9.0) (2026-01-06)
+
+
+### Features
+
+* **component:** add helpers for rendering reactive and static values ([c4b7526](https://github.com/brnrdog/xote/commit/c4b7526d9c41945817453b523af133da8c105d7b))
+
 # [4.8.0](https://github.com/brnrdog/xote/compare/v4.7.0...v4.8.0) (2025-12-31)
 
 
