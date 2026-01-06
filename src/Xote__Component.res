@@ -451,6 +451,27 @@ let textSignal = (compute: unit => string): node => {
   SignalText(signal)
 }
 
+/* Reactive text nodes with type-specific helpers */
+let reactiveString = (compute: unit => string): node => {
+  let signal = Computed.make(compute)
+  SignalText(signal)
+}
+
+let reactiveInt = (compute: unit => int): node => {
+  let signal = Computed.make(() => compute()->Int.toString)
+  SignalText(signal)
+}
+
+let reactiveFloat = (compute: unit => float): node => {
+  let signal = Computed.make(() => compute()->Float.toString)
+  SignalText(signal)
+}
+
+/* Static text nodes with type-specific helpers */
+let int = (value: int): node => Text(Int.toString(value))
+
+let float = (value: float): node => Text(Float.toString(value))
+
 /* Fragments */
 let fragment = (children: array<node>): node => Fragment(children)
 
