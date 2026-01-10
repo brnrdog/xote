@@ -1,3 +1,10 @@
+## [4.10.1](https://github.com/brnrdog/xote/compare/v4.10.0...v4.10.1) (2026-01-10)
+
+
+### Bug Fixes
+
+* ensures all router instances share same state ([a754f96](https://github.com/brnrdog/xote/commit/a754f96123f36add51e1a7c9893c4f5aa1462130))
+
 # [4.10.0](https://github.com/brnrdog/xote/compare/v4.9.0...v4.10.0) (2026-01-10)
 
 
