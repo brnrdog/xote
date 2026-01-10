@@ -9,15 +9,76 @@ type location = {
   hash: string,
 }
 
-// Global location signal - the core router state
-let location: Signal.t<location> = Signal.make({
-  pathname: "/",
-  search: "",
-  hash: "",
-})
+// ============================================================================
+// GLOBAL SINGLETON STATE MANAGEMENT
+// ============================================================================
+// This ensures all Xote Router instances share the same state, even when
+// multiple copies of Xote are bundled (e.g., component library + app).
+// We use JavaScript's Symbol.for() to create a globally unique key that
+// all bundles will share.
 
-// Base path configuration - defaults to "/"
-let basePath: ref<string> = ref("/")
+// Type for the global router state stored in globalThis
+type globalRouterState = {
+  location: Signal.t<location>,
+  basePath: ref<string>,
+  mutable initialized: bool,
+  mutable popStateHandler: option<Dom.event => unit>,
+}
+
+// External binding for Symbol.for() - creates/retrieves a global symbol
+@val @scope("Symbol")
+external symbolFor: string => 'symbol = "for"
+
+// Get the global symbol key used to store router state
+let getSymbolKey = (): 'symbol => {
+  symbolFor("xote.router.state")
+}
+
+// Get or create the global router state
+// This function is idempotent - safe to call multiple times
+let getGlobalState = (): globalRouterState => {
+  // Check if global state exists
+  // We use Symbol.for() inline to ensure the same symbol across all Xote bundles
+  let existingState: option<globalRouterState> = %raw(`globalThis[Symbol.for("xote.router.state")]`)
+
+  switch existingState {
+  | Some(state) => state
+  | None => {
+      // Create new global state
+      let state: globalRouterState = {
+        location: Signal.make({
+          pathname: "/",
+          search: "",
+          hash: "",
+        }),
+        basePath: ref("/"),
+        initialized: false,
+        popStateHandler: None,
+      }
+
+      // Store in globalThis using the same symbol
+      %raw(`globalThis[Symbol.for("xote.router.state")] = state`)
+      state
+    }
+  }
+}
+
+// Convenience accessors for global state
+// These replace the old module-level state variables
+let location = (): Signal.t<location> => getGlobalState().location
+let basePath = (): ref<string> => getGlobalState().basePath
+
+// Warn if Router is used before initialization
+let warnIfNotInitialized = (methodName: string): unit => {
+  let state = getGlobalState()
+  if !state.initialized {
+    %raw(`console.warn(
+      '[Xote Router] ' + methodName + ' called before Router.init(). ' +
+      'Make sure to call Router.init() at your app entry point. ' +
+      'This may cause incorrect routing behavior.'
+    )`)
+  }
+}
 
 // Normalize base path: ensure starts with "/", no trailing "/"
 // Examples: "" → "/", "project" → "/project", "/project/" → "/project"
@@ -41,7 +102,7 @@ let normalizeBasePath = (path: string): string => {
 // Strip base path from browser pathname to get app-relative path
 // Examples (base="/project"): "/project/home" → "/home", "/project" → "/"
 let stripBasePath = (pathname: string): string => {
-  let base = basePath.contents
+  let base = basePath().contents
   if base == "/" {
     pathname
   } else if pathname == base {
@@ -56,7 +117,7 @@ let stripBasePath = (pathname: string): string => {
 // Add base path to app-relative pathname for browser history
 // Examples (base="/project"): "/home" → "/project/home", "/" → "/project"
 let addBasePath = (pathname: string): string => {
-  let base = basePath.contents
+  let base = basePath().contents
   if base == "/" {
     pathname
   } else if pathname == "/" {
@@ -92,30 +153,52 @@ let getCurrentLocation = (): location => {
   }
 }
 
-// Initialize router - call this once at app start
+// Initialize router - call this at app start
+// This function is idempotent and safe to call multiple times.
+// Subsequent calls will update the basePath and re-sync location.
+//
 // basePath: Optional base path for the app (e.g., "/project-name")
 //           Routes will be relative to this base. Defaults to "/"
+//
+// IMPORTANT: In apps with nested Xote dependencies (e.g., component library + app),
+// the app should call init() with the basePath. All Router instances across
+// all bundles will share the same state via the global singleton.
 let init = (~basePath as basePathArg: string="/", ()): unit => {
-  // Store normalized base path
-  basePath := normalizeBasePath(basePathArg)
+  let state = getGlobalState()
 
-  // Set initial location from browser (with base path stripped)
-  Signal.set(location, getCurrentLocation())
+  // Normalize and update base path
+  let normalizedBasePath = normalizeBasePath(basePathArg)
+  state.basePath := normalizedBasePath
 
-  // Listen for popstate (back/forward buttons)
-  let handlePopState = (_evt: Dom.event) => {
-    Signal.set(location, getCurrentLocation())
+  // Set/update location from browser (with base path stripped)
+  Signal.set(state.location, getCurrentLocation())
+
+  // Only set up the popstate listener once
+  // If already initialized, we don't add another listener
+  if !state.initialized {
+    let handlePopState = (_evt: Dom.event) => {
+      Signal.set(location(), getCurrentLocation())
+    }
+
+    // Store handler reference in global state
+    state.popStateHandler = Some(handlePopState)
+
+    // Add the listener
+    addEventListener("popstate", handlePopState)
+
+    // Mark as initialized
+    state.initialized = true
   }
 
-  addEventListener("popstate", handlePopState)
-
-  // Note: No cleanup needed for SPA scenarios
-  // If cleanup is needed, return a disposer function
+  // Note: No cleanup/disposal needed for typical SPA scenarios
+  // The popstate listener lives for the entire app lifetime
 }
 
 // Imperative navigation - push new history entry
 // pathname: App-relative path (will have base path added automatically)
 let push = (pathname: string, ~search: string="", ~hash: string="", ()): unit => {
+  warnIfNotInitialized("Router.push()")
+
   let newLocation = {pathname, search, hash}
 
   // Add base path for browser URL
@@ -124,12 +207,14 @@ let push = (pathname: string, ~search: string="", ~hash: string="", ()): unit =>
 
   let state: historyState = %raw("{}")
   pushState(state, "", url)
-  Signal.set(location, newLocation)
+  Signal.set(location(), newLocation)
 }
 
 // Imperative navigation - replace current history entry
 // pathname: App-relative path (will have base path added automatically)
 let replace = (pathname: string, ~search: string="", ~hash: string="", ()): unit => {
+  warnIfNotInitialized("Router.replace()")
+
   let newLocation = {pathname, search, hash}
 
   // Add base path for browser URL
@@ -138,7 +223,7 @@ let replace = (pathname: string, ~search: string="", ~hash: string="", ()): unit
 
   let state: historyState = %raw("{}")
   replaceState(state, "", url)
-  Signal.set(location, newLocation)
+  Signal.set(location(), newLocation)
 }
 
 // Route definition for routes() component
@@ -149,8 +234,10 @@ type routeConfig = {
 
 // Single route component - renders if pattern matches
 let route = (pattern: string, render: Route.params => Component.node): Component.node => {
+  warnIfNotInitialized("Router.route()")
+
   let signal = Computed.make(() => {
-    let loc = Signal.get(location)
+    let loc = Signal.get(location())
     switch Route.match(pattern, loc.pathname) {
     | Match(params) => [render(params)]
     | NoMatch => []
@@ -161,8 +248,10 @@ let route = (pattern: string, render: Route.params => Component.node): Component
 
 // Routes component - renders first matching route
 let routes = (configs: array<routeConfig>): Component.node => {
+  warnIfNotInitialized("Router.routes()")
+
   let signal = Computed.make(() => {
-    let loc = Signal.get(location)
+    let loc = Signal.get(location())
     let matched = configs->Array.findMap(config => {
       switch Route.match(config.pattern, loc.pathname) {
       | Match(params) => Some(config.render(params))
@@ -185,6 +274,8 @@ let link = (
   ~children: array<Component.node>=[],
   (),
 ): Component.node => {
+  warnIfNotInitialized("Router.link()")
+
   let handleClick = (_evt: Dom.event) => {
     %raw(`_evt.preventDefault()`)
     push(to, ())
@@ -285,6 +376,8 @@ module Link = {
 
   /* JSX component function */
   let make = (props: props<_, _, _, _, _>): Component.node => {
+    warnIfNotInitialized("Router.Link")
+
     let handleClick = (evt: Dom.event) => {
       %raw(`evt.preventDefault()`)
       push(props.to, ())

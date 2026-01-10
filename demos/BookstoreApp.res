@@ -7,7 +7,7 @@ let _ = Router.init()
 
 // Navigate to home on first load if we're at the HTML file path
 let _ = Effect.run(() => {
-  let pathname = Signal.get(Router.location).pathname
+  let pathname = Signal.get(Router.location()).pathname
 
   // Handle various paths where the HTML file might be served
   // - Local: /bookstore.html or /demos/bookstore.html
@@ -280,7 +280,7 @@ let header = () => {
           ~to="/",
           ~attrs=[
             Component.computedAttr("class", () => {
-              let pathname = Signal.get(Router.location).pathname
+              let pathname = Signal.get(Router.location()).pathname
               if pathname == "/" {
                 "px-4 py-2 bg-stone-900 dark:bg-stone-700 text-white rounded-lg font-semibold"
               } else {
@@ -295,7 +295,7 @@ let header = () => {
           ~to="/catalog",
           ~attrs=[
             Component.computedAttr("class", () => {
-              let pathname = Signal.get(Router.location).pathname
+              let pathname = Signal.get(Router.location()).pathname
               if pathname == "/catalog" {
                 "px-4 py-2 bg-stone-900 dark:bg-stone-700 text-white rounded-lg font-semibold"
               } else {
@@ -310,7 +310,7 @@ let header = () => {
           ~to="/about",
           ~attrs=[
             Component.computedAttr("class", () => {
-              let pathname = Signal.get(Router.location).pathname
+              let pathname = Signal.get(Router.location()).pathname
               if pathname == "/about" {
                 "px-4 py-2 bg-stone-900 dark:bg-stone-700 text-white rounded-lg font-semibold"
               } else {

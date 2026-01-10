@@ -49,7 +49,7 @@ module DemoHeader = {
                   ~to="/",
                   ~attrs=[
                     Component.computedAttr("class", () => {
-                      let currentPath = Signal.get(Router.location).pathname
+                      let currentPath = Signal.get(Router.location()).pathname
                       let baseClass = "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
                       currentPath == "/"
                         ? baseClass ++ " bg-stone-900 text-white dark:bg-stone-700"
@@ -63,7 +63,7 @@ module DemoHeader = {
                   ~to="/counter",
                   ~attrs=[
                     Component.computedAttr("class", () => {
-                      let currentPath = Signal.get(Router.location).pathname
+                      let currentPath = Signal.get(Router.location()).pathname
                       let baseClass = "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
                       currentPath == "/counter"
                         ? baseClass ++ " bg-stone-900 text-white dark:bg-stone-700"
@@ -77,7 +77,7 @@ module DemoHeader = {
                   ~to="/todo",
                   ~attrs=[
                     Component.computedAttr("class", () => {
-                      let currentPath = Signal.get(Router.location).pathname
+                      let currentPath = Signal.get(Router.location()).pathname
                       let baseClass = "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
                       currentPath == "/todo"
                         ? baseClass ++ " bg-stone-900 text-white dark:bg-stone-700"
@@ -91,7 +91,7 @@ module DemoHeader = {
                   ~to="/color",
                   ~attrs=[
                     Component.computedAttr("class", () => {
-                      let currentPath = Signal.get(Router.location).pathname
+                      let currentPath = Signal.get(Router.location()).pathname
                       let baseClass = "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
                       currentPath == "/color"
                         ? baseClass ++ " bg-stone-900 text-white dark:bg-stone-700"
@@ -105,7 +105,7 @@ module DemoHeader = {
                   ~to="/reaction",
                   ~attrs=[
                     Component.computedAttr("class", () => {
-                      let currentPath = Signal.get(Router.location).pathname
+                      let currentPath = Signal.get(Router.location()).pathname
                       let baseClass = "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
                       currentPath == "/reaction"
                         ? baseClass ++ " bg-stone-900 text-white dark:bg-stone-700"
@@ -119,7 +119,7 @@ module DemoHeader = {
                   ~to="/solitaire",
                   ~attrs=[
                     Component.computedAttr("class", () => {
-                      let currentPath = Signal.get(Router.location).pathname
+                      let currentPath = Signal.get(Router.location()).pathname
                       let baseClass = "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
                       currentPath == "/solitaire"
                         ? baseClass ++ " bg-stone-900 text-white dark:bg-stone-700"
@@ -133,7 +133,7 @@ module DemoHeader = {
                   ~to="/snake",
                   ~attrs=[
                     Component.computedAttr("class", () => {
-                      let currentPath = Signal.get(Router.location).pathname
+                      let currentPath = Signal.get(Router.location()).pathname
                       let baseClass = "px-3 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
                       currentPath == "/snake"
                         ? baseClass ++ " bg-stone-900 text-white dark:bg-stone-700"
