@@ -16,6 +16,56 @@ let location: Signal.t<location> = Signal.make({
   hash: "",
 })
 
+// Base path configuration - defaults to "/"
+let basePath: ref<string> = ref("/")
+
+// Normalize base path: ensure starts with "/", no trailing "/"
+// Examples: "" → "/", "project" → "/project", "/project/" → "/project"
+let normalizeBasePath = (path: string): string => {
+  if path == "" || path == "/" {
+    "/"
+  } else {
+    let withLeading = if String.startsWith(path, "/") {
+      path
+    } else {
+      "/" ++ path
+    }
+    if String.endsWith(withLeading, "/") {
+      String.slice(withLeading, ~start=0, ~end=String.length(withLeading) - 1)
+    } else {
+      withLeading
+    }
+  }
+}
+
+// Strip base path from browser pathname to get app-relative path
+// Examples (base="/project"): "/project/home" → "/home", "/project" → "/"
+let stripBasePath = (pathname: string): string => {
+  let base = basePath.contents
+  if base == "/" {
+    pathname
+  } else if pathname == base {
+    "/"
+  } else if String.startsWith(pathname, base ++ "/") {
+    String.sliceToEnd(pathname, ~start=String.length(base))
+  } else {
+    pathname // Pass through if doesn't match base
+  }
+}
+
+// Add base path to app-relative pathname for browser history
+// Examples (base="/project"): "/home" → "/project/home", "/" → "/project"
+let addBasePath = (pathname: string): string => {
+  let base = basePath.contents
+  if base == "/" {
+    pathname
+  } else if pathname == "/" {
+    base
+  } else {
+    base ++ pathname
+  }
+}
+
 // External bindings for History API
 type historyState = {.}
 
@@ -32,15 +82,24 @@ external addEventListener: (string, Dom.event => unit) => unit = "addEventListen
 external removeEventListener: (string, Dom.event => unit) => unit = "removeEventListener"
 
 // Parse current browser location from window.location
+// Strips base path from pathname to get app-relative path
 let getCurrentLocation = (): location => {
-  pathname: %raw(`window.location.pathname`),
-  search: %raw(`window.location.search`),
-  hash: %raw(`window.location.hash`),
+  let browserPathname: string = %raw(`window.location.pathname`)
+  {
+    pathname: stripBasePath(browserPathname),
+    search: %raw(`window.location.search`),
+    hash: %raw(`window.location.hash`),
+  }
 }
 
 // Initialize router - call this once at app start
-let init = (): unit => {
-  // Set initial location from browser
+// basePath: Optional base path for the app (e.g., "/project-name")
+//           Routes will be relative to this base. Defaults to "/"
+let init = (~basePath as basePathArg: string="/", ()): unit => {
+  // Store normalized base path
+  basePath := normalizeBasePath(basePathArg)
+
+  // Set initial location from browser (with base path stripped)
   Signal.set(location, getCurrentLocation())
 
   // Listen for popstate (back/forward buttons)
@@ -55,18 +114,28 @@ let init = (): unit => {
 }
 
 // Imperative navigation - push new history entry
+// pathname: App-relative path (will have base path added automatically)
 let push = (pathname: string, ~search: string="", ~hash: string="", ()): unit => {
   let newLocation = {pathname, search, hash}
-  let url = pathname ++ search ++ hash
+
+  // Add base path for browser URL
+  let browserPathname = addBasePath(pathname)
+  let url = browserPathname ++ search ++ hash
+
   let state: historyState = %raw("{}")
   pushState(state, "", url)
   Signal.set(location, newLocation)
 }
 
 // Imperative navigation - replace current history entry
+// pathname: App-relative path (will have base path added automatically)
 let replace = (pathname: string, ~search: string="", ~hash: string="", ()): unit => {
   let newLocation = {pathname, search, hash}
-  let url = pathname ++ search ++ hash
+
+  // Add base path for browser URL
+  let browserPathname = addBasePath(pathname)
+  let url = browserPathname ++ search ++ hash
+
   let state: historyState = %raw("{}")
   replaceState(state, "", url)
   Signal.set(location, newLocation)
@@ -122,7 +191,7 @@ let link = (
   }
 
   Component.a(
-    ~attrs=Array.concat(attrs, [Component.attr("href", to)]),
+    ~attrs=Array.concat(attrs, [Component.attr("href", addBasePath(to))]),
     ~events=[("click", handleClick)],
     ~children,
     (),
@@ -228,7 +297,7 @@ module Link = {
     }
 
     Component.a(
-      ~attrs=Array.concat(propsToAttrs(props), [Component.attr("href", props.to)]),
+      ~attrs=Array.concat(propsToAttrs(props), [Component.attr("href", addBasePath(props.to))]),
       ~events=[("click", handleClick)],
       ~children=getChildren(props),
       (),
