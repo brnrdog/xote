@@ -1,3 +1,10 @@
+# [4.10.0](https://github.com/brnrdog/xote/compare/v4.9.0...v4.10.0) (2026-01-10)
+
+
+### Features
+
+* **router:** add base path option to router initialization ([b54c6e9](https://github.com/brnrdog/xote/commit/b54c6e99acd62a180a4166183f9d5ddb3cd37093))
+
 # [4.9.0](https://github.com/brnrdog/xote/compare/v4.8.0...v4.9.0) (2026-01-06)
 
 
