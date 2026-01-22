@@ -1,3 +1,10 @@
+# [4.11.0](https://github.com/brnrdog/xote/compare/v4.10.1...v4.11.0) (2026-01-22)
+
+
+### Features
+
+* update rescript from 1.3.0 to 1.3.3 ([35c9a4e](https://github.com/brnrdog/xote/commit/35c9a4e2e9f9cc631edf0847389a47a5887420ec))
+
 ## [4.10.1](https://github.com/brnrdog/xote/compare/v4.10.0...v4.10.1) (2026-01-10)
 
 
