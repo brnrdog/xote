@@ -25,3 +25,15 @@ module Router = {
 module ReactiveProp = {
   include Xote__ReactiveProp
 }
+
+module SSR = {
+  include Xote__SSR
+}
+
+module SSRContext = {
+  include Xote__SSRContext
+}
+
+module Hydration = {
+  include Xote__Hydration
+}
