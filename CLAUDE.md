@@ -95,7 +95,7 @@ let app = () => {
 **JSX features**:
 - Lowercase tags (`<div>`, `<button>`, etc.) create HTML elements
 - Props support: `class`, `id`, `style`, `type_`, `value`, `placeholder`, `disabled`, `checked`, `href`, `target`
-- Event handlers: `onClick`, `onInput`, `onChange`, `onSubmit`, `onFocus`, `onBlur`, `onKeyDown`, `onKeyUp`, `onMouseEnter`, `onMouseLeave`
+- Event handlers: `onClick`, `onInput`, `onChange`, `onSubmit`, `onFocus`, `onBlur`, `onKeyDown`, `onKeyUp`, `onMouseEnter`, `onMouseLeave`, `onContextMenu`
 - Children are passed via JSX syntax and rendered as nodes
 - Component functions can be called directly with props objects
 
