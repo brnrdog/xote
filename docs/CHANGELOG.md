@@ -1,3 +1,10 @@
+# [4.13.0](https://github.com/brnrdog/xote/compare/v4.12.0...v4.13.0) (2026-02-28)
+
+
+### Features
+
+* **router:** add scroll restoration for navigation ([a5b8434](https://github.com/brnrdog/xote/commit/a5b84344369a3cb8be713c5a60d050b9908173bc))
+
 # [4.12.0](https://github.com/brnrdog/xote/compare/v4.11.0...v4.12.0) (2026-02-28)
 
 
