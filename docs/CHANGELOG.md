@@ -1,3 +1,10 @@
+# [4.12.0](https://github.com/brnrdog/xote/compare/v4.11.0...v4.12.0) (2026-02-28)
+
+
+### Features
+
+* **jsx:** add support to contextmenu event ([#36](https://github.com/brnrdog/xote/issues/36)) ([68c7ba2](https://github.com/brnrdog/xote/commit/68c7ba28f73384b6f7f6d059eaeea4d8e94f6491))
+
 # [4.11.0](https://github.com/brnrdog/xote/compare/v4.10.1...v4.11.0) (2026-01-22)
 
 
