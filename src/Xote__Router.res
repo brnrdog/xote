@@ -128,13 +128,54 @@ let addBasePath = (pathname: string): string => {
 }
 
 // External bindings for History API
-type historyState = {.}
+type historyState
 
 @val @scope(("window", "history"))
 external pushState: (historyState, string, string) => unit = "pushState"
 
 @val @scope(("window", "history"))
 external replaceState: (historyState, string, string) => unit = "replaceState"
+
+@val @scope("window")
+external historyState: Nullable.t<historyState> = "history.state"
+
+// Scroll position helpers
+let getScrollPosition = (): (float, float) => {
+  let x: float = %raw(`window.scrollX || window.pageXOffset || 0`)
+  let y: float = %raw(`window.scrollY || window.pageYOffset || 0`)
+  (x, y)
+}
+
+let scrollTo = (x: float, y: float): unit => {
+  %raw(`window.scrollTo(x, y)`)
+}
+
+// Create history state with scroll position
+let makeHistoryState = (scrollX: float, scrollY: float): historyState => {
+  %raw(`({ scrollX: scrollX, scrollY: scrollY })`)
+}
+
+let emptyHistoryState = (): historyState => {
+  %raw(`({})`)
+}
+
+// Extract scroll position from history state
+let getScrollFromState = (state: historyState): option<(float, float)> => {
+  let scrollX: Nullable.t<float> = %raw(`state && state.scrollX`)
+  let scrollY: Nullable.t<float> = %raw(`state && state.scrollY`)
+  switch (Nullable.toOption(scrollX), Nullable.toOption(scrollY)) {
+  | (Some(x), Some(y)) => Some((x, y))
+  | _ => None
+  }
+}
+
+// Save current scroll position to current history entry
+let saveScrollPosition = (): unit => {
+  let (x, y) = getScrollPosition()
+  let state = makeHistoryState(x, y)
+  let url: string = %raw(`window.location.href`)
+  replaceState(state, "", url)
+}
 
 @val @scope("window")
 external addEventListener: (string, Dom.event => unit) => unit = "addEventListener"
@@ -178,6 +219,16 @@ let init = (~basePath as basePathArg: string="/", ()): unit => {
   if !state.initialized {
     let handlePopState = (_evt: Dom.event) => {
       Signal.set(location(), getCurrentLocation())
+
+      // Restore scroll position from history state (for back/forward navigation)
+      switch Nullable.toOption(historyState) {
+      | Some(hState) =>
+        switch getScrollFromState(hState) {
+        | Some((x, y)) => scrollTo(x, y)
+        | None => ()
+        }
+      | None => ()
+      }
     }
 
     // Store handler reference in global state
@@ -199,15 +250,20 @@ let init = (~basePath as basePathArg: string="/", ()): unit => {
 let push = (pathname: string, ~search: string="", ~hash: string="", ()): unit => {
   warnIfNotInitialized("Router.push()")
 
+  // Save current scroll position to current history entry before navigating
+  saveScrollPosition()
+
   let newLocation = {pathname, search, hash}
 
   // Add base path for browser URL
   let browserPathname = addBasePath(pathname)
   let url = browserPathname ++ search ++ hash
 
-  let state: historyState = %raw("{}")
-  pushState(state, "", url)
+  pushState(emptyHistoryState(), "", url)
   Signal.set(location(), newLocation)
+
+  // Scroll to top for new navigation
+  scrollTo(0.0, 0.0)
 }
 
 // Imperative navigation - replace current history entry
@@ -221,9 +277,11 @@ let replace = (pathname: string, ~search: string="", ~hash: string="", ()): unit
   let browserPathname = addBasePath(pathname)
   let url = browserPathname ++ search ++ hash
 
-  let state: historyState = %raw("{}")
-  replaceState(state, "", url)
+  replaceState(emptyHistoryState(), "", url)
   Signal.set(location(), newLocation)
+
+  // Scroll to top for new navigation
+  scrollTo(0.0, 0.0)
 }
 
 // Route definition for routes() component
