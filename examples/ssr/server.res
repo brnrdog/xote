@@ -36,6 +36,7 @@ let html = SSR.renderDocument(
     <style>${styles}</style>
   `,
   ~scripts=["./client.res.mjs"],
+  ~stateScript=SSRState.generateScript(),
   appComponent,
 )
 

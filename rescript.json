@@ -9,6 +9,10 @@
     {
       "dir": "demos",
       "subdirs": false
+    },
+    {
+      "dir": "examples",
+      "subdirs": true
     }
   ],
   "package-specs": {
