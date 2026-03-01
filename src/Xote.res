@@ -34,6 +34,10 @@ module SSRContext = {
   include Xote__SSRContext
 }
 
+module SSRState = {
+  include Xote__SSRState
+}
+
 module Hydration = {
   include Xote__Hydration
 }
