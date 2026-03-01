@@ -1,3 +1,10 @@
+# [4.14.0](https://github.com/brnrdog/xote/compare/v4.13.0...v4.14.0) (2026-03-01)
+
+
+### Features
+
+* add server-side rendering with hydration ([8a30af3](https://github.com/brnrdog/xote/commit/8a30af3421cbae9c33cfe19e6e8b42b7e2e0be6f))
+
 # [4.13.0](https://github.com/brnrdog/xote/compare/v4.12.0...v4.13.0) (2026-02-28)
 
 
