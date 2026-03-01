@@ -11,6 +11,7 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - **Signal-based Reactivity**: Powered by [rescript-signals](https://github.com/brnrdog/rescript-signals) for automatic dependency tracking
 - **Fine-grained Updates**: Direct DOM manipulation without virtual DOM diffing
 - **Signal-based Router**: SPA navigation with pattern matching and dynamic parameters
+- **Server-Side Rendering**: SSR with hydration and automatic state transfer
 - **Lightweight**: Minimal runtime footprint
 - **Type-safe**: Full ReScript type safety throughout
 
@@ -109,6 +110,94 @@ All reactive primitives feature automatic dependency tracking - no manual subscr
 - **Dynamic parameters**: Extract URL parameters using `:param` syntax (e.g., `/users/:id`)
 - **Navigation links**: Use `Router.link()` for SPA navigation without page reload
 - **Reactive location**: Access current route via `Router.location` signal
+
+## Server-Side Rendering (SSR)
+
+Xote supports server-side rendering with hydration. The same component code runs on both server and client, with the server rendering HTML and the client attaching reactivity to the existing DOM.
+
+### Basic SSR Setup
+
+**Shared component** (`App.res`):
+```rescript
+open Xote
+
+let makeAppState = () => {
+  // SSRState.make creates a signal that syncs between server and client
+  let count = SSRState.make("count", 0, SSRState.Codec.int)
+  let items = SSRState.make("items", ["Apple", "Banana"], SSRState.Codec.array(SSRState.Codec.string))
+  (count, items)
+}
+
+let app = (count, items) => () => {
+  <div>
+    <p> {Component.textSignal(() => `Count: ${Signal.get(count)->Int.toString}`)} </p>
+    <button onClick={_ => Signal.update(count, n => n + 1)}>
+      {Component.text("+")}
+    </button>
+  </div>
+}
+```
+
+**Server entry** (`server.res`):
+```rescript
+open Xote
+
+let (count, items) = App.makeAppState()
+let appComponent = App.app(count, items)
+
+let html = SSR.renderDocument(
+  ~head="<title>My App</title>",
+  ~scripts=["./client.res.mjs"],
+  ~stateScript=SSRState.generateScript(),
+  appComponent,
+)
+
+Console.log(html)
+```
+
+**Client entry** (`client.res`):
+```rescript
+open Xote
+
+let (count, items) = App.makeAppState()
+let appComponent = App.app(count, items)
+
+Hydration.hydrateById(appComponent, "root")
+```
+
+### Running the SSR Example
+
+```bash
+# Generate HTML
+node server.res.mjs > index.html
+
+# Serve with Vite (or any static server)
+npx vite
+```
+
+### SSR Features
+
+- **`SSR.renderToString`**: Render component to HTML string
+- **`SSR.renderDocument`**: Render full HTML document with head, scripts, styles
+- **`SSRState.make`**: Create signals that automatically sync between server and client
+- **`SSRState.generateScript`**: Generate `<script>` tag with serialized state
+- **`Hydration.hydrate`**: Attach reactivity to server-rendered DOM
+- **`SSRContext.isServer` / `isClient`**: Environment detection for conditional logic
+
+### Built-in Codecs for State Serialization
+
+```rescript
+SSRState.Codec.int
+SSRState.Codec.float
+SSRState.Codec.string
+SSRState.Codec.bool
+SSRState.Codec.array(itemCodec)
+SSRState.Codec.option(itemCodec)
+SSRState.Codec.dict(valueCodec)
+SSRState.Codec.tuple2(codec1, codec2)
+SSRState.Codec.tuple3(codec1, codec2, codec3)
+SSRState.Codec.make(~encode, ~decode)  // Custom codec
+```
 
 ## Examples
 

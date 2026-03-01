@@ -475,18 +475,22 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
       let container = DOM.createElement("div")
       DOM.setAttribute(container, "style", "display: contents")
 
+      /* Get parent before moving nodes (we need it for insertion) */
+      let parent: option<Dom.element> = switch contentNodes->Array.get(0) {
+      | Some(firstNode) => %raw(`firstNode.parentNode`)
+      | None => None
+      }
+
       /* Move content nodes into container */
       contentNodes->Array.forEach(node => {
         container->DOM.appendChild(node)
       })
 
       /* Insert container where the markers were */
-      switch DOMWalker.peek(walker) {
-      | Some(nextNode) => {
-          let parent = %raw(`nextNode.parentNode`)
-          DOM.insertBefore(parent, container, nextNode)
-        }
-      | None => ()
+      switch (parent, DOMWalker.peek(walker)) {
+      | (Some(p), Some(nextNode)) => DOM.insertBefore(p, container, nextNode)
+      | (Some(p), None) => DOM.appendChild(p, container)
+      | (None, _) => () /* No content nodes, nothing to do */
       }
 
       /* Set up reactivity */

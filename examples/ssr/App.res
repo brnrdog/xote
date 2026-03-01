@@ -4,10 +4,18 @@
  */
 open Xote
 
-/* Shared state factory - creates fresh signals for each render context */
+/* Shared state factory - creates signals that sync between server and client */
 let makeAppState = () => {
-  let count = Signal.make(0)
-  let items = Signal.make(["Apple", "Banana", "Cherry"])
+  /* Using SSRState.make creates the signal and syncs it automatically */
+  let count = SSRState.make("count", 0, SSRState.Codec.int)
+
+  let items = SSRState.make(
+    "items",
+    ["Apple", "Banana", "Cherry"],
+    SSRState.Codec.array(SSRState.Codec.string),
+  )
+
+  /* Input value doesn't need to be synced - always starts empty */
   let inputValue = Signal.make("")
 
   (count, items, inputValue)

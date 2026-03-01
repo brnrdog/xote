@@ -4,7 +4,7 @@
  */
 open Xote
 
-/* Create fresh state for the client */
+/* Create state - SSRState.make automatically restores from server-serialized values */
 let (count, items, inputValue) = App.makeAppState()
 let appComponent = App.app(count, items, inputValue)
 

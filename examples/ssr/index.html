@@ -29,6 +29,7 @@
   </head>
   <body>
     <div id="root"><div class="app"><h1>Xote SSR Demo</h1><div class="counter-section"><h2>Counter</h2><p>Count: <!--$-->0<!--/$--></p><div class="button-group"><button class="btn">-</button><button class="btn">+</button></div></div><div class="list-section"><h2>Dynamic List</h2><div class="input-group"><input type="text" placeholder="Add item..." value="" /><button class="btn">Add</button></div><ul class="item-list"><!--#--><li>Apple</li><li>Banana</li><li>Cherry</li><!--/#--></ul></div><div class="status-section"><h2>Reactive Attributes</h2><div class="status normal"><!--$-->Count is normal<!--/$--></div></div></div></div>
+    <script>window.__XOTE_STATE__={"count":0,"items":["Apple","Banana","Cherry"]};</script>
     <script>window.__XOTE_HYDRATED__=false;</script>
     <script type="module" src="./client.res.mjs"></script>
   </body>
