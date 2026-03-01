@@ -211,6 +211,7 @@ let renderDocument = (
   ~bodyAttrs: string="",
   ~scripts: array<string>=[],
   ~styles: array<string>=[],
+  ~stateScript: string="",
   ~nonce: option<string>=?,
   component: unit => Component.node,
 ): string => {
@@ -243,6 +244,7 @@ let renderDocument = (
   </head>
   <body${if bodyAttrs != "" { " " ++ bodyAttrs } else { "" }}>
     <div id="root">${content}</div>
+    ${stateScript}
     ${hydrationScript}
     ${scriptTags}
   </body>
