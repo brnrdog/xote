@@ -132,6 +132,9 @@ module Elements = {
     onKeyUp?: Dom.event => unit,
     onMouseEnter?: Dom.event => unit,
     onMouseLeave?: Dom.event => unit,
+    onMouseDown?: Dom.event => unit,
+    onMouseMove?: Dom.event => unit,
+    onMouseUp?: Dom.event => unit,
     onContextMenu?: Dom.event => unit,
     /* Children */
     children?: element,
@@ -298,6 +301,9 @@ module Elements = {
     addEvent(events, props.onKeyUp, "keyup")
     addEvent(events, props.onMouseEnter, "mouseenter")
     addEvent(events, props.onMouseLeave, "mouseleave")
+    addEvent(events, props.onMouseDown, "mousedown")
+    addEvent(events, props.onMouseMove, "mousemove")
+    addEvent(events, props.onMouseUp, "mouseup")
     addEvent(events, props.onContextMenu, "contextmenu")
 
     events
