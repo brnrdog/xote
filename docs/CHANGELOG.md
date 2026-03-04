@@ -1,3 +1,10 @@
+# [4.15.0](https://github.com/brnrdog/xote/compare/v4.14.0...v4.15.0) (2026-03-04)
+
+
+### Features
+
+* add support to common mouse events ([3811d10](https://github.com/brnrdog/xote/commit/3811d107b8c2afa911d94b51242205f1cc5d973d))
+
 # [4.14.0](https://github.com/brnrdog/xote/compare/v4.13.0...v4.14.0) (2026-03-01)
 
 
