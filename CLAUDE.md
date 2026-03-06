@@ -59,8 +59,7 @@ All reactive behavior is provided by **rescript-signals**:
 - **Build system**: ReScript compiler with `esmodule` output format
 - **Output**: In-source compilation (`.res.mjs` files alongside `.res` files)
 - **Public module**: Only `Xote` is exported (controlled via `rescript.json` `sources.public`)
-- **Compiler flags**: `-open RescriptCore` (RescriptCore is auto-opened in all files)
-- **Dependencies**: `@rescript/core`, `rescript-signals`
+- **Dependencies**: `rescript-signals`
 - **JSX**: ReScript JSX v4 configured to use `Xote__JSX` module (generic JSX transform)
 
 ### Component System

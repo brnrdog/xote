@@ -214,7 +214,40 @@ module Elements = {
   }
 
   /* Convert props to attrs array */
-  let propsToAttrs = (props: props<_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _>): array<(string, Component.attrValue)> => {
+  let propsToAttrs = (
+    props: props<
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+    >,
+  ): array<(string, Component.attrValue)> => {
     let attrs = []
 
     /* Standard attributes */
@@ -288,7 +321,40 @@ module Elements = {
   }
 
   /* Convert props to events array */
-  let propsToEvents = (props: props<_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _>): array<(string, Dom.event => unit)> => {
+  let propsToEvents = (
+    props: props<
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+    >,
+  ): array<(string, Dom.event => unit)> => {
     let events = []
 
     addEvent(events, props.onClick, "click")
@@ -310,7 +376,40 @@ module Elements = {
   }
 
   /* Extract children from props */
-  let getChildren = (props: props<_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _>): array<element> => {
+  let getChildren = (
+    props: props<
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+    >,
+  ): array<element> => {
     switch props.children {
     | Some(Fragment(children)) => children
     | Some(child) => [child]
@@ -319,7 +418,41 @@ module Elements = {
   }
 
   /* Create an element from a tag string and props */
-  let createElement = (tag: string, props: props<_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _>): element => {
+  let createElement = (
+    tag: string,
+    props: props<
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+    >,
+  ): element => {
     Component.Element({
       tag,
       attrs: propsToAttrs(props),
@@ -329,11 +462,81 @@ module Elements = {
   }
 
   /* JSX functions for HTML elements - all delegate to createElement */
-  let jsx = (tag: string, props: props<_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _>): element => createElement(tag, props)
+  let jsx = (
+    tag: string,
+    props: props<
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+    >,
+  ): element => createElement(tag, props)
 
   let jsxs = jsx
 
-  let jsxKeyed = (tag: string, props: props<_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _>, ~key: option<string>=?, _: unit): element => {
+  let jsxKeyed = (
+    tag: string,
+    props: props<
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+    >,
+    ~key: option<string>=?,
+    _: unit,
+  ): element => {
     let _ = key
     jsx(tag, props)
   }

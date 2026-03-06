@@ -68,8 +68,7 @@ module DOMWalker = {
   let extractKey = (node: Dom.element): option<string> => {
     if nodeType(node) == commentNode {
       switch nodeValue(node)->Nullable.toOption {
-      | Some(value) if String.startsWith(value, "k:") =>
-        Some(String.sliceToEnd(value, ~start=2))
+      | Some(value) if String.startsWith(value, "k:") => Some(String.slice(value, ~start=2))
       | _ => None
       }
     } else {
@@ -160,10 +159,8 @@ let logHydrationWarning = (msg: string): unit => {
 /* Hydrate a single node, attaching reactivity to existing DOM */
 let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
   switch node {
-  | Component.Text(_content) => {
-      /* Static text - nothing to hydrate, DOM already has the content */
-      ()
-    }
+  | Component.Text(_content) => /* Static text - nothing to hydrate, DOM already has the content */
+    ()
 
   | Component.SignalText(signal) => {
       /*
@@ -204,18 +201,22 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
 
           /* Clear existing children */
           let childNodes: array<Dom.element> = %raw(`Array.from(domNode.childNodes || [])`)
-          childNodes->Array.forEach(child => {
-            Reactivity.disposeOwner(
-              Reactivity.getOwner(child)->Option.getOr(Reactivity.createOwner()),
-            )
-          })
+          childNodes->Array.forEach(
+            child => {
+              Reactivity.disposeOwner(
+                Reactivity.getOwner(child)->Option.getOr(Reactivity.createOwner()),
+              )
+            },
+          )
           let _ = (%raw(`domNode.innerHTML = ''`): unit)
 
           /* Render and append new children */
-          children->Array.forEach(child => {
-            let childEl = Component.Render.render(child)
-            domNode->DOM.appendChild(childEl)
-          })
+          children->Array.forEach(
+            child => {
+              let childEl = Component.Render.render(child)
+              domNode->DOM.appendChild(childEl)
+            },
+          )
 
           None
         })
@@ -233,17 +234,21 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
           switch value {
           | Component.Static(_) => () /* Already rendered, nothing to do */
           | Component.SignalValue(signal) => {
-              let disposer = Effect.run(() => {
-                DOM.setAttrOrProp(domNode, key, Signal.get(signal))
-                None
-              })
+              let disposer = Effect.run(
+                () => {
+                  DOM.setAttrOrProp(domNode, key, Signal.get(signal))
+                  None
+                },
+              )
               Reactivity.addDisposer(owner, disposer)
             }
           | Component.Compute(compute) => {
-              let disposer = Effect.run(() => {
-                DOM.setAttrOrProp(domNode, key, compute())
-                None
-              })
+              let disposer = Effect.run(
+                () => {
+                  DOM.setAttrOrProp(domNode, key, compute())
+                  None
+                },
+              )
               Reactivity.addDisposer(owner, disposer)
             }
           }
@@ -394,7 +399,8 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
             let currentElement = marker.contents
 
             switch currentElement->Nullable.toOption {
-            | Some(elem) if elem === endAnchor => DOM.insertBefore(domNode, keyedItem.element, endAnchor)
+            | Some(elem) if elem === endAnchor =>
+              DOM.insertBefore(domNode, keyedItem.element, endAnchor)
             | Some(elem) if elem === keyedItem.element => marker := DOM.getNextSibling(elem)
             | Some(elem) => {
                 let needsReplacement =
@@ -457,12 +463,11 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
       }
     }
 
-  | Component.Fragment(children) => {
-      /* Fragment children are inline - hydrate each */
-      children->Array.forEach(child => {
-        hydrateNodeWithWalker(child, walker)
-      })
-    }
+  | Component.Fragment(children) =>
+    /* Fragment children are inline - hydrate each */
+    children->Array.forEach(child => {
+      hydrateNodeWithWalker(child, walker)
+    })
 
   | Component.SignalFragment(signal) => {
       /* Find the container (div with display:contents in SSR, markers in comments) */
@@ -506,10 +511,12 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
           childNodes->Array.forEach(Component.Render.disposeElement)
           let _ = (%raw(`container.innerHTML = ''`): unit)
 
-          children->Array.forEach(child => {
-            let childEl = Component.Render.render(child)
-            container->DOM.appendChild(childEl)
-          })
+          children->Array.forEach(
+            child => {
+              let childEl = Component.Render.render(child)
+              container->DOM.appendChild(childEl)
+            },
+          )
 
           None
         })
@@ -517,48 +524,51 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
       })
     }
 
-  | Component.Element({attrs, events, children}) => {
-      switch DOMWalker.next(walker) {
-      | Some(domNode) => {
-          let owner = Reactivity.createOwner()
-          Reactivity.setOwner(domNode, owner)
+  | Component.Element({attrs, events, children}) =>
+    switch DOMWalker.next(walker) {
+    | Some(domNode) => {
+        let owner = Reactivity.createOwner()
+        Reactivity.setOwner(domNode, owner)
 
-          Reactivity.runWithOwner(owner, () => {
-            /* Hydrate reactive attributes */
-            attrs->Array.forEach(((key, value)) => {
-              switch value {
-              | Component.Static(_) => ()
-              | Component.SignalValue(signal) => {
-                  let disposer = Effect.run(() => {
+        Reactivity.runWithOwner(owner, () => {
+          /* Hydrate reactive attributes */
+          attrs->Array.forEach(((key, value)) => {
+            switch value {
+            | Component.Static(_) => ()
+            | Component.SignalValue(signal) => {
+                let disposer = Effect.run(
+                  () => {
                     DOM.setAttrOrProp(domNode, key, Signal.get(signal))
                     None
-                  })
-                  Reactivity.addDisposer(owner, disposer)
-                }
-              | Component.Compute(compute) => {
-                  let disposer = Effect.run(() => {
+                  },
+                )
+                Reactivity.addDisposer(owner, disposer)
+              }
+            | Component.Compute(compute) => {
+                let disposer = Effect.run(
+                  () => {
                     DOM.setAttrOrProp(domNode, key, compute())
                     None
-                  })
-                  Reactivity.addDisposer(owner, disposer)
-                }
+                  },
+                )
+                Reactivity.addDisposer(owner, disposer)
               }
-            })
-
-            /* Attach event listeners */
-            events->Array.forEach(((eventName, handler)) => {
-              domNode->DOM.addEventListener(eventName, handler)
-            })
-
-            /* Hydrate children */
-            let childWalker = DOMWalker.make(domNode)
-            children->Array.forEach(child => {
-              hydrateNodeWithWalker(child, childWalker)
-            })
+            }
           })
-        }
-      | None => logHydrationWarning("Missing DOM element for Element node")
+
+          /* Attach event listeners */
+          events->Array.forEach(((eventName, handler)) => {
+            domNode->DOM.addEventListener(eventName, handler)
+          })
+
+          /* Hydrate children */
+          let childWalker = DOMWalker.make(domNode)
+          children->Array.forEach(child => {
+            hydrateNodeWithWalker(child, childWalker)
+          })
+        })
       }
+    | None => logHydrationWarning("Missing DOM element for Element node")
     }
 
   | Component.LazyComponent(fn) => {
@@ -636,10 +646,9 @@ let hydrate = (
       let _ = DOMWalker.next(walker) // skip root marker
       hydrateNodeWithWalker(node, walker)
     }
-  | _ => {
-      /* No root marker, hydrate directly */
-      hydrateNodeWithWalker(node, walker)
-    }
+  | _ =>
+    /* No root marker, hydrate directly */
+    hydrateNodeWithWalker(node, walker)
   }
 
   /* Mark as hydrated */

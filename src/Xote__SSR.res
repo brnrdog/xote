@@ -86,7 +86,14 @@ module Attributes = {
 
     /* Handle boolean attributes */
     switch key {
-    | "checked" | "disabled" | "required" | "readonly" | "multiple" | "aria-hidden" | "aria-expanded" | "aria-selected" =>
+    | "checked"
+    | "disabled"
+    | "required"
+    | "readonly"
+    | "multiple"
+    | "aria-hidden"
+    | "aria-expanded"
+    | "aria-selected" =>
       if attrValue == "true" {
         key
       } else {
@@ -126,9 +133,7 @@ let rec renderNodeToString = (node: Component.node): string => {
       Markers.signalTextStart ++ Html.escape(value) ++ Markers.signalTextEnd
     }
 
-  | Component.Fragment(children) => {
-      children->Array.map(renderNodeToString)->Array.join("")
-    }
+  | Component.Fragment(children) => children->Array.map(renderNodeToString)->Array.join("")
 
   | Component.SignalFragment(signal) => {
       /* Read current signal value and wrap with hydration markers */
@@ -242,7 +247,11 @@ let renderDocument = (
     ${styleLinks}
     ${head}
   </head>
-  <body${if bodyAttrs != "" { " " ++ bodyAttrs } else { "" }}>
+  <body${if bodyAttrs != "" {
+      " " ++ bodyAttrs
+    } else {
+      ""
+    }}>
     <div id="root">${content}</div>
     ${stateScript}
     ${hydrationScript}

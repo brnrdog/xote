@@ -171,11 +171,10 @@ let register = (id: string, signal: Signal.t<'a>, codec: Codec.t<'a>): unit => {
 }
 
 /* Clear the registry (useful for multiple renders) */
-let clear = (): unit => {
-  registry->Dict.keysToArray->Array.forEach(key => {
-    registry->Dict.delete(key)->ignore
-  })
-}
+let clear = (): unit =>
+  registry
+  ->Dict.keysToArray
+  ->Array.forEach(key => registry->Dict.delete(key)->ignore)
 
 /* ============================================================================
  * Script Generation (Server-side)

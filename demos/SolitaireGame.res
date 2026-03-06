@@ -137,7 +137,7 @@ let newGame = (_evt: Dom.event) => {
   }
 
   // Remaining cards go to stock
-  let stock = Array.sliceToEnd(deck, ~start=deckIndex.contents)
+  let stock = Array.slice(deck, ~start=deckIndex.contents)
 
   Signal.set(
     gameState,
@@ -159,7 +159,7 @@ let drawCard = (_evt: Dom.event) => {
 
   if Array.length(state.stock) > 0 {
     let card = Array.getUnsafe(state.stock, 0)
-    let newStock = Array.sliceToEnd(state.stock, ~start=1)
+    let newStock = Array.slice(state.stock, ~start=1)
     let newWaste = Array.concat([{...card, faceUp: true}], state.waste)
 
     let newState: gameState = {
@@ -221,7 +221,7 @@ let moveWasteToTableau = (colIndex: int) => {
   if Array.length(state.waste) > 0 {
     let card = Array.getUnsafe(state.waste, 0)
     if canPlaceOnTableau(card, Array.getUnsafe(state.tableau, colIndex)) {
-      let newWaste = Array.sliceToEnd(state.waste, ~start=1)
+      let newWaste = Array.slice(state.waste, ~start=1)
       let newTableau = Array.copy(state.tableau)
       Array.push(Array.getUnsafe(newTableau, colIndex), card)
 
@@ -237,7 +237,7 @@ let moveWasteToFoundation = (foundIndex: int) => {
   if Array.length(state.waste) > 0 {
     let card = Array.getUnsafe(state.waste, 0)
     if canPlaceOnFoundation(card, Array.getUnsafe(state.foundations, foundIndex)) {
-      let newWaste = Array.sliceToEnd(state.waste, ~start=1)
+      let newWaste = Array.slice(state.waste, ~start=1)
       let newFoundations = Array.copy(state.foundations)
       Array.push(Array.getUnsafe(newFoundations, foundIndex), card)
 
@@ -251,7 +251,7 @@ let moveWasteToFoundation = (foundIndex: int) => {
 // Move card(s) from tableau to tableau
 let moveTableauToTableau = (fromCol: int, fromIndex: int, toCol: int) => {
   let state = Signal.get(gameState)
-  let sourceCards = Array.sliceToEnd(Array.getUnsafe(state.tableau, fromCol), ~start=fromIndex)
+  let sourceCards = Array.slice(Array.getUnsafe(state.tableau, fromCol), ~start=fromIndex)
 
   if Array.length(sourceCards) > 0 {
     let firstCard = Array.getUnsafe(sourceCards, 0)
@@ -381,7 +381,8 @@ let cardComponent = (props: cardProps) => {
     // Card back
     <div
       class="w-16 h-24 bg-blue-600 border-2 border-blue-700 rounded-lg cursor-pointer shadow-md flex items-center justify-center"
-      onClick={props.onClick}>
+      onClick={props.onClick}
+    >
       <div class="text-blue-400 text-2xl"> {Component.text("✦")} </div>
     </div>
   } else {
@@ -391,7 +392,8 @@ let cardComponent = (props: cardProps) => {
 
     <div
       class={`w-16 h-24 bg-white ${borderColor} rounded-lg cursor-pointer shadow-md p-1 flex flex-col justify-between`}
-      onClick={props.onClick}>
+      onClick={props.onClick}
+    >
       <div class={`${color} text-sm font-bold text-left`}>
         {Component.text(rankToString(props.card.rank))}
         <span class="text-base"> {Component.text(suitToString(props.card.suit))} </span>
@@ -416,10 +418,9 @@ type emptySlotProps = {
 let emptySlot = (props: emptySlotProps) => {
   <div
     class="w-16 h-24 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg flex items-center justify-center cursor-pointer hover:border-stone-400 dark:hover:border-stone-500 transition-colors"
-    onClick={props.onClick}>
-    <span class="text-stone-400 dark:text-stone-500 text-xs">
-      {Component.text(props.label)}
-    </span>
+    onClick={props.onClick}
+  >
+    <span class="text-stone-400 dark:text-stone-500 text-xs"> {Component.text(props.label)} </span>
   </div>
 }
 
@@ -433,7 +434,8 @@ let stockAndWaste = () => {
           [
             <div
               class="w-16 h-24 bg-blue-600 border-2 border-blue-700 rounded-lg cursor-pointer shadow-md flex items-center justify-center hover:scale-105 transition-transform"
-              onClick={drawCard}>
+              onClick={drawCard}
+            >
               <div class="text-blue-400 text-2xl"> {Component.text("✦")} </div>
             </div>,
           ]
@@ -441,7 +443,8 @@ let stockAndWaste = () => {
           [
             <div
               class="w-16 h-24 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg cursor-pointer flex items-center justify-center hover:border-stone-400 dark:hover:border-stone-500"
-              onClick={drawCard}>
+              onClick={drawCard}
+            >
               <span class="text-stone-400 text-xs"> {Component.text("↻")} </span>
             </div>,
           ]
@@ -564,7 +567,8 @@ let app = () => {
       </div>
       <button
         class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
-        onClick={newGame}>
+        onClick={newGame}
+      >
         {Component.text("New Game")}
       </button>
     </div>
@@ -573,7 +577,8 @@ let app = () => {
         if Signal.get(gameWon) {
           [
             <div
-              class="bg-green-100 dark:bg-green-900/30 border-2 border-green-500 rounded-xl p-4 text-center">
+              class="bg-green-100 dark:bg-green-900/30 border-2 border-green-500 rounded-xl p-4 text-center"
+            >
               <p class="text-xl font-bold text-green-800 dark:text-green-300">
                 {Component.text("🎉 You Won! ")}
                 {Component.textSignal(() =>
@@ -604,7 +609,8 @@ let app = () => {
       </div>
     </div>
     <div
-      class="bg-stone-50 dark:bg-stone-800 rounded-xl p-4 border border-stone-200 dark:border-stone-700">
+      class="bg-stone-50 dark:bg-stone-800 rounded-xl p-4 border border-stone-200 dark:border-stone-700"
+    >
       <h3 class="font-semibold text-stone-900 dark:text-white mb-2">
         {Component.text("How to Play")}
       </h3>

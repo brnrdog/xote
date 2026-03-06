@@ -33,7 +33,7 @@ let rgbToHsl = (r: int, g: int, b: int) => {
     let s = delta /. (1.0 -. Math.abs(2.0 *. l -. 1.0))
 
     let h = if max == r {
-      mod_float((g -. b) /. delta, 6.0)
+      (g -. b) /. delta % 6.0
     } else if max == g {
       (b -. r) /. delta +. 2.0
     } else {

@@ -62,7 +62,6 @@
   "author": "Bernardo Gurgel <brnrdog@hey.com>",
   "license": "SEE LICENSE IN LICENSE",
   "devDependencies": {
-    "@rescript/core": "^1.6.1",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/git": "^10.0.1",

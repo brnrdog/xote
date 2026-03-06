@@ -114,7 +114,8 @@ module GameArea = {
         }
         `h-64 md:h-80 rounded-2xl border-4 border-stone-200 dark:border-stone-700 flex items-center justify-center ${bgColor} ${cursorStyle}`
       }}
-      onClick={handleGameClick}>
+      onClick={handleGameClick}
+    >
       <div class="text-center px-6">
         <p class="text-2xl md:text-4xl font-bold text-white drop-shadow-lg">
           {Component.textSignal(() => {
@@ -131,9 +132,7 @@ module GameArea = {
           let gameAreaSignal = Computed.make(() => {
             switch Signal.get(state) {
             | Result(_) => [
-                <p class="text-sm text-stone-300 mt-2">
-                  {Component.text("Your reaction time")}
-                </p>,
+                <p class="text-sm text-stone-300 mt-2"> {Component.text("Your reaction time")} </p>,
               ]
             | TooEarly => [
                 <p class="text-sm text-white mt-2">
@@ -152,7 +151,9 @@ module GameArea = {
 
 module Instructions = {
   let component = () => {
-    <div class="bg-stone-50 dark:bg-stone-700/50 rounded-xl p-4 border border-stone-200 dark:border-stone-600">
+    <div
+      class="bg-stone-50 dark:bg-stone-700/50 rounded-xl p-4 border border-stone-200 dark:border-stone-600"
+    >
       <h3 class="font-semibold text-stone-900 dark:text-white mb-2">
         {Component.text("How to Play")}
       </h3>
@@ -168,7 +169,9 @@ module Instructions = {
 
 module Statistics = {
   let component = () => {
-    <div class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6">
+    <div
+      class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6"
+    >
       <h3 class="text-xl font-bold text-stone-900 dark:text-white mb-4">
         {Component.text("Your Statistics")}
       </h3>
@@ -192,9 +195,7 @@ module Statistics = {
               }
             })}
           </div>
-          <div class="text-xs text-green-600 dark:text-green-500">
-            {Component.text("Best")}
-          </div>
+          <div class="text-xs text-green-600 dark:text-green-500"> {Component.text("Best")} </div>
         </div>
         // Average time
         <div class="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
@@ -206,9 +207,7 @@ module Statistics = {
               }
             })}
           </div>
-          <div class="text-xs text-blue-600 dark:text-blue-500">
-            {Component.text("Average")}
-          </div>
+          <div class="text-xs text-blue-600 dark:text-blue-500"> {Component.text("Average")} </div>
         </div>
       </div>
     </div>
@@ -217,7 +216,9 @@ module Statistics = {
 
 module AttemptHistory = {
   let component = () => {
-    <div class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6">
+    <div
+      class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-6"
+    >
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-xl font-bold text-stone-900 dark:text-white">
           {Component.text("Recent Attempts")}
@@ -228,7 +229,8 @@ module AttemptHistory = {
               [
                 <button
                   class="text-xs px-3 py-1.5 bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 rounded-lg transition-colors"
-                  onClick={_evt => Signal.set(attempts, [])}>
+                  onClick={_evt => Signal.set(attempts, [])}
+                >
                   {Component.text("Clear")}
                 </button>,
               ]
@@ -251,40 +253,46 @@ module AttemptHistory = {
           } else {
             [
               <div class="space-y-2">
-                {Component.list(
-                  attempts,
-                  time => {
-                    let best = Signal.get(bestTime)
-                    let isBest = switch best {
-                    | Some(b) => b == time
-                    | None => false
+                {Component.list(attempts, time => {
+                  let best = Signal.get(bestTime)
+                  let isBest = switch best {
+                  | Some(b) => b == time
+                  | None => false
+                  }
+
+                  let className =
+                    "flex items-center justify-between p-3 bg-stone-50 dark:bg-stone-700/50 rounded-lg mb-2 " ++ if (
+                      isBest
+                    ) {
+                      "ring-2 ring-green-500"
+                    } else {
+                      ""
                     }
 
-                    let className =
-                      "flex items-center justify-between p-3 bg-stone-50 dark:bg-stone-700/50 rounded-lg mb-2 " ++
-                      if isBest { "ring-2 ring-green-500" } else { "" }
-
-                    <div class={className}>
-                      <span class="font-mono font-semibold text-stone-900 dark:text-white">
-                        {Component.text(`${Int.toString(time)} ms`)}
-                      </span>
-                      {
-                        let bestBadgeSignal = Computed.make(() => {
+                  <div class={className}>
+                    <span class="font-mono font-semibold text-stone-900 dark:text-white">
+                      {Component.text(`${Int.toString(time)} ms`)}
+                    </span>
+                    {
+                      let bestBadgeSignal = Computed.make(
+                        () => {
                           if isBest {
                             [
-                              <span class="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-semibold">
+                              <span
+                                class="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-semibold"
+                              >
                                 {Component.text("Best!")}
                               </span>,
                             ]
                           } else {
                             []
                           }
-                        })
-                        Component.signalFragment(bestBadgeSignal)
-                      }
-                    </div>
-                  },
-                )}
+                        },
+                      )
+                      Component.signalFragment(bestBadgeSignal)
+                    }
+                  </div>
+                })}
               </div>,
             ]
           }
@@ -304,12 +312,14 @@ module Controls = {
           | Result(_) | TooEarly => [
               <button
                 class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                onClick={startGame}>
+                onClick={startGame}
+              >
                 {Component.text("Try Again")}
               </button>,
               <button
                 class="px-6 py-3 bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 text-stone-900 dark:text-white rounded-xl font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
-                onClick={resetGame}>
+                onClick={resetGame}
+              >
                 {Component.text("Back to Start")}
               </button>,
             ]
