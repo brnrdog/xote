@@ -1,3 +1,10 @@
+## [4.15.1](https://github.com/brnrdog/xote/compare/v4.15.0...v4.15.1) (2026-03-07)
+
+
+### Bug Fixes
+
+* remove @rescript/core dependency and code formatting ([774b81f](https://github.com/brnrdog/xote/commit/774b81f37e816b98bc676384b0dab03b1f094dcc))
+
 # [4.15.0](https://github.com/brnrdog/xote/compare/v4.14.0...v4.15.0) (2026-03-04)
 
 
