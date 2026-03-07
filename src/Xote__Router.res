@@ -108,7 +108,7 @@ let stripBasePath = (pathname: string): string => {
   } else if pathname == base {
     "/"
   } else if String.startsWith(pathname, base ++ "/") {
-    String.sliceToEnd(pathname, ~start=String.length(base))
+    String.slice(pathname, ~start=String.length(base))
   } else {
     pathname // Pass through if doesn't match base
   }

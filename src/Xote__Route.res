@@ -22,7 +22,7 @@ let parsePattern = (pattern: string): array<segment> => {
     if seg == "" {
       None
     } else if String.startsWith(seg, ":") {
-      Some(Param(String.sliceToEnd(seg, ~start=1)))
+      Some(Param(String.slice(seg, ~start=1)))
     } else {
       Some(Static(seg))
     }

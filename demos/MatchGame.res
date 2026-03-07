@@ -9,9 +9,36 @@ let levelsConfig = [4, 7, 10, 13, 16, 19, 22, 25, 28, 30]
 
 // Card symbols/figures using Unicode characters
 let symbols = [
-  "🌟", "🎨", "🎭", "🎪", "🎯", "🎲", "🎸", "🎹", "🎺", "🎻",
-  "🏀", "⚽", "🏈", "⚾", "🎾", "🏐", "🏉", "🎱", "🏓", "🏸",
-  "🌸", "🌺", "🌻", "🌷", "🌹", "🌼", "🌴", "🌲", "🌳", "🌿",
+  "🌟",
+  "🎨",
+  "🎭",
+  "🎪",
+  "🎯",
+  "🎲",
+  "🎸",
+  "🎹",
+  "🎺",
+  "🎻",
+  "🏀",
+  "⚽",
+  "🏈",
+  "⚾",
+  "🎾",
+  "🏐",
+  "🏉",
+  "🎱",
+  "🏓",
+  "🏸",
+  "🌸",
+  "🌺",
+  "🌻",
+  "🌷",
+  "🌹",
+  "🌼",
+  "🌴",
+  "🌲",
+  "🌳",
+  "🌿",
 ]
 
 // Types
@@ -46,14 +73,13 @@ let getCardsForLevel = level => {
   let pairs = numCards / 2
 
   // Create pairs of cards
-  let cardPairs = Array.make(~length=pairs, 0)
-    ->Array.mapWithIndex((_, i) => {
-      let symbol = symbols[i]->Option.getOr("❓")
-      [
-        {id: i * 2, symbol, matched: false, flipped: false},
-        {id: i * 2 + 1, symbol, matched: false, flipped: false},
-      ]
-    })
+  let cardPairs = Array.make(~length=pairs, 0)->Array.mapWithIndex((_, i) => {
+    let symbol = symbols[i]->Option.getOr("❓")
+    [
+      {id: i * 2, symbol, matched: false, flipped: false},
+      {id: i * 2 + 1, symbol, matched: false, flipped: false},
+    ]
+  })
 
   // Flatten and shuffle
   let allCards = cardPairs->Array.flat
@@ -97,12 +123,13 @@ let checkForMatch = () => {
         // Match found!
         setTimeout(() => {
           Signal.update(cards, cards =>
-            cards->Array.mapWithIndex((card, i) =>
-              if i == idx1 || i == idx2 {
-                {...card, matched: true, flipped: false}
-              } else {
-                card
-              }
+            cards->Array.mapWithIndex(
+              (card, i) =>
+                if i == idx1 || i == idx2 {
+                  {...card, matched: true, flipped: false}
+                } else {
+                  card
+                },
             )
           )
 
@@ -130,12 +157,13 @@ let checkForMatch = () => {
         // No match - flip back and switch player
         setTimeout(() => {
           Signal.update(cards, cards =>
-            cards->Array.mapWithIndex((card, i) =>
-              if i == idx1 || i == idx2 {
-                {...card, flipped: false}
-              } else {
-                card
-              }
+            cards->Array.mapWithIndex(
+              (card, i) =>
+                if i == idx1 || i == idx2 {
+                  {...card, flipped: false}
+                } else {
+                  card
+                },
             )
           )
           Signal.set(flippedIndices, [])
@@ -225,7 +253,9 @@ module MatchGame = {
       </div>
 
       // Score and Level Info
-      <div class="bg-white dark:bg-stone-800 rounded-xl p-4 mb-6 border-2 border-stone-200 dark:border-stone-700">
+      <div
+        class="bg-white dark:bg-stone-800 rounded-xl p-4 mb-6 border-2 border-stone-200 dark:border-stone-700"
+      >
         <div class="flex justify-between items-center mb-4">
           <div class="text-center">
             <div
@@ -233,7 +263,8 @@ module MatchGame = {
                 switch Signal.get(currentPlayer) {
                 | Player1 => "text-2xl font-bold text-blue-600 dark:text-blue-400"
                 | Player2 => "text-2xl font-bold text-stone-500 dark:text-stone-400"
-                }}>
+                }}
+            >
               {Component.textSignal(() => "P1: " ++ Int.toString(Signal.get(player1Score)))}
             </div>
             <div class="text-xs text-stone-500 dark:text-stone-400">
@@ -263,7 +294,8 @@ module MatchGame = {
                 switch Signal.get(currentPlayer) {
                 | Player2 => "text-2xl font-bold text-green-600 dark:text-green-400"
                 | Player1 => "text-2xl font-bold text-stone-500 dark:text-stone-400"
-                }}>
+                }}
+            >
               {Component.textSignal(() => "P2: " ++ Int.toString(Signal.get(player2Score)))}
             </div>
             <div class="text-xs text-stone-500 dark:text-stone-400">
@@ -290,32 +322,30 @@ module MatchGame = {
           } else {
             "grid grid-cols-6 gap-2 mb-6"
           }
-        }}>
-        {Component.list(
-          cards,
-          card => {
-            let className = {
-              let baseClass = "aspect-square rounded-lg font-bold text-3xl transition-all duration-300 transform"
-              if card.matched {
-                baseClass ++ " bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 scale-95 opacity-50"
-              } else if card.flipped {
-                baseClass ++ " bg-blue-500 dark:bg-blue-600 text-white shadow-lg"
-              } else {
-                baseClass ++ " bg-stone-300 dark:bg-stone-700 hover:bg-stone-400 dark:hover:bg-stone-600 hover:scale-105"
-              }
+        }}
+      >
+        {Component.list(cards, card => {
+          let className = {
+            let baseClass = "aspect-square rounded-lg font-bold text-3xl transition-all duration-300 transform"
+            if card.matched {
+              baseClass ++ " bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 scale-95 opacity-50"
+            } else if card.flipped {
+              baseClass ++ " bg-blue-500 dark:bg-blue-600 text-white shadow-lg"
+            } else {
+              baseClass ++ " bg-stone-300 dark:bg-stone-700 hover:bg-stone-400 dark:hover:bg-stone-600 hover:scale-105"
             }
+          }
 
-            <button class={className} onClick={handleCardClick(card.id, _)}>
-              {Component.textSignal(() =>
-                if card.flipped || card.matched {
-                  card.symbol
-                } else {
-                  "?"
-                }
-              )}
-            </button>
-          },
-        )}
+          <button class={className} onClick={handleCardClick(card.id, _)}>
+            {Component.textSignal(() =>
+              if card.flipped || card.matched {
+                card.symbol
+              } else {
+                "?"
+              }
+            )}
+          </button>
+        })}
       </div>
 
       // Level Complete / Game Won Modal
@@ -323,8 +353,10 @@ module MatchGame = {
         class={() =>
           switch Signal.get(gameState) {
           | Playing => "hidden"
-          | LevelComplete | GameWon => "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          }}>
+          | LevelComplete
+          | GameWon => "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          }}
+      >
         <div class="bg-white dark:bg-stone-800 rounded-2xl p-8 max-w-md mx-4 text-center">
           <h2 class="text-3xl font-bold text-stone-900 dark:text-white mb-4">
             {Component.textSignal(() =>
@@ -366,12 +398,14 @@ module MatchGame = {
                 | GameWon => "display: none"
                 | _ => ""
                 }}
-              onClick={nextLevel}>
+              onClick={nextLevel}
+            >
               {Component.text("Next Level →")}
             </button>
             <button
               class="px-6 py-3 bg-stone-600 hover:bg-stone-700 text-white rounded-lg font-medium transition-colors"
-              onClick={restartGame}>
+              onClick={restartGame}
+            >
               {Component.text("Restart Game")}
             </button>
           </div>
@@ -382,7 +416,8 @@ module MatchGame = {
       <div class="text-center">
         <button
           class="px-6 py-2 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-900 dark:text-white rounded-lg font-medium transition-colors"
-          onClick={restartGame}>
+          onClick={restartGame}
+        >
           {Component.text("Restart Game")}
         </button>
       </div>

@@ -50,38 +50,21 @@ let levels = [
     number: 7,
     speed: 100,
     gridSize: 21,
-    obstacles: [
-      {x: 7, y: 7},
-      {x: 7, y: 13},
-      {x: 13, y: 7},
-      {x: 13, y: 13},
-    ],
+    obstacles: [{x: 7, y: 7}, {x: 7, y: 13}, {x: 13, y: 7}, {x: 13, y: 13}],
     foodCount: 16,
   },
   {
     number: 8,
     speed: 90,
     gridSize: 21,
-    obstacles: [
-      {x: 10, y: 5},
-      {x: 10, y: 10},
-      {x: 10, y: 15},
-      {x: 5, y: 10},
-      {x: 15, y: 10},
-    ],
+    obstacles: [{x: 10, y: 5}, {x: 10, y: 10}, {x: 10, y: 15}, {x: 5, y: 10}, {x: 15, y: 10}],
     foodCount: 18,
   },
   {
     number: 9,
     speed: 80,
     gridSize: 23,
-    obstacles: [
-      {x: 6, y: 6},
-      {x: 6, y: 16},
-      {x: 16, y: 6},
-      {x: 16, y: 16},
-      {x: 11, y: 11},
-    ],
+    obstacles: [{x: 6, y: 6}, {x: 6, y: 16}, {x: 16, y: 6}, {x: 16, y: 16}, {x: 11, y: 11}],
     foodCount: 20,
   },
   {
@@ -116,7 +99,7 @@ let gameLoopId: ref<Nullable.t<int>> = ref(Nullable.null)
 // Computed values
 let currentLevel = Computed.make(() => {
   let levelNum = Signal.get(currentLevelNum)
-  levels[levelNum - 1]->Option.getOr(levels[0]->Option.getExn)
+  levels[levelNum - 1]->Option.getOr(levels[0]->Option.getOrThrow)
 })
 
 let highScore = Signal.make(0)
@@ -130,7 +113,11 @@ let isPositionInArray = (pos: position, arr: array<position>): bool => {
   arr->Array.some(p => positionsEqual(p, pos))
 }
 
-let getRandomPosition = (gridSize: int, obstacles: array<position>, snake: array<position>): position => {
+let getRandomPosition = (
+  gridSize: int,
+  obstacles: array<position>,
+  snake: array<position>,
+): position => {
   let rec findPosition = () => {
     let x = Int.fromFloat(Math.random() *. Int.toFloat(gridSize))
     let y = Int.fromFloat(Math.random() *. Int.toFloat(gridSize))
@@ -186,7 +173,7 @@ let rec startGameLoop = () => {
     }
 
     let currentSnake = Signal.get(snake)
-    let head = currentSnake[0]->Option.getExn
+    let head = currentSnake[0]->Option.getOrThrow
     let newHead = getNextPosition(head, Signal.get(direction))
 
     // Check collisions
@@ -318,47 +305,43 @@ module GameGrid = {
       class="inline-block bg-stone-100 dark:bg-stone-900 border-4 border-stone-300 dark:border-stone-700 rounded-lg overflow-hidden"
       style={`width: ${Int.toString(gridSize * cellSize + 8)}px; height: ${Int.toString(
           gridSize * cellSize + 8,
-        )}px; box-sizing: border-box; position: relative;`}>
-      {
-        // Render snake
-        Component.list(snake, segment => {
-          <div
-            class="absolute bg-green-500 dark:bg-green-400 rounded-sm transition-all duration-100"
-            style={`width: ${Int.toString(cellSize - 2)}px; height: ${Int.toString(
-                cellSize - 2,
-              )}px; left: ${Int.toString(segment.x * cellSize)}px; top: ${Int.toString(
-                segment.y * cellSize,
-              )}px;`}
-          />
-        })
-      }
-      {
-        // Render food - style must be reactive to update when food position changes
+        )}px; box-sizing: border-box; position: relative;`}
+    >
+      {// Render snake
+      Component.list(snake, segment => {
         <div
-          class="absolute bg-red-500 dark:bg-red-400 rounded-full animate-pulse"
-          style={() => {
-            let foodPos = Signal.get(food)
-            `width: ${Int.toString(cellSize - 4)}px; height: ${Int.toString(
-                cellSize - 4,
-              )}px; left: ${Int.toString(foodPos.x * cellSize + 2)}px; top: ${Int.toString(
-                foodPos.y * cellSize + 2,
-              )}px;`
-          }}
+          class="absolute bg-green-500 dark:bg-green-400 rounded-sm transition-all duration-100"
+          style={`width: ${Int.toString(cellSize - 2)}px; height: ${Int.toString(
+              cellSize - 2,
+            )}px; left: ${Int.toString(segment.x * cellSize)}px; top: ${Int.toString(
+              segment.y * cellSize,
+            )}px;`}
         />
-      }
-      {
-        // Render obstacles
-        Component.list(Signal.make(level.obstacles), obstacle => {
-          <div
-            class="absolute bg-stone-600 dark:bg-stone-500 rounded-sm"
-            style={`width: ${Int.toString(cellSize)}px; height: ${Int.toString(
-                cellSize,
-              )}px; left: ${Int.toString(obstacle.x * cellSize)}px; top: ${Int.toString(
-                obstacle.y * cellSize,
-              )}px;`}
-          />
-        })
-      }
+      })}
+      {<div
+        // Render food - style must be reactive to update when food position changes
+
+        class="absolute bg-red-500 dark:bg-red-400 rounded-full animate-pulse"
+        style={() => {
+          let foodPos = Signal.get(food)
+          `width: ${Int.toString(cellSize - 4)}px; height: ${Int.toString(
+              cellSize - 4,
+            )}px; left: ${Int.toString(foodPos.x * cellSize + 2)}px; top: ${Int.toString(
+              foodPos.y * cellSize + 2,
+            )}px;`
+        }}
+      />}
+      {// Render obstacles
+      Component.list(Signal.make(level.obstacles), obstacle => {
+        <div
+          class="absolute bg-stone-600 dark:bg-stone-500 rounded-sm"
+          style={`width: ${Int.toString(cellSize)}px; height: ${Int.toString(
+              cellSize,
+            )}px; left: ${Int.toString(obstacle.x * cellSize)}px; top: ${Int.toString(
+              obstacle.y * cellSize,
+            )}px;`}
+        />
+      })}
     </div>
   }
 }
@@ -368,9 +351,7 @@ module GameInfo = {
     <div class="grid grid-cols-3 gap-4 mb-4">
       // Level
       <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
-        <div class="text-sm text-blue-600 dark:text-blue-400 mb-1">
-          {Component.text("Level")}
-        </div>
+        <div class="text-sm text-blue-600 dark:text-blue-400 mb-1"> {Component.text("Level")} </div>
         <div class="text-2xl font-bold text-blue-700 dark:text-blue-300">
           {Component.textSignal(() => Signal.get(currentLevelNum)->Int.toString)}
         </div>
@@ -410,26 +391,30 @@ module GameControls = {
           | Paused => [
               <button
                 class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors"
-                onClick={_ => startGame()}>
+                onClick={_ => startGame()}
+              >
                 {Component.text("▶ Start")}
               </button>,
             ]
           | Playing => [
               <button
                 class="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition-colors"
-                onClick={_ => pauseGame()}>
+                onClick={_ => pauseGame()}
+              >
                 {Component.text("⏸ Pause")}
               </button>,
             ]
           | GameOver => [
               <button
                 class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
-                onClick={_ => restartLevel()}>
+                onClick={_ => restartLevel()}
+              >
                 {Component.text("↻ Retry Level")}
               </button>,
               <button
                 class="px-6 py-3 bg-stone-500 hover:bg-stone-600 text-white rounded-lg font-medium transition-colors"
-                onClick={_ => restartGame()}>
+                onClick={_ => restartGame()}
+              >
                 {Component.text("⟲ Restart Game")}
               </button>,
             ]
@@ -437,18 +422,20 @@ module GameControls = {
               <button
                 class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors"
                 onClick={_ => nextLevel()}
-                style={() =>
-                  Signal.get(currentLevelNum) >= 10 ? "display: none" : ""}>
+                style={() => Signal.get(currentLevelNum) >= 10 ? "display: none" : ""}
+              >
                 {Component.text("→ Next Level")}
               </button>,
               <button
                 class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
-                onClick={_ => restartLevel()}>
+                onClick={_ => restartLevel()}
+              >
                 {Component.text("↻ Replay Level")}
               </button>,
               <button
                 class="px-6 py-3 bg-stone-500 hover:bg-stone-600 text-white rounded-lg font-medium transition-colors"
-                onClick={_ => restartGame()}>
+                onClick={_ => restartGame()}
+              >
                 {Component.text("⟲ Restart Game")}
               </button>,
             ]
@@ -465,14 +452,18 @@ module GameStatus = {
     let statusSignal = Computed.make(() => {
       switch Signal.get(gameState) {
       | Paused => [
-          <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center border border-blue-200 dark:border-blue-800">
+          <div
+            class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center border border-blue-200 dark:border-blue-800"
+          >
             <p class="text-blue-700 dark:text-blue-300 font-semibold">
               {Component.text("Press Start or SPACE to begin")}
             </p>
           </div>,
         ]
       | GameOver => [
-          <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 text-center border border-red-200 dark:border-red-800">
+          <div
+            class="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 text-center border border-red-200 dark:border-red-800"
+          >
             <p class="text-2xl font-bold text-red-700 dark:text-red-300 mb-2">
               {Component.text("Game Over!")}
             </p>
@@ -482,7 +473,9 @@ module GameStatus = {
           </div>,
         ]
       | LevelComplete => [
-          <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center border border-green-200 dark:border-green-800">
+          <div
+            class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center border border-green-200 dark:border-green-800"
+          >
             <p class="text-2xl font-bold text-green-700 dark:text-green-300 mb-2">
               {Component.textSignal(() =>
                 Signal.get(currentLevelNum) >= 10
@@ -508,7 +501,9 @@ module GameStatus = {
 
 module Instructions = {
   let component = () => {
-    <div class="bg-stone-50 dark:bg-stone-700/50 rounded-lg p-4 border border-stone-200 dark:border-stone-600">
+    <div
+      class="bg-stone-50 dark:bg-stone-700/50 rounded-lg p-4 border border-stone-200 dark:border-stone-600"
+    >
       <h3 class="font-semibold text-stone-900 dark:text-white mb-2">
         {Component.text("How to Play")}
       </h3>
@@ -539,9 +534,11 @@ module SnakeGame = {
     let _ = Effect.run(() => {
       %raw(`window.addEventListener('keydown', handleKeyPress)`)
 
-      Some(() => {
-        %raw(`window.removeEventListener('keydown', handleKeyPress)`)
-      })
+      Some(
+        () => {
+          %raw(`window.removeEventListener('keydown', handleKeyPress)`)
+        },
+      )
     })
 
     // Update high score
@@ -569,9 +566,7 @@ module SnakeGame = {
       // Game status
       {GameStatus.component()}
       // Game grid
-      <div class="flex justify-center mb-4">
-        {GameGrid.component()}
-      </div>
+      <div class="flex justify-center mb-4"> {GameGrid.component()} </div>
       // Controls
       {GameControls.component()}
       // Instructions

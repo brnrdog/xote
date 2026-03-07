@@ -22,7 +22,9 @@ let counterApp = () => {
     </div>
 
     // Counter display
-    <div class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-8 md:p-12 text-center">
+    <div
+      class="bg-white dark:bg-stone-800 rounded-2xl border-2 border-stone-200 dark:border-stone-700 p-8 md:p-12 text-center"
+    >
       <div class="text-5xl md:text-6xl font-bold text-stone-900 dark:text-white mb-2">
         {Component.textSignal(() => Signal.get(count)->Int.toString)}
       </div>
@@ -35,17 +37,20 @@ let counterApp = () => {
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
       <button
         class="px-6 py-3 md:px-8 bg-stone-900 hover:bg-stone-700 text-white rounded-xl font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2 dark:bg-stone-700 dark:hover:bg-stone-600"
-        onClick={decrement}>
+        onClick={decrement}
+      >
         {Component.text("− Decrement")}
       </button>
       <button
         class="px-6 py-3 md:px-8 bg-stone-200 hover:bg-stone-300 text-stone-900 rounded-xl font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-300 focus:ring-offset-2 dark:bg-stone-800 dark:hover:bg-stone-700 dark:text-white"
-        onClick={reset}>
+        onClick={reset}
+      >
         {Component.text("Reset")}
       </button>
       <button
         class="px-6 py-3 md:px-8 bg-stone-900 hover:bg-stone-700 text-white rounded-xl font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2 dark:bg-stone-700 dark:hover:bg-stone-600"
-        onClick={increment}>
+        onClick={increment}
+      >
         {Component.text("+ Increment")}
       </button>
     </div>

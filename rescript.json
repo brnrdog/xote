@@ -8,11 +8,13 @@
     },
     {
       "dir": "demos",
-      "subdirs": false
+      "subdirs": false,
+      "type": "dev"
     },
     {
       "dir": "examples",
-      "subdirs": true
+      "subdirs": true,
+      "type": "dev"
     }
   ],
   "package-specs": {
@@ -21,11 +23,7 @@
   },
   "suffix": ".res.mjs",
   "dependencies": [
-    "@rescript/core",
     "rescript-signals"
-  ],
-  "compiler-flags": [
-    "-open RescriptCore"
   ],
   "jsx": {
     "version": 4,
