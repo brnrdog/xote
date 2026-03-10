@@ -15,6 +15,11 @@
       "dir": "examples",
       "subdirs": true,
       "type": "dev"
+    },
+    {
+      "dir": "tests",
+      "subdirs": false,
+      "type": "dev"
     }
   ],
   "package-specs": {
@@ -24,6 +29,9 @@
   "suffix": ".res.mjs",
   "dependencies": [
     "rescript-signals"
+  ],
+  "dev-dependencies": [
+    "zekr"
   ],
   "jsx": {
     "version": 4,
