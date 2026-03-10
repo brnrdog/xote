@@ -38,6 +38,9 @@ jobs:
       - name: Rescript Build
         run: npm run res:build
 
+      - name: Run tests
+        run: node tests/Tests.res.mjs
+
       - name: Vite Build
         run: npm run build
 
