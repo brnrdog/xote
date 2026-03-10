@@ -26,7 +26,8 @@
     "prepare:demos": "npm run res:build && npm run build:demos && npm run copy:demos",
     "docs:start": "npm run prepare:demos && cd website && npm start",
     "docs:build": "npm run prepare:demos && cd website && npm run build",
-    "docs:serve": "cd website && npm run serve"
+    "docs:serve": "cd website && npm run serve",
+    "test": "npx rescript && node tests/Tests.res.mjs"
   },
   "keywords": [
     "rescript",
@@ -71,7 +72,8 @@
     "glob": "^11.1.0",
     "rescript": "^12.0.0",
     "semantic-release": "^25.0.1",
-    "vite": "^7.1.12"
+    "vite": "^7.1.12",
+    "zekr": "^1.7.0"
   },
   "dependencies": {
     "rescript-signals": "^1.3.3"
