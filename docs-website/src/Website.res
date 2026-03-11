@@ -13,7 +13,7 @@ module ReactComparisonDoc = ReactComparisonDoc
 module TechnicalOverviewDoc = TechnicalOverviewDoc
 
 // Initialize router
-Router.init()
+Router.init(~basePath="/xote", ())
 
 // 404 Page component
 module NotFoundPage = {
