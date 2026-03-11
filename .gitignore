@@ -10,9 +10,8 @@ bundlemeta.json
 .vite
 
 # Documentation site
-/website/node_modules/
-/website/build/
-/website/.docusaurus/
-/website/.cache-loader/
-/website/static/demos/
-/website/static/assets/
+/docs-website/node_modules/
+/docs-website/build/
+/docs-website/.cache-loader/
+/docs-website/static/demos/
+/docs-website/static/assets/
