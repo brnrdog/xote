@@ -1,0 +1,58 @@
+@import '../styles/variables.css';
+
+.basefn-button-group {
+  display: inline-flex;
+}
+
+/* Horizontal orientation */
+.basefn-button-group--horizontal {
+  flex-direction: row;
+}
+
+.basefn-button-group--horizontal > :first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.basefn-button-group--horizontal > :last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.basefn-button-group--horizontal > :not(:first-child):not(:last-child) {
+  border-radius: 0;
+}
+
+.basefn-button-group--horizontal > :not(:first-child) {
+  margin-left: -1px;
+}
+
+/* Vertical orientation */
+.basefn-button-group--vertical {
+  flex-direction: column;
+}
+
+.basefn-button-group--vertical > :first-child {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.basefn-button-group--vertical > :last-child {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.basefn-button-group--vertical > :not(:first-child):not(:last-child) {
+  border-radius: 0;
+}
+
+.basefn-button-group--vertical > :not(:first-child) {
+  margin-top: -1px;
+}
+
+/* Ensure proper z-index on hover/focus */
+.basefn-button-group > *:hover,
+.basefn-button-group > *:focus {
+  z-index: 1;
+  position: relative;
+}

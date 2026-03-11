@@ -1,0 +1,119 @@
+@import '../styles/variables.css';
+
+.basefn-alert-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--basefn-surface-overlay);
+  animation: basefn-alert-dialog-backdrop-fade var(--basefn-transition-fast);
+}
+
+@keyframes basefn-alert-dialog-backdrop-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.basefn-alert-dialog {
+  background: var(--basefn-surface-elevated);
+  border-radius: var(--basefn-radius-xl);
+  box-shadow: var(--basefn-shadow-lg);
+  width: 100%;
+  max-width: 450px;
+  margin: var(--basefn-spacing-lg);
+  animation: basefn-alert-dialog-slide-up var(--basefn-transition-fast);
+}
+
+@keyframes basefn-alert-dialog-slide-up {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.basefn-alert-dialog__header {
+  padding: var(--basefn-spacing-xl) var(--basefn-spacing-xl) 0;
+}
+
+.basefn-alert-dialog__title {
+  margin: 0;
+  font-size: var(--basefn-font-size-lg);
+  font-weight: var(--basefn-font-weight-semibold);
+  color: var(--basefn-text-primary);
+  line-height: var(--basefn-line-height-tight);
+}
+
+.basefn-alert-dialog__body {
+  padding: var(--basefn-spacing-md) var(--basefn-spacing-xl);
+}
+
+.basefn-alert-dialog__description {
+  margin: 0;
+  font-size: var(--basefn-font-size-base);
+  color: var(--basefn-text-secondary);
+  line-height: var(--basefn-line-height-normal);
+}
+
+.basefn-alert-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--basefn-spacing-sm);
+  padding: var(--basefn-spacing-lg) var(--basefn-spacing-xl) var(--basefn-spacing-xl);
+}
+
+.basefn-alert-dialog__cancel,
+.basefn-alert-dialog__confirm {
+  padding: var(--basefn-spacing-sm) var(--basefn-spacing-lg);
+  font-family: var(--basefn-font-family);
+  font-size: var(--basefn-font-size-sm);
+  font-weight: var(--basefn-font-weight-medium);
+  border-radius: var(--basefn-radius-md);
+  cursor: pointer;
+  transition: all var(--basefn-transition-fast);
+}
+
+.basefn-alert-dialog__cancel {
+  background: transparent;
+  border: var(--basefn-border-width) solid var(--basefn-border-primary);
+  color: var(--basefn-text-primary);
+}
+
+.basefn-alert-dialog__cancel:hover {
+  background: var(--basefn-bg-tertiary);
+}
+
+.basefn-alert-dialog__confirm--default {
+  background: var(--basefn-color-primary);
+  border: none;
+  color: white;
+}
+
+.basefn-alert-dialog__confirm--default:hover {
+  background: var(--basefn-color-primary-hover);
+}
+
+.basefn-alert-dialog__confirm--destructive {
+  background: var(--basefn-color-error);
+  border: none;
+  color: white;
+}
+
+.basefn-alert-dialog__confirm--destructive:hover {
+  background: #dc2626;
+}
+
+.basefn-alert-dialog__cancel:focus-visible,
+.basefn-alert-dialog__confirm:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 var(--basefn-focus-ring-width) var(--basefn-focus-ring-color);
+}

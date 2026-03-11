@@ -1,0 +1,36 @@
+.basefn-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.basefn-breadcrumb__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.basefn-breadcrumb__link {
+  color: #6b7280;
+  text-decoration: none;
+  transition: color 0.2s;
+  cursor: pointer;
+}
+
+.basefn-breadcrumb__link:hover {
+  color: #3b82f6;
+}
+
+.basefn-breadcrumb__link--active {
+  color: #1f2937;
+  font-weight: 500;
+  cursor: default;
+  pointer-events: none;
+}
+
+.basefn-breadcrumb__separator {
+  color: #d1d5db;
+  user-select: none;
+}

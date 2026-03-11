@@ -1,0 +1,118 @@
+/* ============================================================================
+   Responsive Visibility Utilities
+   ============================================================================ */
+
+/* Hidden below breakpoint (hidden on screens smaller than) */
+@media (max-width: 479px) {
+  .basefn-hidden-below-xs { display: none !important; }
+}
+@media (max-width: 639px) {
+  .basefn-hidden-below-sm { display: none !important; }
+}
+@media (max-width: 767px) {
+  .basefn-hidden-below-md { display: none !important; }
+}
+@media (max-width: 1023px) {
+  .basefn-hidden-below-lg { display: none !important; }
+}
+@media (max-width: 1279px) {
+  .basefn-hidden-below-xl { display: none !important; }
+}
+@media (max-width: 1535px) {
+  .basefn-hidden-below-xxl { display: none !important; }
+}
+
+/* Hidden above breakpoint (hidden on screens larger than) */
+@media (min-width: 480px) {
+  .basefn-hidden-above-xs { display: none !important; }
+}
+@media (min-width: 640px) {
+  .basefn-hidden-above-sm { display: none !important; }
+}
+@media (min-width: 768px) {
+  .basefn-hidden-above-md { display: none !important; }
+}
+@media (min-width: 1024px) {
+  .basefn-hidden-above-lg { display: none !important; }
+}
+@media (min-width: 1280px) {
+  .basefn-hidden-above-xl { display: none !important; }
+}
+@media (min-width: 1536px) {
+  .basefn-hidden-above-xxl { display: none !important; }
+}
+
+/* Visible only at specific breakpoint */
+.basefn-visible-xs-only {
+  display: none !important;
+}
+@media (max-width: 479px) {
+  .basefn-visible-xs-only { display: revert !important; }
+}
+
+.basefn-visible-sm-only {
+  display: none !important;
+}
+@media (min-width: 640px) and (max-width: 767px) {
+  .basefn-visible-sm-only { display: revert !important; }
+}
+
+.basefn-visible-md-only {
+  display: none !important;
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .basefn-visible-md-only { display: revert !important; }
+}
+
+.basefn-visible-lg-only {
+  display: none !important;
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .basefn-visible-lg-only { display: revert !important; }
+}
+
+.basefn-visible-xl-only {
+  display: none !important;
+}
+@media (min-width: 1280px) and (max-width: 1535px) {
+  .basefn-visible-xl-only { display: revert !important; }
+}
+
+.basefn-visible-xxl-only {
+  display: none !important;
+}
+@media (min-width: 1536px) {
+  .basefn-visible-xxl-only { display: revert !important; }
+}
+
+/* Orientation-based visibility */
+.basefn-hidden-portrait {
+  display: revert !important;
+}
+@media (orientation: portrait) {
+  .basefn-hidden-portrait { display: none !important; }
+}
+
+.basefn-hidden-landscape {
+  display: revert !important;
+}
+@media (orientation: landscape) {
+  .basefn-hidden-landscape { display: none !important; }
+}
+
+/* Device-based visibility */
+@media (hover: none) and (pointer: coarse) {
+  .basefn-hidden-touch { display: none !important; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .basefn-hidden-desktop { display: none !important; }
+}
+
+/* Print visibility */
+@media print {
+  .basefn-hidden-print { display: none !important; }
+}
+@media not print {
+  .basefn-visible-print-only { display: none !important; }
+}

@@ -1,0 +1,12 @@
+.basefn-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.basefn-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

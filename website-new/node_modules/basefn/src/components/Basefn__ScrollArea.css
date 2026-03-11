@@ -1,0 +1,76 @@
+@import '../styles/variables.css';
+
+.basefn-scroll-area {
+  position: relative;
+  scrollbar-color: var(--basefn-border-secondary) transparent;
+}
+
+/* Orientation */
+.basefn-scroll-area--vertical {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.basefn-scroll-area--horizontal {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.basefn-scroll-area--both {
+  overflow: auto;
+}
+
+/* Webkit scrollbar styling */
+.basefn-scroll-area::-webkit-scrollbar {
+  background: transparent;
+}
+
+.basefn-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: var(--basefn-radius-full);
+}
+
+.basefn-scroll-area::-webkit-scrollbar-thumb {
+  background-color: var(--basefn-border-secondary);
+  border-radius: var(--basefn-radius-full);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.basefn-scroll-area::-webkit-scrollbar-thumb:hover {
+  background-color: var(--basefn-text-muted);
+}
+
+/* Scrollbar sizes */
+.basefn-scroll-area--scrollbar-sm::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.basefn-scroll-area--scrollbar-md::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.basefn-scroll-area--scrollbar-lg::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+/* Firefox scrollbar sizes */
+.basefn-scroll-area--scrollbar-sm {
+  scrollbar-width: thin;
+}
+
+.basefn-scroll-area--scrollbar-md {
+  scrollbar-width: auto;
+}
+
+.basefn-scroll-area--scrollbar-lg {
+  scrollbar-width: auto;
+}
+
+/* Corner styling for both scrollbars */
+.basefn-scroll-area::-webkit-scrollbar-corner {
+  background: transparent;
+}

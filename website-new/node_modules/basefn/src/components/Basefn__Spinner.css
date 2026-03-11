@@ -1,0 +1,63 @@
+.basefn-spinner-container {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.basefn-spinner {
+  display: inline-block;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: basefn-spinner-rotate 0.8s linear infinite;
+}
+
+.basefn-spinner__label {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Sizes */
+.basefn-spinner--sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+.basefn-spinner--md {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.basefn-spinner--lg {
+  width: 2rem;
+  height: 2rem;
+}
+
+.basefn-spinner--xl {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* Variants */
+.basefn-spinner--default {
+  color: #6b7280;
+}
+
+.basefn-spinner--primary {
+  color: #3b82f6;
+}
+
+.basefn-spinner--secondary {
+  color: #1f2937;
+}
+
+/* Animations */
+@keyframes basefn-spinner-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

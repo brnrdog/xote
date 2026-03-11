@@ -1,0 +1,144 @@
+.basefn-timeline {
+  position: relative;
+}
+
+.basefn-timeline--vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.basefn-timeline--horizontal {
+  display: flex;
+  gap: 2rem;
+  overflow-x: auto;
+}
+
+.basefn-timeline__item {
+  position: relative;
+  display: flex;
+  gap: 1rem;
+}
+
+.basefn-timeline--vertical .basefn-timeline__item {
+  flex-direction: row;
+}
+
+.basefn-timeline--horizontal .basefn-timeline__item {
+  flex-direction: column;
+  min-width: 200px;
+}
+
+.basefn-timeline__marker-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.basefn-timeline--horizontal .basefn-timeline__marker-wrapper {
+  flex-direction: row;
+}
+
+.basefn-timeline__marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: #e5e7eb;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 0.875rem;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.basefn-timeline__marker--default {
+  background-color: #e5e7eb;
+  color: #6b7280;
+}
+
+.basefn-timeline__marker--primary {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.basefn-timeline__marker--success {
+  background-color: #10b981;
+  color: white;
+}
+
+.basefn-timeline__marker--warning {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.basefn-timeline__marker--error {
+  background-color: #ef4444;
+  color: white;
+}
+
+.basefn-timeline__connector {
+  position: absolute;
+  background-color: #e5e7eb;
+  z-index: 1;
+}
+
+.basefn-timeline--vertical .basefn-timeline__connector {
+  width: 2px;
+  top: 2.5rem;
+  bottom: -2rem;
+  left: 1.25rem;
+}
+
+.basefn-timeline--vertical .basefn-timeline__item:last-child .basefn-timeline__connector {
+  display: none;
+}
+
+.basefn-timeline--horizontal .basefn-timeline__connector {
+  height: 2px;
+  left: 2.5rem;
+  right: -2rem;
+  top: 1.25rem;
+}
+
+.basefn-timeline--horizontal .basefn-timeline__item:last-child .basefn-timeline__connector {
+  display: none;
+}
+
+.basefn-timeline__content {
+  flex: 1;
+  padding-top: 0.25rem;
+}
+
+.basefn-timeline--horizontal .basefn-timeline__content {
+  padding-top: 0;
+}
+
+.basefn-timeline__title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.basefn-timeline__timestamp {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.basefn-timeline__description {
+  font-size: 0.875rem;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+/* Optional dot variant */
+.basefn-timeline__marker--dot {
+  width: 0.75rem;
+  height: 0.75rem;
+}

@@ -1,0 +1,87 @@
+@import '../styles/variables.css';
+
+.basefn-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  font-family: var(--basefn-font-family);
+  font-weight: var(--basefn-font-weight-medium);
+  transition: all var(--basefn-transition-fast);
+  border-radius: var(--basefn-radius-md);
+  background: transparent;
+  color: var(--basefn-text-secondary);
+}
+
+.basefn-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 var(--basefn-focus-ring-width) var(--basefn-focus-ring-color);
+}
+
+/* Sizes */
+.basefn-toggle--sm {
+  height: var(--basefn-button-height-sm);
+  padding: 0 var(--basefn-spacing-sm);
+  font-size: var(--basefn-font-size-sm);
+  gap: var(--basefn-spacing-xs);
+}
+
+.basefn-toggle--md {
+  height: var(--basefn-button-height);
+  padding: 0 var(--basefn-spacing-md);
+  font-size: var(--basefn-font-size-base);
+  gap: var(--basefn-spacing-sm);
+}
+
+.basefn-toggle--lg {
+  height: var(--basefn-button-height-lg);
+  padding: 0 var(--basefn-spacing-lg);
+  font-size: var(--basefn-font-size-lg);
+  gap: var(--basefn-spacing-sm);
+}
+
+/* Default variant */
+.basefn-toggle--default {
+  background: transparent;
+}
+
+.basefn-toggle--default:hover:not(.basefn-toggle--disabled) {
+  background: var(--basefn-bg-tertiary);
+  color: var(--basefn-text-primary);
+}
+
+.basefn-toggle--default.basefn-toggle--pressed {
+  background: var(--basefn-bg-tertiary);
+  color: var(--basefn-text-primary);
+}
+
+/* Outline variant */
+.basefn-toggle--outline {
+  background: transparent;
+  border: var(--basefn-border-width) solid var(--basefn-border-primary);
+}
+
+.basefn-toggle--outline:hover:not(.basefn-toggle--disabled) {
+  background: var(--basefn-bg-tertiary);
+  border-color: var(--basefn-border-secondary);
+  color: var(--basefn-text-primary);
+}
+
+.basefn-toggle--outline.basefn-toggle--pressed {
+  background: var(--basefn-bg-tertiary);
+  border-color: var(--basefn-color-primary);
+  color: var(--basefn-text-primary);
+}
+
+/* Disabled state */
+.basefn-toggle--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Icons in toggle */
+.basefn-toggle svg {
+  width: 1em;
+  height: 1em;
+}
