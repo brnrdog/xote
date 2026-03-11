@@ -386,8 +386,9 @@ ${jsx}
  */
 function main() {
   if (!fs.existsSync(CONTENT_DIR)) {
-    console.error(`Error: Content directory not found: ${CONTENT_DIR}`);
-    process.exit(1);
+    console.warn(`⚠ Warning: Content directory not found: ${CONTENT_DIR}`);
+    console.warn(`  Creating empty content directory. Existing .res files will be preserved.`);
+    fs.mkdirSync(CONTENT_DIR, { recursive: true });
   }
 
   if (!fs.existsSync(OUTPUT_DIR)) {
