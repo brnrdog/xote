@@ -13,7 +13,7 @@
     "build:client": "vite build",
     "build:server": "vite build --ssr src/EntryServer.res.mjs --outDir build/server",
     "build:prerender": "node scripts/prerender.mjs",
-    "preview": "vite preview --outDir build/client"
+    "preview": "NODE_ENV=production node server.mjs"
   },
   "dependencies": {
     "@rescript/core": "^1.6.1",
