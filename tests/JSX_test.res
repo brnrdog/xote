@@ -118,6 +118,61 @@ let suite = Zekr.suite(
       let img = Dom.Query.getByAltText(container, "Logo")
       Dom.Assert.toHaveAttribute(img, "src", ~value="/logo.png")
     }),
+    test("component with effect inside computed does not leak dependencies", () => {
+      // This test reproduces the timer example bug: when a JSX component
+      // containing Effect.run is rendered inside a Computed.make (e.g. via
+      // signalFragment for tab switching), the effect's Signal.get calls
+      // must be tracked by the effect itself, not by the outer computed.
+      let {container} = Dom.render("")
+
+      module EffectComponent = {
+        type props = {}
+        let make = (_props: props) => {
+          let counter = Signal.make(0)
+
+          let _ = Effect.run(() => {
+            let _ = Signal.get(counter)
+            None
+          })
+
+          <div>
+            <span> {Component.reactiveInt(() => Signal.get(counter))} </span>
+            <button onClick={_evt => Signal.update(counter, n => n + 1)}>
+              {Component.text("Inc")}
+            </button>
+          </div>
+        }
+      }
+
+      let tab = Signal.make("other")
+
+      let _ = mountTo(
+        Component.signalFragment(
+          Computed.make(() =>
+            switch Signal.get(tab) {
+            | "effect" => [<EffectComponent />]
+            | _ => [Component.text("other tab")]
+            }
+          ),
+        ),
+        container,
+      )
+
+      // Switch to the component with an effect
+      Signal.set(tab, "effect")
+      let r1 = Dom.Assert.toHaveTextContent(container, "0Inc")
+
+      // Click the button - this should update the counter without
+      // recreating the component (i.e. the outer computed should NOT re-run)
+      let btn = Dom.Query.getByRole(container, "button")
+      Dom.Event.click(btn)
+      let r2 = Dom.Assert.toHaveTextContent(container, "1Inc")
+
+      Dom.Event.click(btn)
+      let r3 = Dom.Assert.toHaveTextContent(container, "2Inc")
+
+      combineResults([r1, r2, r3])
+    }),
   ],
   ~afterEach=() => Dom.cleanup(),
 )
