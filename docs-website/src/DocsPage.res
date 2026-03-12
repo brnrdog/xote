@@ -55,7 +55,6 @@ let docsNav: array<docCategory> = [
       {title: "Solitaire", path: "/docs/demos/solitaire"},
       {title: "Memory Match", path: "/docs/demos/memory-match"},
       {title: "Snake Game", path: "/docs/demos/snake"},
-      {title: "Bookstore", path: "/docs/demos/bookstore"},
     ],
   },
 ]

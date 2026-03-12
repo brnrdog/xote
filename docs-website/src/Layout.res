@@ -69,7 +69,6 @@ let searchItems: array<searchItem> = [
   {title: "Solitaire", path: "/docs/demos/solitaire", section: "Demos"},
   {title: "Memory Match", path: "/docs/demos/memory-match", section: "Demos"},
   {title: "Snake Game", path: "/docs/demos/snake", section: "Demos"},
-  {title: "Bookstore", path: "/docs/demos/bookstore", section: "Demos"},
 ]
 
 // ---- Search Modal ----
@@ -289,12 +288,6 @@ module Header = {
                 ~to="/docs/api/signals",
                 ~attrs=[Component.attr("class", "header-nav-link")],
                 ~children=[Component.text("API Reference")],
-                (),
-              )}
-              {Router.link(
-                ~to="/demos",
-                ~attrs=[Component.attr("class", "header-nav-link")],
-                ~children=[Component.text("Demos")],
                 (),
               )}
             </nav>
