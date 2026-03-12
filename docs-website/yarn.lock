@@ -117,7 +117,7 @@ postcss@^8.5.6:
     picocolors "^1.1.1"
     source-map-js "^1.2.1"
 
-rescript-signals@^1.3.0, rescript-signals@^1.3.3:
+rescript-signals@^1.3.0:
   version "1.3.3"
   resolved "https://registry.npmjs.org/rescript-signals/-/rescript-signals-1.3.3.tgz"
   integrity sha512-HSqoHZPqrgD3iG+NvKq0kHq9B5kH4cPiFP+xJGF2OD+KnqVse8JcDRndXLRkrqbwxvbcdGbKAPeIrUIm6jjN9w==
@@ -196,9 +196,8 @@ vite@^7.1.12:
   optionalDependencies:
     fsevents "~2.3.3"
 
-xote@^4.12.0, xote@^4.15.3:
-  version "4.15.3"
-  resolved "https://registry.npmjs.org/xote/-/xote-4.15.3.tgz"
-  integrity sha512-SQtPm94/rG3Uz9SqwKEvE4fja2kPgJNB7hX+36T/p3f44NWH6/Wu8XXGAtjIr1aGqbju0rVn1BoJIUfuWCxaVQ==
+xote@^4.12.0, "xote@file:..":
+  version "0.0.0"
+  resolved "file:.."
   dependencies:
     rescript-signals "^1.3.3"
