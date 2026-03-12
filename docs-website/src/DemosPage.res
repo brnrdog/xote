@@ -12,44 +12,44 @@ let demos = [
   {
     title: "Counter",
     description: "Simple reactive counter with signals and event handlers",
-    path: "/demos/counter",
-    source: "https://github.com/brnrdog/xote/blob/main/demos/CounterApp.res",
+    path: "/docs/demos/counter",
+    source: "https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/CounterDemo.res",
   },
   {
     title: "Todo List",
     description: "Complete todo app with filters, computed values, and reactive lists",
-    path: "/demos/todo",
-    source: "https://github.com/brnrdog/xote/blob/main/demos/TodoApp.res",
+    path: "/docs/demos/todo",
+    source: "https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/TodoDemo.res",
   },
   {
     title: "Color Mixer",
     description: "RGB color mixing with live preview, format conversions, and palette variations",
-    path: "/demos/color-mixer",
-    source: "https://github.com/brnrdog/xote/blob/main/demos/ColorMixerApp.res",
+    path: "/docs/demos/color-mixer",
+    source: "https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/ColorMixerDemo.res",
   },
   {
     title: "Reaction Game",
     description: "Reflex testing game with timers, statistics, and computed averages",
-    path: "/demos/reaction-game",
-    source: "https://github.com/brnrdog/xote/blob/main/demos/ReactionGame.res",
+    path: "/docs/demos/reaction-game",
+    source: "https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/ReactionGameDemo.res",
   },
   {
     title: "Solitaire",
     description: "Classic Klondike Solitaire with click-to-move gameplay and win detection",
-    path: "/demos/solitaire",
-    source: "https://github.com/brnrdog/xote/blob/main/demos/SolitaireGame.res",
+    path: "/docs/demos/solitaire",
+    source: "https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/SolitaireDemo.res",
   },
   {
     title: "Memory Match",
     description: "2-player memory matching game with 10 progressive levels and score tracking",
-    path: "/demos/memory-match",
-    source: "https://github.com/brnrdog/xote/blob/main/demos/MatchGame.res",
+    path: "/docs/demos/memory-match",
+    source: "https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/MatchGameDemo.res",
   },
   {
     title: "Functional Bookstore",
-    description: "E-commerce app with routing, cart management, checkout flow, and absurd FP-themed books",
-    path: "/demos/bookstore",
-    source: "https://github.com/brnrdog/xote/blob/main/demos/BookstoreApp.res",
+    description: "E-commerce app with navigation, cart management, checkout flow, and absurd FP-themed books",
+    path: "/docs/demos/bookstore",
+    source: "https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/BookstoreDemo.res",
   },
 ]
 
@@ -85,36 +85,6 @@ module DemoCard = {
   }
 }
 
-// Info alert component
-module InfoAlert = {
-  type props = {}
-
-  let make = (_props: props) => {
-    <div class="alert-info">
-      <h4> {Component.text("Running Demos Locally")} </h4>
-      <p> {Component.text("To run these demos on your machine:")} </p>
-      <ol>
-        <li>
-          {Component.text("Clone: ")}
-          <code> {Component.text("git clone https://github.com/brnrdog/xote.git")} </code>
-        </li>
-        <li>
-          {Component.text("Install: ")}
-          <code> {Component.text("npm install")} </code>
-        </li>
-        <li>
-          {Component.text("Compile: ")}
-          <code> {Component.text("npm run res:dev")} </code>
-        </li>
-        <li>
-          {Component.text("Dev server: ")}
-          <code> {Component.text("npm run dev")} </code>
-        </li>
-      </ol>
-    </div>
-  }
-}
-
 // Main demos page component
 type props = {}
 
@@ -129,7 +99,6 @@ let make = (_props: props) => {
           </p>
         </section>
         <div class="demos-container">
-          <InfoAlert />
           <div class="demos-grid">
             {Component.fragment(demos->Array.map(d => <DemoCard demo={d} />))}
           </div>

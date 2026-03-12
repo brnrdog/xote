@@ -62,6 +62,14 @@ let searchItems: array<searchItem> = [
   {title: "Signals API", path: "/docs/api/signals", section: "API Reference"},
   {title: "React Comparison", path: "/docs/comparisons/react", section: "Comparisons"},
   {title: "Technical Overview", path: "/docs/technical-overview", section: "Advanced"},
+  {title: "Counter", path: "/docs/demos/counter", section: "Demos"},
+  {title: "Todo List", path: "/docs/demos/todo", section: "Demos"},
+  {title: "Color Mixer", path: "/docs/demos/color-mixer", section: "Demos"},
+  {title: "Reaction Game", path: "/docs/demos/reaction-game", section: "Demos"},
+  {title: "Solitaire", path: "/docs/demos/solitaire", section: "Demos"},
+  {title: "Memory Match", path: "/docs/demos/memory-match", section: "Demos"},
+  {title: "Snake Game", path: "/docs/demos/snake", section: "Demos"},
+  {title: "Bookstore", path: "/docs/demos/bookstore", section: "Demos"},
 ]
 
 // ---- Search Modal ----
