@@ -3,6 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- GitHub Pages SPA redirect handler -->
+  <script>
+    (function() {
+      var redirect = window.location.search.match(/^\?\/(.*)/);
+      if (redirect) {
+        var decoded = redirect[1].split('&').map(function(s) {
+          return s.replace(/~and~/g, '&');
+        }).join('?');
+        var basePath = '/xote';
+        window.history.replaceState(null, '',
+          basePath + '/' + decoded + window.location.hash
+        );
+      }
+    })();
+  </script>
   <title>Xote - Reactive UI Library for ReScript</title>
   <meta name="description" content="A lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system, powered by TC39 Signals.">
   <meta name="theme-color" content="#0f1210">

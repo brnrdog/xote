@@ -429,7 +429,7 @@ module Footer = {
                 </a>
               </li>
               <li>
-                <a href="https://github.com/pedrobslisboa/rescript-signals" target="_blank">
+                <a href="https://github.com/brnrdog/rescript-signals" target="_blank">
                   {Component.text("rescript-signals")}
                 </a>
               </li>
