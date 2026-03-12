@@ -1,3 +1,10 @@
+## [4.15.3](https://github.com/brnrdog/xote/compare/v4.15.2...v4.15.3) (2026-03-12)
+
+
+### Bug Fixes
+
+* defer JSX component evaluation to render time via LazyComponent ([e685fc1](https://github.com/brnrdog/xote/commit/e685fc149ad324f2846ef9ea62f6670d36519cde))
+
 ## [4.15.2](https://github.com/brnrdog/xote/compare/v4.15.1...v4.15.2) (2026-03-12)
 
 
