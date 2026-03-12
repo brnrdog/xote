@@ -521,26 +521,30 @@ module Instructions = {
 }
 
 let content = () => {
-  // Set up keyboard listener
-  let _ = Effect.run(() => {
-    let _ = %raw(`window.addEventListener('keydown', handleKeyPress)`)
+  // Set up keyboard listener (client-only)
+  let _ = if Xote.SSRContext.isClient {
+    Effect.run(() => {
+      let _ = %raw(`window.addEventListener('keydown', handleKeyPress)`)
 
-    Some(
-      () => {
-        let _ = %raw(`window.removeEventListener('keydown', handleKeyPress)`)
-      },
-    )
-  })
+      Some(
+        () => {
+          let _ = %raw(`window.removeEventListener('keydown', handleKeyPress)`)
+        },
+      )
+    })->ignore
+  }
 
-  // Update high score
-  let _ = Effect.run(() => {
-    let currentScore = Signal.get(score)
-    let current = Signal.get(highScore)
-    if currentScore > current {
-      Signal.set(highScore, currentScore)
-    }
-    None
-  })
+  // Update high score (client-only)
+  let _ = if Xote.SSRContext.isClient {
+    Effect.run(() => {
+      let currentScore = Signal.get(score)
+      let current = Signal.get(highScore)
+      if currentScore > current {
+        Signal.set(highScore, currentScore)
+      }
+      None
+    })->ignore
+  }
 
   <div class="demo-container">
     // Header

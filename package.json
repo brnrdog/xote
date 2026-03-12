@@ -21,9 +21,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "docs:start": "cd docs-website && npm start",
+    "docs:start": "cd docs-website && npm run dev",
     "docs:build": "cd docs-website && npm run build",
-    "docs:serve": "cd docs-website && npm run serve",
+    "docs:serve": "cd docs-website && npm run preview",
     "test": "npx rescript && node tests/Tests.res.mjs"
   },
   "keywords": [
