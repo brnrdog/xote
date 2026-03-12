@@ -270,7 +270,6 @@ module Render = {
                 addDisposer(owner, disposer)
               }
             | Compute(compute) => {
-                DOM.setAttrOrProp(el, key, compute())
                 let disposer = Effect.run(
                   () => {
                     DOM.setAttrOrProp(el, key, compute())
