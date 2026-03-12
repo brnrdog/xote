@@ -6,8 +6,6 @@ on:
       - main
     paths:
       - 'docs-website/**'
-      - 'demos/**'
-      - 'vite.demos.config.js'
       - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 
@@ -35,9 +33,6 @@ jobs:
 
       - name: Install root dependencies
         run: npm ci
-
-      - name: Prepare demos
-        run: npm run prepare:demos
 
       - name: Install website dependencies
         run: |
