@@ -1,3 +1,10 @@
+# [4.16.0](https://github.com/brnrdog/xote/compare/v4.15.3...v4.16.0) (2026-03-12)
+
+
+### Features
+
+* expose Router.initSSR for server-side route initialization ([f232d0b](https://github.com/brnrdog/xote/commit/f232d0b1dba81725f6d23e2beaecca9e2905eb11))
+
 ## [4.15.3](https://github.com/brnrdog/xote/compare/v4.15.2...v4.15.3) (2026-03-12)
 
 
