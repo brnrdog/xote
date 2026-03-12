@@ -154,6 +154,9 @@ module ColorSlider = {
       </div>
       <input
         type_="range"
+        min="0"
+        max="255"
+        class="demo-input-range"
         value={() => Signal.get(props.value)->Int.toString}
         onInput={props.onChange}
       />
@@ -214,12 +217,13 @@ module ColorPalette = {
   }
 
   let paletteItem = (props: paletteItemProps) => {
-    <div class="color-demo-palette-item">
+    <div class="color-demo-palette-wrapper">
       <div
+        class="color-demo-palette-swatch"
         style={() => `background-color: ${Signal.get(props.color)}`}
         onClick={_evt => copyToClipboard(Signal.get(props.color))}
       />
-      <p> {Component.text(props.label)} </p>
+      <p class="color-demo-palette-label"> {Component.text(props.label)} </p>
     </div>
   }
 
@@ -231,7 +235,9 @@ module ColorPalette = {
         {paletteItem({label: "Current", color: rgbColor})}
         {paletteItem({label: "Darker", color: darkerColor})}
       </div>
-      {paletteItem({label: "Complementary", color: complementaryColor})}
+      <div style="margin-top: 0.75rem;">
+        {paletteItem({label: "Complementary", color: complementaryColor})}
+      </div>
     </div>
   }
 }

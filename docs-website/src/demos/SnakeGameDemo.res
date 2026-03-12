@@ -293,17 +293,24 @@ let handleKeyPress = (_evt: Dom.event) => {
 }
 
 // Components
+let cellSize = 16
+
 module GameGrid = {
   let component = () => {
-    let level = Signal.get(currentLevel)
-    let gridSize = level.gridSize
-    let cellSize = 20 // pixels
+    let obstaclesSignal = Computed.make(() => {
+      let level = Signal.get(currentLevel)
+      level.obstacles
+    })
 
     <div
       class="snake-game-grid"
-      style={`width: ${Int.toString(gridSize * cellSize)}px; height: ${Int.toString(
-          gridSize * cellSize,
-        )}px;`}
+      style={() => {
+        let level = Signal.get(currentLevel)
+        let gridSize = level.gridSize
+        `width: ${Int.toString(gridSize * cellSize)}px; height: ${Int.toString(
+            gridSize * cellSize,
+          )}px;`
+      }}
     >
       {// Render snake
       Component.list(snake, segment => {
@@ -329,7 +336,7 @@ module GameGrid = {
         }}
       />}
       {// Render obstacles
-      Component.list(Signal.make(level.obstacles), obstacle => {
+      Component.list(obstaclesSignal, obstacle => {
         <div
           class="snake-obstacle"
           style={`width: ${Int.toString(cellSize)}px; height: ${Int.toString(

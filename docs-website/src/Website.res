@@ -20,7 +20,6 @@ module ReactionGameDemo = ReactionGameDemo
 module SolitaireDemo = SolitaireDemo
 module MatchGameDemo = MatchGameDemo
 module SnakeGameDemo = SnakeGameDemo
-module BookstoreDemo = BookstoreDemo
 
 // Initialize router
 Router.init(~basePath="/xote", ())
@@ -254,17 +253,6 @@ module App = {
               demoLead="Classic snake game with 10 challenging levels, obstacles, and increasing difficulty."
               sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/SnakeGameDemo.res"
               content={SnakeGameDemo.content()}
-            />,
-        },
-        {
-          pattern: "/docs/demos/bookstore",
-          render: _params =>
-            <DemoPage
-              currentPath="/docs/demos/bookstore"
-              demoTitle="Functional Bookstore"
-              demoLead="E-commerce app with navigation, cart management, checkout flow, and absurd FP-themed books."
-              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/BookstoreDemo.res"
-              content={BookstoreDemo.content()}
             />,
         },
         {

@@ -45,12 +45,6 @@ let demos = [
     path: "/docs/demos/memory-match",
     source: "https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/MatchGameDemo.res",
   },
-  {
-    title: "Functional Bookstore",
-    description: "E-commerce app with navigation, cart management, checkout flow, and absurd FP-themed books",
-    path: "/docs/demos/bookstore",
-    source: "https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/BookstoreDemo.res",
-  },
 ]
 
 // Demo card component
