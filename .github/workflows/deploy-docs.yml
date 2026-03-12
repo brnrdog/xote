@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'docs-website/**'
-      - '.github/workflows/deploy-docs.yml'
+      - "docs-website/**"
+      - ".github/workflows/deploy-docs.yml"
   workflow_dispatch:
 
 permissions:
@@ -28,8 +28,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install root dependencies
         run: npm ci
@@ -47,7 +47,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs-website/build
+          path: docs-website/build/client
 
   deploy:
     environment:
