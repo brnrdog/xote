@@ -12,6 +12,16 @@ module ApiSignalsDoc = ApiSignalsDoc
 module ReactComparisonDoc = ReactComparisonDoc
 module TechnicalOverviewDoc = TechnicalOverviewDoc
 
+// Import demo content
+module CounterDemo = CounterDemo
+module TodoDemo = TodoDemo
+module ColorMixerDemo = ColorMixerDemo
+module ReactionGameDemo = ReactionGameDemo
+module SolitaireDemo = SolitaireDemo
+module MatchGameDemo = MatchGameDemo
+module SnakeGameDemo = SnakeGameDemo
+module BookstoreDemo = BookstoreDemo
+
 // Initialize router
 Router.init(~basePath="/xote", ())
 
@@ -166,6 +176,95 @@ module App = {
               pageTitle="Technical Overview"
               pageLead="Deep dive into Xote's architecture, scheduling, and reactivity internals."
               content={TechnicalOverviewDoc.content()}
+            />,
+        },
+        // Demo routes
+        {
+          pattern: "/docs/demos/counter",
+          render: _params =>
+            <DemoPage
+              currentPath="/docs/demos/counter"
+              demoTitle="Counter"
+              demoLead="Simple reactive counter with signals and event handlers."
+              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/CounterDemo.res"
+              content={CounterDemo.content()}
+            />,
+        },
+        {
+          pattern: "/docs/demos/todo",
+          render: _params =>
+            <DemoPage
+              currentPath="/docs/demos/todo"
+              demoTitle="Todo List"
+              demoLead="Complete todo app with filters, computed values, and reactive lists."
+              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/TodoDemo.res"
+              content={TodoDemo.content()}
+            />,
+        },
+        {
+          pattern: "/docs/demos/color-mixer",
+          render: _params =>
+            <DemoPage
+              currentPath="/docs/demos/color-mixer"
+              demoTitle="Color Mixer"
+              demoLead="RGB color mixing with live preview, format conversions, and palette variations."
+              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/ColorMixerDemo.res"
+              content={ColorMixerDemo.content()}
+            />,
+        },
+        {
+          pattern: "/docs/demos/reaction-game",
+          render: _params =>
+            <DemoPage
+              currentPath="/docs/demos/reaction-game"
+              demoTitle="Reaction Game"
+              demoLead="Reflex testing game with timers, statistics, and computed averages."
+              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/ReactionGameDemo.res"
+              content={ReactionGameDemo.content()}
+            />,
+        },
+        {
+          pattern: "/docs/demos/solitaire",
+          render: _params =>
+            <DemoPage
+              currentPath="/docs/demos/solitaire"
+              demoTitle="Solitaire"
+              demoLead="Classic Klondike Solitaire with click-to-move gameplay and win detection."
+              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/SolitaireDemo.res"
+              content={SolitaireDemo.content()}
+            />,
+        },
+        {
+          pattern: "/docs/demos/memory-match",
+          render: _params =>
+            <DemoPage
+              currentPath="/docs/demos/memory-match"
+              demoTitle="Memory Match"
+              demoLead="2-player memory matching game with 10 progressive levels and score tracking."
+              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/MatchGameDemo.res"
+              content={MatchGameDemo.content()}
+            />,
+        },
+        {
+          pattern: "/docs/demos/snake",
+          render: _params =>
+            <DemoPage
+              currentPath="/docs/demos/snake"
+              demoTitle="Snake Game"
+              demoLead="Classic snake game with 10 challenging levels, obstacles, and increasing difficulty."
+              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/SnakeGameDemo.res"
+              content={SnakeGameDemo.content()}
+            />,
+        },
+        {
+          pattern: "/docs/demos/bookstore",
+          render: _params =>
+            <DemoPage
+              currentPath="/docs/demos/bookstore"
+              demoTitle="Functional Bookstore"
+              demoLead="E-commerce app with navigation, cart management, checkout flow, and absurd FP-themed books."
+              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/BookstoreDemo.res"
+              content={BookstoreDemo.content()}
             />,
         },
         {

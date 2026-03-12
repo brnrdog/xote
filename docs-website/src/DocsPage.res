@@ -45,6 +45,19 @@ let docsNav: array<docCategory> = [
     label: "Advanced",
     items: [{title: "Technical Overview", path: "/docs/technical-overview"}],
   },
+  {
+    label: "Demos",
+    items: [
+      {title: "Counter", path: "/docs/demos/counter"},
+      {title: "Todo List", path: "/docs/demos/todo"},
+      {title: "Color Mixer", path: "/docs/demos/color-mixer"},
+      {title: "Reaction Game", path: "/docs/demos/reaction-game"},
+      {title: "Solitaire", path: "/docs/demos/solitaire"},
+      {title: "Memory Match", path: "/docs/demos/memory-match"},
+      {title: "Snake Game", path: "/docs/demos/snake"},
+      {title: "Bookstore", path: "/docs/demos/bookstore"},
+    ],
+  },
 ]
 
 // Flatten for prev/next
