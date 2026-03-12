@@ -322,6 +322,25 @@ module Header = {
               ~attrs=[
                 Component.attr("href", "https://github.com/brnrdog/xote"),
                 Component.attr("target", "_blank"),
+                Component.attr("class", "gh-star-btn"),
+                Component.attr("title", "Star on GitHub"),
+              ],
+              ~children=[
+                Basefn.Icon.make({name: Star, size: Sm}),
+                Component.element(
+                  "span",
+                  ~attrs=[Component.attr("class", "gh-star-label")],
+                  ~children=[Component.text("Star")],
+                  (),
+                ),
+              ],
+              (),
+            )}
+            {Component.element(
+              "a",
+              ~attrs=[
+                Component.attr("href", "https://github.com/brnrdog/xote"),
+                Component.attr("target", "_blank"),
                 Component.attr("class", "header-icon-btn"),
                 Component.attr("title", "GitHub"),
               ],

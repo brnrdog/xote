@@ -340,6 +340,45 @@ img { max-width: 100%; display: block; }
   color: var(--text-primary);
 }
 
+/* GitHub star widget */
+.gh-star-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem 0.25rem 0.5rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--duration-fast) var(--ease-default);
+  white-space: nowrap;
+  height: 30px;
+}
+
+.gh-star-btn:hover {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  border-color: rgba(255,255,255,0.12);
+}
+
+[data-theme="light"] .gh-star-btn {
+  background: var(--bg-elevated);
+  border-color: rgba(0,0,0,0.1);
+}
+
+[data-theme="light"] .gh-star-btn:hover {
+  background: var(--bg-subtle);
+}
+
+@media (max-width: 768px) {
+  .gh-star-btn .gh-star-label { display: none; }
+  .gh-star-btn { padding: 0.25rem 0.4rem; }
+}
+
 .mobile-menu-btn {
   display: none;
 }
@@ -1149,10 +1188,12 @@ img { max-width: 100%; display: block; }
 .docs-main {
   padding: 2rem 3rem;
   max-width: calc(var(--content-max-width) + 6rem);
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 @media (max-width: 768px) {
-  .docs-main { padding: 1.5rem; }
+  .docs-main { padding: 1.25rem 1rem; }
 }
 
 /* Breadcrumb */
@@ -1276,6 +1317,37 @@ img { max-width: 100%; display: block; }
   color: var(--text-accent);
 }
 
+/* Responsive heading sizes */
+@media (max-width: 768px) {
+  .docs-page-title {
+    font-size: 1.65rem;
+  }
+  .docs-page-lead {
+    font-size: 0.95rem;
+  }
+  .docs-content h1 {
+    font-size: 1.5rem;
+  }
+  .docs-content h2 {
+    font-size: 1.2rem;
+  }
+  .docs-content h3 {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .docs-page-title {
+    font-size: 1.45rem;
+  }
+  .docs-content h1 {
+    font-size: 1.3rem;
+  }
+  .docs-content h2 {
+    font-size: 1.1rem;
+  }
+}
+
 .docs-content pre {
   background: #1a1f1c;
   border: 1px solid var(--border-default);
@@ -1283,6 +1355,8 @@ img { max-width: 100%; display: block; }
   padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
   font-size: 0.82rem;
   line-height: 1.65;
 }
@@ -1300,10 +1374,16 @@ img { max-width: 100%; display: block; }
   font-size: inherit;
 }
 
+.docs-content .table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1.5rem;
+}
+
 .docs-content table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
   font-size: 0.875rem;
 }
 
