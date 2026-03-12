@@ -9,12 +9,18 @@ external setHtmlAttribute: (string, string) => unit = "setAttribute"
 @val @scope("window") external removeEventListener: (string, 'a) => unit = "removeEventListener"
 
 // ---- Theme management ----
-let initialTheme = switch getItem("xote-theme")->Nullable.toOption {
-| Some("light") => "light"
-| _ => "dark"
+let initialTheme = if SSRContext.isClient {
+  switch getItem("xote-theme")->Nullable.toOption {
+  | Some("light") => "light"
+  | _ => "dark"
+  }
+} else {
+  "dark"
 }
 
-let _ = setHtmlAttribute("data-theme", initialTheme)
+let _ = if SSRContext.isClient {
+  setHtmlAttribute("data-theme", initialTheme)
+}
 
 let theme = Signal.make(initialTheme)
 
@@ -27,13 +33,15 @@ let toggleTheme = () => {
   )
 }
 
-let _ = Effect.run(() => {
-  let t = Signal.get(theme)
-  setHtmlAttribute("data-theme", t)
-  setItem("xote-theme", t)
-  Basefn.Theme.applyTheme(t == "dark" ? Basefn.Theme.Dark : Basefn.Theme.Light)
-  None
-})
+let _ = if SSRContext.isClient {
+  Effect.run(() => {
+    let t = Signal.get(theme)
+    setHtmlAttribute("data-theme", t)
+    setItem("xote-theme", t)
+    Basefn.Theme.applyTheme(t == "dark" ? Basefn.Theme.Dark : Basefn.Theme.Light)
+    None
+  })->ignore
+}
 
 // ---- Search state ----
 let searchOpen = Signal.make(false)
@@ -245,15 +253,17 @@ module Header = {
   type props = {}
 
   let make = (_props: props) => {
-    // Scroll listener
-    let _ = Effect.run(() => {
-      let handleScroll = () => {
-        let scrollY: float = %raw(`window.scrollY`)
-        Signal.set(isScrolled, scrollY > 10.0)
-      }
-      addEventListener("scroll", handleScroll)
-      Some(() => removeEventListener("scroll", handleScroll))
-    })
+    // Scroll listener (client-only)
+    let _ = if SSRContext.isClient {
+      Effect.run(() => {
+        let handleScroll = () => {
+          let scrollY: float = %raw(`window.scrollY`)
+          Signal.set(isScrolled, scrollY > 10.0)
+        }
+        addEventListener("scroll", handleScroll)
+        Some(() => removeEventListener("scroll", handleScroll))
+      })->ignore
+    }
 
     Component.element(
       "header",
@@ -449,23 +459,25 @@ module Footer = {
   }
 }
 
-// ---- Global Cmd+K shortcut ----
-let _ = Effect.run(() => {
-  let handler = (_evt: Dom.event) => {
-    let ctrlOrMeta: bool = %raw(`_evt.ctrlKey || _evt.metaKey`)
-    let key: string = %raw(`_evt.key`)
-    if ctrlOrMeta && key == "k" {
-      let _ = %raw(`_evt.preventDefault()`)
-      if Signal.peek(searchOpen) {
-        closeSearch()
-      } else {
-        openSearch()
+// ---- Global Cmd+K shortcut (client-only) ----
+let _ = if SSRContext.isClient {
+  Effect.run(() => {
+    let handler = (_evt: Dom.event) => {
+      let ctrlOrMeta: bool = %raw(`_evt.ctrlKey || _evt.metaKey`)
+      let key: string = %raw(`_evt.key`)
+      if ctrlOrMeta && key == "k" {
+        let _ = %raw(`_evt.preventDefault()`)
+        if Signal.peek(searchOpen) {
+          closeSearch()
+        } else {
+          openSearch()
+        }
       }
     }
-  }
-  addEventListener("keydown", handler)
-  Some(() => removeEventListener("keydown", handler))
-})
+    addEventListener("keydown", handler)
+    Some(() => removeEventListener("keydown", handler))
+  })->ignore
+}
 
 // ---- Main layout wrapper ----
 type props = {children: Component.node}

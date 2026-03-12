@@ -245,6 +245,17 @@ let init = (~basePath as basePathArg: string="/", ()): unit => {
   // The popstate listener lives for the entire app lifetime
 }
 
+// Initialize router for server-side rendering
+// Sets the base path and location signal without accessing browser APIs
+// pathname: The app-relative path being rendered (e.g., "/docs/core-concepts/signals")
+let initSSR = (~basePath as basePathArg: string="/", ~pathname: string="/", ~search: string="", ~hash: string="", ()): unit => {
+  let state = getGlobalState()
+  let normalizedBasePath = normalizeBasePath(basePathArg)
+  state.basePath := normalizedBasePath
+  Signal.set(state.location, {pathname, search, hash})
+  state.initialized = true
+}
+
 // Imperative navigation - push new history entry
 // pathname: App-relative path (will have base path added automatically)
 let push = (pathname: string, ~search: string="", ~hash: string="", ()): unit => {

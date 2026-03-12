@@ -7,9 +7,12 @@
     "res:build": "npm run generate-api-docs && rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript -w",
-    "dev": "vite",
-    "build": "npm run res:build && vite build",
-    "preview": "vite preview"
+    "dev": "node server.mjs",
+    "dev:client": "vite",
+    "build": "npm run res:build && npm run build:client && npm run build:server",
+    "build:client": "vite build",
+    "build:server": "vite build --ssr src/EntryServer.res.mjs --outDir build/server",
+    "preview": "NODE_ENV=production node server.mjs"
   },
   "dependencies": {
     "@rescript/core": "^1.6.1",

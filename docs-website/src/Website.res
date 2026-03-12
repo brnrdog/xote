@@ -21,9 +21,6 @@ module SolitaireDemo = SolitaireDemo
 module MatchGameDemo = MatchGameDemo
 module SnakeGameDemo = SnakeGameDemo
 
-// Initialize router
-Router.init(~basePath="/xote", ())
-
 // 404 Page component
 module NotFoundPage = {
   type props = {}
@@ -264,5 +261,3 @@ module App = {
   }
 }
 
-// Mount the app
-Component.mountById(<App />, "app")

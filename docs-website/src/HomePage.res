@@ -251,14 +251,16 @@ module CodeDemo = {
         let isRunning = Signal.make(false)
         let seconds = Signal.make(0)
 
-        let _ = Effect.run(() => {
-          if Signal.get(isRunning) {
-            let id = DomHelpers.setInterval(() => Signal.update(seconds, s => s + 1), 1000)
-            Some(() => DomHelpers.clearInterval(id))
-          } else {
-            None
-          }
-        })
+        let _ = if SSRContext.isClient {
+          Effect.run(() => {
+            if Signal.get(isRunning) {
+              let id = DomHelpers.setInterval(() => Signal.update(seconds, s => s + 1), 1000)
+              Some(() => DomHelpers.clearInterval(id))
+            } else {
+              None
+            }
+          })->ignore
+        }
 
         let toggleTimer = (_evt: Dom.event) => Signal.update(isRunning, r => !r)
         let resetTimer = (_evt: Dom.event) => {
