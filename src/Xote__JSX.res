@@ -9,8 +9,12 @@ type component<'props> = 'props => element
 
 type componentLike<'props, 'return> = 'props => 'return
 
-/* JSX functions for component creation - all delegate to the component function */
-let jsx = (component: component<'props>, props: 'props): element => component(props)
+/* JSX functions for component creation - wrap in LazyComponent to defer evaluation.
+ * This ensures component functions (which may create effects/computeds) are not
+ * evaluated during a Computed context, which would incorrectly track their
+ * dependencies as belonging to the outer computed. */
+let jsx = (component: component<'props>, props: 'props): element =>
+  Component.LazyComponent(() => component(props))
 
 let jsxs = jsx
 
