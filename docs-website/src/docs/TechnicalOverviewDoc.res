@@ -19,8 +19,8 @@ let content = () => {
       {Component.text(" Xote v3.0+ uses rescript-signals for all reactive primitives (Signal, Computed, Effect). This overview focuses on Xote-specific features: Components, Router, and JSX support.")}
       </p>
     </div>
-    <h2> {Component.text("Architecture Overview")} </h2>
-    <h3> {Component.text("Module Structure")} </h3>
+    <h2 id="architecture-overview"> {Component.text("Architecture Overview")} </h2>
+    <h3 id="module-structure"> {Component.text("Module Structure")} </h3>
     <p>
       {Component.text("Xote is organized into focused modules:")}
     </p>
@@ -74,7 +74,7 @@ let content = () => {
       <code> {Component.text("Xote.res")} </code>
       {Component.text(" - Public API surface")}
     </p>
-    <h2> {Component.text("Reactivity Model")} </h2>
+    <h2 id="reactivity-model"> {Component.text("Reactivity Model")} </h2>
     <p>
       {Component.text("All reactive behavior is provided by ")}
       <a href="https://github.com/brnrdog/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
@@ -98,8 +98,8 @@ let content = () => {
       {Component.text(" Signals use structural equality (==) to check if values have changed, preventing unnecessary updates")}
       </li>
     </ul>
-    <h2> {Component.text("Component System")} </h2>
-    <h3> {Component.text("Virtual Node Types")} </h3>
+    <h2 id="component-system"> {Component.text("Component System")} </h2>
+    <h3 id="virtual-node-types"> {Component.text("Virtual Node Types")} </h3>
     <p>
       {Component.text("Xote uses several node types to represent UI elements:")}
     </p>
@@ -125,7 +125,7 @@ let content = () => {
       {Component.text(" Reactive fragment that re-renders when a signal changes")}
       </li>
     </ul>
-    <h3> {Component.text("Rendering Behavior")} </h3>
+    <h3 id="rendering-behavior"> {Component.text("Rendering Behavior")} </h3>
     <ul>
       <li>
         <strong> {Component.text("SignalText:")} </strong>
@@ -144,7 +144,7 @@ let content = () => {
       {Component.text(" Set up effects that update the DOM attribute when the signal/computed value changes")}
       </li>
     </ul>
-    <h2> {Component.text("JSX Support")} </h2>
+    <h2 id="jsx-support"> {Component.text("JSX Support")} </h2>
     <p>
       {Component.text("Xote supports ReScript's generic JSX v4 for declarative component syntax:")}
     </p>
@@ -175,8 +175,8 @@ let content = () => {
         {Component.text("Component functions called with props objects")}
       </li>
     </ul>
-    <h2> {Component.text("Router Architecture")} </h2>
-    <h3> {Component.text("Route Matching")} </h3>
+    <h2 id="router-architecture"> {Component.text("Router Architecture")} </h2>
+    <h3 id="route-matching"> {Component.text("Route Matching")} </h3>
     <p>
       {Component.text("Pattern-based string matching with :param syntax:")}
     </p>
@@ -193,7 +193,7 @@ let content = () => {
         {Component.text("Parameters returned as Dict.t<string>")}
       </li>
     </ul>
-    <h3> {Component.text("Router State")} </h3>
+    <h3 id="router-state"> {Component.text("Router State")} </h3>
     <ul>
       <li>
         <strong> {Component.text("Location signal:")} </strong>
@@ -214,7 +214,7 @@ let content = () => {
       {Component.text(" Intercepts clicks to prevent page reload")}
       </li>
     </ul>
-    <h2> {Component.text("Execution Characteristics")} </h2>
+    <h2 id="execution-characteristics"> {Component.text("Execution Characteristics")} </h2>
     <ul>
       <li>
         <strong> {Component.text("Push-based:")} </strong>
@@ -233,7 +233,7 @@ let content = () => {
       {Component.text(" Scheduler wrapped in try/catch to ensure tracking state is restored")}
       </li>
     </ul>
-    <h2> {Component.text("Relation to TC39 Signals Proposal")} </h2>
+    <h2 id="relation-to-tc39-signals-proposal"> {Component.text("Relation to TC39 Signals Proposal")} </h2>
     <p>
       {Component.text("Xote's reactive primitives (via rescript-signals) are inspired by the ")}
       <a href="https://github.com/tc39/proposal-signals" target="_blank"> {Component.text("TC39 Signals proposal")} </a>
@@ -267,8 +267,8 @@ let content = () => {
     <p>
       {Component.text("  - Effects can return cleanup callbacks (Some/None pattern)")}
     </p>
-    <h2> {Component.text("API Summary")} </h2>
-    <h3> {Component.text("Reactive Primitives")} </h3>
+    <h2 id="api-summary"> {Component.text("API Summary")} </h2>
+    <h3 id="reactive-primitives"> {Component.text("Reactive Primitives")} </h3>
     <pre>
       <code>
         {Component.text(`Signal.make : 'a => t<'a>
@@ -283,7 +283,7 @@ Computed.dispose : t<'a> => unit
 Effect.run : (unit => option<unit => unit>) => {dispose: unit => unit}`)}
       </code>
     </pre>
-    <h3> {Component.text("Component Helpers")} </h3>
+    <h3 id="component-helpers"> {Component.text("Component Helpers")} </h3>
     <pre>
       <code>
         {Component.text(`Component.text : string => node
@@ -294,7 +294,7 @@ Component.mount : (node, Dom.element) => unit
 Component.mountById : (node, string) => unit`)}
       </code>
     </pre>
-    <h3> {Component.text("Router Helpers")} </h3>
+    <h3 id="router-helpers"> {Component.text("Router Helpers")} </h3>
     <pre>
       <code>
         {Component.text(`Router.init : unit => unit
@@ -305,7 +305,7 @@ Router.routes : array<{pattern: string, render: params => node}> => node
 Router.link : (~to: string, ~attrs: array=?, ~children: array=?, unit) => node`)}
       </code>
     </pre>
-    <h2> {Component.text("Best Practices")} </h2>
+    <h2 id="best-practices"> {Component.text("Best Practices")} </h2>
     <ul>
       <li>
         <strong> {Component.text("Trust auto-disposal:")} </strong>
@@ -328,7 +328,7 @@ Router.link : (~to: string, ~attrs: array=?, ~children: array=?, unit) => node`)
       {Component.text(" For efficient reconciliation of dynamic lists")}
       </li>
     </ul>
-    <h2> {Component.text("Next Steps")} </h2>
+    <h2 id="next-steps"> {Component.text("Next Steps")} </h2>
     <ul>
       <li>
         {Component.text("Explore the ")}

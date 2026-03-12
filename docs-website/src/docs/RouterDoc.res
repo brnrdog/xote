@@ -13,7 +13,7 @@ let content = () => {
     <p>
       {Component.text("Xote includes a built-in signal-based router for building single-page applications (SPAs). The router uses the browser's History API and provides both imperative and declarative navigation.")}
     </p>
-    <h2> {Component.text("Features")} </h2>
+    <h2 id="features"> {Component.text("Features")} </h2>
     <ul>
       <li>
         {Component.text("Signal-based reactive routing")}
@@ -37,8 +37,8 @@ let content = () => {
         {Component.text("Zero dependencies")}
       </li>
     </ul>
-    <h2> {Component.text("Quick Start")} </h2>
-    <h3> {Component.text("1. Initialize the Router")} </h3>
+    <h2 id="quick-start"> {Component.text("Quick Start")} </h2>
+    <h3 id="initialize-the-router"> {Component.text("1. Initialize the Router")} </h3>
     <p>
       {Component.text("Call ")}
       <code> {Component.text("Router.init()")} </code>
@@ -54,7 +54,7 @@ Router.init()`)}
     <p>
       {Component.text("This sets the initial location from the browser URL and adds a popstate listener for back/forward button support.")}
     </p>
-    <h3> {Component.text("2. Define Routes")} </h3>
+    <h3 id="define-routes"> {Component.text("2. Define Routes")} </h3>
     <p>
       {Component.text("Use ")}
       <code> {Component.text("Router.routes()")} </code>
@@ -84,7 +84,7 @@ Router.init()`)}
 Component.mountById(app(), "app")`)}
       </code>
     </pre>
-    <h3> {Component.text("3. Navigate")} </h3>
+    <h3 id="navigate"> {Component.text("3. Navigate")} </h3>
     <p>
       {Component.text("Use ")}
       <code> {Component.text("Router.push()")} </code>
@@ -107,7 +107,7 @@ Router.link(
 )`)}
       </code>
     </pre>
-    <h2> {Component.text("The Location Signal")} </h2>
+    <h2 id="the-location-signal"> {Component.text("The Location Signal")} </h2>
     <p>
       <code> {Component.text("Router.location")} </code>
       {Component.text(" is a signal containing the current route information:")}
@@ -132,11 +132,11 @@ Router.link(
 })`)}
       </code>
     </pre>
-    <h2> {Component.text("Route Patterns")} </h2>
+    <h2 id="route-patterns"> {Component.text("Route Patterns")} </h2>
     <p>
       {Component.text("Patterns support static segments and dynamic parameters:")}
     </p>
-    <h3> {Component.text("Static Routes")} </h3>
+    <h3 id="static-routes"> {Component.text("Static Routes")} </h3>
     <pre>
       <code>
         {Component.text(`{pattern: "/", render: _params => <HomePage />}
@@ -144,7 +144,7 @@ Router.link(
 {pattern: "/contact", render: _params => <ContactPage />}`)}
       </code>
     </pre>
-    <h3> {Component.text("Dynamic Parameters")} </h3>
+    <h3 id="dynamic-parameters"> {Component.text("Dynamic Parameters")} </h3>
     <p>
       {Component.text("Use ")}
       <code> {Component.text(":param")} </code>
@@ -166,8 +166,8 @@ Router.link(
 }}`)}
       </code>
     </pre>
-    <h2> {Component.text("Navigation Methods")} </h2>
-    <h3> <code> {Component.text("Router.push()")} </code> </h3>
+    <h2 id="navigation-methods"> {Component.text("Navigation Methods")} </h2>
+    <h3 id="routerpush"> <code> {Component.text("Router.push()")} </code> </h3>
     <p>
       {Component.text("Navigate to a new route with a new history entry:")}
     </p>
@@ -182,7 +182,7 @@ Router.push("/search", ~search="?q=xote", ())
 Router.push("/docs", ~hash="#installation", ())`)}
       </code>
     </pre>
-    <h3> <code> {Component.text("Router.replace()")} </code> </h3>
+    <h3 id="routerreplace"> <code> {Component.text("Router.replace()")} </code> </h3>
     <p>
       {Component.text("Navigate without creating a new history entry:")}
     </p>
@@ -194,7 +194,7 @@ Router.push("/docs", ~hash="#installation", ())`)}
     <p>
       {Component.text("This replaces the current history entry, so clicking the back button will skip this route.")}
     </p>
-    <h2> {Component.text("Navigation Links")} </h2>
+    <h2 id="navigation-links"> {Component.text("Navigation Links")} </h2>
     <p>
       {Component.text("Create links that navigate without page reload:")}
     </p>
@@ -215,7 +215,7 @@ Router.link(
 )`)}
       </code>
     </pre>
-    <h2> {Component.text("Complete Example")} </h2>
+    <h2 id="complete-example"> {Component.text("Complete Example")} </h2>
     <pre>
       <code>
         {Component.text(`open Xote
@@ -257,7 +257,7 @@ let app = () => {
 Component.mountById(app(), "app")`)}
       </code>
     </pre>
-    <h2> {Component.text("How It Works")} </h2>
+    <h2 id="how-it-works"> {Component.text("How It Works")} </h2>
     <ol>
       <li>
         <strong> {Component.text("Initialization:")} </strong>
@@ -280,7 +280,7 @@ Component.mountById(app(), "app")`)}
       {Component.text(" Router.link() intercepts clicks and calls Router.push() instead of following the href")}
       </li>
     </ol>
-    <h2> {Component.text("Best Practices")} </h2>
+    <h2 id="best-practices"> {Component.text("Best Practices")} </h2>
     <ul>
       <li>
         <strong> {Component.text("Initialize once:")} </strong>
@@ -303,7 +303,7 @@ Component.mountById(app(), "app")`)}
       {Component.text(" Use Option methods when accessing route parameters")}
       </li>
     </ul>
-    <h2> {Component.text("Next Steps")} </h2>
+    <h2 id="next-steps"> {Component.text("Next Steps")} </h2>
     <ul>
       <li>
         {Component.text("Try the ")}

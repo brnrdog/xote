@@ -13,7 +13,7 @@ let content = () => {
     <p>
       {Component.text("Complete API documentation for Xote signals.")}
     </p>
-    <h2> {Component.text("Type")} </h2>
+    <h2 id="type"> {Component.text("Type")} </h2>
     <pre>
       <code>
         {Component.text(`type t<'a>`)}
@@ -24,8 +24,8 @@ let content = () => {
       <code> {Component.text("'a")} </code>
       {Component.text(" is the type of value the signal holds.")}
     </p>
-    <h2> {Component.text("Functions")} </h2>
-    <h3> <code> {Component.text("make")} </code> </h3>
+    <h2 id="functions"> {Component.text("Functions")} </h2>
+    <h3 id="make"> <code> {Component.text("make")} </code> </h3>
     <pre>
       <code>
         {Component.text(`let make: 'a => t<'a>`)}
@@ -63,7 +63,7 @@ let items = Signal.make([1, 2, 3])`)}
       </code>
     </pre>
     <hr />
-    <h3> <code> {Component.text("get")} </code> </h3>
+    <h3 id="get"> <code> {Component.text("get")} </code> </h3>
     <pre>
       <code>
         {Component.text(`let get: t<'a> => 'a`)}
@@ -112,7 +112,7 @@ Effect.run(() => {
       {Component.text(" to read without tracking.")}
     </p>
     <hr />
-    <h3> <code> {Component.text("peek")} </code> </h3>
+    <h3 id="peek"> <code> {Component.text("peek")} </code> </h3>
     <pre>
       <code>
         {Component.text(`let peek: t<'a> => 'a`)}
@@ -173,7 +173,7 @@ Signal.set(count, 10) // Effect will NOT re-run`)}
       </li>
     </ul>
     <hr />
-    <h3> <code> {Component.text("set")} </code> </h3>
+    <h3 id="set"> <code> {Component.text("set")} </code> </h3>
     <pre>
       <code>
         {Component.text(`let set: (t<'a>, 'a) => unit`)}
@@ -227,7 +227,7 @@ Signal.set(count, 10) // Same value - no notification`)}
       {Component.text(".")}
     </p>
     <hr />
-    <h3> <code> {Component.text("update")} </code> </h3>
+    <h3 id="update"> <code> {Component.text("update")} </code> </h3>
     <pre>
       <code>
         {Component.text(`let update: (t<'a>, 'a => 'a) => unit`)}
@@ -277,7 +277,7 @@ Signal.update(items, arr => Array.concat(arr, [4, 5])) // [1, 2, 3, 4, 5]`)}
       {Component.text(" but more concise.")}
     </p>
     <hr />
-    <h3> <code> {Component.text("batch")} </code> </h3>
+    <h3 id="batch"> <code> {Component.text("batch")} </code> </h3>
     <pre>
       <code>
         {Component.text(`let batch: (unit => 'a) => 'a`)}
@@ -317,7 +317,7 @@ Signal.update(items, arr => Array.concat(arr, [4, 5])) // [1, 2, 3, 4, 5]`)}
       </code>
     </pre>
     <hr />
-    <h3> <code> {Component.text("untrack")} </code> </h3>
+    <h3 id="untrack"> <code> {Component.text("untrack")} </code> </h3>
     <pre>
       <code>
         {Component.text(`let untrack: (unit => 'a) => 'a`)}
@@ -361,8 +361,8 @@ Signal.update(items, arr => Array.concat(arr, [4, 5])) // [1, 2, 3, 4, 5]`)}
       </code>
     </pre>
     <hr />
-    <h2> {Component.text("Examples")} </h2>
-    <h3> {Component.text("Basic Usage")} </h3>
+    <h2 id="examples"> {Component.text("Examples")} </h2>
+    <h3 id="basic-usage"> {Component.text("Basic Usage")} </h3>
     <pre>
       <code>
         {Component.text(`open Xote
@@ -381,7 +381,7 @@ Signal.update(count, n => n + 1)
 Console.log(Signal.get(count)) // 6`)}
       </code>
     </pre>
-    <h3> {Component.text("With Effects")} </h3>
+    <h3 id="with-effects"> {Component.text("With Effects")} </h3>
     <pre>
       <code>
         {Component.text(`let count = Signal.make(0)
@@ -395,7 +395,7 @@ Signal.set(count, 1) // Logs: "Count changed: 1"
 Signal.set(count, 2) // Logs: "Count changed: 2"`)}
       </code>
     </pre>
-    <h3> {Component.text("With Computed")} </h3>
+    <h3 id="with-computed"> {Component.text("With Computed")} </h3>
     <pre>
       <code>
         {Component.text(`let count = Signal.make(5)
@@ -407,7 +407,7 @@ Signal.set(count, 10)
 Console.log(Signal.get(doubled)) // 20`)}
       </code>
     </pre>
-    <h3> {Component.text("Complex State")} </h3>
+    <h3 id="complex-state"> {Component.text("Complex State")} </h3>
     <pre>
       <code>
         {Component.text(`type user = {
@@ -427,7 +427,7 @@ Signal.update(user, u => {...u, name: "Alice Smith"})
 Signal.update(user, u => {...u, email: "alice.smith@example.com"})`)}
       </code>
     </pre>
-    <h3> {Component.text("Array Operations")} </h3>
+    <h3 id="array-operations"> {Component.text("Array Operations")} </h3>
     <pre>
       <code>
         {Component.text(`let todos = Signal.make([])
@@ -446,7 +446,7 @@ Signal.update(todos, arr =>
 )`)}
       </code>
     </pre>
-    <h2> {Component.text("Notes")} </h2>
+    <h2 id="notes"> {Component.text("Notes")} </h2>
     <ul>
       <li>
         {Component.text("Signals use structural equality checks by default - only notify dependents when the value actually changes")}
@@ -468,7 +468,7 @@ Signal.update(todos, arr =>
         {Component.text("The equality check prevents accidental infinite loops and unnecessary recomputations")}
       </li>
     </ul>
-    <h2> {Component.text("See Also")} </h2>
+    <h2 id="see-also"> {Component.text("See Also")} </h2>
     <ul>
       <li>
         {Router.link(~to="/docs/core-concepts/signals", ~children=[Component.text("Signals Guide")], ())}

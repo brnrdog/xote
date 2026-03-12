@@ -27,7 +27,7 @@ let content = () => {
       {Component.text(". The API and behavior are provided by that library.")}
       </p>
     </div>
-    <h2> {Component.text("Creating Signals")} </h2>
+    <h2 id="creating-signals"> {Component.text("Creating Signals")} </h2>
     <p>
       {Component.text("Use ")}
       <code> {Component.text("Signal.make()")} </code>
@@ -42,8 +42,8 @@ let name = Signal.make("Alice")
 let isActive = Signal.make(true)`)}
       </code>
     </pre>
-    <h2> {Component.text("Reading Signal Values")} </h2>
-    <h3> <code> {Component.text("Signal.get()")} </code> </h3>
+    <h2 id="reading-signal-values"> {Component.text("Reading Signal Values")} </h2>
+    <h3 id="signal-get"> <code> {Component.text("Signal.get()")} </code> </h3>
     <p>
       {Component.text("Use ")}
       <code> {Component.text("Signal.get()")} </code>
@@ -55,7 +55,7 @@ let isActive = Signal.make(true)`)}
 let value = Signal.get(count) // Returns 5`)}
       </code>
     </pre>
-    <h3> <code> {Component.text("Signal.peek()")} </code> </h3>
+    <h3 id="signal-peek"> <code> {Component.text("Signal.peek()")} </code> </h3>
     <p>
       {Component.text("Use ")}
       <code> {Component.text("Signal.peek()")} </code>
@@ -77,8 +77,8 @@ Effect.run(() => {
 })`)}
       </code>
     </pre>
-    <h2> {Component.text("Updating Signals")} </h2>
-    <h3> <code> {Component.text("Signal.set()")} </code> </h3>
+    <h2 id="updating-signals"> {Component.text("Updating Signals")} </h2>
+    <h3 id="signal-set"> <code> {Component.text("Signal.set()")} </code> </h3>
     <p>
       {Component.text("Replace a signal's value entirely:")}
     </p>
@@ -88,7 +88,7 @@ Effect.run(() => {
 Signal.set(count, 10) // count is now 10`)}
       </code>
     </pre>
-    <h3> <code> {Component.text("Signal.update()")} </code> </h3>
+    <h3 id="signal-update"> <code> {Component.text("Signal.update()")} </code> </h3>
     <p>
       {Component.text("Update a signal based on its current value:")}
     </p>
@@ -99,8 +99,8 @@ Signal.update(count, n => n + 1) // count is now 1
 Signal.update(count, n => n * 2) // count is now 2`)}
       </code>
     </pre>
-    <h2> {Component.text("Important Behaviors")} </h2>
-    <h3> {Component.text("Structural Equality Check")} </h3>
+    <h2 id="important-behaviors"> {Component.text("Important Behaviors")} </h2>
+    <h3 id="structural-equality-check"> {Component.text("Structural Equality Check")} </h3>
     <p>
       {Component.text("Signals use structural equality (")}
       <code> {Component.text("==")} </code>
@@ -121,7 +121,7 @@ Signal.set(count, 6) // Effect runs - value changed`)}
     <p>
       {Component.text("This prevents unnecessary updates and helps avoid accidental infinite loops in reactive code.")}
     </p>
-    <h3> {Component.text("Automatic Dependency Tracking")} </h3>
+    <h3 id="automatic-dependency-tracking"> {Component.text("Automatic Dependency Tracking")} </h3>
     <p>
       {Component.text("When you call ")}
       <code> {Component.text("Signal.get()")} </code>
@@ -138,7 +138,7 @@ let fullName = Computed.make(() =>
 )`)}
       </code>
     </pre>
-    <h2> {Component.text("Example: Counter")} </h2>
+    <h2 id="example-counter"> {Component.text("Example: Counter")} </h2>
     <p>
       {Component.text("Here's a complete example showing signals in action:")}
     </p>
@@ -180,7 +180,7 @@ let app = () => {
 Component.mountById(app(), "app")`)}
       </code>
     </pre>
-    <h2> {Component.text("Best Practices")} </h2>
+    <h2 id="best-practices"> {Component.text("Best Practices")} </h2>
     <ul>
       <li>
         <strong> {Component.text("Keep signals focused:")} </strong>
@@ -195,7 +195,7 @@ Component.mountById(app(), "app")`)}
       {Component.text(" It's more concise and clearer in intent")}
       </li>
     </ul>
-    <h2> {Component.text("Next Steps")} </h2>
+    <h2 id="next-steps"> {Component.text("Next Steps")} </h2>
     <ul>
       <li>
         {Component.text("Learn about ")}

@@ -14,7 +14,7 @@ let content = () => {
       {Component.text("Welcome to Xote (pronounced ")}
       {Component.text(") - a lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system.")}
     </p>
-    <h2> {Component.text("What is Xote?")} </h2>
+    <h2 id="what-is-xote"> {Component.text("What is Xote?")} </h2>
     <p>
       {Component.text("Xote provides a declarative component system and signal-based router built on top of ")}
       <a href="https://github.com/brnrdog/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
@@ -37,11 +37,11 @@ let content = () => {
         {Component.text("JSX Support: Declarative component syntax with full ReScript type safety")}
       </li>
     </ul>
-    <h2> {Component.text("Quick Example")} </h2>
+    <h2 id="quick-example"> {Component.text("Quick Example")} </h2>
     <p>
       {Component.text("Here's a simple counter application to get you started:")}
     </p>
-    <h3> {Component.text("Using JSX Syntax")} </h3>
+    <h3 id="using-jsx-syntax"> {Component.text("Using JSX Syntax")} </h3>
     <pre>
       <code>
         {Component.text(`open Xote
@@ -72,11 +72,11 @@ Component.mountById(app(), "app")`)}
     <p>
       {Component.text("When you click the button, the counter updates reactively - only the text node displaying the count is updated, not the entire component tree.")}
     </p>
-    <h2> {Component.text("Core Concepts")} </h2>
+    <h2 id="core-concepts"> {Component.text("Core Concepts")} </h2>
     <p>
       {Component.text("Xote re-exports reactive primitives from rescript-signals and adds UI features:")}
     </p>
-    <h3> {Component.text("Reactive Primitives (from rescript-signals)")} </h3>
+    <h3 id="reactive-primitives-from-rescript-signals"> {Component.text("Reactive Primitives (from rescript-signals)")} </h3>
     <ul>
       <li>
         {Router.link(~to="/docs/core-concepts/signals", ~children=[Component.text("Signals")], ())}
@@ -91,7 +91,7 @@ Component.mountById(app(), "app")`)}
       {Component.text(": Side effects that re-run when dependencies change")}
       </li>
     </ul>
-    <h3> {Component.text("Xote Features")} </h3>
+    <h3 id="xote-features"> {Component.text("Xote Features")} </h3>
     <ul>
       <li>
         {Router.link(~to="/docs/components/overview", ~children=[Component.text("Components")], ())}
@@ -101,7 +101,7 @@ Component.mountById(app(), "app")`)}
         {Component.text("Router: Signal-based SPA navigation with pattern matching")}
       </li>
     </ul>
-    <h2> {Component.text("Installation")} </h2>
+    <h2 id="installation"> {Component.text("Installation")} </h2>
     <p>
       {Component.text("Get started with Xote in your ReScript project:")}
     </p>
@@ -126,7 +126,7 @@ pnpm add xote`)}
 }`)}
       </code>
     </pre>
-    <h2> {Component.text("Next Steps")} </h2>
+    <h2 id="next-steps"> {Component.text("Next Steps")} </h2>
     <ul>
       <li>
         {Component.text("Learn about ")}
@@ -149,7 +149,7 @@ pnpm add xote`)}
       {Component.text(" for detailed documentation")}
       </li>
     </ul>
-    <h2> {Component.text("Philosophy")} </h2>
+    <h2 id="philosophy"> {Component.text("Philosophy")} </h2>
     <p>
       {Component.text("Xote focuses on clarity, control, and performance. The goal is to offer precise, fine-grained updates and predictable behavior without a virtual DOM.")}
     </p>

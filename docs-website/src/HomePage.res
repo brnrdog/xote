@@ -71,6 +71,13 @@ let features = [
     linkText: Some("Router guide"),
     linkTo: Some("/docs/router/overview"),
   },
+  {
+    title: "Server-Side Rendering",
+    description: "Full SSR with hydration, state serialization, and environment-aware components — render on the server, hydrate on the client.",
+    iconName: Basefn.Icon.Download,
+    linkText: Some("SSR guide"),
+    linkTo: Some("/docs/advanced/ssr"),
+  },
 ]
 
 // ---- Feature Card ----
