@@ -1,3 +1,10 @@
+## [4.15.2](https://github.com/brnrdog/xote/compare/v4.15.1...v4.15.2) (2026-03-12)
+
+
+### Bug Fixes
+
+* ensure computed attributes are only updated within the effect context ([#49](https://github.com/brnrdog/xote/issues/49)) ([ccf9905](https://github.com/brnrdog/xote/commit/ccf9905b4ab38e63317ad068c1a276febf0644c2))
+
 ## [4.15.1](https://github.com/brnrdog/xote/compare/v4.15.0...v4.15.1) (2026-03-07)
 
 
