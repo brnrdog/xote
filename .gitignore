@@ -2,7 +2,6 @@
 /node_modules/
 /lib/
 /dist/
-/demos-dist/
 .bsb.lock
 .merlin
 *.res.mjs
@@ -13,5 +12,4 @@ bundlemeta.json
 /docs-website/node_modules/
 /docs-website/build/
 /docs-website/.cache-loader/
-/docs-website/static/demos/
 /docs-website/static/assets/

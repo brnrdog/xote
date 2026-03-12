@@ -18,10 +18,8 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - `npm run build` - Build library with Vite (outputs to `dist/`)
 - `npm run preview` - Preview production build
 
-### Demos & Documentation
-- `npm run build:demos` - Build demo apps with Vite
-- `npm run prepare:demos` - Compile ReScript, build demos, copy to website
-- `npm run docs:start` - Start documentation site (includes demo preparation)
+### Documentation
+- `npm run docs:start` - Start documentation site
 - `npm run docs:build` - Build documentation site
 - `npm run docs:serve` - Serve built documentation site
 
@@ -380,14 +378,14 @@ Hydration.hydrateById(app, "root")
 - **Technical deep-dive**: See `docs/TECHNICAL_OVERVIEW.md` for detailed architecture
 - **Changelog**: See `docs/CHANGELOG.md` for version history
 - **Example apps**:
-  - `demos/TodoApp.res` - Todo list with keyed lists and filtering
-  - `demos/ColorMixerApp.res` - Color mixer with reactive sliders
-  - `demos/BookstoreApp.res` - Complex app with routing and state management
-  - `demos/CounterApp.res` - Basic counter
-  - `demos/SnakeGame.res` - Snake game
-  - `demos/SolitaireGame.res` - Solitaire card game
-  - `demos/MatchGame.res` - Memory match game
-  - `demos/ReactionGame.res` - Reaction time game
+  - `docs-website/src/demos/TodoDemo.res` - Todo list with keyed lists and filtering
+  - `docs-website/src/demos/ColorMixerDemo.res` - Color mixer with reactive sliders
+  - `docs-website/src/demos/BookstoreDemo.res` - Complex app with routing and state management
+  - `docs-website/src/demos/CounterDemo.res` - Basic counter
+  - `docs-website/src/demos/SnakeGameDemo.res` - Snake game
+  - `docs-website/src/demos/SolitaireDemo.res` - Solitaire card game
+  - `docs-website/src/demos/MatchGameDemo.res` - Memory match game
+  - `docs-website/src/demos/ReactionGameDemo.res` - Reaction time game
 - **SSR example**: `examples/ssr/` - Full SSR + hydration setup
 - **rescript-signals**: https://github.com/brnrdog/rescript-signals - The reactive primitives library
 - **TC39 Signals proposal**: https://github.com/tc39/proposal-signals

@@ -7,11 +7,6 @@
       "public": ["Xote"]
     },
     {
-      "dir": "demos",
-      "subdirs": false,
-      "type": "dev"
-    },
-    {
       "dir": "examples",
       "subdirs": true,
       "type": "dev"
