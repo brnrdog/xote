@@ -13,7 +13,7 @@ let content = () => {
     <p>
       {Component.text("This guide compares Xote with React to help you understand the differences in philosophy, API design, and when to choose each framework.")}
     </p>
-    <h2> {Component.text("Philosophy")} </h2>
+    <h2 id="philosophy"> {Component.text("Philosophy")} </h2>
     <table>
       <thead>
         <tr>
@@ -55,8 +55,8 @@ let content = () => {
         </tr>
       </tbody>
     </table>
-    <h2> {Component.text("Code Comparison: Counter Example")} </h2>
-    <h3> {Component.text("React Version")} </h3>
+    <h2 id="code-comparison-counter-example"> {Component.text("Code Comparison: Counter Example")} </h2>
+    <h3 id="react-version"> {Component.text("React Version")} </h3>
     <pre>
       <code>
         {Component.text(`import { useState } from 'react';
@@ -75,7 +75,7 @@ function Counter() {
 }`)}
       </code>
     </pre>
-    <h3> {Component.text("Xote Version")} </h3>
+    <h3 id="xote-version"> {Component.text("Xote Version")} </h3>
     <pre>
       <code>
         {Component.text(`open Xote
@@ -96,8 +96,8 @@ let counter = () => {
 }`)}
       </code>
     </pre>
-    <h2> {Component.text("Key Differences")} </h2>
-    <h3> {Component.text("1. Reactivity Model")} </h3>
+    <h2 id="key-differences"> {Component.text("Key Differences")} </h2>
+    <h3 id="1-reactivity-model"> {Component.text("1. Reactivity Model")} </h3>
     <p>
       <strong> {Component.text("React:")} </strong>
     </p>
@@ -132,7 +132,7 @@ let counter = () => {
         {Component.text("Minimal overhead per update")}
       </li>
     </ul>
-    <h3> {Component.text("2. Side Effects and Dependencies")} </h3>
+    <h3 id="2-side-effects-and-dependencies"> {Component.text("2. Side Effects and Dependencies")} </h3>
     <p>
       <strong> {Component.text("React useEffect:")} </strong>
     </p>
@@ -167,7 +167,7 @@ Effect.run(() => {
         {Component.text("Xote automatically tracks dependencies during execution - no arrays needed")}
       </li>
     </ul>
-    <h3> {Component.text("3. Derived State")} </h3>
+    <h3 id="3-derived-state"> {Component.text("3. Derived State")} </h3>
     <p>
       <strong> {Component.text("React useMemo:")} </strong>
     </p>
@@ -186,7 +186,7 @@ const doubled = useMemo(() => count * 2, [count]);`)}
 let doubled = Computed.make(() => Signal.get(count) * 2)`)}
       </code>
     </pre>
-    <h3> {Component.text("4. Component Lifecycle")} </h3>
+    <h3 id="4-component-lifecycle"> {Component.text("4. Component Lifecycle")} </h3>
     <p>
       <strong> {Component.text("React:")} </strong>
     </p>
@@ -215,8 +215,8 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
         {Component.text("Effect cleanup via Some(cleanupFn) return values")}
       </li>
     </ul>
-    <h2> {Component.text("Code Comparison: Todo List")} </h2>
-    <h3> {Component.text("React Version")} </h3>
+    <h2 id="code-comparison-todo-list"> {Component.text("Code Comparison: Todo List")} </h2>
+    <h3 id="react-version-1"> {Component.text("React Version")} </h3>
     <pre>
       <code>
         {Component.text(`function TodoList() {
@@ -245,7 +245,7 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
 }`)}
       </code>
     </pre>
-    <h3> {Component.text("Xote Version")} </h3>
+    <h3 id="xote-version-1"> {Component.text("Xote Version")} </h3>
     <pre>
       <code>
         {Component.text(`let todoList = () => {
@@ -277,7 +277,7 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
 }`)}
       </code>
     </pre>
-    <h2> {Component.text("When to Choose React")} </h2>
+    <h2 id="when-to-choose-react"> {Component.text("When to Choose React")} </h2>
     <ul>
       <li>
         <strong> {Component.text("Large ecosystem needed:")} </strong>
@@ -300,7 +300,7 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
       {Component.text(" Easier to find React developers in the job market")}
       </li>
     </ul>
-    <h2> {Component.text("When to Choose Xote")} </h2>
+    <h2 id="when-to-choose-xote"> {Component.text("When to Choose Xote")} </h2>
     <ul>
       <li>
         <strong> {Component.text("Fine-grained reactivity:")} </strong>
@@ -327,8 +327,8 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
       {Component.text(" Want a focused library without a large ecosystem dependency")}
       </li>
     </ul>
-    <h2> {Component.text("Performance Comparison")} </h2>
-    <h3> {Component.text("React")} </h3>
+    <h2 id="performance-comparison"> {Component.text("Performance Comparison")} </h2>
+    <h3 id="react"> {Component.text("React")} </h3>
     <p>
       <strong> {Component.text("Pros:")} </strong>
     </p>
@@ -363,7 +363,7 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
         {Component.text("Larger bundle size")}
       </li>
     </ul>
-    <h3> {Component.text("Xote")} </h3>
+    <h3 id="xote"> {Component.text("Xote")} </h3>
     <p>
       <strong> {Component.text("Pros:")} </strong>
     </p>
@@ -395,8 +395,8 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
         {Component.text("Smaller community and fewer optimization resources")}
       </li>
     </ul>
-    <h2> {Component.text("Migration Considerations")} </h2>
-    <h3> {Component.text("From React to Xote")} </h3>
+    <h2 id="migration-considerations"> {Component.text("Migration Considerations")} </h2>
+    <h3 id="from-react-to-xote"> {Component.text("From React to Xote")} </h3>
     <p>
       {Component.text("Key concepts that map over:")}
     </p>
@@ -439,14 +439,14 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
         {Component.text("Need to rethink component composition patterns")}
       </li>
     </ul>
-    <h2> {Component.text("Conclusion")} </h2>
+    <h2 id="conclusion"> {Component.text("Conclusion")} </h2>
     <p>
       {Component.text("React and Xote take fundamentally different approaches to reactivity. React's virtual DOM and re-rendering model is mature, well-understood, and backed by a massive ecosystem. Xote's signal-based fine-grained reactivity offers performance benefits and a simpler mental model, but with a smaller ecosystem.")}
     </p>
     <p>
       {Component.text("Choose React if you need the ecosystem, tooling, and community. Choose Xote if you value type safety, minimal bundle size, and want to explore signal-based reactivity with ReScript.")}
     </p>
-    <h2> {Component.text("Further Reading")} </h2>
+    <h2 id="further-reading"> {Component.text("Further Reading")} </h2>
     <ul>
       <li>
         {Router.link(~to="/docs/core-concepts/signals", ~children=[Component.text("Xote Signals Guide")], ())}

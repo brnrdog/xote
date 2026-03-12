@@ -26,13 +26,13 @@ let content = () => {
       {Component.text(" Explicit function calls with labeled parameters")}
       </li>
     </ul>
-    <h2> {Component.text("What are Components?")} </h2>
+    <h2 id="what-are-components"> {Component.text("What are Components?")} </h2>
     <p>
       {Component.text("In Xote, a component is simply a function that returns a ")}
       <code> {Component.text("Component.node")} </code>
       {Component.text(":")}
     </p>
-    <h3> {Component.text("JSX Syntax")} </h3>
+    <h3 id="jsx-syntax"> {Component.text("JSX Syntax")} </h3>
     <pre>
       <code>
         {Component.text(`open Xote
@@ -44,7 +44,7 @@ let greeting = () => {
 }`)}
       </code>
     </pre>
-    <h3> {Component.text("Function API")} </h3>
+    <h3 id="function-api"> {Component.text("Function API")} </h3>
     <pre>
       <code>
         {Component.text(`open Xote
@@ -59,7 +59,7 @@ let greeting = () => {
 }`)}
       </code>
     </pre>
-    <h2> {Component.text("JSX Configuration")} </h2>
+    <h2 id="jsx-configuration"> {Component.text("JSX Configuration")} </h2>
     <p>
       {Component.text("To use JSX syntax, configure your ")}
       <code> {Component.text("rescript.json")} </code>
@@ -75,8 +75,8 @@ let greeting = () => {
 }`)}
       </code>
     </pre>
-    <h2> {Component.text("Text Nodes")} </h2>
-    <h3> {Component.text("Static Text")} </h3>
+    <h2 id="text-nodes"> {Component.text("Text Nodes")} </h2>
+    <h3 id="static-text"> {Component.text("Static Text")} </h3>
     <p>
       {Component.text("Use ")}
       <code> {Component.text("Component.text()")} </code>
@@ -89,7 +89,7 @@ let greeting = () => {
 </div>`)}
       </code>
     </pre>
-    <h3> {Component.text("Reactive Text")} </h3>
+    <h3 id="reactive-text"> {Component.text("Reactive Text")} </h3>
     <p>
       {Component.text("Use ")}
       <code> {Component.text("Component.textSignal()")} </code>
@@ -111,8 +111,8 @@ let greeting = () => {
       <code> {Component.text("count")} </code>
       {Component.text(" changes.")}
     </p>
-    <h2> {Component.text("Attributes")} </h2>
-    <h3> {Component.text("JSX Props")} </h3>
+    <h2 id="attributes"> {Component.text("Attributes")} </h2>
+    <h3 id="jsx-props"> {Component.text("JSX Props")} </h3>
     <p>
       {Component.text("JSX elements support common HTML attributes:")}
     </p>
@@ -164,7 +164,7 @@ let greeting = () => {
 </button>`)}
       </code>
     </pre>
-    <h3> {Component.text("Static Attributes (Function API)")} </h3>
+    <h3 id="static-attributes-function-api"> {Component.text("Static Attributes (Function API)")} </h3>
     <pre>
       <code>
         {Component.text(`Component.button(
@@ -177,7 +177,7 @@ let greeting = () => {
 )`)}
       </code>
     </pre>
-    <h3> {Component.text("Reactive Attributes")} </h3>
+    <h3 id="reactive-attributes"> {Component.text("Reactive Attributes")} </h3>
     <p>
       {Component.text("Function API supports reactive attributes:")}
     </p>
@@ -195,8 +195,8 @@ Component.div(
 )`)}
       </code>
     </pre>
-    <h2> {Component.text("Event Handlers")} </h2>
-    <h3> {Component.text("JSX Event Props")} </h3>
+    <h2 id="event-handlers"> {Component.text("Event Handlers")} </h2>
+    <h3 id="jsx-event-props"> {Component.text("JSX Event Props")} </h3>
     <p>
       {Component.text("JSX elements support common event handlers:")}
     </p>
@@ -243,8 +243,8 @@ let increment = (_evt: Dom.event) => {
 </button>`)}
       </code>
     </pre>
-    <h2> {Component.text("Lists")} </h2>
-    <h3> {Component.text("Simple Lists (Non-Keyed)")} </h3>
+    <h2 id="lists"> {Component.text("Lists")} </h2>
+    <h3 id="simple-lists-non-keyed"> {Component.text("Simple Lists (Non-Keyed)")} </h3>
     <p>
       {Component.text("Use ")}
       <code> {Component.text("Component.list()")} </code>
@@ -265,7 +265,7 @@ let increment = (_evt: Dom.event) => {
       <strong> {Component.text("Note:")} </strong>
       {Component.text(" Simple lists re-render completely when the array changes (no diffing). For better performance, use keyed lists.")}
     </p>
-    <h3> {Component.text("Keyed Lists (Efficient Reconciliation)")} </h3>
+    <h3 id="keyed-lists-efficient-reconciliation"> {Component.text("Keyed Lists (Efficient Reconciliation)")} </h3>
     <p>
       {Component.text("Use ")}
       <code> {Component.text("Component.listKeyed()")} </code>
@@ -326,7 +326,7 @@ let todos = Signal.make([
         {Component.text("Use listKeyed for any list that can be reordered, filtered, or modified")}
       </li>
     </ul>
-    <h2> {Component.text("Mounting to the DOM")} </h2>
+    <h2 id="mounting-to-the-dom"> {Component.text("Mounting to the DOM")} </h2>
     <p>
       {Component.text("Use ")}
       <code> {Component.text("mountById")} </code>
@@ -341,7 +341,7 @@ let todos = Signal.make([
 Component.mountById(app(), "app")`)}
       </code>
     </pre>
-    <h2> {Component.text("Example: Counter Component")} </h2>
+    <h2 id="example-counter-component"> {Component.text("Example: Counter Component")} </h2>
     <p>
       {Component.text("Here's a complete counter component using JSX:")}
     </p>
@@ -384,7 +384,7 @@ let app = counter({initialValue: 10})
 Component.mountById(app, "app")`)}
       </code>
     </pre>
-    <h2> {Component.text("Best Practices")} </h2>
+    <h2 id="best-practices"> {Component.text("Best Practices")} </h2>
     <ul>
       <li>
         <strong> {Component.text("Keep components small:")} </strong>
@@ -417,7 +417,7 @@ Component.mountById(app, "app")`)}
       {Component.text(" prop for CSS classes")}
       </li>
     </ul>
-    <h2> {Component.text("Next Steps")} </h2>
+    <h2 id="next-steps"> {Component.text("Next Steps")} </h2>
     <ul>
       <li>
         {Component.text("Try the ")}

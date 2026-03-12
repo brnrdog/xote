@@ -23,7 +23,7 @@ let content = () => {
       {Component.text(".")}
       </p>
     </div>
-    <h2> {Component.text("Why Batch?")} </h2>
+    <h2 id="why-batch"> {Component.text("Why Batch?")} </h2>
     <p>
       {Component.text("Without batching, each signal update triggers observers immediately:")}
     </p>
@@ -60,7 +60,7 @@ Signal.set(lastName, "Smith")  // Logs: "Jane Smith"
 // Effect runs once, computed recalculates once`)}
       </code>
     </pre>
-    <h2> {Component.text("Using Signal.batch()")} </h2>
+    <h2 id="using-signal-batch"> {Component.text("Using Signal.batch()")} </h2>
     <p>
       {Component.text("Wrap multiple signal updates in a batch:")}
     </p>
@@ -84,7 +84,7 @@ Signal.batch(() => {
 // Logs only once: "Position: (10, 20)"`)}
       </code>
     </pre>
-    <h2> {Component.text("How Batching Works")} </h2>
+    <h2 id="how-batching-works"> {Component.text("How Batching Works")} </h2>
     <ol>
       <li>
         {Component.text("When Signal.batch() is called, a batching flag is set")}
@@ -99,7 +99,7 @@ Signal.batch(() => {
         {Component.text("Each observer runs only once, even if multiple dependencies changed")}
       </li>
     </ol>
-    <h2> {Component.text("Example: Form Updates")} </h2>
+    <h2 id="example-form-updates"> {Component.text("Example: Form Updates")} </h2>
     <p>
       {Component.text("Batching is especially useful when updating related state:")}
     </p>
@@ -145,7 +145,7 @@ let handleSubmit = () => {
 }`)}
       </code>
     </pre>
-    <h2> {Component.text("Nested Batches")} </h2>
+    <h2 id="nested-batches"> {Component.text("Nested Batches")} </h2>
     <p>
       {Component.text("Batches can be nested. The observers run when the outermost batch completes:")}
     </p>
@@ -171,7 +171,7 @@ Signal.batch(() => {
 // Effect runs once: logs "3"`)}
       </code>
     </pre>
-    <h2> {Component.text("Returning Values from Batches")} </h2>
+    <h2 id="returning-values-from-batches"> {Component.text("Returning Values from Batches")} </h2>
     <p>
       <code> {Component.text("Signal.batch()")} </code>
       {Component.text(" returns the result of the batch function:")}
@@ -187,7 +187,7 @@ Signal.batch(() => {
 Console.log(result) // "Success"`)}
       </code>
     </pre>
-    <h2> {Component.text("When to Use Batching")} </h2>
+    <h2 id="when-to-use-batching"> {Component.text("When to Use Batching")} </h2>
     <p>
       {Component.text("Use batching when:")}
     </p>
@@ -226,7 +226,7 @@ Console.log(result) // "Success"`)}
       {Component.text(" Batching can make it harder to trace state changes")}
       </li>
     </ul>
-    <h2> {Component.text("Example: Animation")} </h2>
+    <h2 id="example-animation"> {Component.text("Example: Animation")} </h2>
     <p>
       {Component.text("Batching is useful for coordinated updates in animations:")}
     </p>
@@ -250,7 +250,7 @@ let animationFrame = () => {
 let intervalId = setInterval(animationFrame, 16) // ~60fps`)}
       </code>
     </pre>
-    <h2> {Component.text("Performance Considerations")} </h2>
+    <h2 id="performance-considerations"> {Component.text("Performance Considerations")} </h2>
     <p>
       {Component.text("Batching provides benefits when:")}
     </p>
@@ -278,7 +278,7 @@ Signal.batch(() => {
 }) // Overhead not worth it for single update`)}
       </code>
     </pre>
-    <h2> {Component.text("Best Practices")} </h2>
+    <h2 id="best-practices"> {Component.text("Best Practices")} </h2>
     <ul>
       <li>
         <strong> {Component.text("Batch related updates:")} </strong>
@@ -297,7 +297,7 @@ Signal.batch(() => {
       {Component.text(" Comment why batching is needed if it's not obvious")}
       </li>
     </ul>
-    <h2> {Component.text("Example: Shopping Cart")} </h2>
+    <h2 id="example-shopping-cart"> {Component.text("Example: Shopping Cart")} </h2>
     <p>
       {Component.text("Here's a complete example showing effective batching:")}
     </p>
@@ -336,7 +336,7 @@ let applyDiscount = (code: string) => {
 }`)}
       </code>
     </pre>
-    <h2> {Component.text("Next Steps")} </h2>
+    <h2 id="next-steps"> {Component.text("Next Steps")} </h2>
     <ul>
       <li>
         {Component.text("See how batching works with ")}

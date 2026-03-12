@@ -22,7 +22,6 @@ let docsNav: array<docCategory> = [
       {title: "Signals", path: "/docs/core-concepts/signals"},
       {title: "Computed", path: "/docs/core-concepts/computed"},
       {title: "Effects", path: "/docs/core-concepts/effects"},
-      {title: "Batching", path: "/docs/core-concepts/batching"},
     ],
   },
   {
@@ -43,7 +42,11 @@ let docsNav: array<docCategory> = [
   },
   {
     label: "Advanced",
-    items: [{title: "Technical Overview", path: "/docs/technical-overview"}],
+    items: [
+      {title: "Server-Side Rendering", path: "/docs/advanced/ssr"},
+      {title: "Batching", path: "/docs/advanced/batching"},
+      {title: "Technical Overview", path: "/docs/technical-overview"},
+    ],
   },
   {
     label: "Demos",

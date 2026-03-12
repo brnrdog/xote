@@ -23,7 +23,7 @@ let content = () => {
       {Component.text(". The API and behavior are provided by that library.")}
       </p>
     </div>
-    <h2> {Component.text("Creating Effects")} </h2>
+    <h2 id="creating-effects"> {Component.text("Creating Effects")} </h2>
     <p>
       {Component.text("Use ")}
       <code> {Component.text("Effect.run()")} </code>
@@ -45,7 +45,7 @@ Signal.set(count, 1)
 // Prints: "Count is now: 1"`)}
       </code>
     </pre>
-    <h2> {Component.text("How Effects Work")} </h2>
+    <h2 id="how-effects-work"> {Component.text("How Effects Work")} </h2>
     <ol>
       <li>
         {Component.text("The effect function runs immediately when created")}
@@ -63,7 +63,7 @@ Signal.set(count, 1)
         {Component.text("If a cleanup function was returned, it runs before re-execution")}
       </li>
     </ol>
-    <h2> {Component.text("Cleanup Callbacks")} </h2>
+    <h2 id="cleanup-callbacks"> {Component.text("Cleanup Callbacks")} </h2>
     <p>
       {Component.text("Effects can return an optional cleanup function that runs before the effect re-executes or when the effect is disposed:")}
     </p>
@@ -119,8 +119,8 @@ Signal.set(url, "https://api.example.com/other-data")`)}
         {Component.text("Cleanup is useful for canceling requests, clearing timers, removing event listeners, etc.")}
       </li>
     </ul>
-    <h2> {Component.text("Common Use Cases")} </h2>
-    <h3> {Component.text("Timers with Cleanup")} </h3>
+    <h2 id="common-use-cases"> {Component.text("Common Use Cases")} </h2>
+    <h3 id="timers-with-cleanup"> {Component.text("Timers with Cleanup")} </h3>
     <p>
       {Component.text("Properly clean up timers:")}
     </p>
@@ -142,7 +142,7 @@ Effect.run(() => {
 })`)}
       </code>
     </pre>
-    <h3> {Component.text("Logging and Debugging")} </h3>
+    <h3 id="logging-and-debugging"> {Component.text("Logging and Debugging")} </h3>
     <p>
       {Component.text("Track state changes for debugging:")}
     </p>
@@ -157,7 +157,7 @@ Effect.run(() => {
 })`)}
       </code>
     </pre>
-    <h3> {Component.text("Synchronization")} </h3>
+    <h3 id="synchronization"> {Component.text("Synchronization")} </h3>
     <p>
       {Component.text("Sync reactive state with external systems:")}
     </p>
@@ -173,7 +173,7 @@ Effect.run(() => {
 })`)}
       </code>
     </pre>
-    <h2> {Component.text("Disposing Effects")} </h2>
+    <h2 id="disposing-effects"> {Component.text("Disposing Effects")} </h2>
     <p>
       {Component.text("Effect.run() returns a disposer object with a dispose() method to stop the effect. When disposed, any registered cleanup function is called:")}
     </p>
@@ -213,7 +213,7 @@ Signal.set(count, 3) // Effect does NOT run`)}
 disposer.dispose() // Runs cleanup, prints "Timer cleared"`)}
       </code>
     </pre>
-    <h2> {Component.text("Dynamic Dependencies")} </h2>
+    <h2 id="dynamic-dependencies"> {Component.text("Dynamic Dependencies")} </h2>
     <p>
       {Component.text("Effects re-track dependencies on each execution, adapting to conditional logic:")}
     </p>
@@ -237,7 +237,7 @@ Effect.run(() => {
 // After setting showDetails to true, depends on: name, showDetails, age`)}
       </code>
     </pre>
-    <h2> {Component.text("Avoiding Dependencies")} </h2>
+    <h2 id="avoiding-dependencies"> {Component.text("Avoiding Dependencies")} </h2>
     <p>
       {Component.text("Use ")}
       <code> {Component.text("Signal.peek()")} </code>
@@ -260,7 +260,7 @@ Effect.run(() => {
 })`)}
       </code>
     </pre>
-    <h2> {Component.text("Example: Auto-save")} </h2>
+    <h2 id="example-auto-save"> {Component.text("Example: Auto-save")} </h2>
     <p>
       {Component.text("Here's a practical example of an auto-save effect with proper cleanup:")}
     </p>
@@ -300,7 +300,7 @@ Effect.run(() => {
 })`)}
       </code>
     </pre>
-    <h2> {Component.text("Best Practices")} </h2>
+    <h2 id="best-practices"> {Component.text("Best Practices")} </h2>
     <ul>
       <li>
         <strong> {Component.text("Keep effects focused:")} </strong>
@@ -327,7 +327,7 @@ Effect.run(() => {
       {Component.text(" Be explicit about cleanup needs")}
       </li>
     </ul>
-    <h2> {Component.text("Effects vs Computed")} </h2>
+    <h2 id="effects-vs-computed"> {Component.text("Effects vs Computed")} </h2>
     <table>
       <thead>
         <tr>
@@ -366,7 +366,7 @@ Effect.run(() => {
       <strong> {Component.text("Effects")} </strong>
       {Component.text(" for side effects.")}
     </p>
-    <h2> {Component.text("Next Steps")} </h2>
+    <h2 id="next-steps"> {Component.text("Next Steps")} </h2>
     <ul>
       <li>
         {Component.text("Learn about ")}

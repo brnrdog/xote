@@ -26,7 +26,7 @@ let content = () => {
     <p>
       {Component.text("Test")}
     </p>
-    <h2> {Component.text("Creating Computed Values")} </h2>
+    <h2 id="creating-computed-values"> {Component.text("Creating Computed Values")} </h2>
     <p>
       {Component.text("Use ")}
       <code> {Component.text("Computed.make()")} </code>
@@ -48,7 +48,7 @@ let fullName = Computed.make(() =>
 Console.log(Signal.get(fullName)) // "John Doe"`)}
       </code>
     </pre>
-    <h2> {Component.text("How Computed Values Work")} </h2>
+    <h2 id="how-computed-values-work"> {Component.text("How Computed Values Work")} </h2>
     <p>
       {Component.text("Computed values are push-based (eager), not pull-based (lazy):")}
     </p>
@@ -69,7 +69,7 @@ Console.log(Signal.get(fullName)) // "John Doe"`)}
     <p>
       {Component.text("This means computed values are always up-to-date, but they may recalculate even if their value is never read.")}
     </p>
-    <h2> {Component.text("Reading Computed Values")} </h2>
+    <h2 id="reading-computed-values"> {Component.text("Reading Computed Values")} </h2>
     <p>
       {Component.text("Computed values return a signal that can be read with ")}
       <code> {Component.text("Signal.get()")} </code>
@@ -86,7 +86,7 @@ Signal.set(count, 10)
 Console.log(Signal.get(doubled)) // Prints: 20`)}
       </code>
     </pre>
-    <h2> {Component.text("Automatic Disposal")} </h2>
+    <h2 id="automatic-disposal"> {Component.text("Automatic Disposal")} </h2>
     <p>
       <strong> {Component.text("Computed values automatically dispose when they lose all subscribers - you don't need to manually call Computed.dispose() in most cases!")} </strong>
     </p>
@@ -131,7 +131,7 @@ Signal.set(count, 10)
 // 3. doubled is automatically disposed ✨`)}
       </code>
     </pre>
-    <h3> {Component.text("Manual Disposal (Optional)")} </h3>
+    <h3 id="manual-disposal-optional"> {Component.text("Manual Disposal (Optional)")} </h3>
     <p>
       {Component.text("You can still manually dispose computeds when needed:")}
     </p>
@@ -161,7 +161,7 @@ Computed.dispose(doubled)`)}
         {Component.text("You're managing complex dependency graphs manually")}
       </li>
     </ul>
-    <h2> {Component.text("Chaining Computed Values")} </h2>
+    <h2 id="chaining-computed-values"> {Component.text("Chaining Computed Values")} </h2>
     <p>
       {Component.text("You can create computed values that depend on other computed values:")}
     </p>
@@ -188,7 +188,7 @@ Signal.set(quantity, 5)
 Console.log(Signal.get(total)) // 550`)}
       </code>
     </pre>
-    <h2> {Component.text("Computed vs Manual Updates")} </h2>
+    <h2 id="computed-vs-manual-updates"> {Component.text("Computed vs Manual Updates")} </h2>
     <p>
       {Component.text("Instead of manually updating derived state:")}
     </p>
@@ -219,7 +219,7 @@ let increment = () => {
 }`)}
       </code>
     </pre>
-    <h2> {Component.text("Dynamic Dependencies")} </h2>
+    <h2 id="dynamic-dependencies"> {Component.text("Dynamic Dependencies")} </h2>
     <p>
       {Component.text("Computed values re-track dependencies on every execution, so they adapt to control flow:")}
     </p>
@@ -245,7 +245,7 @@ Signal.set(useMetric, false)
 Console.log(Signal.get(temperature)) // 68`)}
       </code>
     </pre>
-    <h2> {Component.text("Best Practices")} </h2>
+    <h2 id="best-practices"> {Component.text("Best Practices")} </h2>
     <ul>
       <li>
         <strong> {Component.text("Keep computations pure:")} </strong>
@@ -268,8 +268,8 @@ Console.log(Signal.get(temperature)) // 68`)}
       {Component.text(" In most cases, computeds will automatically clean up when their subscribers are disposed. Manual disposal is rarely needed")}
       </li>
     </ul>
-    <h2> {Component.text("Important Notes")} </h2>
-    <h3> {Component.text("Cascading Auto-Disposal")} </h3>
+    <h2 id="important-notes"> {Component.text("Important Notes")} </h2>
+    <h3 id="cascading-auto-disposal"> {Component.text("Cascading Auto-Disposal")} </h3>
     <p>
       {Component.text("Auto-disposal can cascade through chains of computeds:")}
     </p>
@@ -294,7 +294,7 @@ disposer.dispose()
     <p>
       {Component.text("This ensures the entire chain is cleaned up automatically when the leaf subscriber is removed!")}
     </p>
-    <h3> {Component.text("Push-based, Not Lazy")} </h3>
+    <h3 id="push-based-not-lazy"> {Component.text("Push-based, Not Lazy")} </h3>
     <p>
       {Component.text("Unlike some reactive systems, Xote's computed values are eager:")}
     </p>
@@ -312,7 +312,7 @@ Signal.set(count, 5)
 // "Computing..." is logged again, even if we never read 'expensive'`)}
       </code>
     </pre>
-    <h2> {Component.text("Next Steps")} </h2>
+    <h2 id="next-steps"> {Component.text("Next Steps")} </h2>
     <ul>
       <li>
         {Component.text("Learn about ")}
