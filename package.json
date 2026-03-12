@@ -21,11 +21,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "build:demos": "vite build --config vite.demos.config.js",
-    "copy:demos": "mkdir -p docs-website/static/demos && cp -r demos-dist/* docs-website/static/demos/",
-    "prepare:demos": "npm run res:build && npm run build:demos && npm run copy:demos",
-    "docs:start": "npm run prepare:demos && cd docs-website && npm start",
-    "docs:build": "npm run prepare:demos && cd docs-website && npm run build",
+    "docs:start": "cd docs-website && npm start",
+    "docs:build": "cd docs-website && npm run build",
     "docs:serve": "cd docs-website && npm run serve",
     "test": "npx rescript && node tests/Tests.res.mjs"
   },
