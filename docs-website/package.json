@@ -9,10 +9,11 @@
     "res:dev": "rescript -w",
     "dev": "node server.mjs",
     "dev:client": "vite",
-    "build": "npm run res:build && npm run build:client && npm run build:server",
+    "build": "npm run res:build && npm run build:client && npm run build:server && npm run build:prerender",
     "build:client": "vite build",
     "build:server": "vite build --ssr src/EntryServer.res.mjs --outDir build/server",
-    "preview": "NODE_ENV=production node server.mjs"
+    "build:prerender": "node scripts/prerender.mjs",
+    "preview": "vite preview --outDir build/client"
   },
   "dependencies": {
     "@rescript/core": "^1.6.1",
