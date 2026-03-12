@@ -77,7 +77,7 @@ let content = () => {
     <h2> {Component.text("Reactivity Model")} </h2>
     <p>
       {Component.text("All reactive behavior is provided by ")}
-      <a href="https://github.com/pedrobslisboa/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
+      <a href="https://github.com/brnrdog/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
       {Component.text(":")}
     </p>
     <ul>
@@ -342,7 +342,7 @@ Router.link : (~to: string, ~attrs: array=?, ~children: array=?, unit) => node`)
       </li>
       <li>
         {Component.text("Check out ")}
-      <a href="https://github.com/pedrobslisboa/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
+      <a href="https://github.com/brnrdog/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
       {Component.text(" for reactive implementation details")}
       </li>
     </ul>

@@ -19,7 +19,7 @@ let content = () => {
       {Component.text(" Batching is available through ")}
       <code> {Component.text("Signal.batch")} </code>
       {Component.text(" which is re-exported from ")}
-      <a href="https://github.com/pedrobslisboa/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
+      <a href="https://github.com/brnrdog/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
       {Component.text(".")}
       </p>
     </div>
