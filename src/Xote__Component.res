@@ -4,6 +4,56 @@ open Signals
  * DOM Bindings
  * ============================================================================ */
 
+let svgNamespace = "http://www.w3.org/2000/svg"
+
+let svgTags = [
+  "svg",
+  "path",
+  "circle",
+  "ellipse",
+  "line",
+  "polygon",
+  "polyline",
+  "rect",
+  "g",
+  "defs",
+  "clipPath",
+  "mask",
+  "pattern",
+  "marker",
+  "symbol",
+  "use",
+  "text",
+  "tspan",
+  "image",
+  "foreignObject",
+  "linearGradient",
+  "radialGradient",
+  "stop",
+  "filter",
+  "feBlend",
+  "feColorMatrix",
+  "feComposite",
+  "feFlood",
+  "feGaussianBlur",
+  "feMerge",
+  "feMergeNode",
+  "feOffset",
+  "animate",
+  "animateTransform",
+  "desc",
+  "title",
+  "metadata",
+]
+
+let svgTagSet: Dict.t<bool> = {
+  let d = Dict.make()
+  svgTags->Array.forEach(tag => d->Dict.set(tag, true))
+  d
+}
+
+let isSvgTag = (tag: string): bool => svgTagSet->Dict.get(tag)->Option.isSome
+
 module DOM = {
   /* Creation */
   @val @scope("document") external createElement: string => Dom.element = "createElement"
@@ -250,7 +300,11 @@ module Render = {
       }
 
     | Element({tag, attrs, events, children}) => {
-        let el = DOM.createElement(tag)
+        let el = if isSvgTag(tag) {
+          DOM.createElementNS(svgNamespace, tag)
+        } else {
+          DOM.createElement(tag)
+        }
         let owner = createOwner()
         setOwner(el, owner)
 
