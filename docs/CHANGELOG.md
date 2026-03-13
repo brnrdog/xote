@@ -1,3 +1,10 @@
+## [4.16.1](https://github.com/brnrdog/xote/compare/v4.16.0...v4.16.1) (2026-03-13)
+
+
+### Bug Fixes
+
+* use createElementNS for SVG elements to fix logo rendering ([#61](https://github.com/brnrdog/xote/issues/61)) ([7ffefe1](https://github.com/brnrdog/xote/commit/7ffefe1953dfbc8524c4b83fc208e4d3767ba3df))
+
 # [4.16.0](https://github.com/brnrdog/xote/compare/v4.15.3...v4.16.0) (2026-03-12)
 
 
