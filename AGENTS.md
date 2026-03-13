@@ -5,7 +5,7 @@ Instructions for AI coding agents working on this repository. This file compleme
 ## Quick Reference
 
 - **Language**: ReScript (`.res` files) compiled to JavaScript (`.res.mjs` files)
-- **Reactivity**: [rescript-signals](https://github.com/brnrdog/rescript-signals) - `Signal`, `Computed`, `Effect`
+- **Reactivity**: [rescript-signals](https://brnrdog.github.io/rescript-signals) - `Signal`, `Computed`, `Effect`
 - **Build**: `npm run res:build` (ReScript) then `npm run build` (Vite)
 - **Watch**: `npm run res:dev` for ReScript watch mode
 - **Public API**: Only `Xote` module is exported; internal modules use `Xote__` prefix

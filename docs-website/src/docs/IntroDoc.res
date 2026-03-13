@@ -17,7 +17,7 @@ let content = () => {
     <h2 id="what-is-xote"> {Component.text("What is Xote?")} </h2>
     <p>
       {Component.text("Xote provides a declarative component system and signal-based router built on top of ")}
-      <a href="https://github.com/brnrdog/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
+      <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
       {Component.text(". It focuses on:")}
     </p>
     <ul>
@@ -155,7 +155,7 @@ pnpm add xote`)}
     </p>
     <p>
       {Component.text("By building on ")}
-      <a href="https://github.com/brnrdog/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
+      <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
       {Component.text(" (which implements the ")}
       <a href="https://github.com/tc39/proposal-signals" target="_blank"> {Component.text("TC39 Signals proposal")} </a>
       {Component.text("), Xote ensures your reactive code aligns with emerging JavaScript standards while providing ReScript-specific UI features.")}
