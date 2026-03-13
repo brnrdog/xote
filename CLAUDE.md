@@ -37,7 +37,7 @@ The codebase uses the `Xote__` prefix for internal modules:
 
 **Reactive Primitives (from rescript-signals):**
 - **`Signals.Signal`**: Reactive state cells with `make`, `get`, `peek`, `set`, `update`. **Includes structural equality check** - only notifies dependents if the value has changed, preventing unnecessary updates and accidental infinite loops.
-- **`Signals.Computed`**: Derived signals that automatically recompute when dependencies change. **Push-based** (eager) - they recompute immediately when upstream dependencies notify. **Auto-disposal**: Automatically dispose when they lose all subscribers.
+- **`Signals.Computed`**: Derived signals that automatically recompute when dependencies change. **Lazy with push-based dirty flagging** - when upstream dependencies change, computeds are marked dirty immediately, but only recompute when read (via `Signal.get` or `Signal.peek`). **Auto-disposal**: Automatically dispose when they lose all subscribers.
 - **`Signals.Effect`**: Side effects that run when dependencies change. **Can return cleanup callbacks** - signature is `unit => option<unit => unit>`. Returns a `disposer` with a `dispose()` method.
 
 **Xote Modules:**
@@ -60,7 +60,7 @@ All reactive behavior is provided by **rescript-signals**:
 
 **Scheduling**: When `Signal.set` is called, all dependent observers are scheduled and run **synchronously**. The scheduler uses topological ordering to ensure correct execution order.
 
-**Push-based Computeds**: Computeds eagerly recompute when dependencies change and push results to their backing signal. This means computed values are always current but may recompute even if never read.
+**Lazy Computeds with Push-based Dirty Flagging**: When dependencies change, computeds are marked dirty immediately (the dirty flag is pushed through the graph), but actual recomputation is deferred until the computed is read via `Signal.get` or `Signal.peek` (which calls `ensureComputedFresh`). A computed with no active readers will stay dirty and never recompute.
 
 **Structural Equality**: Signals use structural equality (`==`) to check if values have changed. Only when values differ are dependents notified.
 
@@ -395,6 +395,6 @@ Hydration.hydrateById(app, "root")
 
 1. **No batching**: The underlying rescript-signals library doesn't expose batching functionality
 2. **SignalFragment updates**: Replace all children without diffing (no reconciliation algorithm). Use `keyedList` for efficient list updates.
-3. **Push-based computeds**: Computeds are eager (not lazy like TC39 proposal)
+3. **Lazy computeds**: Computeds use lazy evaluation with push-based dirty flagging, similar to the TC39 proposal
 4. **Structural equality only**: No custom equality functions for signals
 5. **Hydration is one-way**: After hydration, subsequent updates use full client-side rendering (no incremental hydration)

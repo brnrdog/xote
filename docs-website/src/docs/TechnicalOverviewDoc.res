@@ -90,8 +90,8 @@ let content = () => {
       {Component.text(" When Signal.set is called, all dependent observers are scheduled and run synchronously")}
       </li>
       <li>
-        <strong> {Component.text("Push-based Computeds:")} </strong>
-      {Component.text(" Computeds eagerly recompute when dependencies change and push results to their backing signal")}
+        <strong> {Component.text("Lazy Computeds with Dirty Flagging:")} </strong>
+      {Component.text(" When dependencies change, computeds are marked dirty immediately but only recompute when read")}
       </li>
       <li>
         <strong> {Component.text("Structural Equality:")} </strong>
@@ -217,8 +217,8 @@ let content = () => {
     <h2 id="execution-characteristics"> {Component.text("Execution Characteristics")} </h2>
     <ul>
       <li>
-        <strong> {Component.text("Push-based:")} </strong>
-      {Component.text(" Signals push notifications to observers; computeds eagerly push into their backing signal")}
+        <strong> {Component.text("Push-based Dirty Flagging, Lazy Recomputation:")} </strong>
+      {Component.text(" Signals push dirty flags to dependent computeds; actual recomputation is lazy (on read)")}
       </li>
       <li>
         <strong> {Component.text("Auto-tracked:")} </strong>
@@ -259,7 +259,7 @@ let content = () => {
       </li>
     </ul>
     <p>
-      {Component.text("  - Computeds are push-based (eager) rather than pull-based (lazy) as in the proposal")}
+      {Component.text("  - Computeds use lazy evaluation with push-based dirty flagging, similar to the proposal's pull-based approach")}
     </p>
     <p>
       {Component.text("  - Synchronous scheduling rather than microtask-based")}

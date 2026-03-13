@@ -50,20 +50,20 @@ Console.log(Signal.get(fullName)) // "John Doe"`)}
     </pre>
     <h2 id="how-computed-values-work"> {Component.text("How Computed Values Work")} </h2>
     <p>
-      {Component.text("Computed values are push-based (eager), not pull-based (lazy):")}
+      {Component.text("Computed values use lazy evaluation with push-based dirty flagging:")}
     </p>
     <ol>
       <li>
         {Component.text("When created, the computation runs immediately to establish dependencies")}
       </li>
       <li>
-        {Component.text("When any dependency changes, the computed automatically recalculates")}
+        {Component.text("When any dependency changes, the computed is marked dirty (dirty flag is pushed)")}
       </li>
       <li>
-        {Component.text("The new value is pushed to a backing signal")}
+        {Component.text("When the computed is read (via Signal.get or Signal.peek), it recomputes if dirty")}
       </li>
       <li>
-        {Component.text("Any observers of the computed are notified")}
+        {Component.text("The new value is stored in the backing signal, and observers are notified if it changed")}
       </li>
     </ol>
     <p>
@@ -257,7 +257,7 @@ Console.log(Signal.get(temperature)) // 68`)}
       </li>
       <li>
         <strong> {Component.text("Avoid expensive operations:")} </strong>
-      {Component.text(" Computed values recalculate eagerly, so keep them fast")}
+      {Component.text(" Computed values recalculate when read, so keep them fast")}
       </li>
       <li>
         <strong> {Component.text("Don't nest effects:")} </strong>
@@ -294,9 +294,9 @@ disposer.dispose()
     <p>
       {Component.text("This ensures the entire chain is cleaned up automatically when the leaf subscriber is removed!")}
     </p>
-    <h3 id="push-based-not-lazy"> {Component.text("Push-based, Not Lazy")} </h3>
+    <h3 id="lazy-with-dirty-flagging"> {Component.text("Lazy with Push-based Dirty Flagging")} </h3>
     <p>
-      {Component.text("Unlike some reactive systems, Xote's computed values are eager:")}
+      {Component.text("Xote's computed values use lazy evaluation — they only recompute when read:")}
     </p>
     <pre>
       <code>
@@ -306,10 +306,13 @@ let expensive = Computed.make(() => {
   Signal.get(count) * 2
 })
 
-// "Computing..." is logged immediately
+// "Computing..." is logged once during creation (initial tracking)
 
 Signal.set(count, 5)
-// "Computing..." is logged again, even if we never read 'expensive'`)}
+// 'expensive' is marked dirty, but does NOT recompute yet
+
+Signal.get(expensive)
+// NOW "Computing..." is logged — recomputation happens on read`)}
       </code>
     </pre>
     <h2 id="next-steps"> {Component.text("Next Steps")} </h2>
