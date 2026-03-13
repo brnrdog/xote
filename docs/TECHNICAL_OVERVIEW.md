@@ -124,7 +124,7 @@ Characteristics:
 
 ### Execution Characteristics
 
-- **Push vs Pull**: Signals push notifications to observers; computeds eagerly push into their backing signal upon upstream changes. Effects run synchronously (unless wrapped in `batch`).
+- **Push-based Dirty Flagging, Lazy Recomputation**: Signals push dirty flags to dependent computeds immediately, but computeds only recompute lazily when read (via `Signal.get` or `Signal.peek`). Effects run synchronously (unless wrapped in `batch`).
 - **Reactivity Graph**: Auto-tracked; observers re-track on every run to maintain an accurate dependency set.
 - **Batching**: Groups multiple writes; flush runs after the batch completes.
 
@@ -134,7 +134,7 @@ Characteristics:
   - Cells/signals with automatic dependency tracking on read, invalidation on write.
   - Observer-based recomputation and re-tracking; batching and untracked execution helpers.
 - Notable differences from the current proposal draft:
-  - Computeds are realized via a backing state signal and are re-evaluated on upstream notification (eager push), whereas the proposal emphasizes pull-evaluation on demand.
+  - Computeds are realized via a backing state signal with lazy evaluation — dirty flags are pushed on upstream notification, but recomputation only occurs on read (pull-based), which aligns with the proposal's pull-evaluation approach.
   - Effects here are regular observers that run user code and may read signals during execution; the proposal’s low-level `Watcher.notify` is synchronous and not permitted to read or write signals.
   - No subtle namespace or formalized `versioned`/`dirty` semantics; a simple `version` counter is maintained per signal but is not exposed.
   - Scheduler flush is synchronous and inline (microtask-like semantics are not modeled explicitly).
