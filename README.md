@@ -3,12 +3,12 @@
 ![npm bundle size](https://img.shields.io/bundlephobia/min/xote)
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/xote)
 
-Xote is a lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system. Built on [rescript-signals](https://github.com/brnrdog/rescript-signals), it provides declarative components, JSX support, and signal-based routing for building reactive web applications.
+Xote is a lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system. Built on [rescript-signals](https://brnrdog.github.io/rescript-signals), it provides declarative components, JSX support, and signal-based routing for building reactive web applications.
 
 ## Features
 
 - **Reactive Components**: Declarative UI building with JSX support and direct DOM updates
-- **Signal-based Reactivity**: Powered by [rescript-signals](https://github.com/brnrdog/rescript-signals) for automatic dependency tracking
+- **Signal-based Reactivity**: Powered by [rescript-signals](https://brnrdog.github.io/rescript-signals) for automatic dependency tracking
 - **Fine-grained Updates**: Direct DOM manipulation without virtual DOM diffing
 - **Signal-based Router**: SPA navigation with pattern matching and dynamic parameters
 - **Server-Side Rendering**: SSR with hydration and automatic state transfer

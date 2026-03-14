@@ -19,7 +19,7 @@ let content = () => {
       {Component.text(" Xote re-exports ")}
       <code> {Component.text("Effect")} </code>
       {Component.text(" from ")}
-      <a href="https://github.com/brnrdog/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
+      <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
       {Component.text(". The API and behavior are provided by that library.")}
       </p>
     </div>

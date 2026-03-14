@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Xote is a lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system. It uses [rescript-signals](https://github.com/brnrdog/rescript-signals) for reactive primitives and provides declarative components with JSX support, server-side rendering, and client-side hydration.
+Xote is a lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system. It uses [rescript-signals](https://brnrdog.github.io/rescript-signals) for reactive primitives and provides declarative components with JSX support, server-side rendering, and client-side hydration.
 
 ## Development Commands
 
@@ -387,7 +387,7 @@ Hydration.hydrateById(app, "root")
   - `docs-website/src/demos/MatchGameDemo.res` - Memory match game
   - `docs-website/src/demos/ReactionGameDemo.res` - Reaction time game
 - **SSR example**: `examples/ssr/` - Full SSR + hydration setup
-- **rescript-signals**: https://github.com/brnrdog/rescript-signals - The reactive primitives library
+- **rescript-signals**: https://brnrdog.github.io/rescript-signals - The reactive primitives library
 - **TC39 Signals proposal**: https://github.com/tc39/proposal-signals
 - **ReScript JSX**: https://rescript-lang.org/docs/manual/latest/jsx
 
