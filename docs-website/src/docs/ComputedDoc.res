@@ -11,7 +11,7 @@ let content = () => {
   <div>
     <h1> {Component.text("Computed Values")} </h1>
     <p>
-      {Component.text("Computed values are derived signals that automatically recalculate when their dependencies change. They're perfect for deriving state from other reactive sources.")}
+      {Component.text("Computed values are derived signals that automatically stay in sync with their dependencies. They use lazy evaluation — when dependencies change, computeds are marked dirty but only recalculate when read. They're perfect for deriving state from other reactive sources.")}
     </p>
     <div class="info-box">
       <p>
@@ -67,7 +67,7 @@ Console.log(Signal.get(fullName)) // "John Doe"`)}
       </li>
     </ol>
     <p>
-      {Component.text("This means computed values are always up-to-date, but they may recalculate even if their value is never read.")}
+      {Component.text("This means computed values are always up-to-date when read, but they never recalculate if their value is not read — a dirty computed with no readers stays dirty and skips recomputation entirely.")}
     </p>
     <h2 id="reading-computed-values"> {Component.text("Reading Computed Values")} </h2>
     <p>
