@@ -7,6 +7,9 @@
 *.res.mjs
 bundlemeta.json
 .vite
+/coverage/
+.c8_output
+*.js.map
 
 # Documentation site
 /docs-website/node_modules/
