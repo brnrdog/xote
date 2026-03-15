@@ -121,6 +121,45 @@ Signal.set(count, 6) // Effect runs - value changed`)}
     <p>
       {Component.text("This prevents unnecessary updates and helps avoid accidental infinite loops in reactive code.")}
     </p>
+    <h3 id="custom-equality-check"> {Component.text("Custom Equality Check")} </h3>
+    <p>
+      {Component.text("By default, signals use strict referential equality (")}
+      <code> {Component.text("===")} </code>
+      {Component.text(") to determine if a value has changed. For complex types like records or objects where structurally equivalent values may have different references, you can provide a custom equality function via the ")}
+      <code> {Component.text("~equals")} </code>
+      {Component.text(" parameter:")}
+    </p>
+    <pre>
+      <code>
+        {Component.text(`type position = { x: int, y: int }
+
+// Without custom equality: every set() triggers updates,
+// even if x and y are the same
+let pos1 = Signal.make({ x: 0, y: 0 })
+
+// With custom equality: only triggers updates when
+// x or y actually change
+let pos2 = Signal.make(
+  { x: 0, y: 0 },
+  ~equals=(a, b) => a.x == b.x && a.y == b.y,
+)
+
+Effect.run(() => {
+  let { x, y } = Signal.get(pos2)
+  Console.log(\`Position: \${Int.toString(x)}, \${Int.toString(y)}\`)
+  None
+})
+
+// This will NOT trigger the effect - values are equal
+Signal.set(pos2, { x: 0, y: 0 })
+
+// This WILL trigger the effect - y changed
+Signal.set(pos2, { x: 0, y: 1 })`)}
+      </code>
+    </pre>
+    <p>
+      {Component.text("Custom equality is useful when working with records, tuples, or other compound types where you want to compare by value rather than by reference.")}
+    </p>
     <h3 id="automatic-dependency-tracking"> {Component.text("Automatic Dependency Tracking")} </h3>
     <p>
       {Component.text("When you call ")}
