@@ -28,11 +28,11 @@ let content = () => {
     <h3 id="make"> <code> {Component.text("make")} </code> </h3>
     <pre>
       <code>
-        {Component.text(`let make: 'a => t<'a>`)}
+        {Component.text(`let make: ('a, ~equals: ('a, 'a) => bool=?) => t<'a>`)}
       </code>
     </pre>
     <p>
-      {Component.text("Creates a new signal with an initial value.")}
+      {Component.text("Creates a new signal with an initial value. Optionally accepts a custom equality function to control when dependents are notified.")}
     </p>
     <p>
       <strong> {Component.text("Parameters:")} </strong>
@@ -41,6 +41,14 @@ let content = () => {
       <li>
         <code> {Component.text("initialValue: 'a")} </code>
       {Component.text(" - The initial value for the signal")}
+      </li>
+      <li>
+        <code> {Component.text("~equals: ('a, 'a) => bool")} </code>
+      {Component.text(" (optional) - Custom equality function. Returns ")}
+      <code> {Component.text("true")} </code>
+      {Component.text(" if two values should be considered equal (skipping notification). Defaults to strict referential equality (")}
+      <code> {Component.text("===")} </code>
+      {Component.text(").")}
       </li>
     </ul>
     <p>
@@ -60,6 +68,25 @@ let content = () => {
         {Component.text(`let count = Signal.make(0)
 let name = Signal.make("Alice")
 let items = Signal.make([1, 2, 3])`)}
+      </code>
+    </pre>
+    <p>
+      <strong> {Component.text("With custom equality:")} </strong>
+    </p>
+    <pre>
+      <code>
+        {Component.text(`type position = { x: int, y: int }
+
+let pos = Signal.make(
+  { x: 0, y: 0 },
+  ~equals=(a, b) => a.x == b.x && a.y == b.y,
+)
+
+// Won't notify dependents - values are equal
+Signal.set(pos, { x: 0, y: 0 })
+
+// Will notify dependents - y changed
+Signal.set(pos, { x: 0, y: 1 })`)}
       </code>
     </pre>
     <hr />
@@ -216,15 +243,17 @@ Signal.set(count, 10) // Same value - no notification`)}
     </pre>
     <p>
       <strong> {Component.text("Equality Check:")} </strong>
-      {Component.text(" Uses structural equality (")}
+      {Component.text(" Uses the signal's equality function to check if the value has changed. By default, this is strict referential equality (")}
       <code> {Component.text("===")} </code>
-      {Component.text(") to check if the value has changed. Only notifies dependent observers if the new value differs from the current value. This prevents unnecessary recomputations and helps avoid infinite loops when effects write back to their dependencies.")}
+      {Component.text("). Only notifies dependent observers if the new value differs from the current value. This prevents unnecessary recomputations and helps avoid infinite loops when effects write back to their dependencies.")}
     </p>
     <p>
       <strong> {Component.text("Note:")} </strong>
-      {Component.text(" Custom equality functions can be provided via ")}
+      {Component.text(" A custom equality function can be provided when creating the signal via ")}
       <code> {Component.text("Signal.make(value, ~equals=...)")} </code>
-      {Component.text(".")}
+      {Component.text(". See ")}
+      <code> {Component.text("make")} </code>
+      {Component.text(" above for details and examples.")}
     </p>
     <hr />
     <h3 id="update"> <code> {Component.text("update")} </code> </h3>
@@ -449,7 +478,11 @@ Signal.update(todos, arr =>
     <h2 id="notes"> {Component.text("Notes")} </h2>
     <ul>
       <li>
-        {Component.text("Signals use structural equality checks by default - only notify dependents when the value actually changes")}
+        {Component.text("Signals use strict referential equality (")}
+      <code> {Component.text("===")} </code>
+      {Component.text(") by default - only notify dependents when the value actually changes. Use ")}
+      <code> {Component.text("~equals")} </code>
+      {Component.text(" for custom comparison logic.")}
       </li>
       <li>
         {Component.text("Use ")}
