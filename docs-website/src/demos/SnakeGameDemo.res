@@ -296,7 +296,8 @@ let handleKeyPress = (_evt: Dom.event) => {
 let cellSize = 16
 
 module GameGrid = {
-  let component = () => {
+  @jsx.component
+  let make = () => {
     let obstaclesSignal = Computed.make(() => {
       let level = Signal.get(currentLevel)
       level.obstacles
@@ -351,7 +352,8 @@ module GameGrid = {
 }
 
 module GameInfo = {
-  let component = () => {
+  @jsx.component
+  let make = () => {
     <div class="demo-grid-3">
       // Level
       <div class="demo-stat">
@@ -383,7 +385,8 @@ module GameInfo = {
 }
 
 module GameControls = {
-  let component = () => {
+  @jsx.component
+  let make = () => {
     <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin-bottom: 1rem;">
       {
         let controlsSignal = Computed.make(() => {
@@ -448,7 +451,8 @@ module GameControls = {
 }
 
 module GameStatusDisplay = {
-  let component = () => {
+  @jsx.component
+  let make = () => {
     let statusSignal = Computed.make(() => {
       switch Signal.get(gameStatus) {
       | Paused => [
@@ -494,7 +498,8 @@ module GameStatusDisplay = {
 }
 
 module Instructions = {
-  let component = () => {
+  @jsx.component
+  let make = () => {
     <div class="demo-info-box">
       <h3 style="margin: 0 0 0.5rem 0;">
         {Component.text("How to Play")}
@@ -520,7 +525,8 @@ module Instructions = {
   }
 }
 
-let content = () => {
+@jsx.component
+let make = () => {
   // Set up keyboard listener (client-only)
   let _ = if Xote.SSRContext.isClient {
     Effect.run(() => {
@@ -557,16 +563,16 @@ let content = () => {
       </p>
     </div>
     // Game info
-    {GameInfo.component()}
+    <GameInfo />
     // Game status
-    {GameStatusDisplay.component()}
+    <GameStatusDisplay />
     // Game grid
     <div style="display: flex; justify-content: center; margin-bottom: 1rem;">
-      {GameGrid.component()}
+      <GameGrid />
     </div>
     // Controls
-    {GameControls.component()}
+    <GameControls />
     // Instructions
-    {Instructions.component()}
+    <Instructions />
   </div>
 }

@@ -6,7 +6,8 @@ let increment = (_evt: Dom.event) => Signal.update(count, n => n + 1)
 let decrement = (_evt: Dom.event) => Signal.update(count, n => n - 1)
 let reset = (_evt: Dom.event) => Signal.set(count, 0)
 
-let content = () => {
+@jsx.component
+let make = () => {
   <div class="demo-container">
     <div class="demo-section" style="text-align: center;">
       <div class="counter-demo-display">

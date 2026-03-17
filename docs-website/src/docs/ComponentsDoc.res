@@ -30,9 +30,88 @@ let content = () => {
     <p>
       {Component.text("In Xote, a component is simply a function that returns a ")}
       <code> {Component.text("Component.node")} </code>
+      {Component.text(". The recommended way to define components is with the ")}
+      <strong> {Component.text("component module pattern")} </strong>
+      {Component.text(" using ")}
+      <code> {Component.text("@jsx.component")} </code>
       {Component.text(":")}
     </p>
-    <h3 id="jsx-syntax"> {Component.text("JSX Syntax")} </h3>
+    <h3 id="component-module-pattern"> {Component.text("Component Module Pattern (Recommended)")} </h3>
+    <p>
+      {Component.text("Use ")}
+      <code> {Component.text("@jsx.component")} </code>
+      {Component.text(" to define components as modules with a ")}
+      <code> {Component.text("make")} </code>
+      {Component.text(" function. This decorator automatically generates the props type from labeled arguments, enabling clean JSX usage:")}
+    </p>
+    <pre>
+      <code>
+        {Component.text(`open Xote
+
+module Greeting = {
+  @jsx.component
+  let make = (~name: string) => {
+    <div>
+      <h1> {Component.text("Hello, " ++ name ++ "!")} </h1>
+    </div>
+  }
+}
+
+// Usage in JSX:
+<Greeting name="World" />`)}
+      </code>
+    </pre>
+    <p>
+      {Component.text("Components without props simply omit the labeled arguments:")}
+    </p>
+    <pre>
+      <code>
+        {Component.text(`module Header = {
+  @jsx.component
+  let make = () => {
+    <header>
+      <h1> {Component.text("My App")} </h1>
+    </header>
+  }
+}
+
+// Usage:
+<Header />`)}
+      </code>
+    </pre>
+    <p>
+      <strong> {Component.text("Key points:")} </strong>
+    </p>
+    <ul>
+      <li>
+        {Component.text("Components are defined as modules with a ")}
+        <code> {Component.text("make")} </code>
+        {Component.text(" function")}
+      </li>
+      <li>
+        {Component.text("The ")}
+        <code> {Component.text("@jsx.component")} </code>
+        {Component.text(" decorator transforms labeled arguments (")}
+        <code> {Component.text("~propName")} </code>
+        {Component.text(") into a props record type automatically")}
+      </li>
+      <li>
+        {Component.text("Components are used in JSX with ")}
+        <code> {Component.text("<ComponentName prop={value} />")} </code>
+        {Component.text(" syntax")}
+      </li>
+      <li>
+        {Component.text("File-level modules can also be components \u2014 just add ")}
+        <code> {Component.text("@jsx.component")} </code>
+        {Component.text(" to a top-level ")}
+        <code> {Component.text("make")} </code>
+        {Component.text(" function")}
+      </li>
+    </ul>
+    <h3 id="jsx-syntax"> {Component.text("Plain JSX Syntax")} </h3>
+    <p>
+      {Component.text("You can also define components as simple functions without the decorator:")}
+    </p>
     <pre>
       <code>
         {Component.text(`open Xote
@@ -343,45 +422,52 @@ Component.mountById(app(), "app")`)}
     </pre>
     <h2 id="example-counter-component"> {Component.text("Example: Counter Component")} </h2>
     <p>
-      {Component.text("Here's a complete counter component using JSX:")}
+      {Component.text("Here's a complete counter component using the component module pattern:")}
     </p>
     <pre>
       <code>
         {Component.text(`open Xote
 
-type counterProps = {initialValue: int}
+module Counter = {
+  @jsx.component
+  let make = (~initialValue: int) => {
+    let count = Signal.make(initialValue)
 
-let counter = (props: counterProps) => {
-  let count = Signal.make(props.initialValue)
+    let increment = (_evt: Dom.event) => {
+      Signal.update(count, n => n + 1)
+    }
 
-  let increment = (_evt: Dom.event) => {
-    Signal.update(count, n => n + 1)
-  }
+    let decrement = (_evt: Dom.event) => {
+      Signal.update(count, n => n - 1)
+    }
 
-  let decrement = (_evt: Dom.event) => {
-    Signal.update(count, n => n - 1)
-  }
-
-  <div class="counter">
-    <h2>
-      {Component.textSignal(() =>
-        "Count: " ++ Int.toString(Signal.get(count))
-      )}
-    </h2>
-    <div class="controls">
-      <button onClick={decrement}>
-        {Component.text("-")}
-      </button>
-      <button onClick={increment}>
-        {Component.text("+")}
-      </button>
+    <div class="counter">
+      <h2>
+        {Component.textSignal(() =>
+          "Count: " ++ Int.toString(Signal.get(count))
+        )}
+      </h2>
+      <div class="controls">
+        <button onClick={decrement}>
+          {Component.text("-")}
+        </button>
+        <button onClick={increment}>
+          {Component.text("+")}
+        </button>
+      </div>
     </div>
-  </div>
+  }
 }
 
-// Use the component
-let app = counter({initialValue: 10})
-Component.mountById(app, "app")`)}
+// Use the component in JSX
+module App = {
+  @jsx.component
+  let make = () => {
+    <Counter initialValue={10} />
+  }
+}
+
+Component.mountById(App.make({}), "app")`)}
       </code>
     </pre>
     <h2 id="best-practices"> {Component.text("Best Practices")} </h2>

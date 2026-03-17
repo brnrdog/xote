@@ -229,7 +229,8 @@ let restartGame = (_evt: Dom.event) => {
   startLevel(1)
 }
 
-let content = () => {
+@jsx.component
+let make = () => {
   // Initialize game
   let _ = Effect.run(() => {
     if Array.length(Signal.get(cards)) == 0 {

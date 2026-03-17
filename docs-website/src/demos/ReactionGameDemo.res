@@ -99,7 +99,8 @@ let attemptsCount = Computed.make(() => {
 })
 
 module GameArea = {
-  let component = () => {
+  @jsx.component
+  let make = () => {
     <div
       class={() => {
         let stateClass = switch Signal.get(state) {
@@ -149,7 +150,8 @@ module GameArea = {
 }
 
 module Instructions = {
-  let component = () => {
+  @jsx.component
+  let make = () => {
     <div class="demo-info-box">
       <h3> {Component.text("How to Play")} </h3>
       <ul>
@@ -163,7 +165,8 @@ module Instructions = {
 }
 
 module Statistics = {
-  let component = () => {
+  @jsx.component
+  let make = () => {
     <div class="demo-section">
       <h3> {Component.text("Your Statistics")} </h3>
       <div class="demo-grid-3">
@@ -204,7 +207,8 @@ module Statistics = {
 }
 
 module AttemptHistory = {
-  let component = () => {
+  @jsx.component
+  let make = () => {
     <div class="demo-section">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
         <h3> {Component.text("Recent Attempts")} </h3>
@@ -284,7 +288,8 @@ module AttemptHistory = {
 }
 
 module Controls = {
-  let component = () => {
+  @jsx.component
+  let make = () => {
     <div class="demo-btn-group">
       {
         let controlsSignal = Computed.make(() => {
@@ -306,21 +311,22 @@ module Controls = {
   }
 }
 
-let content = () => {
+@jsx.component
+let make = () => {
   <div class="demo-container">
     // Instructions
-    {Instructions.component()}
+    <Instructions />
 
     // Game area
-    {GameArea.component()}
+    <GameArea />
 
     // Controls
-    {Controls.component()}
+    <Controls />
 
     // Statistics
-    {Statistics.component()}
+    <Statistics />
 
     // History
-    {AttemptHistory.component()}
+    <AttemptHistory />
   </div>
 }
