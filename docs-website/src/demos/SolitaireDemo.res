@@ -370,182 +370,179 @@ let handleFoundationClick = (foundIndex: int, _evt: Dom.event) => {
   }
 }
 
-/* Card Component using JSX */
-type cardProps = {
-  card: card,
-  isSelected: bool,
-  onClick: Dom.event => unit,
+module Card = {
+  @jsx.component
+  let make = (~card: card, ~isSelected: bool, ~onClick: Dom.event => unit) => {
+    if !card.faceUp {
+      // Card back
+      <div
+        class="solitaire-card face-down"
+        onClick={onClick}
+      >
+        <div class="solitaire-card-back-symbol"> {Component.text(`\u2726`)} </div>
+      </div>
+    } else {
+      // Card face
+      let colorClass = isRed(card.suit) ? "solitaire-card-red" : "solitaire-card-black"
+      let selectedClass = isSelected ? " selected" : ""
+
+      <div
+        class={`solitaire-card${selectedClass}`}
+        onClick={onClick}
+      >
+        <div class={`solitaire-card-top ${colorClass}`}>
+          {Component.text(rankToString(card.rank))}
+          <span class="solitaire-card-suit"> {Component.text(suitToString(card.suit))} </span>
+        </div>
+        <div class={`solitaire-card-center ${colorClass}`}>
+          {Component.text(suitToString(card.suit))}
+        </div>
+        <div class={`solitaire-card-bottom ${colorClass}`}>
+          {Component.text(rankToString(card.rank))}
+          <span class="solitaire-card-suit"> {Component.text(suitToString(card.suit))} </span>
+        </div>
+      </div>
+    }
+  }
 }
 
-let cardComponent = (props: cardProps) => {
-  if !props.card.faceUp {
-    // Card back
+module EmptySlot = {
+  @jsx.component
+  let make = (~label: string, ~onClick: Dom.event => unit) => {
     <div
-      class="solitaire-card face-down"
-      onClick={props.onClick}
+      class="solitaire-empty-slot"
+      onClick={onClick}
     >
-      <div class="solitaire-card-back-symbol"> {Component.text(`\u2726`)} </div>
-    </div>
-  } else {
-    // Card face
-    let colorClass = isRed(props.card.suit) ? "solitaire-card-red" : "solitaire-card-black"
-    let selectedClass = props.isSelected ? " selected" : ""
-
-    <div
-      class={`solitaire-card${selectedClass}`}
-      onClick={props.onClick}
-    >
-      <div class={`solitaire-card-top ${colorClass}`}>
-        {Component.text(rankToString(props.card.rank))}
-        <span class="solitaire-card-suit"> {Component.text(suitToString(props.card.suit))} </span>
-      </div>
-      <div class={`solitaire-card-center ${colorClass}`}>
-        {Component.text(suitToString(props.card.suit))}
-      </div>
-      <div class={`solitaire-card-bottom ${colorClass}`}>
-        {Component.text(rankToString(props.card.rank))}
-        <span class="solitaire-card-suit"> {Component.text(suitToString(props.card.suit))} </span>
-      </div>
+      <span class="solitaire-empty-slot-label"> {Component.text(label)} </span>
     </div>
   }
 }
 
-/* Empty Slot Component using JSX */
-type emptySlotProps = {
-  label: string,
-  onClick: Dom.event => unit,
-}
-
-let emptySlot = (props: emptySlotProps) => {
-  <div
-    class="solitaire-empty-slot"
-    onClick={props.onClick}
-  >
-    <span class="solitaire-empty-slot-label"> {Component.text(props.label)} </span>
-  </div>
-}
-
-/* Stock and Waste Component using JSX */
-let stockAndWaste = () => {
-  <div style="display: flex; gap: 1rem;">
-    {
-      let stockSignal = Computed.make(() => {
-        let state = Signal.get(gameState)
-        if Array.length(state.stock) > 0 {
-          [
-            <div
-              class="solitaire-card face-down"
-              onClick={drawCard}
-            >
-              <div class="solitaire-card-back-symbol"> {Component.text(`\u2726`)} </div>
-            </div>,
-          ]
-        } else {
-          [
-            <div
-              class="solitaire-empty-slot"
-              onClick={drawCard}
-            >
-              <span class="solitaire-empty-slot-label"> {Component.text(`\u21BB`)} </span>
-            </div>,
-          ]
-        }
-      })
-      Component.signalFragment(stockSignal)
-    }
-    {
-      let wasteSignal = Computed.make(() => {
-        let state = Signal.get(gameState)
-        let selection = Signal.get(selectedCard)
-        if Array.length(state.waste) > 0 {
-          let card = Array.getUnsafe(state.waste, 0)
-          let isSelected = switch selection {
-          | WasteSelected => true
-          | _ => false
-          }
-          [cardComponent({card, isSelected, onClick: handleWasteClick})]
-        } else {
-          [emptySlot({label: "", onClick: _ => ()})]
-        }
-      })
-      Component.signalFragment(wasteSignal)
-    }
-  </div>
-}
-
-/* Foundations Component using JSX */
-let foundations = () => {
-  <div style="display: flex; gap: 1rem;">
-    {
-      let foundationsSignal = Computed.make(() => {
-        let state = Signal.get(gameState)
-        Array.mapWithIndex(state.foundations, (foundation, index) => {
-          if Array.length(foundation) > 0 {
-            let card = Array.getUnsafe(foundation, Array.length(foundation) - 1)
-            cardComponent({
-              card,
-              isSelected: false,
-              onClick: evt => handleFoundationClick(index, evt),
-            })
+module StockAndWaste = {
+  @jsx.component
+  let make = () => {
+    <div style="display: flex; gap: 1rem;">
+      {
+        let stockSignal = Computed.make(() => {
+          let state = Signal.get(gameState)
+          if Array.length(state.stock) > 0 {
+            [
+              <div
+                class="solitaire-card face-down"
+                onClick={drawCard}
+              >
+                <div class="solitaire-card-back-symbol"> {Component.text(`\u2726`)} </div>
+              </div>,
+            ]
           } else {
-            let label = switch index {
-            | 0 => `\u2665`
-            | 1 => `\u2666`
-            | 2 => `\u2663`
-            | _ => `\u2660`
-            }
-            emptySlot({label, onClick: evt => handleFoundationClick(index, evt)})
+            [
+              <div
+                class="solitaire-empty-slot"
+                onClick={drawCard}
+              >
+                <span class="solitaire-empty-slot-label"> {Component.text(`\u21BB`)} </span>
+              </div>,
+            ]
           }
         })
-      })
-      Component.signalFragment(foundationsSignal)
-    }
-  </div>
-}
-
-/* Tableau Column Component using JSX */
-type tableauColumnProps = {colIndex: int}
-
-let tableauColumn = (props: tableauColumnProps) => {
-  <div style="display: flex; flex-direction: column;">
-    {
-      let tableauSignal = Computed.make(() => {
-        let state = Signal.get(gameState)
-        let selection = Signal.get(selectedCard)
-        let column = Array.getUnsafe(state.tableau, props.colIndex)
-
-        if Array.length(column) == 0 {
-          [emptySlot({label: "K", onClick: evt => handleTableauEmptyClick(props.colIndex, evt)})]
-        } else {
-          Array.mapWithIndex(column, (card, cardIndex) => {
+        Component.signalFragment(stockSignal)
+      }
+      {
+        let wasteSignal = Computed.make(() => {
+          let state = Signal.get(gameState)
+          let selection = Signal.get(selectedCard)
+          if Array.length(state.waste) > 0 {
+            let card = Array.getUnsafe(state.waste, 0)
             let isSelected = switch selection {
-            | TableauSelected(col, idx) => col == props.colIndex && idx == cardIndex
+            | WasteSelected => true
             | _ => false
             }
-
-            let stackClass = if cardIndex > 0 {
-              card.faceUp ? "solitaire-stack-card face-up" : "solitaire-stack-card"
-            } else {
-              ""
-            }
-
-            <div class={stackClass}>
-              {cardComponent({
-                card,
-                isSelected,
-                onClick: evt => handleTableauCardClick(props.colIndex, cardIndex, evt),
-              })}
-            </div>
-          })
-        }
-      })
-      Component.signalFragment(tableauSignal)
-    }
-  </div>
+            [<Card card={card} isSelected={isSelected} onClick={handleWasteClick} />]
+          } else {
+            [<EmptySlot label="" onClick={_ => ()} />]
+          }
+        })
+        Component.signalFragment(wasteSignal)
+      }
+    </div>
+  }
 }
 
-/* Main Solitaire Game - exported as content */
-let content = () => {
+module Foundations = {
+  @jsx.component
+  let make = () => {
+    <div style="display: flex; gap: 1rem;">
+      {
+        let foundationsSignal = Computed.make(() => {
+          let state = Signal.get(gameState)
+          Array.mapWithIndex(state.foundations, (foundation, index) => {
+            if Array.length(foundation) > 0 {
+              let card = Array.getUnsafe(foundation, Array.length(foundation) - 1)
+              <Card
+                card={card}
+                isSelected={false}
+                onClick={evt => handleFoundationClick(index, evt)}
+              />
+            } else {
+              let label = switch index {
+              | 0 => `\u2665`
+              | 1 => `\u2666`
+              | 2 => `\u2663`
+              | _ => `\u2660`
+              }
+              <EmptySlot label={label} onClick={evt => handleFoundationClick(index, evt)} />
+            }
+          })
+        })
+        Component.signalFragment(foundationsSignal)
+      }
+    </div>
+  }
+}
+
+module TableauColumn = {
+  @jsx.component
+  let make = (~colIndex: int) => {
+    <div style="display: flex; flex-direction: column;">
+      {
+        let tableauSignal = Computed.make(() => {
+          let state = Signal.get(gameState)
+          let selection = Signal.get(selectedCard)
+          let column = Array.getUnsafe(state.tableau, colIndex)
+
+          if Array.length(column) == 0 {
+            [<EmptySlot label="K" onClick={evt => handleTableauEmptyClick(colIndex, evt)} />]
+          } else {
+            Array.mapWithIndex(column, (card, cardIndex) => {
+              let isSelected = switch selection {
+              | TableauSelected(col, idx) => col == colIndex && idx == cardIndex
+              | _ => false
+              }
+
+              let stackClass = if cardIndex > 0 {
+                card.faceUp ? "solitaire-stack-card face-up" : "solitaire-stack-card"
+              } else {
+                ""
+              }
+
+              <div class={stackClass}>
+                <Card
+                  card={card}
+                  isSelected={isSelected}
+                  onClick={evt => handleTableauCardClick(colIndex, cardIndex, evt)}
+                />
+              </div>
+            })
+          }
+        })
+        Component.signalFragment(tableauSignal)
+      }
+    </div>
+  }
+}
+
+@jsx.component
+let make = () => {
   // Initialize game on mount
   let _ = Effect.run(() => {
     let state = Signal.get(gameState)
@@ -594,17 +591,17 @@ let content = () => {
     }
     <div class="solitaire-board">
       <div class="solitaire-top-row">
-        {stockAndWaste()}
-        {foundations()}
+        <StockAndWaste />
+        <Foundations />
       </div>
       <div class="solitaire-tableau">
-        {tableauColumn({colIndex: 0})}
-        {tableauColumn({colIndex: 1})}
-        {tableauColumn({colIndex: 2})}
-        {tableauColumn({colIndex: 3})}
-        {tableauColumn({colIndex: 4})}
-        {tableauColumn({colIndex: 5})}
-        {tableauColumn({colIndex: 6})}
+        <TableauColumn colIndex={0} />
+        <TableauColumn colIndex={1} />
+        <TableauColumn colIndex={2} />
+        <TableauColumn colIndex={3} />
+        <TableauColumn colIndex={4} />
+        <TableauColumn colIndex={5} />
+        <TableauColumn colIndex={6} />
       </div>
     </div>
     <div class="demo-info-box">

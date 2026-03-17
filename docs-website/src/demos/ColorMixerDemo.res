@@ -138,18 +138,13 @@ let randomColor = (_evt: Dom.event) => {
 }
 
 module ColorSlider = {
-  type props = {
-    label: string,
-    value: Signal.t<int>,
-    onChange: Dom.event => unit,
-  }
-
-  let component = (props: props) => {
+  @jsx.component
+  let make = (~label: string, ~value: Signal.t<int>, ~onChange: Dom.event => unit) => {
     <div class="color-demo-slider-group">
       <div class="color-demo-slider-label">
-        <span> {Component.text(props.label)} </span>
+        <span> {Component.text(label)} </span>
         <span class="color-demo-slider-value">
-          {Component.textSignal(() => Signal.get(props.value)->Int.toString)}
+          {Component.textSignal(() => Signal.get(value)->Int.toString)}
         </span>
       </div>
       <input
@@ -157,15 +152,16 @@ module ColorSlider = {
         min="0"
         max="255"
         class="demo-input-range"
-        value={() => Signal.get(props.value)->Int.toString}
-        onInput={props.onChange}
+        value={() => Signal.get(value)->Int.toString}
+        onInput={onChange}
       />
     </div>
   }
 }
 
 module ColorPreview = {
-  let component = () => {
+  @jsx.component
+  let make = () => {
     <div class="color-demo-preview">
       <div
         style={() =>
@@ -180,70 +176,69 @@ module ColorPreview = {
 }
 
 module ColorInfo = {
-  type colorValueRowProps = {
-    label: string,
-    value: Signal.t<string>,
-  }
-
-  let colorValueRow = (props: colorValueRowProps) => {
-    <div class="color-demo-value-row">
-      <span> {Component.text(props.label)} </span>
-      <div>
-        <span> {Component.textSignal(() => Signal.get(props.value))} </span>
-        <button
-          class="demo-btn demo-btn-secondary"
-          onClick={_evt => copyToClipboard(Signal.get(props.value))}
-        >
-          {Component.text("Copy")}
-        </button>
+  module ColorValueRow = {
+    @jsx.component
+    let make = (~label: string, ~value: Signal.t<string>) => {
+      <div class="color-demo-value-row">
+        <span> {Component.text(label)} </span>
+        <div>
+          <span> {Component.textSignal(() => Signal.get(value))} </span>
+          <button
+            class="demo-btn demo-btn-secondary"
+            onClick={_evt => copyToClipboard(Signal.get(value))}
+          >
+            {Component.text("Copy")}
+          </button>
+        </div>
       </div>
-    </div>
+    }
   }
 
-  let component = () => {
+  @jsx.component
+  let make = () => {
     <div>
       <h3> {Component.text("Color Values")} </h3>
-      {colorValueRow({label: "HEX", value: hexColor})}
-      {colorValueRow({label: "RGB", value: rgbColor})}
-      {colorValueRow({label: "HSL", value: hslColor})}
+      <ColorValueRow label="HEX" value={hexColor} />
+      <ColorValueRow label="RGB" value={rgbColor} />
+      <ColorValueRow label="HSL" value={hslColor} />
     </div>
   }
 }
 
 module ColorPalette = {
-  type paletteItemProps = {
-    label: string,
-    color: Signal.t<string>,
+  module PaletteItem = {
+    @jsx.component
+    let make = (~label: string, ~color: Signal.t<string>) => {
+      <div class="color-demo-palette-wrapper">
+        <div
+          class="color-demo-palette-swatch"
+          style={() => `background-color: ${Signal.get(color)}`}
+          onClick={_evt => copyToClipboard(Signal.get(color))}
+        />
+        <p class="color-demo-palette-label"> {Component.text(label)} </p>
+      </div>
+    }
   }
 
-  let paletteItem = (props: paletteItemProps) => {
-    <div class="color-demo-palette-wrapper">
-      <div
-        class="color-demo-palette-swatch"
-        style={() => `background-color: ${Signal.get(props.color)}`}
-        onClick={_evt => copyToClipboard(Signal.get(props.color))}
-      />
-      <p class="color-demo-palette-label"> {Component.text(props.label)} </p>
-    </div>
-  }
-
-  let component = () => {
+  @jsx.component
+  let make = () => {
     <div>
       <h3> {Component.text("Color Variations")} </h3>
       <div class="demo-grid-3">
-        {paletteItem({label: "Lighter", color: lighterColor})}
-        {paletteItem({label: "Current", color: rgbColor})}
-        {paletteItem({label: "Darker", color: darkerColor})}
+        <PaletteItem label="Lighter" color={lighterColor} />
+        <PaletteItem label="Current" color={rgbColor} />
+        <PaletteItem label="Darker" color={darkerColor} />
       </div>
       <div style="margin-top: 0.75rem;">
-        {paletteItem({label: "Complementary", color: complementaryColor})}
+        <PaletteItem label="Complementary" color={complementaryColor} />
       </div>
     </div>
   }
 }
 
 module SavedColors = {
-  let component = () => {
+  @jsx.component
+  let make = () => {
     <div>
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
         <h3> {Component.text("Saved Colors")} </h3>
@@ -280,10 +275,11 @@ module SavedColors = {
   }
 }
 
-let content = () => {
+@jsx.component
+let make = () => {
   <div class="demo-container">
     // Color Preview
-    {ColorPreview.component()}
+    <ColorPreview />
 
     // RGB Sliders
     <div class="demo-section">
@@ -293,36 +289,24 @@ let content = () => {
           {Component.text("Random")}
         </button>
       </div>
-      {ColorSlider.component({
-        label: "Red",
-        value: red,
-        onChange: updateRed,
-      })}
-      {ColorSlider.component({
-        label: "Green",
-        value: green,
-        onChange: updateGreen,
-      })}
-      {ColorSlider.component({
-        label: "Blue",
-        value: blue,
-        onChange: updateBlue,
-      })}
+      <ColorSlider label="Red" value={red} onChange={updateRed} />
+      <ColorSlider label="Green" value={green} onChange={updateGreen} />
+      <ColorSlider label="Blue" value={blue} onChange={updateBlue} />
     </div>
 
     // Two column layout for info and palette
     <div class="demo-grid-2">
       <div class="demo-section">
-        {ColorInfo.component()}
+        <ColorInfo />
       </div>
       <div class="demo-section">
-        {ColorPalette.component()}
+        <ColorPalette />
       </div>
     </div>
 
     // Saved colors
     <div class="demo-section">
-      {SavedColors.component()}
+      <SavedColors />
     </div>
   </div>
 }

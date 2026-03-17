@@ -95,11 +95,8 @@ let handleAddClick = (_evt: Dom.event) => {
 }
 
 module TodoItem = {
-  type props = {todo: todo}
-
-  let make = (props: props) => {
-    let {todo} = props
-
+  @jsx.component
+  let make = (~todo: todo) => {
     let itemClass =
       "todo-demo-item" ++
       if todo.completed {
@@ -124,14 +121,8 @@ module TodoItem = {
 }
 
 module FilterButton = {
-  type props = {
-    filterValue: string,
-    label: string,
-    onClick: Dom.event => unit,
-  }
-
-  let make = (props: props) => {
-    let {filterValue, label, onClick} = props
+  @jsx.component
+  let make = (~filterValue: string, ~label: string, ~onClick: Dom.event => unit) => {
     let isActive = Computed.make(() => Signal.get(filterState) == filterValue)
 
     let className = Computed.make(() => {
@@ -149,7 +140,8 @@ module FilterButton = {
   }
 }
 
-let content = () => {
+@jsx.component
+let make = () => {
   <div class="demo-container">
     <div class="demo-section">
       <div class="todo-demo-form">

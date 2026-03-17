@@ -336,7 +336,7 @@ module App = {
               demoTitle="Counter"
               demoLead="Simple reactive counter with signals and event handlers."
               sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/CounterDemo.res"
-              content={CounterDemo.content()}
+              content={<CounterDemo />}
             />,
         },
         {
@@ -347,7 +347,7 @@ module App = {
               demoTitle="Todo List"
               demoLead="Complete todo app with filters, computed values, and reactive lists."
               sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/TodoDemo.res"
-              content={TodoDemo.content()}
+              content={<TodoDemo />}
             />,
         },
         {
@@ -358,7 +358,7 @@ module App = {
               demoTitle="Color Mixer"
               demoLead="RGB color mixing with live preview, format conversions, and palette variations."
               sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/ColorMixerDemo.res"
-              content={ColorMixerDemo.content()}
+              content={<ColorMixerDemo />}
             />,
         },
         {
@@ -369,7 +369,7 @@ module App = {
               demoTitle="Reaction Game"
               demoLead="Reflex testing game with timers, statistics, and computed averages."
               sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/ReactionGameDemo.res"
-              content={ReactionGameDemo.content()}
+              content={<ReactionGameDemo />}
             />,
         },
         {
@@ -380,7 +380,7 @@ module App = {
               demoTitle="Solitaire"
               demoLead="Classic Klondike Solitaire with click-to-move gameplay and win detection."
               sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/SolitaireDemo.res"
-              content={SolitaireDemo.content()}
+              content={<SolitaireDemo />}
             />,
         },
         {
@@ -391,7 +391,7 @@ module App = {
               demoTitle="Memory Match"
               demoLead="2-player memory matching game with 10 progressive levels and score tracking."
               sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/MatchGameDemo.res"
-              content={MatchGameDemo.content()}
+              content={<MatchGameDemo />}
             />,
         },
         {
@@ -402,7 +402,7 @@ module App = {
               demoTitle="Snake Game"
               demoLead="Classic snake game with 10 challenging levels, obstacles, and increasing difficulty."
               sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/SnakeGameDemo.res"
-              content={SnakeGameDemo.content()}
+              content={<SnakeGameDemo />}
             />,
         },
         {

@@ -1,17 +1,14 @@
 open Xote
 
 // Wrapper for rendering demos inside the docs layout with sidebar
-type props = {
-  currentPath: string,
-  demoTitle: string,
-  demoLead: string,
-  content: Component.node,
-  sourceUrl: string,
-}
-
-let make = (props: props) => {
-  let {currentPath, demoTitle, demoLead, content, sourceUrl} = props
-
+@jsx.component
+let make = (
+  ~currentPath: string,
+  ~demoTitle: string,
+  ~demoLead: string,
+  ~content: Component.node,
+  ~sourceUrl: string,
+) => {
   <Layout
     children={
       <div class="docs-layout demo-page-layout">
