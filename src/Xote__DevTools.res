@@ -629,16 +629,21 @@ module UI = {
   `
 
   // Inject stylesheet
+  @val @scope("document") external _getElementById: string => Nullable.t<Dom.element> = "getElementById"
+  @val @scope("document") external _createElement: string => Dom.element = "createElement"
+  @val @scope("document") @scope("head") external _headAppendChild: Dom.element => unit = "appendChild"
+  @set external _setId: (Dom.element, string) => unit = "id"
+  @set external _setTextContent: (Dom.element, string) => unit = "textContent"
+
   let injectStyles = (): unit => {
-    %raw(`
-      (function() {
-        if (document.getElementById('xote-devtools-styles')) return;
-        var style = document.createElement('style');
-        style.id = 'xote-devtools-styles';
-        style.textContent = css;
-        document.head.appendChild(style);
-      })()
-    `)
+    switch _getElementById("xote-devtools-styles")->Nullable.toOption {
+    | Some(_) => ()
+    | None =>
+      let style = _createElement("style")
+      _setId(style, "xote-devtools-styles")
+      _setTextContent(style, css)
+      _headAppendChild(style)
+    }
   }
 
   // Render signal list tab
