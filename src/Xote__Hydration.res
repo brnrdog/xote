@@ -199,15 +199,9 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
         let disposer = Effect.run(() => {
           let children = Signal.get(signal)
 
-          /* Clear existing children */
+          /* Dispose existing children recursively (effects, computeds in entire subtree) */
           let childNodes: array<Dom.element> = %raw(`Array.from(domNode.childNodes || [])`)
-          childNodes->Array.forEach(
-            child => {
-              Reactivity.disposeOwner(
-                Reactivity.getOwner(child)->Option.getOr(Reactivity.createOwner()),
-              )
-            },
-          )
+          childNodes->Array.forEach(Component.Render.disposeElement)
           let _ = (%raw(`domNode.innerHTML = ''`): unit)
 
           /* Render and append new children */
