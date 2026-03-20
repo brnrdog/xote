@@ -198,6 +198,44 @@ let suite = Zekr.suite(
         Dom.Assert.toHaveTextContent(container, "lazy content"),
       ])
     }),
+    test("signal fragment disposes nested reactive effects on update", () => {
+      let {container} = Dom.render("")
+      let effectRunCount = ref(0)
+      let trigger = Signal.make("a")
+      let items = Signal.make([
+        Component.div(~children=[
+          Component.p(~children=[
+            Component.textSignal(() => {
+              effectRunCount := effectRunCount.contents + 1
+              Signal.get(trigger)
+            }),
+          ], ()),
+        ], ()),
+      ])
+      let _ = mountTo(Component.signalFragment(items), container)
+
+      // Reset counter after initial render
+      effectRunCount := 0
+
+      // Trigger the nested effect — should run once
+      Signal.set(trigger, "b")
+      let r1 = assertEqual(effectRunCount.contents, 1)
+
+      // Replace signal fragment content, removing nested elements
+      Signal.set(items, [Component.text("replaced")])
+      let r2 = Dom.Assert.toHaveTextContent(container, "replaced")
+
+      // Reset counter
+      effectRunCount := 0
+
+      // Trigger the signal that the old nested effect depended on
+      // If disposal is correct, the effect should NOT run
+      Signal.set(trigger, "c")
+      let r3 = assertEqual(effectRunCount.contents, 0,
+        ~message="nested effect should be disposed after signal fragment update")
+
+      combineResults([r1, r2, r3])
+    }),
   ],
   ~afterEach=() => Dom.cleanup(),
 )
