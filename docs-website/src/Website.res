@@ -12,6 +12,7 @@ module ApiSignalsDoc = ApiSignalsDoc
 module ReactComparisonDoc = ReactComparisonDoc
 module TechnicalOverviewDoc = TechnicalOverviewDoc
 module SSRDoc = SSRDoc
+module FAQDoc = FAQDoc
 
 // Import demo content
 module CounterDemo = CounterDemo
@@ -324,6 +325,26 @@ module App = {
                 {text: "API Summary", id: "api-summary", level: 2},
                 {text: "Best Practices", id: "best-practices", level: 2},
                 {text: "Next Steps", id: "next-steps", level: 2},
+              ]
+            />,
+        },
+        {
+          pattern: "/docs/faq",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/faq"
+              pageTitle="FAQ"
+              pageLead="Frequently asked questions about Xote's reactivity, lifecycle, and architecture."
+              content={FAQDoc.content()}
+              tocItems=[
+                {text: "Signal lifecycle", id: "signal-lifecycle", level: 2},
+                {text: "What the owner tracks", id: "what-the-owner-system-tracks", level: 3},
+                {text: "Why signals don't leak", id: "why-signals-dont-leak", level: 3},
+                {text: "When signals can leak", id: "when-signals-can-leak", level: 3},
+                {text: "Effect cleanup", id: "effect-cleanup", level: 2},
+                {text: "Computed auto-disposal", id: "computed-auto-disposal", level: 2},
+                {text: "keyedList vs SignalFragment", id: "signal-fragment-vs-keyed-list", level: 2},
+                {text: "Why no auto-batching?", id: "why-no-batching", level: 2},
               ]
             />,
         },

@@ -46,6 +46,7 @@ let docsNav: array<docCategory> = [
       {title: "Server-Side Rendering", path: "/docs/advanced/ssr"},
       {title: "Batching", path: "/docs/advanced/batching"},
       {title: "Technical Overview", path: "/docs/technical-overview"},
+      {title: "FAQ", path: "/docs/faq"},
     ],
   },
   {
