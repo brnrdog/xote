@@ -18,6 +18,9 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - `npm run build` - Build library with Vite (outputs to `dist/`)
 - `npm run preview` - Preview production build
 
+### Testing
+- `npm run test` - Run the test suite with zekr
+
 ### Documentation
 - `npm run docs:start` - Start documentation site
 - `npm run docs:build` - Build documentation site
@@ -42,7 +45,7 @@ The codebase uses the `Xote__` prefix for internal modules:
 
 **Xote Modules:**
 - **`Xote__Component`**: Component/renderer with virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `LazyComponent`, `KeyedList`). Provides element constructors, reactive nodes, keyed list reconciliation, and an owner-based reactivity system for resource cleanup.
-- **`Xote__JSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with ~30 supported attributes.
+- **`Xote__JSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with ~35 supported attributes including aria attributes.
 - **`Xote__ReactiveProp`**: A helper type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` for flexible prop handling in JSX - allows props to accept either static values or reactive signals.
 - **`Xote__Router`**: Signal-based client-side router with pattern matching, dynamic routes, base path support, scroll position restoration, and a global singleton state (via `Symbol.for()`) that works across multiple bundles.
 - **`Xote__Route`**: Route matching utilities.
@@ -118,17 +121,18 @@ let app = () => {
 
 **JSX features**:
 - Lowercase tags (`<div>`, `<button>`, etc.) create HTML elements via `Elements` module
-- ~30 supported HTML attributes: `class`, `id`, `style`, `type_`, `value`, `placeholder`, `disabled`, `checked`, `href`, `target`, `src`, `alt`, `width`, `height`, `name`, `action`, `method`, `role`, `tabIndex`, `title`, `for_`, `required`, `readonly`, `multiple`, `min`, `max`, `step`, `pattern`, `rows`, `cols`, `data` (dict), and more
+- ~35 supported HTML attributes: `class`, `id`, `style`, `type_`, `value`, `placeholder`, `disabled`, `checked`, `href`, `target`, `src`, `alt`, `width`, `height`, `name`, `action`, `method`, `role`, `tabIndex`, `title`, `for_`, `required`, `readonly`, `multiple`, `min`, `max`, `step`, `pattern`, `rows`, `cols`, `autoComplete`, `accept`, `ariaLabel`, `ariaHidden`, `ariaExpanded`, `ariaSelected`, `data` (dict), and more
 - Props support both raw values and `ReactiveProp.t` for flexible static/reactive handling
 - Event handlers: `onClick`, `onInput`, `onChange`, `onSubmit`, `onFocus`, `onBlur`, `onKeyDown`, `onKeyUp`, `onMouseEnter`, `onMouseLeave`, `onMouseDown`, `onMouseMove`, `onMouseUp`, `onContextMenu`
 - Children are passed via JSX syntax and rendered as nodes
 - Data attributes via `data` prop (Dict.t)
-- Boolean attributes (`disabled`, `checked`, `required`, etc.) are properly handled
+- Boolean attributes (`disabled`, `checked`, `required`, `ariaHidden`, `ariaExpanded`, `ariaSelected`, etc.) are properly handled
 
 ### Router
 
 Signal-based client-side router with:
 - **Initialization**: `Router.init(~basePath="/optional-base", ())` - must be called at app entry
+- **SSR initialization**: `Router.initSSR(~basePath?, ~pathname, ~search?, ~hash?, ())` - sets location without accessing browser APIs
 - **Navigation**: `Router.push(pathname)`, `Router.replace(pathname)` with optional `~search` and `~hash`
 - **Route matching**: `Router.route(pattern, params => node)` for single routes, `Router.routes(configs)` for first-match routing
 - **Base path**: All routes are relative to the configured base path; browser URLs are automatically prefixed/stripped
@@ -142,16 +146,19 @@ Signal-based client-side router with:
 Full server-side rendering with client-side hydration:
 
 **Server-side (`SSR` module)**:
-- `SSR.renderToString(component)` - render component to HTML string
-- `SSR.renderToStringWithRoot(component, ~rootId)` - with hydration root markers
-- `SSR.renderDocument(~head, ~scripts, ~styles, ~stateScript, component)` - full HTML document
+- `SSR.renderToString(component, ~options?)` - render component to HTML string
+- `SSR.renderToStringWithRoot(component, ~rootId?, ~options?)` - with hydration root markers (`~rootId` defaults to `"root"`)
+- `SSR.generateHydrationScript(~nonce?)` - generate `<script>` tag that sets `window.__XOTE_HYDRATED__`
+- `SSR.renderDocument(~head?, ~bodyAttrs?, ~scripts?, ~styles?, ~stateScript?, ~nonce?, component)` - full HTML document
 - Uses comment-based hydration markers to identify reactive boundaries
+- `renderOptions` type: `{nonce?: string, renderId?: string}`
 
 **State transfer (`SSRState` module)**:
-- `SSRState.Codec` - type-safe serialization with built-in codecs for `int`, `float`, `string`, `bool`, `array`, `option`, `tuple2`, `tuple3`, `dict`
+- `SSRState.Codec` - type-safe serialization with built-in codecs for `int`, `float`, `string`, `bool`, `array`, `option`, `tuple2`, `tuple3`, `dict`; and `Codec.make(~encode, ~decode)` for custom codecs
 - `SSRState.sync(id, signal, codec)` - register on server, restore on client
 - `SSRState.make(id, initial, codec)` - create and sync a signal in one call
-- `SSRState.generateScript()` - generate `<script>` tag with serialized state
+- `SSRState.generateScript(~nonce?)` - generate `<script>` tag with serialized state
+- Lower-level API: `SSRState.register(id, signal, codec)` (server), `SSRState.restore(id, signal, codec)` (client), `SSRState.clear()` (reset registry), `SSRState.getClientState()` (read `window.__XOTE_STATE__`)
 
 **Environment detection (`SSRContext` module)**:
 - `SSRContext.isServer` / `SSRContext.isClient` - runtime detection
@@ -159,8 +166,9 @@ Full server-side rendering with client-side hydration:
 - `SSRContext.match(~server, ~client)` - environment branching
 
 **Client-side (`Hydration` module)**:
-- `Hydration.hydrate(component, container)` - hydrate server-rendered DOM
-- `Hydration.hydrateById(component, containerId)` - hydrate by element ID
+- `Hydration.hydrate(component, container, ~options?)` - hydrate server-rendered DOM
+- `Hydration.hydrateById(component, containerId, ~options?)` - hydrate by element ID
+- `hydrateOptions` type: `{renderId?: string, onHydrated?: unit => unit}`
 - Walks existing DOM, attaches effects/events without re-rendering
 - Handles all node types including keyed lists and lazy components
 
@@ -200,6 +208,8 @@ The `DOM.setAttrOrProp` function handles the distinction between HTML attributes
 13. **SSR hydration markers**: Comment nodes mark reactive boundaries in server-rendered HTML. The hydration walker uses these to attach reactivity without re-rendering the DOM.
 
 14. **Router global state**: The router uses `Symbol.for()` to store state on `globalThis`, ensuring all Xote instances (even from different bundles) share the same router state.
+
+15. **SVG element support**: SVG elements are created with `createElementNS` using the SVG namespace. The component renderer detects SVG tags via `isSvgTag` and uses the appropriate DOM creation method automatically.
 
 ## Common Patterns
 
@@ -380,7 +390,6 @@ Hydration.hydrateById(app, "root")
 - **Example apps**:
   - `docs-website/src/demos/TodoDemo.res` - Todo list with keyed lists and filtering
   - `docs-website/src/demos/ColorMixerDemo.res` - Color mixer with reactive sliders
-  - `docs-website/src/demos/BookstoreDemo.res` - Complex app with routing and state management
   - `docs-website/src/demos/CounterDemo.res` - Basic counter
   - `docs-website/src/demos/SnakeGameDemo.res` - Snake game
   - `docs-website/src/demos/SolitaireDemo.res` - Solitaire card game
