@@ -43,8 +43,9 @@ Instructions for AI coding agents working on this repository. This file compleme
 - **Effect return type**: Effects must return `option<unit => unit>`, not `unit`. Return `None` when no cleanup is needed.
 - **Signal reads in effects**: Use `Signal.get` (creates dependency) vs `Signal.peek` (no dependency). Using `get` inside an effect will re-run the effect when the signal changes.
 - **Owner disposal**: When removing DOM elements with reactive state, ensure the owner system cleans up (handled automatically by `Render.disposeElement`)
-- **Router init**: `Router.init()` must be called before any routing functions. Forgetting this will log warnings.
+- **Router init**: `Router.init()` must be called before any routing functions on the client. For SSR, use `Router.initSSR(~pathname, ())` instead to avoid accessing browser APIs.
 - **Boolean attributes**: Use string `"true"`/`"false"` - the `setAttrOrProp` function handles the conversion to proper DOM behavior
+- **SSR state cleanup**: Call `SSRState.clear()` between multiple renders on the server to reset the state registry
 
 ## Code Style
 
@@ -56,8 +57,20 @@ Instructions for AI coding agents working on this repository. This file compleme
 
 ## Testing Changes
 
-There is no test suite currently. Verify changes by:
+The project has a test suite using the [zekr](https://github.com/nicholasgasior/zekr) framework. Verify changes by:
 1. Successful ReScript compilation (`npm run res:build`)
-2. Successful Vite build (`npm run build`)
-3. Manual testing with demo apps (`npm run dev`)
-4. For SSR changes, check the `examples/ssr/` setup
+2. Run tests (`npm run test`)
+3. Successful Vite build (`npm run build`)
+4. Manual testing with demo apps (`npm run dev`)
+5. For SSR changes, check the `examples/ssr/` setup
+
+### Test Files
+| File | Purpose |
+|------|---------|
+| `tests/Component_test.res` | Component rendering |
+| `tests/Hydration_test.res` | Hydration logic |
+| `tests/JSX_test.res` | JSX transform |
+| `tests/KeyedList_test.res` | Keyed list reconciliation |
+| `tests/Route_test.res` | Route matching |
+| `tests/SSR_test.res` | Server-side rendering |
+| `tests/SSRState_test.res` | State serialization |
