@@ -38,7 +38,10 @@ let docsNav: array<docCategory> = [
   },
   {
     label: "Comparisons",
-    items: [{title: "React", path: "/docs/comparisons/react"}],
+    items: [
+      {title: "React", path: "/docs/comparisons/react"},
+      {title: "SolidJS", path: "/docs/comparisons/solidjs"},
+    ],
   },
   {
     label: "Advanced",

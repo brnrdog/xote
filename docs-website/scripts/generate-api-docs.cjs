@@ -24,6 +24,7 @@ const FILE_MAPPING = {
   'router/overview.md': 'RouterDoc.res',
   'api-reference/signals.md': 'ApiSignalsDoc.res',
   'comparisons/react.md': 'ReactComparisonDoc.res',
+  'comparisons/solidjs.md': 'SolidJSComparisonDoc.res',
   'advanced/technical-overview.md': 'TechnicalOverviewDoc.res'
 };
 
