@@ -299,15 +299,29 @@ function parseTable(lines) {
 /**
  * Generate ReScript JSX from nodes
  */
+/**
+ * Generate a URL-friendly slug from heading text
+ */
+function slugify(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 function generateJSX(nodes) {
   return nodes.map(node => {
     switch (node.type) {
       case 'h1':
         return `    <h1> {Component.text("${escapeForReScript(node.text)}")} </h1>`;
       case 'h2':
-        return `    <h2> {Component.text("${escapeForReScript(node.text)}")} </h2>`;
+        const h2Id = slugify(node.text);
+        return `    <h2 id="${h2Id}"> {Component.text("${escapeForReScript(node.text)}")} </h2>`;
       case 'h3':
-        return `    <h3> ${generateInlineJSX(node.text)} </h3>`;
+        const h3Id = slugify(node.text);
+        return `    <h3 id="${h3Id}"> ${generateInlineJSX(node.text)} </h3>`;
       case 'h4':
         return `    <h4> {Component.text("${escapeForReScript(node.text)}")} </h4>`;
       case 'p':
