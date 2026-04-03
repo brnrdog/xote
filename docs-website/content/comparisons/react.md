@@ -204,13 +204,27 @@ React's SSR ecosystem is more mature and offers features like streaming and Serv
 ```rescript
 Router.init()
 
+let nav = () => {
+  <nav>
+    <Router.Link to="/" class="nav-link">
+      {Component.text("Home")}
+    </Router.Link>
+    <Router.Link to="/users" class="nav-link">
+      {Component.text("Users")}
+    </Router.Link>
+  </nav>
+}
+
 let app = () => {
-  Router.routes([
-    {pattern: "/", render: _ => <HomePage />},
-    {pattern: "/users/:id", render: params =>
-      <UserPage id={params->Dict.getUnsafe("id")} />
-    },
-  ])
+  <div>
+    <nav />
+    {Router.routes([
+      {pattern: "/", render: _ => <HomePage />},
+      {pattern: "/users/:id", render: params =>
+        <UserPage id={params->Dict.getUnsafe("id")} />
+      },
+    ])}
+  </div>
 }
 ```
 

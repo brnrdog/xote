@@ -387,13 +387,27 @@ Hydration.hydrateById(app, "root")`)}
       <code>
         {Component.text(`Router.init()
 
+let nav = () => {
+  <nav>
+    <Router.Link to="/" class="nav-link">
+      {Component.text("Home")}
+    </Router.Link>
+    <Router.Link to="/users" class="nav-link">
+      {Component.text("Users")}
+    </Router.Link>
+  </nav>
+}
+
 let app = () => {
-  Router.routes([
-    {pattern: "/", render: _ => <HomePage />},
-    {pattern: "/users/:id", render: params =>
-      <UserPage id={params->Dict.getUnsafe("id")} />
-    },
-  ])
+  <div>
+    <nav />
+    {Router.routes([
+      {pattern: "/", render: _ => <HomePage />},
+      {pattern: "/users/:id", render: params =>
+        <UserPage id={params->Dict.getUnsafe("id")} />
+      },
+    ])}
+  </div>
 }`)}
       </code>
     </pre>
