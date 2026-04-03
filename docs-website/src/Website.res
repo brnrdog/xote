@@ -10,6 +10,7 @@ module ComponentsDoc = ComponentsDoc
 module RouterDoc = RouterDoc
 module ApiSignalsDoc = ApiSignalsDoc
 module ReactComparisonDoc = ReactComparisonDoc
+module SolidJSComparisonDoc = SolidJSComparisonDoc
 module TechnicalOverviewDoc = TechnicalOverviewDoc
 module SSRDoc = SSRDoc
 
@@ -301,6 +302,32 @@ module App = {
                 {text: "Performance Comparison", id: "performance-comparison", level: 2},
                 {text: "Migration Considerations", id: "migration-considerations", level: 2},
                 {text: "Conclusion", id: "conclusion", level: 2},
+                {text: "Further Reading", id: "further-reading", level: 2},
+              ]
+            />,
+        },
+        {
+          pattern: "/docs/comparisons/solidjs",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/comparisons/solidjs"
+              pageTitle="SolidJS Comparison"
+              pageLead="How Xote compares to SolidJS -- two signal-based frameworks with different language choices and scope."
+              content={SolidJSComparisonDoc.content()}
+              tocItems=[
+                {text: "Overview", id: "overview", level: 2},
+                {text: "Shared Philosophy", id: "shared-philosophy", level: 2},
+                {text: "Signals and State", id: "signals-and-state", level: 2},
+                {text: "Component Model", id: "component-model", level: 2},
+                {text: "List Rendering", id: "list-rendering", level: 2},
+                {text: "Server-Side Rendering", id: "server-side-rendering", level: 2},
+                {text: "Routing", id: "routing", level: 2},
+                {text: "Bundle Size", id: "bundle-size-and-compilation", level: 2},
+                {text: "Type Safety", id: "type-safety", level: 2},
+                {text: "Ecosystem", id: "ecosystem", level: 2},
+                {text: "When to Choose SolidJS", id: "when-to-choose-solidjs", level: 2},
+                {text: "When to Choose Xote", id: "when-to-choose-xote", level: 2},
+                {text: "Migration Considerations", id: "migration-considerations", level: 2},
                 {text: "Further Reading", id: "further-reading", level: 2},
               ]
             />,
