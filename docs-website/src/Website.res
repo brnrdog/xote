@@ -289,18 +289,22 @@ module App = {
             <DocsPage
               currentPath="/docs/comparisons/react"
               pageTitle="React Comparison"
-              pageLead="How Xote's reactivity model compares to React's component model."
+              pageLead="A detailed comparison of Xote and React, covering reactivity, SSR, routing, bundle size, and when to choose each."
               content={ReactComparisonDoc.content()}
               tocItems=[
-                {text: "Philosophy", id: "philosophy", level: 2},
-                {text: "Code Comparison: Counter", id: "code-comparison-counter-example", level: 2},
-                {text: "Key Differences", id: "key-differences", level: 2},
-                {text: "Code Comparison: Todo List", id: "code-comparison-todo-list", level: 2},
+                {text: "Overview", id: "overview", level: 2},
+                {text: "Reactivity Model", id: "reactivity-model", level: 2},
+                {text: "Side Effects and Dependencies", id: "side-effects-and-dependencies", level: 2},
+                {text: "Component Lifecycle", id: "component-lifecycle", level: 2},
+                {text: "List Rendering", id: "list-rendering", level: 2},
+                {text: "Server-Side Rendering", id: "server-side-rendering", level: 2},
+                {text: "Routing", id: "routing", level: 2},
+                {text: "Bundle Size", id: "bundle-size-and-runtime-footprint", level: 2},
+                {text: "Type Safety", id: "type-safety", level: 2},
+                {text: "Ecosystem", id: "ecosystem", level: 2},
                 {text: "When to Choose React", id: "when-to-choose-react", level: 2},
                 {text: "When to Choose Xote", id: "when-to-choose-xote", level: 2},
-                {text: "Performance Comparison", id: "performance-comparison", level: 2},
                 {text: "Migration Considerations", id: "migration-considerations", level: 2},
-                {text: "Conclusion", id: "conclusion", level: 2},
                 {text: "Further Reading", id: "further-reading", level: 2},
               ]
             />,
