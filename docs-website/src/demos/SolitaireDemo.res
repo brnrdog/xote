@@ -544,7 +544,7 @@ module TableauColumn = {
 @jsx.component
 let make = () => {
   // Initialize game on mount
-  let _ = Effect.run(() => {
+  Effect.run(() => {
     let state = Signal.get(gameState)
     if Array.length(state.stock) == 0 && Array.length(Array.getUnsafe(state.tableau, 0)) == 0 {
       newGame(%raw(`new Event('click')`))

@@ -63,7 +63,7 @@ Effect.run(() => {
 Key differences:
 
 - SolidJS uses a **getter/setter tuple** (`count()` to read, `setCount()` to write). Xote uses **explicit functions** (`Signal.get(count)` to read, `Signal.set(count, value)` to write).
-- SolidJS effects do not return cleanup. Cleanup is handled via `onCleanup`. Xote effects return `Some(cleanupFn)` or `None`.
+- SolidJS effects do not return cleanup. Cleanup is handled via `onCleanup`. Xote effects return `Some(cleanupFn)` or `None`, and use `Effect.run` (returns unit) or `Effect.runWithDisposer` (returns a disposer for manual cleanup).
 - Xote signals use **structural equality** by default -- setting a signal to a structurally equal value does not trigger updates. SolidJS uses referential equality by default but supports custom comparators via `equals`.
 
 ## Component Model
@@ -272,8 +272,8 @@ If you are coming from SolidJS, the mental model transfers well:
 
 - `createSignal` -> `Signal.make` (read with `Signal.get` instead of calling the getter)
 - `createMemo` -> `Computed.make`
-- `createEffect` -> `Effect.run` (return `Some(cleanupFn)` or `None`)
-- `onCleanup` -> Return `Some(cleanupFn)` from `Effect.run`
+- `createEffect` -> `Effect.run` (return `Some(cleanupFn)` or `None`; use `Effect.runWithDisposer` if you need the disposer)
+- `onCleanup` -> Return `Some(cleanupFn)` from the effect
 - `<For>` -> `Component.keyedList`
 - `<Show>` -> `Component.textSignal` or `SignalFragment` with conditional logic
 - `<A>` -> `<Router.Link>`

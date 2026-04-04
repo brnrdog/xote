@@ -175,13 +175,14 @@ Effect.run(() => {
     </pre>
     <h2 id="disposing-effects"> {Component.text("Disposing Effects")} </h2>
     <p>
-      {Component.text("Effect.run() returns a disposer object with a dispose() method to stop the effect. When disposed, any registered cleanup function is called:")}
+      {Component.text("Effect.runWithDisposer() returns a disposer object with a dispose() method to stop the effect. When disposed, any registered cleanup function is called. Use Effect.run() when you don't need the disposer (it returns unit):")}
     </p>
     <pre>
       <code>
         {Component.text(`let count = Signal.make(0)
 
-let disposer = Effect.run(() => {
+// Use Effect.runWithDisposer when you need to stop the effect later
+let disposer = Effect.runWithDisposer(() => {
   Console.log(Signal.get(count))
   None // No cleanup needed
 })
@@ -199,7 +200,7 @@ Signal.set(count, 3) // Effect does NOT run`)}
     </p>
     <pre>
       <code>
-        {Component.text(`let disposer = Effect.run(() => {
+        {Component.text(`let disposer = Effect.runWithDisposer(() => {
   let timerId = setInterval(() => Console.log("Tick"), 1000)
 
   // Cleanup function
@@ -344,7 +345,7 @@ Effect.run(() => {
         </tr>
         <tr>
           <td> {Component.text("Returns")} </td>
-          <td> {Component.text("Disposer")} </td>
+          <td> {Component.text("unit (or Disposer via runWithDisposer)")} </td>
           <td> {Component.text("Signal")} </td>
         </tr>
         <tr>

@@ -130,7 +130,7 @@ let suite = Zekr.suite(
         let make = (_props: props) => {
           let counter = Signal.make(0)
 
-          let _ = Effect.run(() => {
+          Effect.run(() => {
             let _ = Signal.get(counter)
             None
           })

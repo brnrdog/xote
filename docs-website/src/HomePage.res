@@ -258,7 +258,7 @@ module CodeDemo = {
         let isRunning = Signal.make(false)
         let seconds = Signal.make(0)
 
-        let _ = if SSRContext.isClient {
+        if SSRContext.isClient {
           Effect.run(() => {
             if Signal.get(isRunning) {
               let id = DomHelpers.setInterval(() => Signal.update(seconds, s => s + 1), 1000)
@@ -266,7 +266,7 @@ module CodeDemo = {
             } else {
               None
             }
-          })->ignore
+          })
         }
 
         let toggleTimer = (_evt: Dom.event) => Signal.update(isRunning, r => !r)
@@ -360,7 +360,7 @@ let make = () => {
   let seconds = Signal.make(0)
 
   // Effect with cleanup callback
-  let _ = Effect.run(() => {
+  Effect.run(() => {
     if Signal.get(isRunning) {
       let id = setInterval(
         () => Signal.update(seconds, s => s + 1),
