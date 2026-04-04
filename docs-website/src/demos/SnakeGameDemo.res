@@ -528,7 +528,7 @@ module Instructions = {
 @jsx.component
 let make = () => {
   // Set up keyboard listener (client-only)
-  let _ = if Xote.SSRContext.isClient {
+  if Xote.SSRContext.isClient {
     Effect.run(() => {
       let _ = %raw(`window.addEventListener('keydown', handleKeyPress)`)
 
@@ -537,11 +537,11 @@ let make = () => {
           let _ = %raw(`window.removeEventListener('keydown', handleKeyPress)`)
         },
       )
-    })->ignore
+    })
   }
 
   // Update high score (client-only)
-  let _ = if Xote.SSRContext.isClient {
+  if Xote.SSRContext.isClient {
     Effect.run(() => {
       let currentScore = Signal.get(score)
       let current = Signal.get(highScore)
@@ -549,7 +549,7 @@ let make = () => {
         Signal.set(highScore, currentScore)
       }
       None
-    })->ignore
+    })
   }
 
   <div class="demo-container">

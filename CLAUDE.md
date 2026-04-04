@@ -41,7 +41,7 @@ The codebase uses the `Xote__` prefix for internal modules:
 **Reactive Primitives (from rescript-signals):**
 - **`Signals.Signal`**: Reactive state cells with `make`, `get`, `peek`, `set`, `update`. **Includes structural equality check** - only notifies dependents if the value has changed, preventing unnecessary updates and accidental infinite loops.
 - **`Signals.Computed`**: Derived signals that automatically recompute when dependencies change. **Lazy with push-based dirty flagging** - when upstream dependencies change, computeds are marked dirty immediately, but only recompute when read (via `Signal.get` or `Signal.peek`). **Auto-disposal**: Automatically dispose when they lose all subscribers.
-- **`Signals.Effect`**: Side effects that run when dependencies change. **Can return cleanup callbacks** - signature is `unit => option<unit => unit>`. Returns a `disposer` with a `dispose()` method.
+- **`Signals.Effect`**: Side effects that run when dependencies change. **Can return cleanup callbacks** - signature is `unit => option<unit => unit>`. Two functions available: `Effect.run` returns `unit`, `Effect.runWithDisposer` returns a `disposer` with a `dispose()` method.
 
 **Xote Modules:**
 - **`Xote__Component`**: Component/renderer with virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `LazyComponent`, `KeyedList`). Provides element constructors, reactive nodes, keyed list reconciliation, and an owner-based reactivity system for resource cleanup.

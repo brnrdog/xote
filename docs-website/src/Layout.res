@@ -33,14 +33,14 @@ let toggleTheme = () => {
   )
 }
 
-let _ = if SSRContext.isClient {
+if SSRContext.isClient {
   Effect.run(() => {
     let t = Signal.get(theme)
     setHtmlAttribute("data-theme", t)
     setItem("xote-theme", t)
     Basefn.Theme.applyTheme(t == "dark" ? Basefn.Theme.Dark : Basefn.Theme.Light)
     None
-  })->ignore
+  })
 }
 
 // ---- Search state ----
@@ -255,7 +255,7 @@ module Header = {
 
   let make = (_props: props) => {
     // Scroll listener (client-only)
-    let _ = if SSRContext.isClient {
+    if SSRContext.isClient {
       Effect.run(() => {
         let handleScroll = () => {
           let scrollY: float = %raw(`window.scrollY`)
@@ -263,7 +263,7 @@ module Header = {
         }
         addEventListener("scroll", handleScroll)
         Some(() => removeEventListener("scroll", handleScroll))
-      })->ignore
+      })
     }
 
     Component.element(
@@ -480,7 +480,7 @@ module Footer = {
 }
 
 // ---- Global Cmd+K shortcut (client-only) ----
-let _ = if SSRContext.isClient {
+if SSRContext.isClient {
   Effect.run(() => {
     let handler = (_evt: Dom.event) => {
       let ctrlOrMeta: bool = %raw(`_evt.ctrlKey || _evt.metaKey`)
@@ -496,7 +496,7 @@ let _ = if SSRContext.isClient {
     }
     addEventListener("keydown", handler)
     Some(() => removeEventListener("keydown", handler))
-  })->ignore
+  })
 }
 
 // ---- Main layout wrapper ----

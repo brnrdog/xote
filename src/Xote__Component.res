@@ -246,7 +246,7 @@ module Render = {
         setOwner(textNode, owner)
 
         runWithOwner(owner, () => {
-          let disposer = Effect.run(() => {
+          let disposer = Effect.runWithDisposer(() => {
             DOM.setTextContent(textNode, Signal.get(signal))
             None
           })
@@ -272,7 +272,7 @@ module Render = {
         setOwner(container, owner)
 
         runWithOwner(owner, () => {
-          let disposer = Effect.run(() => {
+          let disposer = Effect.runWithDisposer(() => {
             let children = Signal.get(signal)
 
             /* Dispose existing children */
@@ -315,7 +315,7 @@ module Render = {
             | Static(v) => DOM.setAttrOrProp(el, key, v)
             | SignalValue(signal) => {
                 DOM.setAttrOrProp(el, key, Signal.peek(signal))
-                let disposer = Effect.run(
+                let disposer = Effect.runWithDisposer(
                   () => {
                     DOM.setAttrOrProp(el, key, Signal.get(signal))
                     None
@@ -324,7 +324,7 @@ module Render = {
                 addDisposer(owner, disposer)
               }
             | Compute(compute) => {
-                let disposer = Effect.run(
+                let disposer = Effect.runWithDisposer(
                   () => {
                     DOM.setAttrOrProp(el, key, compute())
                     None
@@ -479,7 +479,7 @@ module Render = {
         fragment->DOM.appendChild(endAnchor)
 
         runWithOwner(owner, () => {
-          let disposer = Effect.run(() => {
+          let disposer = Effect.runWithDisposer(() => {
             reconcile()
             None
           })

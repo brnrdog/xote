@@ -171,7 +171,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
       Reactivity.setOwner(domNode, owner)
 
       Reactivity.runWithOwner(owner, () => {
-        let disposer = Effect.run(() => {
+        let disposer = Effect.runWithDisposer(() => {
           DOM.setTextContent(domNode, Signal.get(signal))
           None
         })
@@ -196,7 +196,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
       Reactivity.setOwner(domNode, owner)
 
       Reactivity.runWithOwner(owner, () => {
-        let disposer = Effect.run(() => {
+        let disposer = Effect.runWithDisposer(() => {
           let children = Signal.get(signal)
 
           /* Clear existing children */
@@ -234,7 +234,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
           switch value {
           | Component.Static(_) => () /* Already rendered, nothing to do */
           | Component.SignalValue(signal) => {
-              let disposer = Effect.run(
+              let disposer = Effect.runWithDisposer(
                 () => {
                   DOM.setAttrOrProp(domNode, key, Signal.get(signal))
                   None
@@ -243,7 +243,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
               Reactivity.addDisposer(owner, disposer)
             }
           | Component.Compute(compute) => {
-              let disposer = Effect.run(
+              let disposer = Effect.runWithDisposer(
                 () => {
                   DOM.setAttrOrProp(domNode, key, compute())
                   None
@@ -420,7 +420,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
           })
         }
 
-        let disposer = Effect.run(() => {
+        let disposer = Effect.runWithDisposer(() => {
           reconcile()
           None
         })
@@ -449,7 +449,7 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
           Reactivity.setOwner(textNode, owner)
 
           Reactivity.runWithOwner(owner, () => {
-            let disposer = Effect.run(() => {
+            let disposer = Effect.runWithDisposer(() => {
               DOM.setTextContent(textNode, Signal.get(signal))
               None
             })
@@ -503,7 +503,7 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
       Reactivity.setOwner(container, owner)
 
       Reactivity.runWithOwner(owner, () => {
-        let disposer = Effect.run(() => {
+        let disposer = Effect.runWithDisposer(() => {
           let children = Signal.get(signal)
 
           /* Clear and re-render */
@@ -536,7 +536,7 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
             switch value {
             | Component.Static(_) => ()
             | Component.SignalValue(signal) => {
-                let disposer = Effect.run(
+                let disposer = Effect.runWithDisposer(
                   () => {
                     DOM.setAttrOrProp(domNode, key, Signal.get(signal))
                     None
@@ -545,7 +545,7 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
                 Reactivity.addDisposer(owner, disposer)
               }
             | Component.Compute(compute) => {
-                let disposer = Effect.run(
+                let disposer = Effect.runWithDisposer(
                   () => {
                     DOM.setAttrOrProp(domNode, key, compute())
                     None
