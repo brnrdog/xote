@@ -1,3 +1,14 @@
+# [5.0.0](https://github.com/brnrdog/xote/compare/v4.16.1...v5.0.0) (2026-04-04)
+
+
+* feat!: update to rescript-signals 2.0.0 ([fb2c897](https://github.com/brnrdog/xote/commit/fb2c89785ea2323a05e33240f602bab66613a84e))
+
+
+### BREAKING CHANGES
+
+* Effect.run now returns unit instead of a disposer.
+Use Effect.runWithDisposer when you need to manually dispose an effect.
+
 ## [4.16.1](https://github.com/brnrdog/xote/compare/v4.16.0...v4.16.1) (2026-03-13)
 
 
