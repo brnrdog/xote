@@ -2,7 +2,6 @@
  * Example SSR Application
  * This component can be rendered on the server and hydrated on the client
  */
-open! Xote
 
 /* Shared state factory - creates signals that sync between server and client */
 let makeAppState = () => {

@@ -2,7 +2,6 @@
  * Server-side rendering entry point
  * Run with: node examples/ssr/server.res.mjs
  */
-open! Xote
 
 /* Create state and app component */
 let (count, items, inputValue) = App.makeAppState()

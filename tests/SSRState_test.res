@@ -1,5 +1,4 @@
 open! Zekr
-open! Xote
 
 module Codec = SSRState.Codec
 

@@ -1,5 +1,4 @@
 open! Zekr
-open! Xote
 
 let mountTo = (node, container) => {
   Node.mount(node, container)
