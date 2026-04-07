@@ -8,7 +8,7 @@
       "public": [
         "Component",
         "Html",
-        "JSX",
+        "XoteJSX",
         "ReactiveProp",
         "Route",
         "Router",
@@ -45,6 +45,6 @@
   ],
   "jsx": {
     "version": 4,
-    "module": "JSX"
+    "module": "XoteJSX"
   }
 }

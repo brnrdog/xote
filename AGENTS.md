@@ -14,7 +14,7 @@ Instructions for AI coding agents working on this repository. This file compleme
 
 1. **Read `CLAUDE.md`** for full architecture, module descriptions, API surface, and code patterns
 2. **Compile first**: Always run `npm run res:build` before testing or building
-3. **Understand the module boundary**: Only `src/Xote.res` is the public API. Internal modules (`Xote.Component`, `Xote.JSX`, etc.) are implementation details
+3. **Understand the module boundary**: Only `src/Xote.res` is the public API. Internal modules (`Xote.Component`, `Xote.XoteJSX`, etc.) are implementation details
 
 ## Development Workflow
 
@@ -29,7 +29,7 @@ Instructions for AI coding agents working on this repository. This file compleme
 |------|---------|
 | `src/Xote.res` | Public API - re-exports all modules |
 | `src/Xote.Component.res` | Core rendering, virtual DOM, reconciliation |
-| `src/Xote.JSX.res` | JSX v4 transform and Elements module |
+| `src/Xote.XoteJSX.res` | JSX v4 transform and Elements module |
 | `src/Xote.Router.res` | Client-side routing |
 | `src/Xote.SSR.res` | Server-side rendering |
 | `src/Xote.Hydration.res` | Client-side hydration |

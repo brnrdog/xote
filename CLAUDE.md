@@ -45,7 +45,7 @@ The codebase uses the `Xote__` prefix for internal modules:
 
 **Xote Modules:**
 - **`Xote.Component`**: Component/renderer with virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `LazyComponent`, `KeyedList`). Provides element constructors, reactive nodes, keyed list reconciliation, and an owner-based reactivity system for resource cleanup.
-- **`Xote.JSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with ~35 supported attributes including aria attributes.
+- **`Xote.XoteJSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with ~35 supported attributes including aria attributes.
 - **`Xote.ReactiveProp`**: A helper type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` for flexible prop handling in JSX - allows props to accept either static values or reactive signals.
 - **`Xote.Router`**: Signal-based client-side router with pattern matching, dynamic routes, base path support, scroll position restoration, and a global singleton state (via `Symbol.for()`) that works across multiple bundles.
 - **`Xote.Route`**: Route matching utilities.
@@ -75,7 +75,7 @@ All reactive behavior is provided by **rescript-signals**:
 - **Output**: In-source compilation (`.res.mjs` files alongside `.res` files)
 - **Public module**: Only `Xote` is exported (controlled via `rescript.json` `sources.public`)
 - **Dependencies**: `rescript-signals` ^1.3.3
-- **JSX**: ReScript JSX v4 configured to use `Xote.JSX` module (generic JSX transform)
+- **JSX**: ReScript JSX v4 configured to use `Xote.XoteJSX` module (generic JSX transform)
 
 ### Component System
 
