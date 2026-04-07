@@ -1,6 +1,6 @@
 open Signals
 
-module Component = Xote__Component
+module Component = Component
 
 /* ============================================================================
  * HTML Utilities

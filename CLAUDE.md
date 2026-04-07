@@ -44,15 +44,15 @@ The codebase uses the `Xote__` prefix for internal modules:
 - **`Signals.Effect`**: Side effects that run when dependencies change. **Can return cleanup callbacks** - signature is `unit => option<unit => unit>`. Two functions available: `Effect.run` returns `unit`, `Effect.runWithDisposer` returns a `disposer` with a `dispose()` method.
 
 **Xote Modules:**
-- **`Xote__Component`**: Component/renderer with virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `LazyComponent`, `KeyedList`). Provides element constructors, reactive nodes, keyed list reconciliation, and an owner-based reactivity system for resource cleanup.
-- **`Xote__JSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with ~35 supported attributes including aria attributes.
-- **`Xote__ReactiveProp`**: A helper type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` for flexible prop handling in JSX - allows props to accept either static values or reactive signals.
-- **`Xote__Router`**: Signal-based client-side router with pattern matching, dynamic routes, base path support, scroll position restoration, and a global singleton state (via `Symbol.for()`) that works across multiple bundles.
-- **`Xote__Route`**: Route matching utilities.
-- **`Xote__SSR`**: Server-side rendering to HTML strings with hydration markers (`<!--$-->`, `<!--#-->`, `<!--kl-->`, `<!--k:KEY-->`, `<!--lc-->`).
-- **`Xote__SSRContext`**: Runtime environment detection (`isServer`, `isClient`) and helpers (`onServer`, `onClient`, `match`).
-- **`Xote__SSRState`**: State serialization/restoration between server and client. Includes a `Codec` system for type-safe encoding/decoding and a `sync`/`make` API for seamless server-client state transfer.
-- **`Xote__Hydration`**: Client-side hydration that walks server-rendered DOM, attaches reactive effects, event listeners, and sets up keyed list reconciliation without re-rendering.
+- **`Xote.Component`**: Component/renderer with virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `LazyComponent`, `KeyedList`). Provides element constructors, reactive nodes, keyed list reconciliation, and an owner-based reactivity system for resource cleanup.
+- **`Xote.JSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with ~35 supported attributes including aria attributes.
+- **`Xote.ReactiveProp`**: A helper type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` for flexible prop handling in JSX - allows props to accept either static values or reactive signals.
+- **`Xote.Router`**: Signal-based client-side router with pattern matching, dynamic routes, base path support, scroll position restoration, and a global singleton state (via `Symbol.for()`) that works across multiple bundles.
+- **`Xote.Route`**: Route matching utilities.
+- **`Xote.SSR`**: Server-side rendering to HTML strings with hydration markers (`<!--$-->`, `<!--#-->`, `<!--kl-->`, `<!--k:KEY-->`, `<!--lc-->`).
+- **`Xote.SSRContext`**: Runtime environment detection (`isServer`, `isClient`) and helpers (`onServer`, `onClient`, `match`).
+- **`Xote.SSRState`**: State serialization/restoration between server and client. Includes a `Codec` system for type-safe encoding/decoding and a `sync`/`make` API for seamless server-client state transfer.
+- **`Xote.Hydration`**: Client-side hydration that walks server-rendered DOM, attaches reactive effects, event listeners, and sets up keyed list reconciliation without re-rendering.
 - **`Xote.res`**: Public API surface that re-exports all modules: `Signal`, `Computed`, `Effect`, `Component`, `Router`, `Route`, `ReactiveProp`, `SSR`, `SSRContext`, `SSRState`, `Hydration`.
 
 ### Reactivity Model
@@ -75,7 +75,7 @@ All reactive behavior is provided by **rescript-signals**:
 - **Output**: In-source compilation (`.res.mjs` files alongside `.res` files)
 - **Public module**: Only `Xote` is exported (controlled via `rescript.json` `sources.public`)
 - **Dependencies**: `rescript-signals` ^1.3.3
-- **JSX**: ReScript JSX v4 configured to use `Xote__JSX` module (generic JSX transform)
+- **JSX**: ReScript JSX v4 configured to use `Xote.JSX` module (generic JSX transform)
 
 ### Component System
 

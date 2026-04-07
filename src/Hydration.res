@@ -1,8 +1,8 @@
 open Signals
 
-module Component = Xote__Component
-module DOM = Xote__Component.DOM
-module Reactivity = Xote__Component.Reactivity
+module Component = Component
+module DOM = Component.DOM
+module Reactivity = Component.Reactivity
 
 /* ============================================================================
  * Hydration Options

@@ -1,6 +1,6 @@
 open Signals
-module Component = Xote__Component
-module Route = Xote__Route
+module Component = Component
+module Route = Route
 
 // Browser location type
 type location = {
@@ -360,7 +360,7 @@ let link = (
 
 // JSX Link component
 module Link = {
-  module ReactiveProp = Xote__ReactiveProp
+  module ReactiveProp = ReactiveProp
 
   type props<'class, 'id, 'style, 'target, 'ariaLabel> = {
     /* Required navigation prop */

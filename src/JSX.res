@@ -1,6 +1,6 @@
 open Signals
-module Component = Xote__Component
-module ReactiveProp = Xote__ReactiveProp
+module Component = Component
+module ReactiveProp = ReactiveProp
 
 /* ReScript JSX transform type aliases */
 type element = Component.node

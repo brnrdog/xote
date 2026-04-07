@@ -12,9 +12,9 @@ Reference: TC39 Signals proposal `https://github.com/tc39/proposal-signals`.
 - **`Xote__Effect`**: Effects that run a function tracked against any signals it reads. Returns a disposer fn.
 - **`Xote__Observer`**: Observer types and structure used by the scheduler.
 - **`Xote__Id`**: Monotonic integer ID generator.
-- **`Xote__Component`**: Minimal virtual DOM with reactive text and fragment nodes, render and mount to DOM. Convenience element constructors.
-- **`Xote__Route`**: Pure route matching logic with pattern-based string matching. Supports dynamic parameters using `:param` syntax.
-- **`Xote__Router`**: Signal-based router with browser History API integration. Provides location signal, imperative navigation, declarative routing components, and SPA navigation links.
+- **`Xote.Component`**: Minimal virtual DOM with reactive text and fragment nodes, render and mount to DOM. Convenience element constructors.
+- **`Xote.Route`**: Pure route matching logic with pattern-based string matching. Supports dynamic parameters using `:param` syntax.
+- **`Xote.Router`**: Signal-based router with browser History API integration. Provides location signal, imperative navigation, declarative routing components, and SPA navigation links.
 - **`Xote`**: Public module surface that re-exports the above.
 
 ### Core Data Structures (`Xote__Core`)
@@ -79,7 +79,7 @@ Notes:
 - `type kind = [ #Effect | #Computed(int) ]` — computed carries the id of its backing signal.
 - `type t = { id, kind, run, mutable deps }` — internal unit of scheduling.
 
-### Component/Rendering (`Xote__Component`)
+### Component/Rendering (`Xote.Component`)
 
 - Virtual node types: `Element`, `Text`, `SignalText(Core.t<string>)`, `Fragment`, `SignalFragment(Core.t<array<node>>)\`.
 - Builders: `text`, `signalText`, `fragment`, `signalFragment`, `list(signal, renderItem)`, `element` and tag helpers (`div`, `span`, `button`, `input`, `h1`, etc.).
@@ -89,9 +89,9 @@ Notes:
   - `list` is built with a computed that maps the array signal through the item renderer and is rendered as a `SignalFragment`.
 - Mounting: `mount(node, container)` and `mountById(node, containerId)`.
 
-### Router (`Xote__Route` and `Xote__Router`)
+### Router (`Xote.Route` and `Xote.Router`)
 
-#### Route Matching (`Xote__Route`)
+#### Route Matching (`Xote.Route`)
 
 - Pattern-based string matching with `:param` syntax for dynamic segments.
 - `parsePattern(pattern)` converts a route pattern like `/users/:id` into an array of `segment` (either `Static(string)` or `Param(string)`).
@@ -103,7 +103,7 @@ Notes:
 - No regex complexity; simple string-based matching covers common use cases.
 - All matching is synchronous and deterministic.
 
-#### Router State and Navigation (`Xote__Router`)
+#### Router State and Navigation (`Xote.Router`)
 
 - **Location signal**: `location: Core.t<location>` where `location = {pathname, search, hash}`.
 - **Initialization**: `init()` sets initial location from browser and adds `popstate` listener for back/forward buttons.

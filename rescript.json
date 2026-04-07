@@ -1,10 +1,24 @@
 {
   "name": "xote",
+  "namespace": true,
   "sources": [
     {
       "dir": "src",
       "subdirs": true,
-      "public": ["Xote"]
+      "public": [
+        "Component",
+        "JSX",
+        "ReactiveProp",
+        "Route",
+        "Router",
+        "SSR",
+        "SSRContext",
+        "SSRState",
+        "Hydration",
+        "Signal",
+        "Computed",
+        "Effect"
+      ]
     },
     {
       "dir": "examples",
@@ -30,6 +44,6 @@
   ],
   "jsx": {
     "version": 4,
-    "module": "Xote__JSX"
+    "module": "JSX"
   }
 }
