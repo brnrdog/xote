@@ -73,6 +73,6 @@
     "zekr": "^1.7.0"
   },
   "dependencies": {
-    "rescript-signals": "^2.0.0"
+    "rescript-signals": "^2.1.0"
   }
 }
