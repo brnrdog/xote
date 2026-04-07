@@ -56,7 +56,7 @@ let content = () => {
     </p>
     <p>
       {Component.text("  - ")}
-      <code> {Component.text("Xote.JSX")} </code>
+      <code> {Component.text("Xote.XoteJSX")} </code>
       {Component.text(" - Generic JSX v4 implementation")}
     </p>
     <p>
@@ -153,7 +153,7 @@ let content = () => {
         {Component.text(`{
   "jsx": {
     "version": 4,
-    "module": "Xote.JSX"
+    "module": "Xote.XoteJSX"
   }
 }`)}
       </code>

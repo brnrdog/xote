@@ -3,7 +3,7 @@
    These are thin wrappers over `Component.element` for the most frequently
    used tags. For tags not listed here, use `Component.element(tag, ...)`
    directly, or prefer JSX syntax which supports the full set via the
-   `JSX.Elements` module. */
+   `XoteJSX.Elements` module. */
 
 let div = (~attrs=?, ~events=?, ~children=?, ()) =>
   Component.element("div", ~attrs?, ~events?, ~children?, ())
