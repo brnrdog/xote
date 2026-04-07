@@ -222,7 +222,7 @@ module CodeDemo = {
         <div class="temp-app">
           <div class="temp-input-group">
             <label class="temp-label"> {Component.text("Celsius")} </label>
-            {Component.input(
+            {Html.input(
               ~attrs=[
                 Component.attr("type", "number"),
                 Component.attr("class", "temp-input"),
@@ -339,7 +339,7 @@ let make = () => {
 
   <div class="temp-app">
     <label> {Component.text("Celsius")} </label>
-    {Component.input(
+    {Html.input(
       ~attrs=[Component.attr("type", "number")],
       ~events=[("input", handleInput)],
       (),

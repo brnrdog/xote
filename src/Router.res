@@ -350,7 +350,7 @@ let link = (
     push(to, ())
   }
 
-  Component.a(
+  Html.a(
     ~attrs=Array.concat(attrs, [Component.attr("href", addBasePath(to))]),
     ~events=[("click", handleClick)],
     ~children,
@@ -458,7 +458,7 @@ module Link = {
       }
     }
 
-    Component.a(
+    Html.a(
       ~attrs=Array.concat(propsToAttrs(props), [Component.attr("href", addBasePath(props.to))]),
       ~events=[("click", handleClick)],
       ~children=getChildren(props),

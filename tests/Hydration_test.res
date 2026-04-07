@@ -6,8 +6,8 @@ let suite = Zekr.suite(
   [
     test("static content is preserved after hydration", () => {
       let component = () =>
-        Component.div(~children=[
-          Component.p(~children=[Component.text("Server rendered")], ()),
+        Html.div(~children=[
+          Html.p(~children=[Component.text("Server rendered")], ()),
         ], ())
       let ssrHtml = SSR.renderToString(component)
       let {container} = Dom.render(ssrHtml)
@@ -17,7 +17,7 @@ let suite = Zekr.suite(
     test("reactive text becomes interactive after hydration", () => {
       let count = Signal.make(0)
       let component = () =>
-        Component.div(~children=[
+        Html.div(~children=[
           Component.signalText(() => "Count: " ++ Int.toString(Signal.get(count))),
         ], ())
       let ssrHtml = SSR.renderToString(component)
@@ -31,7 +31,7 @@ let suite = Zekr.suite(
     test("event handlers are attached after hydration", () => {
       let clicked = ref(false)
       let component = () =>
-        Component.button(
+        Html.button(
           ~events=[("click", _evt => clicked := true)],
           ~children=[Component.text("Click")],
           (),
@@ -46,7 +46,7 @@ let suite = Zekr.suite(
     test("reactive attributes update after hydration", () => {
       let cls = Signal.make("initial")
       let component = () =>
-        Component.div(
+        Html.div(
           ~attrs=[Component.signalAttr("class", cls)],
           ~children=[Component.text("box")],
           (),
@@ -63,9 +63,9 @@ let suite = Zekr.suite(
     test("nested elements hydrate correctly", () => {
       let visible = Signal.make(true)
       let component = () =>
-        Component.div(~children=[
-          Component.h1(~children=[Component.text("Title")], ()),
-          Component.p(
+        Html.div(~children=[
+          Html.h1(~children=[Component.text("Title")], ()),
+          Html.p(
             ~attrs=[
               Component.computedAttr("class", () =>
                 Signal.get(visible) ? "shown" : "hidden"

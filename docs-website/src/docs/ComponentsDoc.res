@@ -129,9 +129,9 @@ let greeting = () => {
         {Component.text(`open Xote
 
 let greeting = () => {
-  Component.div(
+  Html.div(
     ~children=[
-      Component.h1(~children=[Component.text("Hello, Xote!")], ())
+      Html.h1(~children=[Component.text("Hello, Xote!")], ())
     ],
     ()
   )
@@ -246,7 +246,7 @@ let greeting = () => {
     <h3 id="static-attributes-function-api"> {Component.text("Static Attributes (Function API)")} </h3>
     <pre>
       <code>
-        {Component.text(`Component.button(
+        {Component.text(`Html.button(
   ~attrs=[
     Component.attr("class", "btn btn-primary"),
     Component.attr("type", "button"),
@@ -264,7 +264,7 @@ let greeting = () => {
       <code>
         {Component.text(`let isActive = Signal.make(false)
 
-Component.div(
+Html.div(
   ~attrs=[
     Component.computedAttr("class", () =>
       Signal.get(isActive) ? "active" : "inactive"

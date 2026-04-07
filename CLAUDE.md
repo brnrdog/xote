@@ -278,7 +278,7 @@ Component.computedAttr("class", () =>
 )
 
 // Mixing static and reactive
-Component.button(
+Html.button(
   ~attrs=[
     Component.attr("type", "button"),
     Component.computedAttr("class", () =>
@@ -301,7 +301,7 @@ let todos = Signal.make([{ id: "1", text: "Buy milk" }])
 Component.keyedList(
   todos,
   todo => todo.id,
-  todo => Component.li(~children=[Component.text(todo.text)], ())
+  todo => Html.li(~children=[Component.text(todo.text)], ())
 )
 ```
 
