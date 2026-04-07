@@ -56,6 +56,11 @@ let content = () => {
     </p>
     <p>
       {Component.text("  - ")}
+      <code> {Component.text("Xote.Html")} </code>
+      {Component.text(" - Common HTML element constructors (div, button, p, ...)")}
+    </p>
+    <p>
+      {Component.text("  - ")}
       <code> {Component.text("Xote.XoteJSX")} </code>
       {Component.text(" - Generic JSX v4 implementation")}
     </p>
@@ -70,9 +75,7 @@ let content = () => {
       {Component.text(" - Route matching utilities")}
     </p>
     <p>
-      {Component.text("  - ")}
-      <code> {Component.text("Xote.res")} </code>
-      {Component.text(" - Public API surface")}
+      {Component.text("Source files in src/ use bare module names (Component.res, Router.res, ...). ReScript's namespacing scopes them under Xote automatically — there is no Xote__ prefix and no central barrel module.")}
     </p>
     <h2 id="reactivity-model"> {Component.text("Reactivity Model")} </h2>
     <p>
@@ -153,8 +156,9 @@ let content = () => {
         {Component.text(`{
   "jsx": {
     "version": 4,
-    "module": "Xote.XoteJSX"
-  }
+    "module": "XoteJSX"
+  },
+  "compiler-flags": ["-open Xote"]
 }`)}
       </code>
     </pre>

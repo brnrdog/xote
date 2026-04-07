@@ -147,10 +147,12 @@ let greeting = () => {
     <pre>
       <code>
         {Component.text(`{
+  "bs-dependencies": ["xote"],
   "jsx": {
     "version": 4,
-    "module": "Xote.XoteJSX"
-  }
+    "module": "XoteJSX"
+  },
+  "compiler-flags": ["-open Xote"]
 }`)}
       </code>
     </pre>

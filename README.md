@@ -27,13 +27,20 @@ yarn add xote
 pnpm add xote
 ```
 
-Then, add it to your ReScript project’s dependencies in `rescript.json`:
+Then, add it to your ReScript project's `rescript.json`. You'll need to declare `xote` as a dependency, configure JSX to use Xote's transform, and open `Xote` so the JSX module resolves:
 
 ```json
 {
-  "bs-dependencies": ["xote"]
+  "bs-dependencies": ["xote"],
+  "jsx": {
+    "version": 4,
+    "module": "XoteJSX"
+  },
+  "compiler-flags": ["-open Xote"]
 }
 ```
+
+`-open Xote` makes `Component`, `Html`, `Signal`, `Router`, etc. available unqualified inside your source files.
 
 ## Why Xote?
 
@@ -99,7 +106,8 @@ All reactive primitives feature automatic dependency tracking - no manual subscr
 - **JSX syntax**: Use HTML tags like `<div>`, `<button>`, `<input>`
 - **Props**: Standard HTML attributes like `class`, `id`, `style`, `value`, `placeholder`
 - **Event handlers**: `onClick`, `onInput`, `onChange`, `onSubmit`, etc.
-- **Reactive content**: Wrap reactive text with `Component.signalText(() => ...)`
+- **Reactive content**: Wrap reactive text with `Component.signalText(() => ...)` (also `signalInt` and `signalFloat` for non-string values)
+- **HTML helpers**: `Html.div`, `Html.button`, `Html.p`, etc. for the function-based API; JSX covers the rest
 - **Component functions**: Define reusable components as functions that return JSX
 
 ### Xote.Router Features

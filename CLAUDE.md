@@ -36,16 +36,19 @@ The build process generates:
 
 ### Module Structure
 
-The codebase uses the `Xote__` prefix for internal modules:
+The codebase uses ReScript's `namespace: true` setting in `rescript.json`, so every source file in `src/` is automatically scoped under the `Xote` namespace by the compiler. There is no manual `Xote__` prefix and no central `Xote.res` barrel — each module is an independent entry point, which lets bundlers tree-shake at module granularity.
 
-**Reactive Primitives (from rescript-signals):**
-- **`Signals.Signal`**: Reactive state cells with `make`, `get`, `peek`, `set`, `update`. **Includes structural equality check** - only notifies dependents if the value has changed, preventing unnecessary updates and accidental infinite loops.
-- **`Signals.Computed`**: Derived signals that automatically recompute when dependencies change. **Lazy with push-based dirty flagging** - when upstream dependencies change, computeds are marked dirty immediately, but only recompute when read (via `Signal.get` or `Signal.peek`). **Auto-disposal**: Automatically dispose when they lose all subscribers.
-- **`Signals.Effect`**: Side effects that run when dependencies change. **Can return cleanup callbacks** - signature is `unit => option<unit => unit>`. Two functions available: `Effect.run` returns `unit`, `Effect.runWithDisposer` returns a `disposer` with a `dispose()` method.
+**Reactive Primitives (re-exported from rescript-signals):**
+- **`Xote.Signal`**: Reactive state cells with `make`, `get`, `peek`, `set`, `update`. **Includes structural equality check** - only notifies dependents if the value has changed, preventing unnecessary updates and accidental infinite loops.
+- **`Xote.Computed`**: Derived signals that automatically recompute when dependencies change. **Lazy with push-based dirty flagging** - when upstream dependencies change, computeds are marked dirty immediately, but only recompute when read (via `Signal.get` or `Signal.peek`). **Auto-disposal**: Automatically dispose when they lose all subscribers.
+- **`Xote.Effect`**: Side effects that run when dependencies change. **Can return cleanup callbacks** - signature is `unit => option<unit => unit>`. Two functions available: `Effect.run` returns `unit`, `Effect.runWithDisposer` returns a `disposer` with a `dispose()` method.
+
+These three are thin shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.res`) that `include` the corresponding modules from `rescript-signals`.
 
 **Xote Modules:**
-- **`Xote.Component`**: Component/renderer with virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `LazyComponent`, `KeyedList`). Provides element constructors, reactive nodes, keyed list reconciliation, and an owner-based reactivity system for resource cleanup.
-- **`Xote.XoteJSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with ~35 supported attributes including aria attributes.
+- **`Xote.Component`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `fragment`, `signalFragment`, `list`, `keyedList`, `element`), attribute helpers (`attr`, `signalAttr`, `computedAttr`), the `null` placeholder, and `mount`/`mountById`. The owner-based reactivity system for resource cleanup also lives here.
+- **`Xote.Html`**: Convenience constructors for common HTML tags (`div`, `span`, `button`, `input`, `h1`-`h3`, `p`, `ul`, `li`, `a`). Thin wrappers over `Component.element`. For tags not listed, call `Component.element(tag, ...)` directly or use JSX.
+- **`Xote.XoteJSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with ~35 supported attributes including aria attributes. Named `XoteJSX` (not `JSX`) to avoid colliding with unrelated modules when consumers use `open Xote`.
 - **`Xote.ReactiveProp`**: A helper type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` for flexible prop handling in JSX - allows props to accept either static values or reactive signals.
 - **`Xote.Router`**: Signal-based client-side router with pattern matching, dynamic routes, base path support, scroll position restoration, and a global singleton state (via `Symbol.for()`) that works across multiple bundles.
 - **`Xote.Route`**: Route matching utilities.
@@ -53,7 +56,6 @@ The codebase uses the `Xote__` prefix for internal modules:
 - **`Xote.SSRContext`**: Runtime environment detection (`isServer`, `isClient`) and helpers (`onServer`, `onClient`, `match`).
 - **`Xote.SSRState`**: State serialization/restoration between server and client. Includes a `Codec` system for type-safe encoding/decoding and a `sync`/`make` API for seamless server-client state transfer.
 - **`Xote.Hydration`**: Client-side hydration that walks server-rendered DOM, attaches reactive effects, event listeners, and sets up keyed list reconciliation without re-rendering.
-- **`Xote.res`**: Public API surface that re-exports all modules: `Signal`, `Computed`, `Effect`, `Component`, `Router`, `Route`, `ReactiveProp`, `SSR`, `SSRContext`, `SSRState`, `Hydration`.
 
 ### Reactivity Model
 
@@ -73,9 +75,9 @@ All reactive behavior is provided by **rescript-signals**:
 
 - **Build system**: ReScript compiler v12+ with `esmodule` output format
 - **Output**: In-source compilation (`.res.mjs` files alongside `.res` files)
-- **Public module**: Only `Xote` is exported (controlled via `rescript.json` `sources.public`)
+- **Namespacing**: `namespace: true` in `rescript.json` automatically scopes every module under `Xote`. Public modules are listed explicitly in `sources.public` (`Component`, `Html`, `XoteJSX`, `ReactiveProp`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Signal`, `Computed`, `Effect`); everything else (e.g. `DOM`, `Reactivity`) stays internal.
 - **Dependencies**: `rescript-signals` ^1.3.3
-- **JSX**: ReScript JSX v4 configured to use `Xote.XoteJSX` module (generic JSX transform)
+- **JSX**: ReScript JSX v4 configured with `module: "XoteJSX"` (generic JSX transform). Consumers must mirror this in their own `rescript.json`.
 
 ### Component System
 
@@ -103,7 +105,8 @@ Xote supports **two syntax styles**:
    - `keyedList(signal, keyFn, renderItem)` - efficient keyed list with DOM reconciliation (preserves element identity, only updates changed items)
 6. **Event handlers**: `events` parameter for DOM event listeners
 7. **Null node**: `Component.null()` - renders an empty text node
-8. **Mounting**: `mount(node, container)` or `mountById(node, "element-id")` to attach to DOM
+8. **HTML element helpers**: `Html.div`, `Html.button`, `Html.p`, etc. live in the `Xote.Html` module — use them when writing the function-based API. For tags not covered, fall back to `Component.element("tag", ...)`.
+9. **Mounting**: `mount(node, container)` or `mountById(node, "element-id")` to attach to DOM
 
 #### JSX Syntax
 Xote supports ReScript's generic JSX v4 for a declarative component syntax:
@@ -191,7 +194,7 @@ The `DOM.setAttrOrProp` function handles the distinction between HTML attributes
 
 5. **Untracked reads**: Use `Signal.peek(signal)` to read without creating a dependency.
 
-6. **Module naming**: Internal modules use `Xote__ModuleName` convention. The public API is `Xote.ModuleName`.
+6. **Module naming**: Source files in `src/` use bare names (`Component.res`, `Router.res`, ...). ReScript's `namespace: true` scopes them under `Xote`, so consumers access them as `Xote.Component`, `Xote.Router`, etc. There is no `Xote__` prefix and no central `Xote.res` barrel.
 
 7. **Batching not available**: The underlying rescript-signals library does not currently expose batching functionality. Updates run synchronously.
 
@@ -199,7 +202,7 @@ The `DOM.setAttrOrProp` function handles the distinction between HTML attributes
 
 9. **Exception safety**: The scheduler and observer execution is wrapped in try/catch blocks to ensure tracking state is always restored, even when exceptions are thrown.
 
-10. **ReScript compilation required**: Always compile ReScript before building with Vite. The Vite entry point is `src/Xote.res.mjs` (generated by ReScript compiler).
+10. **ReScript compilation required**: Always compile ReScript before building with Vite. Vite entry points come from the per-module compiled `.res.mjs` files in `src/` (e.g. `src/Component.res.mjs`).
 
 11. **Owner-based cleanup**: Reactive state (effects, computeds) is tracked per-DOM-element via the owner system. When elements are removed, their owners are disposed recursively, preventing memory leaks.
 
