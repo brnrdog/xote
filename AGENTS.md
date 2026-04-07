@@ -8,13 +8,13 @@ Instructions for AI coding agents working on this repository. This file compleme
 - **Reactivity**: [rescript-signals](https://brnrdog.github.io/rescript-signals) - `Signal`, `Computed`, `Effect`
 - **Build**: `npm run res:build` (ReScript) then `npm run build` (Vite)
 - **Watch**: `npm run res:dev` for ReScript watch mode
-- **Public API**: Only `Xote` module is exported; internal modules use `Xote__` prefix
+- **Public API**: ReScript namespacing scopes every file in `src/` under `Xote` (e.g. `Xote.Component`, `Xote.Router`). The public set is enumerated in `rescript.json`'s `sources.public`. There is no `Xote__` prefix and no central `Xote.res` barrel.
 
 ## Before Making Changes
 
 1. **Read `CLAUDE.md`** for full architecture, module descriptions, API surface, and code patterns
 2. **Compile first**: Always run `npm run res:build` before testing or building
-3. **Understand the module boundary**: Only `src/Xote.res` is the public API. Internal modules (`Xote.Component`, `Xote.XoteJSX`, etc.) are implementation details
+3. **Understand the module boundary**: The public surface is the list of modules in `rescript.json`'s `sources.public` (`Component`, `Html`, `XoteJSX`, `ReactiveProp`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Signal`, `Computed`, `Effect`). Helpers like `DOM`, `Reactivity`, and `Render` are internal.
 
 ## Development Workflow
 
@@ -27,15 +27,18 @@ Instructions for AI coding agents working on this repository. This file compleme
 ### Key Files
 | File | Purpose |
 |------|---------|
-| `src/Xote.res` | Public API - re-exports all modules |
-| `src/Xote.Component.res` | Core rendering, virtual DOM, reconciliation |
-| `src/Xote.XoteJSX.res` | JSX v4 transform and Elements module |
-| `src/Xote.Router.res` | Client-side routing |
-| `src/Xote.SSR.res` | Server-side rendering |
-| `src/Xote.Hydration.res` | Client-side hydration |
-| `src/Xote.SSRState.res` | Server-client state transfer |
-| `src/Xote.ReactiveProp.res` | Static/Reactive prop wrapper |
-| `rescript.json` | ReScript compiler configuration |
+| `src/Component.res` | Core rendering, node primitives, mount, reconciliation |
+| `src/Html.res` | Common HTML element constructors (`div`, `button`, ...) |
+| `src/XoteJSX.res` | JSX v4 transform and `Elements` module |
+| `src/Router.res` | Client-side routing |
+| `src/Route.res` | Route pattern matching utilities |
+| `src/SSR.res` | Server-side rendering |
+| `src/Hydration.res` | Client-side hydration |
+| `src/SSRState.res` | Server-client state transfer |
+| `src/SSRContext.res` | Server/client environment detection |
+| `src/ReactiveProp.res` | Static/Reactive prop wrapper |
+| `src/Signal.res`, `src/Computed.res`, `src/Effect.res` | Re-export shims for `rescript-signals` |
+| `rescript.json` | ReScript compiler configuration (`namespace: true`) |
 | `vite.config.js` | Library build configuration |
 
 ### Common Pitfalls
@@ -51,8 +54,8 @@ Instructions for AI coding agents working on this repository. This file compleme
 
 - Follow existing patterns in the codebase
 - Use `/* */` comments (ReScript style), not `//` for documentation comments
-- Internal modules: `Xote__ModuleName` naming convention
-- Keep the public API minimal - expose through `Xote.res` only
+- Source files in `src/` use bare module names; ReScript namespacing handles the `Xote.` prefix at the consumer
+- Keep the public API minimal — only modules listed in `rescript.json`'s `sources.public` should be relied on
 - Prefer structural types over nominal when possible in ReScript
 
 ## Testing Changes

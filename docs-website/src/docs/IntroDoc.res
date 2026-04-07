@@ -122,7 +122,12 @@ pnpm add xote`)}
     <pre>
       <code>
         {Component.text(`{
-  "bs-dependencies": ["xote"]
+  "bs-dependencies": ["xote"],
+  "jsx": {
+    "version": 4,
+    "module": "XoteJSX"
+  },
+  "compiler-flags": ["-open Xote"]
 }`)}
       </code>
     </pre>
