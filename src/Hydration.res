@@ -1,8 +1,7 @@
 open Signals
 
-module Component = Component
-module DOM = Component.DOM
-module Reactivity = Component.Reactivity
+module DOM = Node.DOM
+module Reactivity = Node.Reactivity
 
 /* ============================================================================
  * Hydration Options
@@ -157,12 +156,12 @@ let logHydrationWarning = (msg: string): unit => {
  * ============================================================================ */
 
 /* Hydrate a single node, attaching reactivity to existing DOM */
-let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
+let rec hydrateNode = (node: Node.node, domNode: Dom.element): unit => {
   switch node {
-  | Component.Text(_content) => /* Static text - nothing to hydrate, DOM already has the content */
+  | Node.Text(_content) => /* Static text - nothing to hydrate, DOM already has the content */
     ()
 
-  | Component.SignalText(signal) => {
+  | Node.SignalText(signal) => {
       /*
        * Server rendered: <!--$-->text<!--/$-->
        * We need to find the text node between markers and attach an effect
@@ -179,7 +178,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
       })
     }
 
-  | Component.Fragment(children) => {
+  | Node.Fragment(children) => {
       /* Fragment children are directly in the parent - hydrate each */
       let walker = DOMWalker.make(domNode)
       children->Array.forEach(child => {
@@ -187,7 +186,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
       })
     }
 
-  | Component.SignalFragment(signal) => {
+  | Node.SignalFragment(signal) => {
       /*
        * Server rendered: <!--#-->...children...<!--/#-->
        * We need to replace the content when the signal changes
@@ -213,7 +212,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
           /* Render and append new children */
           children->Array.forEach(
             child => {
-              let childEl = Component.Render.render(child)
+              let childEl = Node.Render.render(child)
               domNode->DOM.appendChild(childEl)
             },
           )
@@ -224,7 +223,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
       })
     }
 
-  | Component.Element({attrs, events, children}) => {
+  | Node.Element({attrs, events, children}) => {
       let owner = Reactivity.createOwner()
       Reactivity.setOwner(domNode, owner)
 
@@ -232,8 +231,8 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
         /* Hydrate reactive attributes */
         attrs->Array.forEach(((key, value)) => {
           switch value {
-          | Component.Static(_) => () /* Already rendered, nothing to do */
-          | Component.SignalValue(signal) => {
+          | Node.Static(_) => () /* Already rendered, nothing to do */
+          | Node.SignalValue(signal) => {
               let disposer = Effect.runWithDisposer(
                 () => {
                   DOM.setAttrOrProp(domNode, key, Signal.get(signal))
@@ -242,7 +241,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
               )
               Reactivity.addDisposer(owner, disposer)
             }
-          | Component.Compute(compute) => {
+          | Node.Compute(compute) => {
               let disposer = Effect.runWithDisposer(
                 () => {
                   DOM.setAttrOrProp(domNode, key, compute())
@@ -267,7 +266,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
       })
     }
 
-  | Component.LazyComponent(fn) => {
+  | Node.LazyComponent(fn) => {
       /* Execute lazy component and hydrate its result */
       let owner = Reactivity.createOwner()
       let childNode = Reactivity.runWithOwner(owner, fn)
@@ -275,7 +274,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
       hydrateNode(childNode, domNode)
     }
 
-  | Component.KeyedList({signal, keyFn, renderItem}) => {
+  | Node.KeyedList({signal, keyFn, renderItem}) => {
       /*
        * Server rendered: <!--kl--><!--k:key1-->item1<!--/k--><!--k:key2-->item2<!--/k--><!--/kl-->
        * We need to set up the reconciliation effect
@@ -284,7 +283,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
       Reactivity.setOwner(domNode, owner)
 
       /* Build initial key -> element map from existing DOM */
-      let keyedItems: Dict.t<Component.Render.keyedItem<Obj.t>> = Dict.make()
+      let keyedItems: Dict.t<Node.Render.keyedItem<Obj.t>> = Dict.make()
       let walker = DOMWalker.make(domNode)
 
       /* Skip to list start marker */
@@ -355,7 +354,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
           keysToRemove->Array.forEach(key => {
             switch keyedItems->Dict.get(key) {
             | Some(keyedItem) => {
-                Component.Render.disposeElement(keyedItem.element)
+                Node.Render.disposeElement(keyedItem.element)
                 let _ = (%raw(`keyedItem.element.remove()`): unit)
                 keyedItems->Dict.delete(key)->ignore
               }
@@ -364,7 +363,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
           })
 
           /* Build new order */
-          let newOrder: array<Component.Render.keyedItem<Obj.t>> = []
+          let newOrder: array<Node.Render.keyedItem<Obj.t>> = []
           let elementsToReplace: Dict.t<bool> = Dict.make()
 
           newItems->Array.forEach(item => {
@@ -375,8 +374,8 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
               if existing.item !== item {
                 elementsToReplace->Dict.set(key, true)
                 let node = renderItem(item)
-                let element = Component.Render.render(node)
-                let keyedItem: Component.Render.keyedItem<Obj.t> = {key, item, element}
+                let element = Node.Render.render(node)
+                let keyedItem: Node.Render.keyedItem<Obj.t> = {key, item, element}
                 newOrder->Array.push(keyedItem)->ignore
                 keyedItems->Dict.set(key, keyedItem)
               } else {
@@ -384,8 +383,8 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
               }
             | None => {
                 let node = renderItem(item)
-                let element = Component.Render.render(node)
-                let keyedItem: Component.Render.keyedItem<Obj.t> = {key, item, element}
+                let element = Node.Render.render(node)
+                let keyedItem: Node.Render.keyedItem<Obj.t> = {key, item, element}
                 newOrder->Array.push(keyedItem)->ignore
                 keyedItems->Dict.set(key, keyedItem)
               }
@@ -407,7 +406,7 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
                   elementsToReplace->Dict.get(keyedItem.key)->Option.getOr(false)
 
                 if needsReplacement {
-                  Component.Render.disposeElement(elem)
+                  Node.Render.disposeElement(elem)
                   DOM.replaceChild(domNode, keyedItem.element, elem)
                   marker := DOM.getNextSibling(keyedItem.element)
                 } else {
@@ -431,14 +430,14 @@ let rec hydrateNode = (node: Component.node, domNode: Dom.element): unit => {
 }
 
 /* Hydrate using a walker (for traversing children) */
-and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit => {
+and hydrateNodeWithWalker = (node: Node.node, walker: DOMWalker.t): unit => {
   switch node {
-  | Component.Text(_) => {
+  | Node.Text(_) => {
       /* Skip text node in DOM */
       let _ = DOMWalker.next(walker)
     }
 
-  | Component.SignalText(signal) => {
+  | Node.SignalText(signal) => {
       /* Find the marker, then hydrate the text node */
       let _ = DOMWalker.skipUntilMarker(walker, "$")
 
@@ -463,13 +462,13 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
       }
     }
 
-  | Component.Fragment(children) =>
+  | Node.Fragment(children) =>
     /* Fragment children are inline - hydrate each */
     children->Array.forEach(child => {
       hydrateNodeWithWalker(child, walker)
     })
 
-  | Component.SignalFragment(signal) => {
+  | Node.SignalFragment(signal) => {
       /* Find the container (div with display:contents in SSR, markers in comments) */
       let _ = DOMWalker.skipUntilMarker(walker, "#")
 
@@ -508,12 +507,12 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
 
           /* Clear and re-render */
           let childNodes: array<Dom.element> = %raw(`Array.from(container.childNodes || [])`)
-          childNodes->Array.forEach(Component.Render.disposeElement)
+          childNodes->Array.forEach(Node.Render.disposeElement)
           let _ = (%raw(`container.innerHTML = ''`): unit)
 
           children->Array.forEach(
             child => {
-              let childEl = Component.Render.render(child)
+              let childEl = Node.Render.render(child)
               container->DOM.appendChild(childEl)
             },
           )
@@ -524,7 +523,7 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
       })
     }
 
-  | Component.Element({attrs, events, children}) =>
+  | Node.Element({attrs, events, children}) =>
     switch DOMWalker.next(walker) {
     | Some(domNode) => {
         let owner = Reactivity.createOwner()
@@ -534,8 +533,8 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
           /* Hydrate reactive attributes */
           attrs->Array.forEach(((key, value)) => {
             switch value {
-            | Component.Static(_) => ()
-            | Component.SignalValue(signal) => {
+            | Node.Static(_) => ()
+            | Node.SignalValue(signal) => {
                 let disposer = Effect.runWithDisposer(
                   () => {
                     DOM.setAttrOrProp(domNode, key, Signal.get(signal))
@@ -544,7 +543,7 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
                 )
                 Reactivity.addDisposer(owner, disposer)
               }
-            | Component.Compute(compute) => {
+            | Node.Compute(compute) => {
                 let disposer = Effect.runWithDisposer(
                   () => {
                     DOM.setAttrOrProp(domNode, key, compute())
@@ -571,7 +570,7 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
     | None => logHydrationWarning("Missing DOM element for Element node")
     }
 
-  | Component.LazyComponent(fn) => {
+  | Node.LazyComponent(fn) => {
       /* Skip the lazy component markers and hydrate the content */
       let _ = DOMWalker.skipUntilMarker(walker, "lc")
 
@@ -581,12 +580,12 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
       let _ = DOMWalker.skipUntilMarker(walker, "/lc")
     }
 
-  | Component.KeyedList({signal, keyFn, renderItem}) => {
+  | Node.KeyedList({signal, keyFn, renderItem}) => {
       /* Find the keyed list in the DOM */
       let _ = DOMWalker.skipUntilMarker(walker, "kl")
 
       /* Parse existing keyed items from DOM */
-      let keyedItems: Dict.t<Component.Render.keyedItem<Obj.t>> = Dict.make()
+      let keyedItems: Dict.t<Node.Render.keyedItem<Obj.t>> = Dict.make()
 
       let rec parseKeyedItems = () => {
         switch DOMWalker.peek(walker) {
@@ -628,7 +627,7 @@ and hydrateNodeWithWalker = (node: Component.node, walker: DOMWalker.t): unit =>
 
 /* Hydrate a server-rendered component */
 let hydrate = (
-  component: unit => Component.node,
+  component: unit => Node.node,
   container: Dom.element,
   ~options: hydrateOptions={},
 ): unit => {
@@ -663,7 +662,7 @@ let hydrate = (
 
 /* Hydrate by element ID */
 let hydrateById = (
-  component: unit => Component.node,
+  component: unit => Node.node,
   containerId: string,
   ~options: hydrateOptions={},
 ): unit => {

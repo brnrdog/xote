@@ -1,5 +1,4 @@
 open Signals
-module Component = Component
 module Route = Route
 
 // Browser location type
@@ -298,11 +297,11 @@ let replace = (pathname: string, ~search: string="", ~hash: string="", ()): unit
 // Route definition for routes() component
 type routeConfig = {
   pattern: string,
-  render: Route.params => Component.node,
+  render: Route.params => Node.node,
 }
 
 // Single route component - renders if pattern matches
-let route = (pattern: string, render: Route.params => Component.node): Component.node => {
+let route = (pattern: string, render: Route.params => Node.node): Node.node => {
   warnIfNotInitialized("Router.route()")
 
   let signal = Computed.make(() => {
@@ -312,11 +311,11 @@ let route = (pattern: string, render: Route.params => Component.node): Component
     | NoMatch => []
     }
   })
-  Component.signalFragment(signal)
+  Node.signalFragment(signal)
 }
 
 // Routes component - renders first matching route
-let routes = (configs: array<routeConfig>): Component.node => {
+let routes = (configs: array<routeConfig>): Node.node => {
   warnIfNotInitialized("Router.routes()")
 
   let signal = Computed.make(() => {
@@ -333,16 +332,16 @@ let routes = (configs: array<routeConfig>): Component.node => {
     | None => [] // No matching route - render nothing
     }
   })
-  Component.signalFragment(signal)
+  Node.signalFragment(signal)
 }
 
 // Link component - handles navigation without page reload
 let link = (
   ~to: string,
-  ~attrs: array<(string, Component.attrValue)>=[],
-  ~children: array<Component.node>=[],
+  ~attrs: array<(string, Node.attrValue)>=[],
+  ~children: array<Node.node>=[],
   (),
-): Component.node => {
+): Node.node => {
   warnIfNotInitialized("Router.link()")
 
   let handleClick = (_evt: Dom.event) => {
@@ -351,7 +350,7 @@ let link = (
   }
 
   Html.a(
-    ~attrs=Array.concat(attrs, [Component.attr("href", addBasePath(to))]),
+    ~attrs=Array.concat(attrs, [Node.attr("href", addBasePath(to))]),
     ~events=[("click", handleClick)],
     ~children,
     (),
@@ -374,7 +373,7 @@ module Link = {
     /* Event handlers */
     onClick?: Dom.event => unit,
     /* Children */
-    children?: Component.node,
+    children?: Node.node,
   }
 
   /* Helper to detect if a value is a ReactiveProp variant */
@@ -383,27 +382,27 @@ module Link = {
   }
 
   /* Helper to convert string attribute value */
-  let convertAttrValue = (key: string, value: 'a): (string, Component.attrValue) => {
+  let convertAttrValue = (key: string, value: 'a): (string, Node.attrValue) => {
     if isReactiveProp(value) {
       let rp: ReactiveProp.t<string> = Obj.magic(value)
       switch rp {
-      | Static(s) => Component.attr(key, s)
-      | Reactive(signal) => Component.signalAttr(key, signal)
+      | Static(s) => Node.attr(key, s)
+      | Reactive(signal) => Node.signalAttr(key, signal)
       }
     } else if typeof(value) == #function {
       let f: unit => string = Obj.magic(value)
-      Component.computedAttr(key, f)
+      Node.computedAttr(key, f)
     } else if typeof(value) == #object {
       let sig: Signal.t<string> = Obj.magic(value)
-      Component.signalAttr(key, sig)
+      Node.signalAttr(key, sig)
     } else {
       let s: string = Obj.magic(value)
-      Component.attr(key, s)
+      Node.attr(key, s)
     }
   }
 
   /* Convert props to attrs array */
-  let propsToAttrs = (props: props<_, _, _, _, _>): array<(string, Component.attrValue)> => {
+  let propsToAttrs = (props: props<_, _, _, _, _>): array<(string, Node.attrValue)> => {
     let attrs = []
 
     switch props.class {
@@ -435,16 +434,16 @@ module Link = {
   }
 
   /* Extract children from props */
-  let getChildren = (props: props<_, _, _, _, _>): array<Component.node> => {
+  let getChildren = (props: props<_, _, _, _, _>): array<Node.node> => {
     switch props.children {
-    | Some(Component.Fragment(children)) => children
+    | Some(Node.Fragment(children)) => children
     | Some(child) => [child]
     | None => []
     }
   }
 
   /* JSX component function */
-  let make = (props: props<_, _, _, _, _>): Component.node => {
+  let make = (props: props<_, _, _, _, _>): Node.node => {
     warnIfNotInitialized("Router.Link")
 
     let handleClick = (evt: Dom.event) => {
@@ -459,7 +458,7 @@ module Link = {
     }
 
     Html.a(
-      ~attrs=Array.concat(propsToAttrs(props), [Component.attr("href", addBasePath(props.to))]),
+      ~attrs=Array.concat(propsToAttrs(props), [Node.attr("href", addBasePath(props.to))]),
       ~events=[("click", handleClick)],
       ~children=getChildren(props),
       (),

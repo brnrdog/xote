@@ -2,7 +2,7 @@ open Zekr
 open Xote
 
 let mountTo = (node, container) => {
-  Component.mount(node, container)
+  Node.mount(node, container)
   container
 }
 
@@ -13,7 +13,7 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let _ = mountTo(
         <div class="container">
-          {Component.text("Hello JSX")}
+          {Node.text("Hello JSX")}
         </div>,
         container,
       )
@@ -28,7 +28,7 @@ let suite = Zekr.suite(
       let clicked = ref(false)
       let _ = mountTo(
         <button onClick={_evt => clicked := true}>
-          {Component.text("Press")}
+          {Node.text("Press")}
         </button>,
         container,
       )
@@ -49,9 +49,9 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let _ = mountTo(
         <ul>
-          <li> {Component.text("One")} </li>
-          <li> {Component.text("Two")} </li>
-          <li> {Component.text("Three")} </li>
+          <li> {Node.text("One")} </li>
+          <li> {Node.text("Two")} </li>
+          <li> {Node.text("Three")} </li>
         </ul>,
         container,
       )
@@ -63,7 +63,7 @@ let suite = Zekr.suite(
       let cls = Signal.make("initial")
       let _ = mountTo(
         <div class={ReactiveProp.reactive(cls)}>
-          {Component.text("reactive")}
+          {Node.text("reactive")}
         </div>,
         container,
       )
@@ -86,8 +86,8 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let _ = mountTo(
         <div>
-          <h1> {Component.text("Title")} </h1>
-          <h2> {Component.text("Subtitle")} </h2>
+          <h1> {Node.text("Title")} </h1>
+          <h2> {Node.text("Subtitle")} </h2>
         </div>,
         container,
       )
@@ -103,7 +103,7 @@ let suite = Zekr.suite(
     test("renders link with href", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
-        <a href="/about"> {Component.text("About")} </a>,
+        <a href="/about"> {Node.text("About")} </a>,
         container,
       )
       let link = Dom.Query.getByRole(container, "link")
@@ -136,9 +136,9 @@ let suite = Zekr.suite(
           })
 
           <div>
-            <span> {Component.signalInt(() => Signal.get(counter))} </span>
+            <span> {Node.signalInt(() => Signal.get(counter))} </span>
             <button onClick={_evt => Signal.update(counter, n => n + 1)}>
-              {Component.text("Inc")}
+              {Node.text("Inc")}
             </button>
           </div>
         }
@@ -147,11 +147,11 @@ let suite = Zekr.suite(
       let tab = Signal.make("other")
 
       let _ = mountTo(
-        Component.signalFragment(
+        Node.signalFragment(
           Computed.make(() =>
             switch Signal.get(tab) {
             | "effect" => [<EffectComponent />]
-            | _ => [Component.text("other tab")]
+            | _ => [Node.text("other tab")]
             }
           ),
         ),

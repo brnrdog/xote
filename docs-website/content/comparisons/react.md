@@ -56,12 +56,12 @@ let counter = () => {
   // Only the text node updates when count changes.
   <div>
     <h1>
-      {Component.signalText(() =>
+      {Node.signalText(() =>
         "Count: " ++ Int.toString(Signal.get(count))
       )}
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
-      {Component.text("Increment")}
+      {Node.text("Increment")}
     </button>
   </div>
 }
@@ -152,10 +152,10 @@ let todoList = () => {
   let todos = Signal.make([{id: "1", text: "Buy milk"}])
 
   <ul>
-    {Component.keyedList(
+    {Node.keyedList(
       todos,
       todo => todo.id,
-      todo => <li> {Component.text(todo.text)} </li>
+      todo => <li> {Node.text(todo.text)} </li>
     )}
   </ul>
 }
@@ -207,10 +207,10 @@ Router.init()
 let nav = () => {
   <nav>
     <Router.Link to="/" class="nav-link">
-      {Component.text("Home")}
+      {Node.text("Home")}
     </Router.Link>
     <Router.Link to="/users" class="nav-link">
-      {Component.text("Users")}
+      {Node.text("Users")}
     </Router.Link>
   </nav>
 }

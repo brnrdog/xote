@@ -8,14 +8,14 @@ let suite = Zekr.suite(
   "SSR",
   [
     test("renders static text", () => {
-      let html = SSR.renderToString(() => Component.text("hello"))
+      let html = SSR.renderToString(() => Node.text("hello"))
       assertMatchesSnapshot(html, ~name="ssr-static-text")
     }),
     test("renders element with class attribute", () => {
       let html = SSR.renderToString(() =>
         Html.div(
-          ~attrs=[Component.attr("class", "box")],
-          ~children=[Component.text("content")],
+          ~attrs=[Node.attr("class", "box")],
+          ~children=[Node.text("content")],
           (),
         )
       )
@@ -24,23 +24,23 @@ let suite = Zekr.suite(
     test("renders nested elements", () => {
       let html = SSR.renderToString(() =>
         Html.div(~children=[
-          Html.p(~children=[Component.text("nested")], ()),
+          Html.p(~children=[Node.text("nested")], ()),
         ], ())
       )
       assertMatchesSnapshot(html, ~name="ssr-nested-elements")
     }),
     test("renders void elements self-closing", () => {
       let html = SSR.renderToString(() =>
-        Component.fragment([
-          Html.input(~attrs=[Component.attr("type", "text")], ()),
-          Component.element("br", ()),
+        Node.fragment([
+          Html.input(~attrs=[Node.attr("type", "text")], ()),
+          Node.element("br", ()),
         ])
       )
       assertMatchesSnapshot(html, ~name="ssr-void-elements")
     }),
     test("escapes HTML in text content", () => {
       let html = SSR.renderToString(() =>
-        Component.text("<script>alert('xss')</script>")
+        Node.text("<script>alert('xss')</script>")
       )
       combineResults([
         assertContains(html, "&lt;script&gt;"),
@@ -50,7 +50,7 @@ let suite = Zekr.suite(
     test("wraps signal text with hydration markers", () => {
       let html = SSR.renderToString(() => {
         let sig = Signal.make("reactive")
-        Component.SignalText(sig)
+        Node.SignalText(sig)
       })
       combineResults([
         assertContains(html, "<!--$-->"),
@@ -60,8 +60,8 @@ let suite = Zekr.suite(
     }),
     test("wraps signal fragment with hydration markers", () => {
       let html = SSR.renderToString(() => {
-        let sig = Signal.make([Component.text("child")])
-        Component.signalFragment(sig)
+        let sig = Signal.make([Node.text("child")])
+        Node.signalFragment(sig)
       })
       combineResults([
         assertContains(html, "<!--#-->"),
@@ -72,8 +72,8 @@ let suite = Zekr.suite(
     test("wraps keyed list items with key markers", () => {
       let html = SSR.renderToString(() => {
         let items = Signal.make(["a", "b"])
-        Component.keyedList(items, item => item, item =>
-          Html.span(~children=[Component.text(item)], ())
+        Node.keyedList(items, item => item, item =>
+          Html.span(~children=[Node.text(item)], ())
         )
       })
       combineResults([
@@ -86,7 +86,7 @@ let suite = Zekr.suite(
     }),
     test("wraps lazy component with markers", () => {
       let html = SSR.renderToString(() =>
-        LazyComponent(() => Component.text("lazy"))
+        LazyComponent(() => Node.text("lazy"))
       )
       combineResults([
         assertContains(html, "<!--lc-->"),
@@ -96,7 +96,7 @@ let suite = Zekr.suite(
     }),
     test("renderToStringWithRoot adds root markers", () => {
       let html = SSR.renderToStringWithRoot(() =>
-        Component.text("root content")
+        Node.text("root content")
       )
       combineResults([
         assertContains(html, "<!--xote-root:root-->"),
@@ -108,7 +108,7 @@ let suite = Zekr.suite(
       let html = SSR.renderDocument(
         ~scripts=["/app.js"],
         ~styles=["/style.css"],
-        () => Component.text("page"),
+        () => Node.text("page"),
       )
       combineResults([
         assertContains(html, "<!DOCTYPE html>"),
@@ -123,8 +123,8 @@ let suite = Zekr.suite(
       let html = SSR.renderToString(() =>
         Html.input(
           ~attrs=[
-            Component.attr("type", "text"),
-            Component.attr("disabled", "true"),
+            Node.attr("type", "text"),
+            Node.attr("disabled", "true"),
           ],
           (),
         )
@@ -137,7 +137,7 @@ let suite = Zekr.suite(
     test("escapes attribute values", () => {
       let html = SSR.renderToString(() =>
         Html.div(
-          ~attrs=[Component.attr("title", `say "hello" & goodbye`)],
+          ~attrs=[Node.attr("title", `say "hello" & goodbye`)],
           (),
         )
       )

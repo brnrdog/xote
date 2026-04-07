@@ -8,7 +8,7 @@ Instructions for AI coding agents working on this repository. This file compleme
 - **Reactivity**: [rescript-signals](https://brnrdog.github.io/rescript-signals) - `Signal`, `Computed`, `Effect`
 - **Build**: `npm run res:build` (ReScript) then `npm run build` (Vite)
 - **Watch**: `npm run res:dev` for ReScript watch mode
-- **Public API**: ReScript namespacing scopes every file in `src/` under `Xote` (e.g. `Xote.Component`, `Xote.Router`). The public set is enumerated in `rescript.json`'s `sources.public`. There is no `Xote__` prefix and no central `Xote.res` barrel.
+- **Public API**: ReScript namespacing scopes every file in `src/` under `Xote` (e.g. `Xote.Node`, `Xote.Router`). The public set is enumerated in `rescript.json`'s `sources.public`. There is no `Xote__` prefix and no central `Xote.res` barrel.
 
 ## Before Making Changes
 
@@ -27,7 +27,7 @@ Instructions for AI coding agents working on this repository. This file compleme
 ### Key Files
 | File | Purpose |
 |------|---------|
-| `src/Component.res` | Core rendering, node primitives, mount, reconciliation |
+| `src/Node.res` | Core rendering, node primitives, mount, reconciliation |
 | `src/Html.res` | Common HTML element constructors (`div`, `button`, ...) |
 | `src/XoteJSX.res` | JSX v4 transform and `Elements` module |
 | `src/Router.res` | Client-side routing |

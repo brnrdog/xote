@@ -2,7 +2,7 @@ open Zekr
 open Xote
 
 let mountTo = (node, container) => {
-  Component.mount(node, container)
+  Node.mount(node, container)
   container
 }
 
@@ -11,13 +11,13 @@ let suite = Zekr.suite(
   [
     test("renders static text", () => {
       let {container} = Dom.render("")
-      let _ = mountTo(Component.text("hello world"), container)
+      let _ = mountTo(Node.text("hello world"), container)
       Dom.Assert.toHaveTextContent(container, "hello world")
     }),
     test("renders reactive text that updates when signal changes", () => {
       let {container} = Dom.render("")
       let name = Signal.make("Alice")
-      let _ = mountTo(Component.signalText(() => "Hello, " ++ Signal.get(name)), container)
+      let _ = mountTo(Node.signalText(() => "Hello, " ++ Signal.get(name)), container)
       let r1 = Dom.Assert.toHaveTextContent(container, "Hello, Alice")
       Signal.set(name, "Bob")
       let r2 = Dom.Assert.toHaveTextContent(container, "Hello, Bob")
@@ -26,7 +26,7 @@ let suite = Zekr.suite(
     test("renders signalInt", () => {
       let {container} = Dom.render("")
       let count = Signal.make(42)
-      let _ = mountTo(Component.signalInt(() => Signal.get(count)), container)
+      let _ = mountTo(Node.signalInt(() => Signal.get(count)), container)
       let r1 = Dom.Assert.toHaveTextContent(container, "42")
       Signal.set(count, 99)
       let r2 = Dom.Assert.toHaveTextContent(container, "99")
@@ -35,13 +35,13 @@ let suite = Zekr.suite(
     test("renders signalFloat", () => {
       let {container} = Dom.render("")
       let price = Signal.make(3.14)
-      let _ = mountTo(Component.signalFloat(() => Signal.get(price)), container)
+      let _ = mountTo(Node.signalFloat(() => Signal.get(price)), container)
       Dom.Assert.toHaveTextContent(container, "3.14")
     }),
     test("renders static int and float helpers", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
-        Component.fragment([Component.int(42), Component.text(" "), Component.float(2.5)]),
+        Node.fragment([Node.int(42), Node.text(" "), Node.float(2.5)]),
         container,
       )
       Dom.Assert.toHaveTextContent(container, "42 2.5")
@@ -50,8 +50,8 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let _ = mountTo(
         Html.div(
-          ~attrs=[Component.attr("class", "box primary")],
-          ~children=[Component.text("content")],
+          ~attrs=[Node.attr("class", "box primary")],
+          ~children=[Node.text("content")],
           (),
         ),
         container,
@@ -64,8 +64,8 @@ let suite = Zekr.suite(
       let cls = Signal.make("inactive")
       let _ = mountTo(
         Html.div(
-          ~attrs=[Component.signalAttr("class", cls)],
-          ~children=[Component.text("item")],
+          ~attrs=[Node.signalAttr("class", cls)],
+          ~children=[Node.text("item")],
           (),
         ),
         container,
@@ -82,11 +82,11 @@ let suite = Zekr.suite(
       let _ = mountTo(
         Html.div(
           ~attrs=[
-            Component.computedAttr("class", () =>
+            Node.computedAttr("class", () =>
               Signal.get(isActive) ? "active" : "inactive"
             ),
           ],
-          ~children=[Component.text("toggle")],
+          ~children=[Node.text("toggle")],
           (),
         ),
         container,
@@ -104,10 +104,10 @@ let suite = Zekr.suite(
         Html.div(~children=[
           Html.button(
             ~events=[("click", _evt => Signal.update(count, n => n + 1))],
-            ~children=[Component.text("Click me")],
+            ~children=[Node.text("Click me")],
             (),
           ),
-          Component.signalInt(() => Signal.get(count)),
+          Node.signalInt(() => Signal.get(count)),
         ], ()),
         container,
       )
@@ -122,10 +122,10 @@ let suite = Zekr.suite(
     test("renders fragment with multiple children", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
-        Component.fragment([
-          Component.text("first"),
-          Component.text(" "),
-          Component.text("second"),
+        Node.fragment([
+          Node.text("first"),
+          Node.text(" "),
+          Node.text("second"),
         ]),
         container,
       )
@@ -133,18 +133,18 @@ let suite = Zekr.suite(
     }),
     test("signal fragment replaces children when signal changes", () => {
       let {container} = Dom.render("")
-      let items = Signal.make([Component.text("original")])
-      let frag = Component.signalFragment(items)
+      let items = Signal.make([Node.text("original")])
+      let frag = Node.signalFragment(items)
       let _ = mountTo(frag, container)
       let r1 = Dom.Assert.toHaveTextContent(container, "original")
-      Signal.set(items, [Component.text("replaced")])
+      Signal.set(items, [Node.text("replaced")])
       let r2 = Dom.Assert.toHaveTextContent(container, "replaced")
       combineResults([r1, r2])
     }),
     test("null node renders empty content", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
-        Html.div(~children=[Component.null(), Component.text("visible")], ()),
+        Html.div(~children=[Node.null(), Node.text("visible")], ()),
         container,
       )
       Dom.Assert.toHaveTextContent(container, "visible")
@@ -154,8 +154,8 @@ let suite = Zekr.suite(
       let _ = mountTo(
         Html.div(~children=[
           Html.ul(~children=[
-            Html.li(~children=[Component.text("Item 1")], ()),
-            Html.li(~children=[Component.text("Item 2")], ()),
+            Html.li(~children=[Node.text("Item 1")], ()),
+            Html.li(~children=[Node.text("Item 2")], ()),
           ], ()),
         ], ()),
         container,
@@ -172,8 +172,8 @@ let suite = Zekr.suite(
       let items = Signal.make(["Apple", "Banana"])
       let _ = mountTo(
         Html.div(~children=[
-          Component.list(items, item =>
-            Html.p(~children=[Component.text(item)], ())
+          Node.list(items, item =>
+            Html.p(~children=[Node.text(item)], ())
           ),
         ], ()),
         container,
@@ -189,7 +189,7 @@ let suite = Zekr.suite(
       let _ = mountTo(
         LazyComponent(() => {
           evaluated := true
-          Component.text("lazy content")
+          Node.text("lazy content")
         }),
         container,
       )

@@ -6,7 +6,7 @@ let make = (
   ~currentPath: string,
   ~demoTitle: string,
   ~demoLead: string,
-  ~content: Component.node,
+  ~content: Node.node,
   ~sourceUrl: string,
 ) => {
   <Layout
@@ -15,12 +15,12 @@ let make = (
         <DocsPage.Sidebar currentPath />
         <div class="docs-main demo-page-main">
           <DocsPage.DocsBreadcrumb currentPath />
-          <h1 class="docs-page-title"> {Component.text(demoTitle)} </h1>
-          <p class="docs-page-lead"> {Component.text(demoLead)} </p>
+          <h1 class="docs-page-title"> {Node.text(demoTitle)} </h1>
+          <p class="docs-page-lead"> {Node.text(demoLead)} </p>
           <div class="demo-source-link">
             <a href={sourceUrl} target="_blank" class="btn btn-ghost">
               {Basefn.Icon.make({name: GitHub, size: Sm})}
-              {Component.text(" View Source")}
+              {Node.text(" View Source")}
             </a>
           </div>
           <div class="demo-page-content"> {content} </div>

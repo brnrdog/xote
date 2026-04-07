@@ -24,18 +24,18 @@ let types = ["int", "string", "bool", "float", "array", "option", "unit"]
 let operators = ["=>", "->", "|>", "==", "!=", "+", "-", "*", "/", "="]
 
 // Simple tokenizer for ReScript code
-let highlight = (code: string): Component.node => {
+let highlight = (code: string): Node.node => {
   let lines = code->String.split("\n")
 
-  let highlightLine = (line: string, lineNumber: int): Component.node => {
+  let highlightLine = (line: string, lineNumber: int): Node.node => {
     let lineNum = (lineNumber + 1)->Int.toString
 
     // Check if line is a comment
     let lineContent = if line->String.trim->String.startsWith("//") {
-      Component.element(
+      Node.element(
         "span",
-        ~attrs=[Component.attr("class", "syntax-comment")],
-        ~children=[Component.text(line)],
+        ~attrs=[Node.attr("class", "syntax-comment")],
+        ~children=[Node.text(line)],
         (),
       )
     } else {
@@ -70,35 +70,35 @@ let highlight = (code: string): Component.node => {
           "syntax-text"
         }
 
-        Component.fragment([
-          Component.element(
+        Node.fragment([
+          Node.element(
             "span",
-            ~attrs=[Component.attr("class", className)],
-            ~children=[Component.text(word)],
+            ~attrs=[Node.attr("class", className)],
+            ~children=[Node.text(word)],
             (),
           ),
           idx < Array.length(words) - 1
-            ? Component.text(" ")
-            : Component.fragment([]),
+            ? Node.text(" ")
+            : Node.fragment([]),
         ])
       })
 
-      Component.fragment(highlightedWords)
+      Node.fragment(highlightedWords)
     }
 
-    Component.element(
+    Node.element(
       "div",
-      ~attrs=[Component.attr("class", "syntax-line")],
+      ~attrs=[Node.attr("class", "syntax-line")],
       ~children=[
-        Component.element(
+        Node.element(
           "span",
-          ~attrs=[Component.attr("class", "syntax-line-number")],
-          ~children=[Component.text(lineNum)],
+          ~attrs=[Node.attr("class", "syntax-line-number")],
+          ~children=[Node.text(lineNum)],
           (),
         ),
-        Component.element(
+        Node.element(
           "span",
-          ~attrs=[Component.attr("class", "syntax-line-content")],
+          ~attrs=[Node.attr("class", "syntax-line-content")],
           ~children=[lineContent],
           (),
         ),
@@ -107,5 +107,5 @@ let highlight = (code: string): Component.node => {
     )
   }
 
-  Component.fragment(lines->Array.mapWithIndex((line, idx) => highlightLine(line, idx)))
+  Node.fragment(lines->Array.mapWithIndex((line, idx) => highlightLine(line, idx)))
 }

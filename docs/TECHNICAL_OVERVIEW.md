@@ -12,7 +12,7 @@ Reference: TC39 Signals proposal `https://github.com/tc39/proposal-signals`.
 - **`Xote__Effect`**: Effects that run a function tracked against any signals it reads. Returns a disposer fn.
 - **`Xote__Observer`**: Observer types and structure used by the scheduler.
 - **`Xote__Id`**: Monotonic integer ID generator.
-- **`Xote.Component`**: Minimal virtual DOM with reactive text and fragment nodes, render and mount to DOM. Convenience element constructors.
+- **`Xote.Node`**: Minimal virtual DOM with reactive text and fragment nodes, render and mount to DOM. Convenience element constructors.
 - **`Xote.Route`**: Pure route matching logic with pattern-based string matching. Supports dynamic parameters using `:param` syntax.
 - **`Xote.Router`**: Signal-based router with browser History API integration. Provides location signal, imperative navigation, declarative routing components, and SPA navigation links.
 - **`Xote`**: Public module surface that re-exports the above.
@@ -79,7 +79,7 @@ Notes:
 - `type kind = [ #Effect | #Computed(int) ]` — computed carries the id of its backing signal.
 - `type t = { id, kind, run, mutable deps }` — internal unit of scheduling.
 
-### Component/Rendering (`Xote.Component`)
+### Component/Rendering (`Xote.Node`)
 
 - Virtual node types: `Element`, `Text`, `SignalText(Core.t<string>)`, `Fragment`, `SignalFragment(Core.t<array<node>>)\`.
 - Builders: `text`, `signalText`, `fragment`, `signalFragment`, `list(signal, renderItem)`, `element` and tag helpers (`div`, `span`, `button`, `input`, `h1`, etc.).
@@ -156,13 +156,13 @@ See the TC39 draft for the intended semantics and motivations: `https://github.c
 
 Rendering helpers (selected):
 
-- `Component.text : string -> node`
-- `Component.signalText : (unit -> string) -> node`
-- `Component.signalFragment : Core.t<array<node>> -> node`
-- `Component.list : (Core.t<array<'a>>, 'a -> node) -> node`
-- `Component.element : (~attrs=?, ~events=?, ~children=?, unit) -> node` and tag helpers.
-- `Component.mount : (node, Dom.element) -> unit`
-- `Component.mountById : (node, string) -> unit`
+- `Node.text : string -> node`
+- `Node.signalText : (unit -> string) -> node`
+- `Node.signalFragment : Core.t<array<node>> -> node`
+- `Node.list : (Core.t<array<'a>>, 'a -> node) -> node`
+- `Node.element : (~attrs=?, ~events=?, ~children=?, unit) -> node` and tag helpers.
+- `Node.mount : (node, Dom.element) -> unit`
+- `Node.mountById : (node, string) -> unit`
 
 Router helpers:
 
@@ -170,9 +170,9 @@ Router helpers:
 - `Router.location : Core.t<{pathname: string, search: string, hash: string}>`
 - `Router.push : (string, ~search: string=?, ~hash: string=?, unit) -> unit`
 - `Router.replace : (string, ~search: string=?, ~hash: string=?, unit) -> unit`
-- `Router.route : (string, Route.params -> Component.node) -> Component.node`
-- `Router.routes : array<{pattern: string, render: Route.params -> Component.node}> -> Component.node`
-- `Router.link : (~to: string, ~attrs: array<(string, Component.attrValue)>=?, ~children: array<Component.node>=?, unit) -> Component.node`
+- `Router.route : (string, Route.params -> Node.node) -> Node.node`
+- `Router.routes : array<{pattern: string, render: Route.params -> Node.node}> -> Node.node`
+- `Router.link : (~to: string, ~attrs: array<(string, Node.attrValue)>=?, ~children: array<Node.node>=?, unit) -> Node.node`
 - `Route.match : (string, string) -> matchResult` where `matchResult = Match(Dict.t<string>) | NoMatch`
 
 ### Known Limitations and Future Work

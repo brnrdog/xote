@@ -55,24 +55,24 @@ module DemoCard = {
     let {demo} = props
     <div class="demo-card">
       <div class="demo-card-header">
-        <h3> {Component.text(demo.title)} </h3>
+        <h3> {Node.text(demo.title)} </h3>
       </div>
       <div class="demo-card-body">
-        <p> {Component.text(demo.description)} </p>
+        <p> {Node.text(demo.description)} </p>
       </div>
       <div class="demo-card-footer">
         {Router.link(
           ~to=demo.path,
-          ~attrs=[Component.attr("class", "btn btn-primary")],
+          ~attrs=[Node.attr("class", "btn btn-primary")],
           ~children=[
-            Component.text("Try Demo "),
+            Node.text("Try Demo "),
             Basefn.Icon.make({name: ChevronRight, size: Sm}),
           ],
           (),
         )}
         <a href={demo.source} target="_blank" class="btn btn-ghost">
           {Basefn.Icon.make({name: GitHub, size: Sm})}
-          {Component.text(" Source")}
+          {Node.text(" Source")}
         </a>
       </div>
     </div>
@@ -87,14 +87,14 @@ let make = (_props: props) => {
     children={
       <div>
         <section class="demos-hero">
-          <h1> {Component.text("Demos")} </h1>
+          <h1> {Node.text("Demos")} </h1>
           <p>
-            {Component.text("Interactive examples showcasing Xote's capabilities")}
+            {Node.text("Interactive examples showcasing Xote's capabilities")}
           </p>
         </section>
         <div class="demos-container">
           <div class="demos-grid">
-            {Component.fragment(demos->Array.map(d => <DemoCard demo={d} />))}
+            {Node.fragment(demos->Array.map(d => <DemoCard demo={d} />))}
           </div>
         </div>
       </div>

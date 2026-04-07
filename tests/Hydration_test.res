@@ -7,7 +7,7 @@ let suite = Zekr.suite(
     test("static content is preserved after hydration", () => {
       let component = () =>
         Html.div(~children=[
-          Html.p(~children=[Component.text("Server rendered")], ()),
+          Html.p(~children=[Node.text("Server rendered")], ()),
         ], ())
       let ssrHtml = SSR.renderToString(component)
       let {container} = Dom.render(ssrHtml)
@@ -18,7 +18,7 @@ let suite = Zekr.suite(
       let count = Signal.make(0)
       let component = () =>
         Html.div(~children=[
-          Component.signalText(() => "Count: " ++ Int.toString(Signal.get(count))),
+          Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count))),
         ], ())
       let ssrHtml = SSR.renderToString(component)
       let {container} = Dom.render(ssrHtml)
@@ -33,7 +33,7 @@ let suite = Zekr.suite(
       let component = () =>
         Html.button(
           ~events=[("click", _evt => clicked := true)],
-          ~children=[Component.text("Click")],
+          ~children=[Node.text("Click")],
           (),
         )
       let ssrHtml = SSR.renderToString(component)
@@ -47,8 +47,8 @@ let suite = Zekr.suite(
       let cls = Signal.make("initial")
       let component = () =>
         Html.div(
-          ~attrs=[Component.signalAttr("class", cls)],
-          ~children=[Component.text("box")],
+          ~attrs=[Node.signalAttr("class", cls)],
+          ~children=[Node.text("box")],
           (),
         )
       let ssrHtml = SSR.renderToString(component)
@@ -64,14 +64,14 @@ let suite = Zekr.suite(
       let visible = Signal.make(true)
       let component = () =>
         Html.div(~children=[
-          Html.h1(~children=[Component.text("Title")], ()),
+          Html.h1(~children=[Node.text("Title")], ()),
           Html.p(
             ~attrs=[
-              Component.computedAttr("class", () =>
+              Node.computedAttr("class", () =>
                 Signal.get(visible) ? "shown" : "hidden"
               ),
             ],
-            ~children=[Component.text("Content")],
+            ~children=[Node.text("Content")],
             (),
           ),
         ], ())

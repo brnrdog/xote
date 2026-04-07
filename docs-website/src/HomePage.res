@@ -90,20 +90,20 @@ module FeatureCard = {
       <div class="feature-card-icon">
         {Basefn.Icon.make({name: f.iconName, size: Md})}
       </div>
-      <h3> {Component.text(f.title)} </h3>
-      <p> {Component.text(f.description)} </p>
+      <h3> {Node.text(f.title)} </h3>
+      <p> {Node.text(f.description)} </p>
       {switch (f.linkText, f.linkTo) {
       | (Some(text), Some(to)) =>
         Router.link(
           ~to,
-          ~attrs=[Component.attr("class", "feature-card-link")],
+          ~attrs=[Node.attr("class", "feature-card-link")],
           ~children=[
-            Component.text(text ++ " "),
+            Node.text(text ++ " "),
             Basefn.Icon.make({name: ChevronRight, size: Sm}),
           ],
           (),
         )
-      | _ => Component.fragment([])
+      | _ => Node.fragment([])
       }}
     </div>
   }
@@ -118,32 +118,32 @@ module Hero = {
       <div class="hero-inner">
         <div class="hero-logo">
           <Logo size=48 color="var(--text-accent)" />
-          <span class="hero-logo-text"> {Component.text("xote")} </span>
+          <span class="hero-logo-text"> {Node.text("xote")} </span>
         </div>
         <h1>
-          {Component.text("Build reactive interfaces with ")}
-          <em> {Component.text("fine-grained signals")} </em>
-          {Component.text(" and ")}
-          <em> {Component.text("sound types")} </em>
+          {Node.text("Build reactive interfaces with ")}
+          <em> {Node.text("fine-grained signals")} </em>
+          {Node.text(" and ")}
+          <em> {Node.text("sound types")} </em>
         </h1>
         <p class="hero-subtitle">
-          {Component.text(
+          {Node.text(
             "Xote is a lightweight UI library for ReScript that combines signal-powered reactivity with a minimal component system. No virtual DOM, no diffing \u2014 just precise, efficient updates.",
           )}
         </p>
         <div class="hero-buttons">
           {Router.link(
             ~to="/docs",
-            ~attrs=[Component.attr("class", "btn btn-primary")],
+            ~attrs=[Node.attr("class", "btn btn-primary")],
             ~children=[
-              Component.text("Get Started "),
+              Node.text("Get Started "),
               Basefn.Icon.make({name: ChevronRight, size: Sm}),
             ],
             (),
           )}
           <a href="https://github.com/brnrdog/xote" target="_blank" class="btn btn-ghost">
             {Basefn.Icon.make({name: GitHub, size: Sm})}
-            {Component.text(" View on GitHub")}
+            {Node.text(" View on GitHub")}
           </a>
         </div>
       </div>
@@ -159,15 +159,15 @@ module Features = {
     <section class="features-section">
       <div class="features-inner">
         <div class="features-heading">
-          <h2> {Component.text("Everything you need for reactive UIs")} </h2>
+          <h2> {Node.text("Everything you need for reactive UIs")} </h2>
           <p>
-            {Component.text(
+            {Node.text(
               "Powerful reactive primitives, a declarative component system, and type safety \u2014 all in a focused package.",
             )}
           </p>
         </div>
         <div class="features-grid">
-          {Component.fragment(features->Array.map(f => <FeatureCard feature={f} />))}
+          {Node.fragment(features->Array.map(f => <FeatureCard feature={f} />))}
         </div>
       </div>
     </section>
@@ -189,14 +189,14 @@ module CodeDemo = {
 
         <div class="counter-app">
           <div class="counter-display">
-            {Component.signalText(() => Signal.get(count)->Int.toString)}
+            {Node.signalText(() => Signal.get(count)->Int.toString)}
           </div>
           <div class="counter-buttons">
-            <button onClick={decrement} class="counter-btn"> {Component.text("-")} </button>
+            <button onClick={decrement} class="counter-btn"> {Node.text("-")} </button>
             <button onClick={reset} class="counter-btn counter-btn-reset">
-              {Component.text("Reset")}
+              {Node.text("Reset")}
             </button>
-            <button onClick={increment} class="counter-btn"> {Component.text("+")} </button>
+            <button onClick={increment} class="counter-btn"> {Node.text("+")} </button>
           </div>
         </div>
       }
@@ -221,12 +221,12 @@ module CodeDemo = {
 
         <div class="temp-app">
           <div class="temp-input-group">
-            <label class="temp-label"> {Component.text("Celsius")} </label>
+            <label class="temp-label"> {Node.text("Celsius")} </label>
             {Html.input(
               ~attrs=[
-                Component.attr("type", "number"),
-                Component.attr("class", "temp-input"),
-                Component.attr("placeholder", "0"),
+                Node.attr("type", "number"),
+                Node.attr("class", "temp-input"),
+                Node.attr("placeholder", "0"),
               ],
               ~events=[("input", handleInput)],
               (),
@@ -234,15 +234,15 @@ module CodeDemo = {
           </div>
           <div class="temp-results">
             <div class="temp-result">
-              <span class="temp-result-label"> {Component.text("Fahrenheit")} </span>
+              <span class="temp-result-label"> {Node.text("Fahrenheit")} </span>
               <span class="temp-result-value">
-                {Component.signalText(() => Signal.get(fahrenheit)->Float.toFixed(~digits=1))}
+                {Node.signalText(() => Signal.get(fahrenheit)->Float.toFixed(~digits=1))}
               </span>
             </div>
             <div class="temp-result">
-              <span class="temp-result-label"> {Component.text("Kelvin")} </span>
+              <span class="temp-result-label"> {Node.text("Kelvin")} </span>
               <span class="temp-result-value">
-                {Component.signalText(() => Signal.get(kelvin)->Float.toFixed(~digits=1))}
+                {Node.signalText(() => Signal.get(kelvin)->Float.toFixed(~digits=1))}
               </span>
             </div>
           </div>
@@ -277,7 +277,7 @@ module CodeDemo = {
 
         <div class="timer-app">
           <div class="timer-display">
-            {Component.signalText(() => {
+            {Node.signalText(() => {
               let s = Signal.get(seconds)
               let mins = s / 60
               let secs = mod(s, 60)
@@ -286,9 +286,9 @@ module CodeDemo = {
           </div>
           <div class="timer-buttons">
             <button onClick={toggleTimer} class="timer-btn timer-btn-primary">
-              {Component.signalText(() => Signal.get(isRunning) ? "Pause" : "Start")}
+              {Node.signalText(() => Signal.get(isRunning) ? "Pause" : "Start")}
             </button>
-            <button onClick={resetTimer} class="timer-btn"> {Component.text("Reset")} </button>
+            <button onClick={resetTimer} class="timer-btn"> {Node.text("Reset")} </button>
           </div>
         </div>
       }
@@ -308,16 +308,16 @@ let make = () => {
 
   <div class="counter-app">
     <div class="counter-display">
-      {Component.signalText(() =>
+      {Node.signalText(() =>
         Signal.get(count)->Int.toString
       )}
     </div>
     <div class="counter-buttons">
       <button onClick={decrement}>
-        {Component.text("-")}
+        {Node.text("-")}
       </button>
       <button onClick={increment}>
-        {Component.text("+")}
+        {Node.text("+")}
       </button>
     </div>
   </div>
@@ -338,14 +338,14 @@ let make = () => {
   )
 
   <div class="temp-app">
-    <label> {Component.text("Celsius")} </label>
+    <label> {Node.text("Celsius")} </label>
     {Html.input(
-      ~attrs=[Component.attr("type", "number")],
+      ~attrs=[Node.attr("type", "number")],
       ~events=[("input", handleInput)],
       (),
     )}
     <span>
-      {Component.signalText(() =>
+      {Node.signalText(() =>
         Signal.get(fahrenheit)
           ->Float.toFixed(~digits=1)
       )}
@@ -374,7 +374,7 @@ let make = () => {
   })
 
   <button onClick={toggleTimer}>
-    {Component.signalText(() =>
+    {Node.signalText(() =>
       Signal.get(isRunning)
         ? "Pause" : "Start"
     )}
@@ -401,9 +401,9 @@ let make = () => {
     <section class="code-demo-section">
       <div class="code-demo-inner">
         <div class="code-demo-heading">
-          <h2> {Component.text("Signals, Computeds, and Effects")} </h2>
+          <h2> {Node.text("Signals, Computeds, and Effects")} </h2>
           <p>
-            {Component.text(
+            {Node.text(
               "Three powerful building blocks for seamless reactivity. Your mental model stays simple and predictable.",
             )}
           </p>
@@ -411,55 +411,55 @@ let make = () => {
         <div class="code-demo-container">
           <div class="code-editor-pane">
             <div class="code-editor-tabs">
-              {Component.element(
+              {Node.element(
                 "div",
                 ~attrs=[
-                  Component.computedAttr("class", () =>
+                  Node.computedAttr("class", () =>
                     "code-editor-tab" ++ (Signal.get(activeTab) == "counter" ? " active" : "")
                   ),
                 ],
                 ~events=[("click", setTab("counter"))],
-                ~children=[Component.text("Counter.res")],
+                ~children=[Node.text("Counter.res")],
                 (),
               )}
-              {Component.element(
+              {Node.element(
                 "div",
                 ~attrs=[
-                  Component.computedAttr("class", () =>
+                  Node.computedAttr("class", () =>
                     "code-editor-tab" ++ (Signal.get(activeTab) == "temperature" ? " active" : "")
                   ),
                 ],
                 ~events=[("click", setTab("temperature"))],
-                ~children=[Component.text("Temperature.res")],
+                ~children=[Node.text("Temperature.res")],
                 (),
               )}
-              {Component.element(
+              {Node.element(
                 "div",
                 ~attrs=[
-                  Component.computedAttr("class", () =>
+                  Node.computedAttr("class", () =>
                     "code-editor-tab" ++ (Signal.get(activeTab) == "timer" ? " active" : "")
                   ),
                 ],
                 ~events=[("click", setTab("timer"))],
-                ~children=[Component.text("Timer.res")],
+                ~children=[Node.text("Timer.res")],
                 (),
               )}
             </div>
             <div class="code-editor-body">
-              {Component.element(
+              {Node.element(
                 "button",
                 ~attrs=[
-                  Component.computedAttr("class", () =>
+                  Node.computedAttr("class", () =>
                     "code-copy-btn" ++ (Signal.get(copied) ? " copied" : "")
                   ),
                 ],
                 ~events=[("click", handleCopy)],
                 ~children=[
-                  Component.signalFragment(
+                  Node.signalFragment(
                     Computed.make(() =>
                       Signal.get(copied)
-                        ? [Basefn.Icon.make({name: Check, size: Sm}), Component.text(" Copied")]
-                        : [Basefn.Icon.make({name: Copy, size: Sm}), Component.text(" Copy")]
+                        ? [Basefn.Icon.make({name: Check, size: Sm}), Node.text(" Copied")]
+                        : [Basefn.Icon.make({name: Copy, size: Sm}), Node.text(" Copy")]
                     ),
                   ),
                 ],
@@ -467,7 +467,7 @@ let make = () => {
               )}
               <pre class="code-editor-pre">
                 <code>
-                  {Component.signalFragment(
+                  {Node.signalFragment(
                     Computed.make(() => {
                       let code = switch Signal.get(activeTab) {
                       | "counter" => counterCode
@@ -488,10 +488,10 @@ let make = () => {
                 <span class="browser-dot browser-dot-yellow" />
                 <span class="browser-dot browser-dot-green" />
               </div>
-              <div class="browser-url"> {Component.text("localhost:5173")} </div>
+              <div class="browser-url"> {Node.text("localhost:5173")} </div>
             </div>
             <div class="code-preview-body">
-              {Component.signalFragment(
+              {Node.signalFragment(
                 Computed.make(() =>
                   switch Signal.get(activeTab) {
                   | "counter" => [<CounterApp />]
@@ -515,27 +515,27 @@ module Community = {
   let make = (_props: props) => {
     <section class="community-section">
       <div class="community-inner">
-        <h2> {Component.text("Join the community")} </h2>
+        <h2> {Node.text("Join the community")} </h2>
         <p>
-          {Component.text(
+          {Node.text(
             "Xote is open source and built for developers who value simplicity, type safety, and fine-grained reactivity.",
           )}
         </p>
         <div class="community-links">
           <a href="https://github.com/brnrdog/xote" target="_blank" class="btn btn-ghost">
             {Basefn.Icon.make({name: GitHub, size: Sm})}
-            {Component.text(" GitHub")}
+            {Node.text(" GitHub")}
           </a>
           <a href="https://www.npmjs.com/package/xote" target="_blank" class="btn btn-ghost">
             {Basefn.Icon.make({name: Download, size: Sm})}
-            {Component.text(" npm")}
+            {Node.text(" npm")}
           </a>
           {Router.link(
             ~to="/demos",
-            ~attrs=[Component.attr("class", "btn btn-ghost")],
+            ~attrs=[Node.attr("class", "btn btn-ghost")],
             ~children=[
               Basefn.Icon.make({name: Star, size: Sm}),
-              Component.text(" Demos"),
+              Node.text(" Demos"),
             ],
             (),
           )}
@@ -549,5 +549,5 @@ module Community = {
 type props = {}
 
 let make = (_props: props) => {
-  <Layout children={Component.fragment([<Hero />, <Features />, <CodeDemo />, <Community />])} />
+  <Layout children={Node.fragment([<Hero />, <Features />, <CodeDemo />, <Community />])} />
 }

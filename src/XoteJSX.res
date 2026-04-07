@@ -1,9 +1,8 @@
 open Signals
-module Component = Component
 module ReactiveProp = ReactiveProp
 
 /* ReScript JSX transform type aliases */
-type element = Component.node
+type element = Node.node
 
 type component<'props> = 'props => element
 
@@ -14,7 +13,7 @@ type componentLike<'props, 'return> = 'props => 'return
  * evaluated during a Computed context, which would incorrectly track their
  * dependencies as belonging to the outer computed. */
 let jsx = (component: component<'props>, props: 'props): element =>
-  Component.LazyComponent(() => component(props))
+  Node.LazyComponent(() => component(props))
 
 let jsxs = jsx
 
@@ -36,14 +35,14 @@ type fragmentProps = {children?: element}
 let jsxFragment = (props: fragmentProps): element => {
   switch props.children {
   | Some(child) => child
-  | None => Component.fragment([])
+  | None => Node.fragment([])
   }
 }
 
 /* Element converters for JSX expressions */
-let array = (children: array<element>): element => Component.fragment(children)
+let array = (children: array<element>): element => Node.fragment(children)
 
-let null = (): element => Component.text("")
+let null = (): element => Node.text("")
 
 /* Elements module for lowercase HTML tags */
 module Elements = {
@@ -150,54 +149,54 @@ module Elements = {
   }
 
   /* Helper to convert string attribute value (supports raw string, ReactiveProp, Signal, or computed function) */
-  let convertAttrValue = (key: string, value: 'a): (string, Component.attrValue) => {
+  let convertAttrValue = (key: string, value: 'a): (string, Node.attrValue) => {
     if isReactiveProp(value) {
       // It's a ReactiveProp variant - pattern match on it
       let rp: ReactiveProp.t<string> = Obj.magic(value)
       switch rp {
-      | Static(s) => Component.attr(key, s)
-      | Reactive(signal) => Component.signalAttr(key, signal)
+      | Static(s) => Node.attr(key, s)
+      | Reactive(signal) => Node.signalAttr(key, signal)
       }
     } else if typeof(value) == #function {
       // It's a computed function (for backward compatibility)
       let f: unit => string = Obj.magic(value)
-      Component.computedAttr(key, f)
+      Node.computedAttr(key, f)
     } else if typeof(value) == #object {
       // It's a raw signal (for backward compatibility)
       let sig: Signal.t<string> = Obj.magic(value)
-      Component.signalAttr(key, sig)
+      Node.signalAttr(key, sig)
     } else {
       // It's a raw string
       let s: string = Obj.magic(value)
-      Component.attr(key, s)
+      Node.attr(key, s)
     }
   }
 
   /* Helper to convert boolean attribute value (supports raw bool, ReactiveProp, Signal, or computed function) */
-  let convertBoolAttrValue = (key: string, value: 'a): (string, Component.attrValue) => {
+  let convertBoolAttrValue = (key: string, value: 'a): (string, Node.attrValue) => {
     if isReactiveProp(value) {
       // It's a ReactiveProp variant - pattern match on it
       let rp: ReactiveProp.t<bool> = Obj.magic(value)
       switch rp {
-      | Static(b) => Component.attr(key, b ? "true" : "false")
+      | Static(b) => Node.attr(key, b ? "true" : "false")
       | Reactive(signal) => {
           let strSignal = Computed.make(() => Signal.get(signal) ? "true" : "false")
-          Component.signalAttr(key, strSignal)
+          Node.signalAttr(key, strSignal)
         }
       }
     } else if typeof(value) == #function {
       // It's a computed function that returns bool (for backward compatibility)
       let f: unit => bool = Obj.magic(value)
-      Component.computedAttr(key, () => f() ? "true" : "false")
+      Node.computedAttr(key, () => f() ? "true" : "false")
     } else if typeof(value) == #object {
       // It's a raw signal (for backward compatibility)
       let sig: Signal.t<bool> = Obj.magic(value)
       let strSignal = Computed.make(() => Signal.get(sig) ? "true" : "false")
-      Component.signalAttr(key, strSignal)
+      Node.signalAttr(key, strSignal)
     } else {
       // It's a raw bool
       let b: bool = Obj.magic(value)
-      Component.attr(key, b ? "true" : "false")
+      Node.attr(key, b ? "true" : "false")
     }
   }
 
@@ -212,7 +211,7 @@ module Elements = {
   /* Helper to add optional int attribute */
   let addIntAttr = (attrs, opt, key) => {
     switch opt {
-    | Some(v) => attrs->Array.push(Component.attr(key, Int.toString(v)))
+    | Some(v) => attrs->Array.push(Node.attr(key, Int.toString(v)))
     | None => ()
     }
   }
@@ -251,7 +250,7 @@ module Elements = {
       _,
       _,
     >,
-  ): array<(string, Component.attrValue)> => {
+  ): array<(string, Node.attrValue)> => {
     let attrs = []
 
     /* Standard attributes */
@@ -457,7 +456,7 @@ module Elements = {
       _,
     >,
   ): element => {
-    Component.Element({
+    Node.Element({
       tag,
       attrs: propsToAttrs(props),
       events: propsToEvents(props),
