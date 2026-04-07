@@ -49,7 +49,7 @@ let suite = Zekr.suite(
     test("renders element with static class attribute", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
-        Component.div(
+        Html.div(
           ~attrs=[Component.attr("class", "box primary")],
           ~children=[Component.text("content")],
           (),
@@ -63,7 +63,7 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let cls = Signal.make("inactive")
       let _ = mountTo(
-        Component.div(
+        Html.div(
           ~attrs=[Component.signalAttr("class", cls)],
           ~children=[Component.text("item")],
           (),
@@ -80,7 +80,7 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let isActive = Signal.make(false)
       let _ = mountTo(
-        Component.div(
+        Html.div(
           ~attrs=[
             Component.computedAttr("class", () =>
               Signal.get(isActive) ? "active" : "inactive"
@@ -101,8 +101,8 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let count = Signal.make(0)
       let _ = mountTo(
-        Component.div(~children=[
-          Component.button(
+        Html.div(~children=[
+          Html.button(
             ~events=[("click", _evt => Signal.update(count, n => n + 1))],
             ~children=[Component.text("Click me")],
             (),
@@ -144,7 +144,7 @@ let suite = Zekr.suite(
     test("null node renders empty content", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
-        Component.div(~children=[Component.null(), Component.text("visible")], ()),
+        Html.div(~children=[Component.null(), Component.text("visible")], ()),
         container,
       )
       Dom.Assert.toHaveTextContent(container, "visible")
@@ -152,10 +152,10 @@ let suite = Zekr.suite(
     test("renders nested element hierarchy", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
-        Component.div(~children=[
-          Component.ul(~children=[
-            Component.li(~children=[Component.text("Item 1")], ()),
-            Component.li(~children=[Component.text("Item 2")], ()),
+        Html.div(~children=[
+          Html.ul(~children=[
+            Html.li(~children=[Component.text("Item 1")], ()),
+            Html.li(~children=[Component.text("Item 2")], ()),
           ], ()),
         ], ()),
         container,
@@ -171,9 +171,9 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let items = Signal.make(["Apple", "Banana"])
       let _ = mountTo(
-        Component.div(~children=[
+        Html.div(~children=[
           Component.list(items, item =>
-            Component.p(~children=[Component.text(item)], ())
+            Html.p(~children=[Component.text(item)], ())
           ),
         ], ()),
         container,

@@ -7,6 +7,7 @@
       "subdirs": true,
       "public": [
         "Component",
+        "Html",
         "JSX",
         "ReactiveProp",
         "Route",

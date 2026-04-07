@@ -13,7 +13,7 @@ let suite = Zekr.suite(
     }),
     test("renders element with class attribute", () => {
       let html = SSR.renderToString(() =>
-        Component.div(
+        Html.div(
           ~attrs=[Component.attr("class", "box")],
           ~children=[Component.text("content")],
           (),
@@ -23,8 +23,8 @@ let suite = Zekr.suite(
     }),
     test("renders nested elements", () => {
       let html = SSR.renderToString(() =>
-        Component.div(~children=[
-          Component.p(~children=[Component.text("nested")], ()),
+        Html.div(~children=[
+          Html.p(~children=[Component.text("nested")], ()),
         ], ())
       )
       assertMatchesSnapshot(html, ~name="ssr-nested-elements")
@@ -32,7 +32,7 @@ let suite = Zekr.suite(
     test("renders void elements self-closing", () => {
       let html = SSR.renderToString(() =>
         Component.fragment([
-          Component.input(~attrs=[Component.attr("type", "text")], ()),
+          Html.input(~attrs=[Component.attr("type", "text")], ()),
           Component.element("br", ()),
         ])
       )
@@ -73,7 +73,7 @@ let suite = Zekr.suite(
       let html = SSR.renderToString(() => {
         let items = Signal.make(["a", "b"])
         Component.keyedList(items, item => item, item =>
-          Component.span(~children=[Component.text(item)], ())
+          Html.span(~children=[Component.text(item)], ())
         )
       })
       combineResults([
@@ -121,7 +121,7 @@ let suite = Zekr.suite(
     }),
     test("renders boolean attributes without value", () => {
       let html = SSR.renderToString(() =>
-        Component.input(
+        Html.input(
           ~attrs=[
             Component.attr("type", "text"),
             Component.attr("disabled", "true"),
@@ -136,7 +136,7 @@ let suite = Zekr.suite(
     }),
     test("escapes attribute values", () => {
       let html = SSR.renderToString(() =>
-        Component.div(
+        Html.div(
           ~attrs=[Component.attr("title", `say "hello" & goodbye`)],
           (),
         )

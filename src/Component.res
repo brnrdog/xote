@@ -553,22 +553,6 @@ let element = (
   (),
 ): node => Element({tag, attrs, events, children})
 
-/* Common elements */
-let div = (~attrs=?, ~events=?, ~children=?, ()) =>
-  element("div", ~attrs?, ~events?, ~children?, ())
-let span = (~attrs=?, ~events=?, ~children=?, ()) =>
-  element("span", ~attrs?, ~events?, ~children?, ())
-let button = (~attrs=?, ~events=?, ~children=?, ()) =>
-  element("button", ~attrs?, ~events?, ~children?, ())
-let input = (~attrs=?, ~events=?, ()) => element("input", ~attrs?, ~events?, ())
-let h1 = (~attrs=?, ~events=?, ~children=?, ()) => element("h1", ~attrs?, ~events?, ~children?, ())
-let h2 = (~attrs=?, ~events=?, ~children=?, ()) => element("h2", ~attrs?, ~events?, ~children?, ())
-let h3 = (~attrs=?, ~events=?, ~children=?, ()) => element("h3", ~attrs?, ~events?, ~children?, ())
-let p = (~attrs=?, ~events=?, ~children=?, ()) => element("p", ~attrs?, ~events?, ~children?, ())
-let ul = (~attrs=?, ~events=?, ~children=?, ()) => element("ul", ~attrs?, ~events?, ~children?, ())
-let li = (~attrs=?, ~events=?, ~children=?, ()) => element("li", ~attrs?, ~events?, ~children?, ())
-let a = (~attrs=?, ~events=?, ~children=?, ()) => element("a", ~attrs?, ~events?, ~children?, ())
-
 /* Null representation */
 let null = () => text("")
 

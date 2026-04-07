@@ -162,7 +162,7 @@ module SearchModal = {
                 <div class="search-modal">
                   <div class="search-input-wrapper">
                     {Basefn.Icon.make({name: Search, size: Sm})}
-                    {Component.input(
+                    {Html.input(
                       ~attrs=[
                         Component.attr("class", "search-input"),
                         Component.attr("placeholder", "Search documentation..."),

@@ -24,10 +24,10 @@ let suite = Zekr.suite(
         {id: "3", label: "Cherry"},
       ])
       let _ = mountTo(
-        Component.div(~children=[
-          Component.ul(~children=[
+        Html.div(~children=[
+          Html.ul(~children=[
             Component.keyedList(items, item => item.id, item =>
-              Component.li(~children=[Component.text(item.label)], ())
+              Html.li(~children=[Component.text(item.label)], ())
             ),
           ], ()),
         ], ()),
@@ -42,10 +42,10 @@ let suite = Zekr.suite(
         {id: "2", label: "Banana"},
       ])
       let _ = mountTo(
-        Component.div(~children=[
-          Component.ul(~children=[
+        Html.div(~children=[
+          Html.ul(~children=[
             Component.keyedList(items, item => item.id, item =>
-              Component.li(~children=[Component.text(item.label)], ())
+              Html.li(~children=[Component.text(item.label)], ())
             ),
           ], ()),
         ], ()),
@@ -65,10 +65,10 @@ let suite = Zekr.suite(
         {id: "3", label: "Cherry"},
       ])
       let _ = mountTo(
-        Component.div(~children=[
-          Component.ul(~children=[
+        Html.div(~children=[
+          Html.ul(~children=[
             Component.keyedList(items, item => item.id, item =>
-              Component.li(~children=[Component.text(item.label)], ())
+              Html.li(~children=[Component.text(item.label)], ())
             ),
           ], ()),
         ], ()),
@@ -89,10 +89,10 @@ let suite = Zekr.suite(
         {id: "3", label: "Cherry"},
       ])
       let _ = mountTo(
-        Component.div(~children=[
-          Component.ul(~children=[
+        Html.div(~children=[
+          Html.ul(~children=[
             Component.keyedList(items, item => item.id, item =>
-              Component.li(~children=[Component.text(item.label)], ())
+              Html.li(~children=[Component.text(item.label)], ())
             ),
           ], ()),
         ], ()),
@@ -117,10 +117,10 @@ let suite = Zekr.suite(
         {id: "3", label: "Cherry"},
       ])
       let _ = mountTo(
-        Component.div(~children=[
-          Component.ul(~children=[
+        Html.div(~children=[
+          Html.ul(~children=[
             Component.keyedList(items, item => item.id, item =>
-              Component.li(~children=[Component.text(item.label)], ())
+              Html.li(~children=[Component.text(item.label)], ())
             ),
           ], ()),
         ], ()),
@@ -140,10 +140,10 @@ let suite = Zekr.suite(
         {id: "2", label: "Banana"},
       ])
       let _ = mountTo(
-        Component.div(~children=[
-          Component.ul(~children=[
+        Html.div(~children=[
+          Html.ul(~children=[
             Component.keyedList(items, item => item.id, item =>
-              Component.li(~children=[Component.text(item.label)], ())
+              Html.li(~children=[Component.text(item.label)], ())
             ),
           ], ()),
         ], ()),
@@ -156,10 +156,10 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let items = Signal.make([{id: "1", label: "A"}])
       let _ = mountTo(
-        Component.div(~children=[
-          Component.ul(~children=[
+        Html.div(~children=[
+          Html.ul(~children=[
             Component.keyedList(items, item => item.id, item =>
-              Component.li(~children=[Component.text(item.label)], ())
+              Html.li(~children=[Component.text(item.label)], ())
             ),
           ], ()),
         ], ()),

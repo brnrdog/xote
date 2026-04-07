@@ -40,33 +40,33 @@ let app = (count, items, inputValue) =>
       Signal.set(inputValue, value)
     }
 
-    Component.div(
+    Html.div(
       ~attrs=[Component.attr("class", "app")],
       ~children=[
         /* Header */
-        Component.h1(~children=[Component.text("Xote SSR Demo")], ()),
+        Html.h1(~children=[Component.text("Xote SSR Demo")], ()),
         /* Counter section */
-        Component.div(
+        Html.div(
           ~attrs=[Component.attr("class", "counter-section")],
           ~children=[
-            Component.h2(~children=[Component.text("Counter")], ()),
-            Component.p(
+            Html.h2(~children=[Component.text("Counter")], ()),
+            Html.p(
               ~children=[
                 Component.text("Count: "),
                 Component.signalText(() => Signal.get(count)->Int.toString),
               ],
               (),
             ),
-            Component.div(
+            Html.div(
               ~attrs=[Component.attr("class", "button-group")],
               ~children=[
-                Component.button(
+                Html.button(
                   ~attrs=[Component.attr("class", "btn")],
                   ~events=[("click", decrement)],
                   ~children=[Component.text("-")],
                   (),
                 ),
-                Component.button(
+                Html.button(
                   ~attrs=[Component.attr("class", "btn")],
                   ~events=[("click", increment)],
                   ~children=[Component.text("+")],
@@ -79,14 +79,14 @@ let app = (count, items, inputValue) =>
           (),
         ),
         /* Dynamic list section */
-        Component.div(
+        Html.div(
           ~attrs=[Component.attr("class", "list-section")],
           ~children=[
-            Component.h2(~children=[Component.text("Dynamic List")], ()),
-            Component.div(
+            Html.h2(~children=[Component.text("Dynamic List")], ()),
+            Html.div(
               ~attrs=[Component.attr("class", "input-group")],
               ~children=[
-                Component.input(
+                Html.input(
                   ~attrs=[
                     Component.attr("type", "text"),
                     Component.attr("placeholder", "Add item..."),
@@ -95,7 +95,7 @@ let app = (count, items, inputValue) =>
                   ~events=[("input", handleInput)],
                   (),
                 ),
-                Component.button(
+                Html.button(
                   ~attrs=[Component.attr("class", "btn")],
                   ~events=[("click", addItem)],
                   ~children=[Component.text("Add")],
@@ -104,10 +104,10 @@ let app = (count, items, inputValue) =>
               ],
               (),
             ),
-            Component.ul(
+            Html.ul(
               ~attrs=[Component.attr("class", "item-list")],
               ~children=[
-                Component.list(items, item => Component.li(~children=[Component.text(item)], ())),
+                Component.list(items, item => Html.li(~children=[Component.text(item)], ())),
               ],
               (),
             ),
@@ -115,11 +115,11 @@ let app = (count, items, inputValue) =>
           (),
         ),
         /* Reactive attribute demo */
-        Component.div(
+        Html.div(
           ~attrs=[Component.attr("class", "status-section")],
           ~children=[
-            Component.h2(~children=[Component.text("Reactive Attributes")], ()),
-            Component.div(
+            Html.h2(~children=[Component.text("Reactive Attributes")], ()),
+            Html.div(
               ~attrs=[
                 Component.computedAttr("class", () => {
                   let c = Signal.get(count)
