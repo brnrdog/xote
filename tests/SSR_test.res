@@ -1,5 +1,5 @@
-open Zekr
-open Xote
+open! Zekr
+open! Xote
 
 let snapshotDir = "tests/__snapshots__"
 let _ = setSnapshotDir(snapshotDir)

@@ -1,4 +1,3 @@
-open Signals
 
 /* ============================================================================
  * SSR State Serialization
@@ -85,6 +84,7 @@ module Codec = {
   let tuple2 = (codec1: t<'a>, codec2: t<'b>): t<('a, 'b)> => {
     encode: ((a, b)) => JSON.Encode.array([codec1.encode(a), codec2.encode(b)]),
     decode: json => {
+      ignore(json)
       let arr: option<array<JSON.t>> = %raw(`Array.isArray(json) ? json : undefined`)
       switch arr {
       | Some([j1, j2]) =>
@@ -101,6 +101,7 @@ module Codec = {
     encode: ((a, b, c)) =>
       JSON.Encode.array([codec1.encode(a), codec2.encode(b), codec3.encode(c)]),
     decode: json => {
+      ignore(json)
       let arr: option<array<JSON.t>> = %raw(`Array.isArray(json) ? json : undefined`)
       switch arr {
       | Some([j1, j2, j3]) =>

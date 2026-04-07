@@ -1,4 +1,3 @@
-open Signals
 
 /* Defines a property that can either be a signal (Reactive) or a static value
  (Static) */

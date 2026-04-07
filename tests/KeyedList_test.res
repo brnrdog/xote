@@ -1,5 +1,5 @@
-open Zekr
-open Xote
+open! Zekr
+open! Xote
 
 type item = {id: string, label: string}
 

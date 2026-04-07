@@ -1,4 +1,3 @@
-open Signals
 module Route = Route
 
 // Browser location type
@@ -56,7 +55,8 @@ let getGlobalState = (): globalRouterState => {
       }
 
       // Store in globalThis using the same symbol
-      %raw(`globalThis[Symbol.for("xote.router.state")] = state`)
+      ignore(state)
+      let _: unit = %raw(`globalThis[Symbol.for("xote.router.state")] = state`)
       state
     }
   }
@@ -71,7 +71,8 @@ let basePath = (): ref<string> => getGlobalState().basePath
 let warnIfNotInitialized = (methodName: string): unit => {
   let state = getGlobalState()
   if !state.initialized {
-    %raw(`console.warn(
+    ignore(methodName)
+    let _: unit = %raw(`console.warn(
       '[Xote Router] ' + methodName + ' called before Router.init(). ' +
       'Make sure to call Router.init() at your app entry point. ' +
       'This may cause incorrect routing behavior.'
@@ -146,11 +147,15 @@ let getScrollPosition = (): (float, float) => {
 }
 
 let scrollTo = (x: float, y: float): unit => {
-  %raw(`window.scrollTo(x, y)`)
+  ignore(x)
+  ignore(y)
+  let _: unit = %raw(`window.scrollTo(x, y)`)
 }
 
 // Create history state with scroll position
 let makeHistoryState = (scrollX: float, scrollY: float): historyState => {
+  ignore(scrollX)
+  ignore(scrollY)
   %raw(`({ scrollX: scrollX, scrollY: scrollY })`)
 }
 
@@ -160,6 +165,7 @@ let emptyHistoryState = (): historyState => {
 
 // Extract scroll position from history state
 let getScrollFromState = (state: historyState): option<(float, float)> => {
+  ignore(state)
   let scrollX: Nullable.t<float> = %raw(`state && state.scrollX`)
   let scrollY: Nullable.t<float> = %raw(`state && state.scrollY`)
   switch (Nullable.toOption(scrollX), Nullable.toOption(scrollY)) {
@@ -345,7 +351,7 @@ let link = (
   warnIfNotInitialized("Router.link()")
 
   let handleClick = (_evt: Dom.event) => {
-    %raw(`_evt.preventDefault()`)
+    let _: unit = %raw(`_evt.preventDefault()`)
     push(to, ())
   }
 
@@ -378,6 +384,7 @@ module Link = {
 
   /* Helper to detect if a value is a ReactiveProp variant */
   let isReactiveProp = (value: 'a): bool => {
+    ignore(value)
     %raw(`value && typeof value === 'object' && ('TAG' in value) && (value.TAG === 'Static' || value.TAG === 'Reactive')`)
   }
 
@@ -447,7 +454,7 @@ module Link = {
     warnIfNotInitialized("Router.Link")
 
     let handleClick = (evt: Dom.event) => {
-      %raw(`evt.preventDefault()`)
+      let _: unit = %raw(`evt.preventDefault()`)
       push(props.to, ())
 
       // Call user's onClick if provided

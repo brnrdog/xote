@@ -1,4 +1,3 @@
-open Signals
 module ReactiveProp = ReactiveProp
 
 /* ReScript JSX transform type aliases */
@@ -145,6 +144,7 @@ module Elements = {
 
   /* Helper to detect if a value is a ReactiveProp variant (checks for Static/Reactive tags) */
   let isReactiveProp = (value: 'a): bool => {
+    ignore(value)
     %raw(`value && typeof value === 'object' && ('TAG' in value) && (value.TAG === 'Static' || value.TAG === 'Reactive')`)
   }
 
