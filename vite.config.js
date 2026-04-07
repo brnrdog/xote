@@ -17,7 +17,7 @@ export default defineConfig(() => ({
     target: 'es2020',
     sourcemap: false,
     lib: {
-      entry: 'src/Xote.res.mjs',
+      entry: 'src/index.mjs',
       name: "xote",
       formats: ["es", "cjs", "umd"],
       fileName: (format) =>
