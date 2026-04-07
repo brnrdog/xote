@@ -1,4 +1,3 @@
-open Signals
 
 module DOM = Node.DOM
 module Reactivity = Node.Reactivity
@@ -30,6 +29,7 @@ module DOMWalker = {
 
   /* Get child nodes as array */
   let getChildNodes = (el: Dom.element): array<Dom.element> => {
+    ignore(el)
     %raw(`Array.from(el.childNodes || [])`)
   }
 
@@ -481,7 +481,10 @@ and hydrateNodeWithWalker = (node: Node.node, walker: DOMWalker.t): unit => {
 
       /* Get parent before moving nodes (we need it for insertion) */
       let parent: option<Dom.element> = switch contentNodes->Array.get(0) {
-      | Some(firstNode) => %raw(`firstNode.parentNode`)
+      | Some(firstNode) => {
+          ignore(firstNode)
+          %raw(`firstNode.parentNode`)
+        }
       | None => None
       }
 
@@ -580,7 +583,7 @@ and hydrateNodeWithWalker = (node: Node.node, walker: DOMWalker.t): unit => {
       let _ = DOMWalker.skipUntilMarker(walker, "/lc")
     }
 
-  | Node.KeyedList({signal, keyFn, renderItem}) => {
+  | Node.KeyedList({signal, keyFn, renderItem: _}) => {
       /* Find the keyed list in the DOM */
       let _ = DOMWalker.skipUntilMarker(walker, "kl")
 

@@ -2,7 +2,7 @@
  * Example SSR Application
  * This component can be rendered on the server and hydrated on the client
  */
-open Xote
+open! Xote
 
 /* Shared state factory - creates signals that sync between server and client */
 let makeAppState = () => {
@@ -36,6 +36,7 @@ let app = (count, items, inputValue) =>
     }
 
     let handleInput = (evt: Dom.event) => {
+      ignore(evt)
       let value: string = %raw(`evt.target.value`)
       Signal.set(inputValue, value)
     }
