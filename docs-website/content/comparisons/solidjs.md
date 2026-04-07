@@ -97,7 +97,7 @@ let counter = () => {
   // Runs once. Only the text node with Signal.get(count) updates.
   <div>
     <h1>
-      {Component.textSignal(() =>
+      {Component.signalText(() =>
         "Count: " ++ Int.toString(Signal.get(count))
       )}
     </h1>
@@ -108,7 +108,7 @@ let counter = () => {
 }
 ```
 
-The main difference is that SolidJS embeds reactive expressions directly in JSX (`{count()}`), while Xote uses explicit reactive text nodes (`Component.textSignal`). SolidJS's compiler transforms the JSX to wrap signal reads in effects automatically. Xote's approach is more explicit -- you decide which parts are reactive.
+The main difference is that SolidJS embeds reactive expressions directly in JSX (`{count()}`), while Xote uses explicit reactive text nodes (`Component.signalText`). SolidJS's compiler transforms the JSX to wrap signal reads in effects automatically. Xote's approach is more explicit -- you decide which parts are reactive.
 
 ## List Rendering
 
@@ -275,7 +275,7 @@ If you are coming from SolidJS, the mental model transfers well:
 - `createEffect` -> `Effect.run` (return `Some(cleanupFn)` or `None`; use `Effect.runWithDisposer` if you need the disposer)
 - `onCleanup` -> Return `Some(cleanupFn)` from the effect
 - `<For>` -> `Component.keyedList`
-- `<Show>` -> `Component.textSignal` or `SignalFragment` with conditional logic
+- `<Show>` -> `Component.signalText` or `SignalFragment` with conditional logic
 - `<A>` -> `<Router.Link>`
 - `@solidjs/router` -> `Router` module (built-in)
 - `renderToString` -> `SSR.renderToString`

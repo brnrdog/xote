@@ -171,7 +171,7 @@ let greeting = () => {
     <h3 id="reactive-text"> {Component.text("Reactive Text")} </h3>
     <p>
       {Component.text("Use ")}
-      <code> {Component.text("Component.textSignal()")} </code>
+      <code> {Component.text("Component.signalText()")} </code>
       {Component.text(" for text that updates with signals:")}
     </p>
     <pre>
@@ -179,7 +179,7 @@ let greeting = () => {
         {Component.text(`let count = Signal.make(0)
 
 <div>
-  {Component.textSignal(() =>
+  {Component.signalText(() =>
     "Count: " ++ Int.toString(Signal.get(count))
   )}
 </div>`)}
@@ -443,7 +443,7 @@ module Counter = {
 
     <div class="counter">
       <h2>
-        {Component.textSignal(() =>
+        {Component.signalText(() =>
           "Count: " ++ Int.toString(Signal.get(count))
         )}
       </h2>

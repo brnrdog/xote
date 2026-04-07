@@ -92,8 +92,8 @@ Xote supports **two syntax styles**:
 
 #### Function-based API (Component module)
 1. **Static text nodes**: `text("hello")`
-2. **Reactive text nodes**: `textSignal(() => ...)` - accepts a function that computes the text value
-3. **Type-specific helpers**: `reactiveString`, `reactiveInt`, `reactiveFloat` for reactive values; `int`, `float` for static values
+2. **Reactive text nodes**: `signalText(() => ...)` - accepts a function that computes the text value
+3. **Type-specific helpers**: `signalText`, `signalInt`, `signalFloat` for reactive values; `int`, `float` for static values
 4. **Unified attributes**: `attrs` parameter accepts static, signal, or computed values via helper functions:
    - `attr("key", "value")` - static string attribute
    - `signalAttr("key", signal)` - reactive attribute from a signal
@@ -254,11 +254,11 @@ Effect.run(() => {
 Component.text("Hello")
 
 // Reactive text (auto-updates)
-Component.textSignal(() => Signal.get(count)->Int.toString)
+Component.signalText(() => Signal.get(count)->Int.toString)
 
 // Type-specific helpers
-Component.reactiveInt(() => Signal.get(count))
-Component.reactiveFloat(() => Signal.get(price))
+Component.signalInt(() => Signal.get(count))
+Component.signalFloat(() => Signal.get(price))
 Component.int(42)
 Component.float(3.14)
 ```
@@ -365,7 +365,7 @@ let app = () => {
   let count = SSRState.make("count", 0, SSRState.Codec.int)
 
   <div>
-    <p> {Component.reactiveInt(() => Signal.get(count))} </p>
+    <p> {Component.signalInt(() => Signal.get(count))} </p>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
       {Component.text("+")}
     </button>

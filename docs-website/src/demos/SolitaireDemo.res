@@ -560,7 +560,7 @@ let make = () => {
         </h2>
         <p style="margin: 0; font-size: 0.875rem; opacity: 0.7;">
           {Component.text("Moves: ")}
-          {Component.textSignal(() => Signal.get(moves)->Int.toString)}
+          {Component.signalText(() => Signal.get(moves)->Int.toString)}
         </p>
       </div>
       <button
@@ -577,7 +577,7 @@ let make = () => {
             <div class="solitaire-win">
               <p style="font-size: 1.25rem; font-weight: bold; margin: 0;">
                 {Component.text("You Won! ")}
-                {Component.textSignal(() =>
+                {Component.signalText(() =>
                   `Completed in ${Signal.get(moves)->Int.toString} moves`
                 )}
               </p>

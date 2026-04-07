@@ -53,7 +53,7 @@ let app = (count, items, inputValue) =>
             Component.p(
               ~children=[
                 Component.text("Count: "),
-                Component.textSignal(() => Signal.get(count)->Int.toString),
+                Component.signalText(() => Signal.get(count)->Int.toString),
               ],
               (),
             ),
@@ -133,7 +133,7 @@ let app = (count, items, inputValue) =>
                 }),
               ],
               ~children=[
-                Component.textSignal(() => {
+                Component.signalText(() => {
                   let c = Signal.get(count)
                   if c > 5 {
                     "Count is HIGH!"

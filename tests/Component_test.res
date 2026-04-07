@@ -17,25 +17,25 @@ let suite = Zekr.suite(
     test("renders reactive text that updates when signal changes", () => {
       let {container} = Dom.render("")
       let name = Signal.make("Alice")
-      let _ = mountTo(Component.textSignal(() => "Hello, " ++ Signal.get(name)), container)
+      let _ = mountTo(Component.signalText(() => "Hello, " ++ Signal.get(name)), container)
       let r1 = Dom.Assert.toHaveTextContent(container, "Hello, Alice")
       Signal.set(name, "Bob")
       let r2 = Dom.Assert.toHaveTextContent(container, "Hello, Bob")
       combineResults([r1, r2])
     }),
-    test("renders reactiveInt", () => {
+    test("renders signalInt", () => {
       let {container} = Dom.render("")
       let count = Signal.make(42)
-      let _ = mountTo(Component.reactiveInt(() => Signal.get(count)), container)
+      let _ = mountTo(Component.signalInt(() => Signal.get(count)), container)
       let r1 = Dom.Assert.toHaveTextContent(container, "42")
       Signal.set(count, 99)
       let r2 = Dom.Assert.toHaveTextContent(container, "99")
       combineResults([r1, r2])
     }),
-    test("renders reactiveFloat", () => {
+    test("renders signalFloat", () => {
       let {container} = Dom.render("")
       let price = Signal.make(3.14)
-      let _ = mountTo(Component.reactiveFloat(() => Signal.get(price)), container)
+      let _ = mountTo(Component.signalFloat(() => Signal.get(price)), container)
       Dom.Assert.toHaveTextContent(container, "3.14")
     }),
     test("renders static int and float helpers", () => {
@@ -107,7 +107,7 @@ let suite = Zekr.suite(
             ~children=[Component.text("Click me")],
             (),
           ),
-          Component.reactiveInt(() => Signal.get(count)),
+          Component.signalInt(() => Signal.get(count)),
         ], ()),
         container,
       )

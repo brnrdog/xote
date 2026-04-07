@@ -202,7 +202,7 @@ let reset = (_evt: Dom.event) => {
 let app = () => {
   <div>
     <h1>
-      {Component.textSignal(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {Component.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
     </h1>
     <button onClick={increment}>
       {Component.text("+")}

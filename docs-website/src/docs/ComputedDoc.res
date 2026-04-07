@@ -121,12 +121,12 @@ Signal.set(count, 10)
   let doubled = Computed.make(() => Signal.get(count) * 2)
 
   <div>
-    {Component.textSignal(() => Signal.get(doubled)->Int.toString)}
+    {Component.signalText(() => Signal.get(doubled)->Int.toString)}
   </div>
 }
 
 // When the component unmounts:
-// 1. The textSignal effect is disposed
+// 1. The signalText effect is disposed
 // 2. doubled loses its last subscriber
 // 3. doubled is automatically disposed ✨`)}
       </code>

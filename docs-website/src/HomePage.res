@@ -189,7 +189,7 @@ module CodeDemo = {
 
         <div class="counter-app">
           <div class="counter-display">
-            {Component.textSignal(() => Signal.get(count)->Int.toString)}
+            {Component.signalText(() => Signal.get(count)->Int.toString)}
           </div>
           <div class="counter-buttons">
             <button onClick={decrement} class="counter-btn"> {Component.text("-")} </button>
@@ -236,13 +236,13 @@ module CodeDemo = {
             <div class="temp-result">
               <span class="temp-result-label"> {Component.text("Fahrenheit")} </span>
               <span class="temp-result-value">
-                {Component.textSignal(() => Signal.get(fahrenheit)->Float.toFixed(~digits=1))}
+                {Component.signalText(() => Signal.get(fahrenheit)->Float.toFixed(~digits=1))}
               </span>
             </div>
             <div class="temp-result">
               <span class="temp-result-label"> {Component.text("Kelvin")} </span>
               <span class="temp-result-value">
-                {Component.textSignal(() => Signal.get(kelvin)->Float.toFixed(~digits=1))}
+                {Component.signalText(() => Signal.get(kelvin)->Float.toFixed(~digits=1))}
               </span>
             </div>
           </div>
@@ -277,7 +277,7 @@ module CodeDemo = {
 
         <div class="timer-app">
           <div class="timer-display">
-            {Component.textSignal(() => {
+            {Component.signalText(() => {
               let s = Signal.get(seconds)
               let mins = s / 60
               let secs = mod(s, 60)
@@ -286,7 +286,7 @@ module CodeDemo = {
           </div>
           <div class="timer-buttons">
             <button onClick={toggleTimer} class="timer-btn timer-btn-primary">
-              {Component.textSignal(() => Signal.get(isRunning) ? "Pause" : "Start")}
+              {Component.signalText(() => Signal.get(isRunning) ? "Pause" : "Start")}
             </button>
             <button onClick={resetTimer} class="timer-btn"> {Component.text("Reset")} </button>
           </div>
@@ -308,7 +308,7 @@ let make = () => {
 
   <div class="counter-app">
     <div class="counter-display">
-      {Component.textSignal(() =>
+      {Component.signalText(() =>
         Signal.get(count)->Int.toString
       )}
     </div>
@@ -345,7 +345,7 @@ let make = () => {
       (),
     )}
     <span>
-      {Component.textSignal(() =>
+      {Component.signalText(() =>
         Signal.get(fahrenheit)
           ->Float.toFixed(~digits=1)
       )}
@@ -374,7 +374,7 @@ let make = () => {
   })
 
   <button onClick={toggleTimer}>
-    {Component.textSignal(() =>
+    {Component.signalText(() =>
       Signal.get(isRunning)
         ? "Pause" : "Start"
     )}

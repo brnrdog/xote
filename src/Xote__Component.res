@@ -499,23 +499,17 @@ module Render = {
 /* Text nodes */
 let text = (content: string): node => Text(content)
 
-let textSignal = (compute: unit => string): node => {
+let signalText = (compute: unit => string): node => {
   let signal = Computed.make(compute)
   SignalText(signal)
 }
 
-/* Reactive text nodes with type-specific helpers */
-let reactiveString = (compute: unit => string): node => {
-  let signal = Computed.make(compute)
-  SignalText(signal)
-}
-
-let reactiveInt = (compute: unit => int): node => {
+let signalInt = (compute: unit => int): node => {
   let signal = Computed.make(() => compute()->Int.toString)
   SignalText(signal)
 }
 
-let reactiveFloat = (compute: unit => float): node => {
+let signalFloat = (compute: unit => float): node => {
   let signal = Computed.make(() => compute()->Float.toString)
   SignalText(signal)
 }
