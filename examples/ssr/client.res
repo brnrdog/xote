@@ -2,7 +2,6 @@
  * Client-side hydration entry point
  * This script hydrates the server-rendered HTML
  */
-open! Xote
 
 /* Create state - SSRState.make automatically restores from server-serialized values */
 let (count, items, inputValue) = App.makeAppState()

@@ -1,5 +1,4 @@
 open! Zekr
-open! Xote
 
 let suite = Zekr.suite(
   "Hydration",
