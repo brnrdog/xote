@@ -46,8 +46,8 @@ The codebase uses ReScript's `namespace: true` setting in `rescript.json`, so ev
 These three are thin shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.res`) that `include` the corresponding modules from `rescript-signals`.
 
 **Xote Modules:**
-- **`Xote.Component`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `fragment`, `signalFragment`, `list`, `keyedList`, `element`), attribute helpers (`attr`, `signalAttr`, `computedAttr`), the `null` placeholder, and `mount`/`mountById`. The owner-based reactivity system for resource cleanup also lives here.
-- **`Xote.Html`**: Convenience constructors for common HTML tags (`div`, `span`, `button`, `input`, `h1`-`h3`, `p`, `ul`, `li`, `a`). Thin wrappers over `Component.element`. For tags not listed, call `Component.element(tag, ...)` directly or use JSX.
+- **`Xote.Node`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `fragment`, `signalFragment`, `list`, `keyedList`, `element`), attribute helpers (`attr`, `signalAttr`, `computedAttr`), the `null` placeholder, and `mount`/`mountById`. The owner-based reactivity system for resource cleanup also lives here.
+- **`Xote.Html`**: Convenience constructors for common HTML tags (`div`, `span`, `button`, `input`, `h1`-`h3`, `p`, `ul`, `li`, `a`). Thin wrappers over `Node.element`. For tags not listed, call `Node.element(tag, ...)` directly or use JSX.
 - **`Xote.XoteJSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with ~35 supported attributes including aria attributes. Named `XoteJSX` (not `JSX`) to avoid colliding with unrelated modules when consumers use `open Xote`.
 - **`Xote.ReactiveProp`**: A helper type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` for flexible prop handling in JSX - allows props to accept either static values or reactive signals.
 - **`Xote.Router`**: Signal-based client-side router with pattern matching, dynamic routes, base path support, scroll position restoration, and a global singleton state (via `Symbol.for()`) that works across multiple bundles.
@@ -104,8 +104,8 @@ Xote supports **two syntax styles**:
    - `list(signal, renderItem)` - simple reactive list (re-renders all items on change)
    - `keyedList(signal, keyFn, renderItem)` - efficient keyed list with DOM reconciliation (preserves element identity, only updates changed items)
 6. **Event handlers**: `events` parameter for DOM event listeners
-7. **Null node**: `Component.null()` - renders an empty text node
-8. **HTML element helpers**: `Html.div`, `Html.button`, `Html.p`, etc. live in the `Xote.Html` module — use them when writing the function-based API. For tags not covered, fall back to `Component.element("tag", ...)`.
+7. **Null node**: `Node.null()` - renders an empty text node
+8. **HTML element helpers**: `Html.div`, `Html.button`, `Html.p`, etc. live in the `Xote.Html` module — use them when writing the function-based API. For tags not covered, fall back to `Node.element("tag", ...)`.
 9. **Mounting**: `mount(node, container)` or `mountById(node, "element-id")` to attach to DOM
 
 #### JSX Syntax
@@ -114,9 +114,9 @@ Xote supports ReScript's generic JSX v4 for a declarative component syntax:
 ```rescript
 let app = () => {
   <div class="container">
-    <h1> {Component.text("Hello JSX")} </h1>
+    <h1> {Node.text("Hello JSX")} </h1>
     <button onClick={handleClick}>
-      {Component.text("Click me")}
+      {Node.text("Click me")}
     </button>
   </div>
 }
@@ -194,7 +194,7 @@ The `DOM.setAttrOrProp` function handles the distinction between HTML attributes
 
 5. **Untracked reads**: Use `Signal.peek(signal)` to read without creating a dependency.
 
-6. **Module naming**: Source files in `src/` use bare names (`Component.res`, `Router.res`, ...). ReScript's `namespace: true` scopes them under `Xote`, so consumers access them as `Xote.Component`, `Xote.Router`, etc. There is no `Xote__` prefix and no central `Xote.res` barrel.
+6. **Module naming**: Source files in `src/` use bare names (`Node.res`, `Router.res`, ...). ReScript's `namespace: true` scopes them under `Xote`, so consumers access them as `Xote.Node`, `Xote.Router`, etc. There is no `Xote__` prefix and no central `Xote.res` barrel.
 
 7. **Batching not available**: The underlying rescript-signals library does not currently expose batching functionality. Updates run synchronously.
 
@@ -202,7 +202,7 @@ The `DOM.setAttrOrProp` function handles the distinction between HTML attributes
 
 9. **Exception safety**: The scheduler and observer execution is wrapped in try/catch blocks to ensure tracking state is always restored, even when exceptions are thrown.
 
-10. **ReScript compilation required**: Always compile ReScript before building with Vite. Vite entry points come from the per-module compiled `.res.mjs` files in `src/` (e.g. `src/Component.res.mjs`).
+10. **ReScript compilation required**: Always compile ReScript before building with Vite. Vite entry points come from the per-module compiled `.res.mjs` files in `src/` (e.g. `src/Node.res.mjs`).
 
 11. **Owner-based cleanup**: Reactive state (effects, computeds) is tracked per-DOM-element via the owner system. When elements are removed, their owners are disposed recursively, preventing memory leaks.
 
@@ -254,37 +254,37 @@ Effect.run(() => {
 ### Text nodes
 ```rescript
 // Static text
-Component.text("Hello")
+Node.text("Hello")
 
 // Reactive text (auto-updates)
-Component.signalText(() => Signal.get(count)->Int.toString)
+Node.signalText(() => Signal.get(count)->Int.toString)
 
 // Type-specific helpers
-Component.signalInt(() => Signal.get(count))
-Component.signalFloat(() => Signal.get(price))
-Component.int(42)
-Component.float(3.14)
+Node.signalInt(() => Signal.get(count))
+Node.signalFloat(() => Signal.get(price))
+Node.int(42)
+Node.float(3.14)
 ```
 
 ### Attributes
 ```rescript
 // Static
-Component.attr("class", "btn btn-primary")
+Node.attr("class", "btn btn-primary")
 
 // Reactive from signal
 let className = Signal.make("btn-primary")
-Component.signalAttr("class", className)
+Node.signalAttr("class", className)
 
 // Reactive from computation
-Component.computedAttr("class", () =>
+Node.computedAttr("class", () =>
   Signal.get(isActive) ? "active" : "inactive"
 )
 
 // Mixing static and reactive
 Html.button(
   ~attrs=[
-    Component.attr("type", "button"),
-    Component.computedAttr("class", () =>
+    Node.attr("type", "button"),
+    Node.computedAttr("class", () =>
       Signal.get(isActive) ? "active" : "inactive"
     )
   ],
@@ -296,15 +296,15 @@ Html.button(
 ```rescript
 // Simple list (re-renders all items on change)
 let items = Signal.make([1, 2, 3])
-Component.list(items, item => Component.text(Int.toString(item)))
+Node.list(items, item => Node.text(Int.toString(item)))
 
 // Keyed list (efficient reconciliation)
 type todo = { id: string, text: string }
 let todos = Signal.make([{ id: "1", text: "Buy milk" }])
-Component.keyedList(
+Node.keyedList(
   todos,
   todo => todo.id,
-  todo => Html.li(~children=[Component.text(todo.text)], ())
+  todo => Html.li(~children=[Node.text(todo.text)], ())
 )
 ```
 
@@ -313,12 +313,12 @@ Component.keyedList(
 #### Basic JSX elements
 ```rescript
 <div class="container">
-  {Component.text("Hello")}
+  {Node.text("Hello")}
 </div>
 
 // With events
 <button onClick={handleClick}>
-  {Component.text("Click me")}
+  {Node.text("Click me")}
 </button>
 
 // Input with reactive value
@@ -333,11 +333,11 @@ Component.keyedList(
 ```rescript
 // Props can accept either static or reactive values
 <div class={ReactiveProp.static("container")}>
-  {Component.text("Static class")}
+  {Node.text("Static class")}
 </div>
 
 <div class={ReactiveProp.reactive(classSignal)}>
-  {Component.text("Reactive class")}
+  {Node.text("Reactive class")}
 </div>
 ```
 
@@ -348,7 +348,7 @@ Router.init(~basePath="/my-app", ())
 
 // JSX Link component
 <Router.Link to="/about" class="nav-link">
-  {Component.text("About")}
+  {Node.text("About")}
 </Router.Link>
 
 // Route matching
@@ -368,9 +368,9 @@ let app = () => {
   let count = SSRState.make("count", 0, SSRState.Codec.int)
 
   <div>
-    <p> {Component.signalInt(() => Signal.get(count))} </p>
+    <p> {Node.signalInt(() => Signal.get(count))} </p>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
-      {Component.text("+")}
+      {Node.text("+")}
     </button>
   </div>
 }

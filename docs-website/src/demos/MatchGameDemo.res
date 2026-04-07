@@ -242,9 +242,9 @@ let make = () => {
   <div class="demo-container">
     // Header
     <div class="demo-section" style="text-align: center; margin-bottom: 1rem;">
-      <h2 style="margin: 0 0 0.25rem 0;"> {Component.text("Memory Match Game")} </h2>
+      <h2 style="margin: 0 0 0.25rem 0;"> {Node.text("Memory Match Game")} </h2>
       <p style="color: var(--text-muted); margin: 0;">
-        {Component.text("2 Players - Find matching pairs")}
+        {Node.text("2 Players - Find matching pairs")}
       </p>
     </div>
 
@@ -259,10 +259,10 @@ let make = () => {
               | Player2 => "match-score-inactive"
               }}
           >
-            {Component.signalText(() => "P1: " ++ Int.toString(Signal.get(player1Score)))}
+            {Node.signalText(() => "P1: " ++ Int.toString(Signal.get(player1Score)))}
           </div>
           <div style="font-size: 0.75rem; color: var(--text-muted);">
-            {Component.signalText(() =>
+            {Node.signalText(() =>
               switch Signal.get(currentPlayer) {
               | Player1 => "Your Turn"
               | Player2 => ""
@@ -272,10 +272,10 @@ let make = () => {
         </div>
         <div style="text-align: center;">
           <div style="font-weight: bold; font-size: 1.125rem;">
-            {Component.signalText(() => "Level " ++ Int.toString(Signal.get(currentLevel)))}
+            {Node.signalText(() => "Level " ++ Int.toString(Signal.get(currentLevel)))}
           </div>
           <div style="font-size: 0.75rem; color: var(--text-muted);">
-            {Component.signalText(() => {
+            {Node.signalText(() => {
               let level = Signal.get(currentLevel)
               let numCards = levelsConfig[level - 1]->Option.getOr(4)
               Int.toString(numCards) ++ " cards"
@@ -290,10 +290,10 @@ let make = () => {
               | Player1 => "match-score-inactive"
               }}
           >
-            {Component.signalText(() => "P2: " ++ Int.toString(Signal.get(player2Score)))}
+            {Node.signalText(() => "P2: " ++ Int.toString(Signal.get(player2Score)))}
           </div>
           <div style="font-size: 0.75rem; color: var(--text-muted);">
-            {Component.signalText(() =>
+            {Node.signalText(() =>
               switch Signal.get(currentPlayer) {
               | Player2 => "Your Turn"
               | Player1 => ""
@@ -318,7 +318,7 @@ let make = () => {
         }
       }}
     >
-      {Component.list(cards, card => {
+      {Node.list(cards, card => {
         let className = if card.matched {
           "match-card matched"
         } else if card.flipped {
@@ -328,7 +328,7 @@ let make = () => {
         }
 
         <button class={className} onClick={handleCardClick(card.id, _)}>
-          {Component.signalText(() =>
+          {Node.signalText(() =>
             if card.flipped || card.matched {
               card.symbol
             } else {
@@ -350,7 +350,7 @@ let make = () => {
     >
       <div class="match-modal">
         <h2 style="margin: 0 0 1rem 0;">
-          {Component.signalText(() =>
+          {Node.signalText(() =>
             switch Signal.get(gameState) {
             | LevelComplete => "Level Complete!"
             | GameWon => "Game Won!"
@@ -360,7 +360,7 @@ let make = () => {
         </h2>
         <div style="margin-bottom: 1.5rem;">
           <div style="margin-bottom: 0.5rem; font-weight: bold;">
-            {Component.signalText(() => {
+            {Node.signalText(() => {
               let p1 = Signal.get(player1Score)
               let p2 = Signal.get(player2Score)
               if p1 > p2 {
@@ -373,7 +373,7 @@ let make = () => {
             })}
           </div>
           <div style="color: var(--text-muted);">
-            {Component.signalText(() =>
+            {Node.signalText(() =>
               "Player 1: " ++
               Int.toString(Signal.get(player1Score)) ++
               " | Player 2: " ++
@@ -391,10 +391,10 @@ let make = () => {
               }}
             onClick={nextLevel}
           >
-            {Component.text("Next Level")}
+            {Node.text("Next Level")}
           </button>
           <button class="demo-btn demo-btn-secondary" onClick={restartGame}>
-            {Component.text("Restart Game")}
+            {Node.text("Restart Game")}
           </button>
         </div>
       </div>
@@ -403,7 +403,7 @@ let make = () => {
     // Restart button
     <div style="text-align: center; margin-top: 1rem;">
       <button class="demo-btn demo-btn-secondary" onClick={restartGame}>
-        {Component.text("Restart Game")}
+        {Node.text("Restart Game")}
       </button>
     </div>
   </div>

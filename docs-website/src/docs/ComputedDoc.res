@@ -9,32 +9,32 @@ open Xote
 
 let content = () => {
   <div>
-    <h1> {Component.text("Computed Values")} </h1>
+    <h1> {Node.text("Computed Values")} </h1>
     <p>
-      {Component.text("Computed values are derived signals that automatically stay in sync with their dependencies. They use lazy evaluation — when dependencies change, computeds are marked dirty but only recalculate when read. They're perfect for deriving state from other reactive sources.")}
+      {Node.text("Computed values are derived signals that automatically stay in sync with their dependencies. They use lazy evaluation — when dependencies change, computeds are marked dirty but only recalculate when read. They're perfect for deriving state from other reactive sources.")}
     </p>
     <div class="info-box">
       <p>
-        <strong> {Component.text("Info:")} </strong>
-      {Component.text(" Xote re-exports ")}
-      <code> {Component.text("Computed")} </code>
-      {Component.text(" from ")}
-      <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
-      {Component.text(". The API and behavior are provided by that library.")}
+        <strong> {Node.text("Info:")} </strong>
+      {Node.text(" Xote re-exports ")}
+      <code> {Node.text("Computed")} </code>
+      {Node.text(" from ")}
+      <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {Node.text("rescript-signals")} </a>
+      {Node.text(". The API and behavior are provided by that library.")}
       </p>
     </div>
     <p>
-      {Component.text("Test")}
+      {Node.text("Test")}
     </p>
-    <h2 id="creating-computed-values"> {Component.text("Creating Computed Values")} </h2>
+    <h2 id="creating-computed-values"> {Node.text("Creating Computed Values")} </h2>
     <p>
-      {Component.text("Use ")}
-      <code> {Component.text("Computed.make()")} </code>
-      {Component.text(" with a function that computes the derived value. It returns the computed signal:")}
+      {Node.text("Use ")}
+      <code> {Node.text("Computed.make()")} </code>
+      {Node.text(" with a function that computes the derived value. It returns the computed signal:")}
     </p>
     <pre>
       <code>
-        {Component.text(`open Xote
+        {Node.text(`open Xote
 
 let firstName = Signal.make("John")
 let lastName = Signal.make("Doe")
@@ -48,36 +48,36 @@ let fullName = Computed.make(() =>
 Console.log(Signal.get(fullName)) // "John Doe"`)}
       </code>
     </pre>
-    <h2 id="how-computed-values-work"> {Component.text("How Computed Values Work")} </h2>
+    <h2 id="how-computed-values-work"> {Node.text("How Computed Values Work")} </h2>
     <p>
-      {Component.text("Computed values use lazy evaluation with push-based dirty flagging:")}
+      {Node.text("Computed values use lazy evaluation with push-based dirty flagging:")}
     </p>
     <ol>
       <li>
-        {Component.text("When created, the computation runs immediately to establish dependencies")}
+        {Node.text("When created, the computation runs immediately to establish dependencies")}
       </li>
       <li>
-        {Component.text("When any dependency changes, the computed is marked dirty (dirty flag is pushed)")}
+        {Node.text("When any dependency changes, the computed is marked dirty (dirty flag is pushed)")}
       </li>
       <li>
-        {Component.text("When the computed is read (via Signal.get or Signal.peek), it recomputes if dirty")}
+        {Node.text("When the computed is read (via Signal.get or Signal.peek), it recomputes if dirty")}
       </li>
       <li>
-        {Component.text("The new value is stored in the backing signal, and observers are notified if it changed")}
+        {Node.text("The new value is stored in the backing signal, and observers are notified if it changed")}
       </li>
     </ol>
     <p>
-      {Component.text("This means computed values are always up-to-date when read, but they never recalculate if their value is not read — a dirty computed with no readers stays dirty and skips recomputation entirely.")}
+      {Node.text("This means computed values are always up-to-date when read, but they never recalculate if their value is not read — a dirty computed with no readers stays dirty and skips recomputation entirely.")}
     </p>
-    <h2 id="reading-computed-values"> {Component.text("Reading Computed Values")} </h2>
+    <h2 id="reading-computed-values"> {Node.text("Reading Computed Values")} </h2>
     <p>
-      {Component.text("Computed values return a signal that can be read with ")}
-      <code> {Component.text("Signal.get()")} </code>
-      {Component.text(":")}
+      {Node.text("Computed values return a signal that can be read with ")}
+      <code> {Node.text("Signal.get()")} </code>
+      {Node.text(":")}
     </p>
     <pre>
       <code>
-        {Component.text(`let count = Signal.make(5)
+        {Node.text(`let count = Signal.make(5)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 
 Console.log(Signal.get(doubled)) // Prints: 10
@@ -86,13 +86,13 @@ Signal.set(count, 10)
 Console.log(Signal.get(doubled)) // Prints: 20`)}
       </code>
     </pre>
-    <h2 id="automatic-disposal"> {Component.text("Automatic Disposal")} </h2>
+    <h2 id="automatic-disposal"> {Node.text("Automatic Disposal")} </h2>
     <p>
-      <strong> {Component.text("Computed values automatically dispose when they lose all subscribers - you don't need to manually call Computed.dispose() in most cases!")} </strong>
+      <strong> {Node.text("Computed values automatically dispose when they lose all subscribers - you don't need to manually call Computed.dispose() in most cases!")} </strong>
     </p>
     <pre>
       <code>
-        {Component.text(`let count = Signal.make(0)
+        {Node.text(`let count = Signal.make(0)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 
 // Create an effect that subscribes to doubled
@@ -112,16 +112,16 @@ Signal.set(count, 10)
       </code>
     </pre>
     <p>
-      {Component.text("This works seamlessly with Components:")}
+      {Node.text("This works seamlessly with Components:")}
     </p>
     <pre>
       <code>
-        {Component.text(`let app = () => {
+        {Node.text(`let app = () => {
   let count = Signal.make(0)
   let doubled = Computed.make(() => Signal.get(count) * 2)
 
   <div>
-    {Component.signalText(() => Signal.get(doubled)->Int.toString)}
+    {Node.signalText(() => Signal.get(doubled)->Int.toString)}
   </div>
 }
 
@@ -131,13 +131,13 @@ Signal.set(count, 10)
 // 3. doubled is automatically disposed ✨`)}
       </code>
     </pre>
-    <h3 id="manual-disposal-optional"> {Component.text("Manual Disposal (Optional)")} </h3>
+    <h3 id="manual-disposal-optional"> {Node.text("Manual Disposal (Optional)")} </h3>
     <p>
-      {Component.text("You can still manually dispose computeds when needed:")}
+      {Node.text("You can still manually dispose computeds when needed:")}
     </p>
     <pre>
       <code>
-        {Component.text(`let count = Signal.make(0)
+        {Node.text(`let count = Signal.make(0)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 
 // Use it...
@@ -148,26 +148,26 @@ Computed.dispose(doubled)`)}
       </code>
     </pre>
     <p>
-      <strong> {Component.text("Manual disposal is useful when:")} </strong>
+      <strong> {Node.text("Manual disposal is useful when:")} </strong>
     </p>
     <ul>
       <li>
-        {Component.text("You want explicit control over lifecycle")}
+        {Node.text("You want explicit control over lifecycle")}
       </li>
       <li>
-        {Component.text("The computed has no subscribers but you want to stop it anyway")}
+        {Node.text("The computed has no subscribers but you want to stop it anyway")}
       </li>
       <li>
-        {Component.text("You're managing complex dependency graphs manually")}
+        {Node.text("You're managing complex dependency graphs manually")}
       </li>
     </ul>
-    <h2 id="chaining-computed-values"> {Component.text("Chaining Computed Values")} </h2>
+    <h2 id="chaining-computed-values"> {Node.text("Chaining Computed Values")} </h2>
     <p>
-      {Component.text("You can create computed values that depend on other computed values:")}
+      {Node.text("You can create computed values that depend on other computed values:")}
     </p>
     <pre>
       <code>
-        {Component.text(`let price = Signal.make(100)
+        {Node.text(`let price = Signal.make(100)
 let quantity = Signal.make(3)
 
 let subtotal = Computed.make(() =>
@@ -188,13 +188,13 @@ Signal.set(quantity, 5)
 Console.log(Signal.get(total)) // 550`)}
       </code>
     </pre>
-    <h2 id="computed-vs-manual-updates"> {Component.text("Computed vs Manual Updates")} </h2>
+    <h2 id="computed-vs-manual-updates"> {Node.text("Computed vs Manual Updates")} </h2>
     <p>
-      {Component.text("Instead of manually updating derived state:")}
+      {Node.text("Instead of manually updating derived state:")}
     </p>
     <pre>
       <code>
-        {Component.text(`// ❌ Manual (error-prone)
+        {Node.text(`// ❌ Manual (error-prone)
 let count = Signal.make(0)
 let doubled = Signal.make(0)
 
@@ -205,11 +205,11 @@ let increment = () => {
       </code>
     </pre>
     <p>
-      {Component.text("Use computed values for automatic updates:")}
+      {Node.text("Use computed values for automatic updates:")}
     </p>
     <pre>
       <code>
-        {Component.text(`// ✅ Automatic (safe)
+        {Node.text(`// ✅ Automatic (safe)
 let count = Signal.make(0)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 
@@ -219,13 +219,13 @@ let increment = () => {
 }`)}
       </code>
     </pre>
-    <h2 id="dynamic-dependencies"> {Component.text("Dynamic Dependencies")} </h2>
+    <h2 id="dynamic-dependencies"> {Node.text("Dynamic Dependencies")} </h2>
     <p>
-      {Component.text("Computed values re-track dependencies on every execution, so they adapt to control flow:")}
+      {Node.text("Computed values re-track dependencies on every execution, so they adapt to control flow:")}
     </p>
     <pre>
       <code>
-        {Component.text(`let useMetric = Signal.make(true)
+        {Node.text(`let useMetric = Signal.make(true)
 let celsius = Signal.make(20)
 let fahrenheit = Signal.make(68)
 
@@ -245,37 +245,37 @@ Signal.set(useMetric, false)
 Console.log(Signal.get(temperature)) // 68`)}
       </code>
     </pre>
-    <h2 id="best-practices"> {Component.text("Best Practices")} </h2>
+    <h2 id="best-practices"> {Node.text("Best Practices")} </h2>
     <ul>
       <li>
-        <strong> {Component.text("Keep computations pure:")} </strong>
-      {Component.text(" Computed functions should not have side effects")}
+        <strong> {Node.text("Keep computations pure:")} </strong>
+      {Node.text(" Computed functions should not have side effects")}
       </li>
       <li>
-        <strong> {Component.text("Use for derived state:")} </strong>
-      {Component.text(" Any value that can be calculated from other signals should be a computed")}
+        <strong> {Node.text("Use for derived state:")} </strong>
+      {Node.text(" Any value that can be calculated from other signals should be a computed")}
       </li>
       <li>
-        <strong> {Component.text("Avoid expensive operations:")} </strong>
-      {Component.text(" Computed values recalculate when read, so keep them fast")}
+        <strong> {Node.text("Avoid expensive operations:")} </strong>
+      {Node.text(" Computed values recalculate when read, so keep them fast")}
       </li>
       <li>
-        <strong> {Component.text("Don't nest effects:")} </strong>
-      {Component.text(" Computed values should not call Effect.run() internally")}
+        <strong> {Node.text("Don't nest effects:")} </strong>
+      {Node.text(" Computed values should not call Effect.run() internally")}
       </li>
       <li>
-        <strong> {Component.text("Trust auto-disposal:")} </strong>
-      {Component.text(" In most cases, computeds will automatically clean up when their subscribers are disposed. Manual disposal is rarely needed")}
+        <strong> {Node.text("Trust auto-disposal:")} </strong>
+      {Node.text(" In most cases, computeds will automatically clean up when their subscribers are disposed. Manual disposal is rarely needed")}
       </li>
     </ul>
-    <h2 id="important-notes"> {Component.text("Important Notes")} </h2>
-    <h3 id="cascading-auto-disposal"> {Component.text("Cascading Auto-Disposal")} </h3>
+    <h2 id="important-notes"> {Node.text("Important Notes")} </h2>
+    <h3 id="cascading-auto-disposal"> {Node.text("Cascading Auto-Disposal")} </h3>
     <p>
-      {Component.text("Auto-disposal can cascade through chains of computeds:")}
+      {Node.text("Auto-disposal can cascade through chains of computeds:")}
     </p>
     <pre>
       <code>
-        {Component.text(`let count = Signal.make(0)
+        {Node.text(`let count = Signal.make(0)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 let quadrupled = Computed.make(() => Signal.get(doubled) * 2)
 
@@ -292,15 +292,15 @@ disposer.dispose()
       </code>
     </pre>
     <p>
-      {Component.text("This ensures the entire chain is cleaned up automatically when the leaf subscriber is removed!")}
+      {Node.text("This ensures the entire chain is cleaned up automatically when the leaf subscriber is removed!")}
     </p>
-    <h3 id="lazy-with-dirty-flagging"> {Component.text("Lazy with Push-based Dirty Flagging")} </h3>
+    <h3 id="lazy-with-dirty-flagging"> {Node.text("Lazy with Push-based Dirty Flagging")} </h3>
     <p>
-      {Component.text("Xote's computed values use lazy evaluation — they only recompute when read:")}
+      {Node.text("Xote's computed values use lazy evaluation — they only recompute when read:")}
     </p>
     <pre>
       <code>
-        {Component.text(`let count = Signal.make(0)
+        {Node.text(`let count = Signal.make(0)
 let expensive = Computed.make(() => {
   Console.log("Computing...")
   Signal.get(count) * 2
@@ -315,22 +315,22 @@ Signal.get(expensive)
 // NOW "Computing..." is logged — recomputation happens on read`)}
       </code>
     </pre>
-    <h2 id="next-steps"> {Component.text("Next Steps")} </h2>
+    <h2 id="next-steps"> {Node.text("Next Steps")} </h2>
     <ul>
       <li>
-        {Component.text("Learn about ")}
-      {Router.link(~to="/docs/core-concepts/effects", ~children=[Component.text("Effects")], ())}
-      {Component.text(" for side effects")}
+        {Node.text("Learn about ")}
+      {Router.link(~to="/docs/core-concepts/effects", ~children=[Node.text("Effects")], ())}
+      {Node.text(" for side effects")}
       </li>
       <li>
-        {Component.text("Understand ")}
-      {Router.link(~to="/docs/core-concepts/batching", ~children=[Component.text("Batching")], ())}
-      {Component.text(" for grouping updates")}
+        {Node.text("Understand ")}
+      {Router.link(~to="/docs/core-concepts/batching", ~children=[Node.text("Batching")], ())}
+      {Node.text(" for grouping updates")}
       </li>
       <li>
-        {Component.text("See ")}
-      {Router.link(~to="/docs/components/overview", ~children=[Component.text("Components")], ())}
-      {Component.text(" to use computed values in UIs")}
+        {Node.text("See ")}
+      {Router.link(~to="/docs/components/overview", ~children=[Node.text("Components")], ())}
+      {Node.text(" to use computed values in UIs")}
       </li>
     </ul>
   </div>

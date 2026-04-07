@@ -9,42 +9,42 @@ open Xote
 
 let content = () => {
   <div>
-    <h1> {Component.text("Getting Started")} </h1>
+    <h1> {Node.text("Getting Started")} </h1>
     <p>
-      {Component.text("Welcome to Xote (pronounced ")}
-      {Component.text(") - a lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system.")}
+      {Node.text("Welcome to Xote (pronounced ")}
+      {Node.text(") - a lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system.")}
     </p>
-    <h2 id="what-is-xote"> {Component.text("What is Xote?")} </h2>
+    <h2 id="what-is-xote"> {Node.text("What is Xote?")} </h2>
     <p>
-      {Component.text("Xote provides a declarative component system and signal-based router built on top of ")}
-      <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
-      {Component.text(". It focuses on:")}
+      {Node.text("Xote provides a declarative component system and signal-based router built on top of ")}
+      <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {Node.text("rescript-signals")} </a>
+      {Node.text(". It focuses on:")}
     </p>
     <ul>
       <li>
-        {Component.text("Fine-grained reactivity: Direct DOM updates without a virtual DOM")}
+        {Node.text("Fine-grained reactivity: Direct DOM updates without a virtual DOM")}
       </li>
       <li>
-        {Component.text("Automatic dependency tracking: No manual subscription management (powered by rescript-signals)")}
+        {Node.text("Automatic dependency tracking: No manual subscription management (powered by rescript-signals)")}
       </li>
       <li>
-        {Component.text("Lightweight: Minimal runtime footprint")}
+        {Node.text("Lightweight: Minimal runtime footprint")}
       </li>
       <li>
-        {Component.text("Type-safe: Leverages ReScript's powerful type system")}
+        {Node.text("Type-safe: Leverages ReScript's powerful type system")}
       </li>
       <li>
-        {Component.text("JSX Support: Declarative component syntax with full ReScript type safety")}
+        {Node.text("JSX Support: Declarative component syntax with full ReScript type safety")}
       </li>
     </ul>
-    <h2 id="quick-example"> {Component.text("Quick Example")} </h2>
+    <h2 id="quick-example"> {Node.text("Quick Example")} </h2>
     <p>
-      {Component.text("Here's a simple counter application to get you started:")}
+      {Node.text("Here's a simple counter application to get you started:")}
     </p>
-    <h3 id="using-jsx-syntax"> {Component.text("Using JSX Syntax")} </h3>
+    <h3 id="using-jsx-syntax"> {Node.text("Using JSX Syntax")} </h3>
     <pre>
       <code>
-        {Component.text(`open Xote
+        {Node.text(`open Xote
 
 // Create reactive state
 let count = Signal.make(0)
@@ -55,59 +55,59 @@ let increment = (_evt: Dom.event) => Signal.update(count, n => n + 1)
 // Build the UI
 let app = () => {
   <div>
-    <h1> {Component.text("Counter")} </h1>
+    <h1> {Node.text("Counter")} </h1>
     <p>
-      {Component.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
     </p>
     <button onClick={increment}>
-      {Component.text("Increment")}
+      {Node.text("Increment")}
     </button>
   </div>
 }
 
 // Mount to the DOM
-Component.mountById(app(), "app")`)}
+Node.mountById(app(), "app")`)}
       </code>
     </pre>
     <p>
-      {Component.text("When you click the button, the counter updates reactively - only the text node displaying the count is updated, not the entire component tree.")}
+      {Node.text("When you click the button, the counter updates reactively - only the text node displaying the count is updated, not the entire component tree.")}
     </p>
-    <h2 id="core-concepts"> {Component.text("Core Concepts")} </h2>
+    <h2 id="core-concepts"> {Node.text("Core Concepts")} </h2>
     <p>
-      {Component.text("Xote re-exports reactive primitives from rescript-signals and adds UI features:")}
+      {Node.text("Xote re-exports reactive primitives from rescript-signals and adds UI features:")}
     </p>
-    <h3 id="reactive-primitives-from-rescript-signals"> {Component.text("Reactive Primitives (from rescript-signals)")} </h3>
+    <h3 id="reactive-primitives-from-rescript-signals"> {Node.text("Reactive Primitives (from rescript-signals)")} </h3>
     <ul>
       <li>
-        {Router.link(~to="/docs/core-concepts/signals", ~children=[Component.text("Signals")], ())}
-      {Component.text(": Reactive state containers that notify dependents when they change")}
+        {Router.link(~to="/docs/core-concepts/signals", ~children=[Node.text("Signals")], ())}
+      {Node.text(": Reactive state containers that notify dependents when they change")}
       </li>
       <li>
-        {Router.link(~to="/docs/core-concepts/computed", ~children=[Component.text("Computed Values")], ())}
-      {Component.text(": Derived values that automatically update when their dependencies change")}
+        {Router.link(~to="/docs/core-concepts/computed", ~children=[Node.text("Computed Values")], ())}
+      {Node.text(": Derived values that automatically update when their dependencies change")}
       </li>
       <li>
-        {Router.link(~to="/docs/core-concepts/effects", ~children=[Component.text("Effects")], ())}
-      {Component.text(": Side effects that re-run when dependencies change")}
+        {Router.link(~to="/docs/core-concepts/effects", ~children=[Node.text("Effects")], ())}
+      {Node.text(": Side effects that re-run when dependencies change")}
       </li>
     </ul>
-    <h3 id="xote-features"> {Component.text("Xote Features")} </h3>
+    <h3 id="xote-features"> {Node.text("Xote Features")} </h3>
     <ul>
       <li>
-        {Router.link(~to="/docs/components/overview", ~children=[Component.text("Components")], ())}
-      {Component.text(": Declarative UI builder with JSX support and fine-grained DOM updates")}
+        {Router.link(~to="/docs/components/overview", ~children=[Node.text("Components")], ())}
+      {Node.text(": Declarative UI builder with JSX support and fine-grained DOM updates")}
       </li>
       <li>
-        {Component.text("Router: Signal-based SPA navigation with pattern matching")}
+        {Node.text("Router: Signal-based SPA navigation with pattern matching")}
       </li>
     </ul>
-    <h2 id="installation"> {Component.text("Installation")} </h2>
+    <h2 id="installation"> {Node.text("Installation")} </h2>
     <p>
-      {Component.text("Get started with Xote in your ReScript project:")}
+      {Node.text("Get started with Xote in your ReScript project:")}
     </p>
     <pre>
       <code>
-        {Component.text(`npm install xote
+        {Node.text(`npm install xote
 # or
 yarn add xote
 # or
@@ -115,13 +115,13 @@ pnpm add xote`)}
       </code>
     </pre>
     <p>
-      {Component.text("Then add it to your ")}
-      <code> {Component.text("rescript.json")} </code>
-      {Component.text(":")}
+      {Node.text("Then add it to your ")}
+      <code> {Node.text("rescript.json")} </code>
+      {Node.text(":")}
     </p>
     <pre>
       <code>
-        {Component.text(`{
+        {Node.text(`{
   "bs-dependencies": ["xote"],
   "jsx": {
     "version": 4,
@@ -131,39 +131,39 @@ pnpm add xote`)}
 }`)}
       </code>
     </pre>
-    <h2 id="next-steps"> {Component.text("Next Steps")} </h2>
+    <h2 id="next-steps"> {Node.text("Next Steps")} </h2>
     <ul>
       <li>
-        {Component.text("Learn about ")}
-      {Router.link(~to="/docs/core-concepts/signals", ~children=[Component.text("Signals")], ())}
-      {Component.text(" - the foundation of reactive state")}
+        {Node.text("Learn about ")}
+      {Router.link(~to="/docs/core-concepts/signals", ~children=[Node.text("Signals")], ())}
+      {Node.text(" - the foundation of reactive state")}
       </li>
       <li>
-        {Component.text("Explore ")}
-      {Router.link(~to="/docs/components/overview", ~children=[Component.text("Components")], ())}
-      {Component.text(" - building UIs with Xote")}
+        {Node.text("Explore ")}
+      {Router.link(~to="/docs/components/overview", ~children=[Node.text("Components")], ())}
+      {Node.text(" - building UIs with Xote")}
       </li>
       <li>
-        {Component.text("Check out the ")}
-      {Router.link(~to="/demos", ~children=[Component.text("Demos")], ())}
-      {Component.text(" to see Xote in action")}
+        {Node.text("Check out the ")}
+      {Router.link(~to="/demos", ~children=[Node.text("Demos")], ())}
+      {Node.text(" to see Xote in action")}
       </li>
       <li>
-        {Component.text("Read the ")}
-      {Router.link(~to="/docs/api/signals", ~children=[Component.text("API Reference")], ())}
-      {Component.text(" for detailed documentation")}
+        {Node.text("Read the ")}
+      {Router.link(~to="/docs/api/signals", ~children=[Node.text("API Reference")], ())}
+      {Node.text(" for detailed documentation")}
       </li>
     </ul>
-    <h2 id="philosophy"> {Component.text("Philosophy")} </h2>
+    <h2 id="philosophy"> {Node.text("Philosophy")} </h2>
     <p>
-      {Component.text("Xote focuses on clarity, control, and performance. The goal is to offer precise, fine-grained updates and predictable behavior without a virtual DOM.")}
+      {Node.text("Xote focuses on clarity, control, and performance. The goal is to offer precise, fine-grained updates and predictable behavior without a virtual DOM.")}
     </p>
     <p>
-      {Component.text("By building on ")}
-      <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {Component.text("rescript-signals")} </a>
-      {Component.text(" (which implements the ")}
-      <a href="https://github.com/tc39/proposal-signals" target="_blank"> {Component.text("TC39 Signals proposal")} </a>
-      {Component.text("), Xote ensures your reactive code aligns with emerging JavaScript standards while providing ReScript-specific UI features.")}
+      {Node.text("By building on ")}
+      <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {Node.text("rescript-signals")} </a>
+      {Node.text(" (which implements the ")}
+      <a href="https://github.com/tc39/proposal-signals" target="_blank"> {Node.text("TC39 Signals proposal")} </a>
+      {Node.text("), Xote ensures your reactive code aligns with emerging JavaScript standards while providing ReScript-specific UI features.")}
     </p>
   </div>
 }

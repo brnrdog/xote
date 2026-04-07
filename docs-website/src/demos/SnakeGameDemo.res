@@ -314,7 +314,7 @@ module GameGrid = {
       }}
     >
       {// Render snake
-      Component.list(snake, segment => {
+      Node.list(snake, segment => {
         <div
           class="snake-segment"
           style={`width: ${Int.toString(cellSize - 2)}px; height: ${Int.toString(
@@ -337,7 +337,7 @@ module GameGrid = {
         }}
       />}
       {// Render obstacles
-      Component.list(obstaclesSignal, obstacle => {
+      Node.list(obstaclesSignal, obstacle => {
         <div
           class="snake-obstacle"
           style={`width: ${Int.toString(cellSize)}px; height: ${Int.toString(
@@ -357,23 +357,23 @@ module GameInfo = {
     <div class="demo-grid-3">
       // Level
       <div class="demo-stat">
-        <div class="demo-stat-label"> {Component.text("Level")} </div>
+        <div class="demo-stat-label"> {Node.text("Level")} </div>
         <div class="demo-stat-value">
-          {Component.signalText(() => Signal.get(currentLevelNum)->Int.toString)}
+          {Node.signalText(() => Signal.get(currentLevelNum)->Int.toString)}
         </div>
       </div>
       // Score
       <div class="demo-stat">
-        <div class="demo-stat-label"> {Component.text("Score")} </div>
+        <div class="demo-stat-label"> {Node.text("Score")} </div>
         <div class="demo-stat-value">
-          {Component.signalText(() => Signal.get(score)->Int.toString)}
+          {Node.signalText(() => Signal.get(score)->Int.toString)}
         </div>
       </div>
       // Progress
       <div class="demo-stat">
-        <div class="demo-stat-label"> {Component.text("Food")} </div>
+        <div class="demo-stat-label"> {Node.text("Food")} </div>
         <div class="demo-stat-value">
-          {Component.signalText(() => {
+          {Node.signalText(() => {
             let eaten = Signal.get(foodEaten)
             let needed = Signal.get(currentLevel).foodCount
             `${Int.toString(eaten)}/${Int.toString(needed)}`
@@ -396,7 +396,7 @@ module GameControls = {
                 class="demo-btn demo-btn-primary"
                 onClick={_ => startGame()}
               >
-                {Component.text("Start")}
+                {Node.text("Start")}
               </button>,
             ]
           | Playing => [
@@ -404,7 +404,7 @@ module GameControls = {
                 class="demo-btn demo-btn-secondary"
                 onClick={_ => pauseGame()}
               >
-                {Component.text("Pause")}
+                {Node.text("Pause")}
               </button>,
             ]
           | GameOver => [
@@ -412,13 +412,13 @@ module GameControls = {
                 class="demo-btn demo-btn-primary"
                 onClick={_ => restartLevel()}
               >
-                {Component.text("Retry Level")}
+                {Node.text("Retry Level")}
               </button>,
               <button
                 class="demo-btn demo-btn-secondary"
                 onClick={_ => restartGame()}
               >
-                {Component.text("Restart Game")}
+                {Node.text("Restart Game")}
               </button>,
             ]
           | LevelComplete => [
@@ -427,24 +427,24 @@ module GameControls = {
                 onClick={_ => nextLevel()}
                 style={() => Signal.get(currentLevelNum) >= 10 ? "display: none" : ""}
               >
-                {Component.text("Next Level")}
+                {Node.text("Next Level")}
               </button>,
               <button
                 class="demo-btn demo-btn-primary"
                 onClick={_ => restartLevel()}
               >
-                {Component.text("Replay Level")}
+                {Node.text("Replay Level")}
               </button>,
               <button
                 class="demo-btn demo-btn-secondary"
                 onClick={_ => restartGame()}
               >
-                {Component.text("Restart Game")}
+                {Node.text("Restart Game")}
               </button>,
             ]
           }
         })
-        Component.signalFragment(controlsSignal)
+        Node.signalFragment(controlsSignal)
       }
     </div>
   }
@@ -458,31 +458,31 @@ module GameStatusDisplay = {
       | Paused => [
           <div class="snake-status paused">
             <p style="font-weight: 600; margin: 0;">
-              {Component.text("Press Start or SPACE to begin")}
+              {Node.text("Press Start or SPACE to begin")}
             </p>
           </div>,
         ]
       | GameOver => [
           <div class="snake-status game-over">
             <p style="font-size: 1.5rem; font-weight: bold; margin: 0 0 0.5rem 0;">
-              {Component.text("Game Over!")}
+              {Node.text("Game Over!")}
             </p>
             <p style="margin: 0;">
-              {Component.text("You crashed! Try again.")}
+              {Node.text("You crashed! Try again.")}
             </p>
           </div>,
         ]
       | LevelComplete => [
           <div class="snake-status level-complete">
             <p style="font-size: 1.5rem; font-weight: bold; margin: 0 0 0.5rem 0;">
-              {Component.signalText(() =>
+              {Node.signalText(() =>
                 Signal.get(currentLevelNum) >= 10
                   ? "You Win! All Levels Complete!"
                   : "Level Complete!"
               )}
             </p>
             <p style="margin: 0;">
-              {Component.signalText(() =>
+              {Node.signalText(() =>
                 Signal.get(currentLevelNum) >= 10
                   ? `Final Score: ${Signal.get(score)->Int.toString}`
                   : "Great job! Ready for the next challenge?"
@@ -493,7 +493,7 @@ module GameStatusDisplay = {
       | Playing => []
       }
     })
-    Component.signalFragment(statusSignal)
+    Node.signalFragment(statusSignal)
   }
 }
 
@@ -502,22 +502,22 @@ module Instructions = {
   let make = () => {
     <div class="demo-info-box">
       <h3 style="margin: 0 0 0.5rem 0;">
-        {Component.text("How to Play")}
+        {Node.text("How to Play")}
       </h3>
       <div class="demo-grid-2">
         <div>
-          <p style="font-weight: 600; margin: 0 0 0.25rem 0;"> {Component.text("Controls:")} </p>
+          <p style="font-weight: 600; margin: 0 0 0.25rem 0;"> {Node.text("Controls:")} </p>
           <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.875rem;">
-            <li> {Component.text("Arrow Keys or WASD to move")} </li>
-            <li> {Component.text("SPACE to pause/resume")} </li>
+            <li> {Node.text("Arrow Keys or WASD to move")} </li>
+            <li> {Node.text("SPACE to pause/resume")} </li>
           </ul>
         </div>
         <div>
-          <p style="font-weight: 600; margin: 0 0 0.25rem 0;"> {Component.text("Rules:")} </p>
+          <p style="font-weight: 600; margin: 0 0 0.25rem 0;"> {Node.text("Rules:")} </p>
           <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.875rem;">
-            <li> {Component.text("Eat red food to grow")} </li>
-            <li> {Component.text("Avoid walls, obstacles, and yourself")} </li>
-            <li> {Component.text("Complete all 10 levels to win!")} </li>
+            <li> {Node.text("Eat red food to grow")} </li>
+            <li> {Node.text("Avoid walls, obstacles, and yourself")} </li>
+            <li> {Node.text("Complete all 10 levels to win!")} </li>
           </ul>
         </div>
       </div>
@@ -556,10 +556,10 @@ let make = () => {
     // Header
     <div class="demo-section" style="text-align: center;">
       <h2 style="margin: 0 0 0.25rem 0;">
-        {Component.text("Snake Game")}
+        {Node.text("Snake Game")}
       </h2>
       <p style="margin: 0; opacity: 0.7;">
-        {Component.text("10 levels of classic snake action!")}
+        {Node.text("10 levels of classic snake action!")}
       </p>
     </div>
     // Game info

@@ -97,18 +97,18 @@ let counter = () => {
   // Runs once. Only the text node with Signal.get(count) updates.
   <div>
     <h1>
-      {Component.signalText(() =>
+      {Node.signalText(() =>
         "Count: " ++ Int.toString(Signal.get(count))
       )}
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
-      {Component.text("Increment")}
+      {Node.text("Increment")}
     </button>
   </div>
 }
 ```
 
-The main difference is that SolidJS embeds reactive expressions directly in JSX (`{count()}`), while Xote uses explicit reactive text nodes (`Component.signalText`). SolidJS's compiler transforms the JSX to wrap signal reads in effects automatically. Xote's approach is more explicit -- you decide which parts are reactive.
+The main difference is that SolidJS embeds reactive expressions directly in JSX (`{count()}`), while Xote uses explicit reactive text nodes (`Node.signalText`). SolidJS's compiler transforms the JSX to wrap signal reads in effects automatically. Xote's approach is more explicit -- you decide which parts are reactive.
 
 ## List Rendering
 
@@ -141,10 +141,10 @@ let todoList = () => {
   let todos = Signal.make([{id: "1", text: "Buy milk"}])
 
   <ul>
-    {Component.keyedList(
+    {Node.keyedList(
       todos,
       todo => todo.id,
-      todo => <li> {Component.text(todo.text)} </li>
+      todo => <li> {Node.text(todo.text)} </li>
     )}
   </ul>
 }
@@ -202,10 +202,10 @@ Router.init()
 let nav = () => {
   <nav>
     <Router.Link to="/" class="nav-link">
-      {Component.text("Home")}
+      {Node.text("Home")}
     </Router.Link>
     <Router.Link to="/users" class="nav-link">
-      {Component.text("Users")}
+      {Node.text("Users")}
     </Router.Link>
   </nav>
 }
@@ -274,8 +274,8 @@ If you are coming from SolidJS, the mental model transfers well:
 - `createMemo` -> `Computed.make`
 - `createEffect` -> `Effect.run` (return `Some(cleanupFn)` or `None`; use `Effect.runWithDisposer` if you need the disposer)
 - `onCleanup` -> Return `Some(cleanupFn)` from the effect
-- `<For>` -> `Component.keyedList`
-- `<Show>` -> `Component.signalText` or `SignalFragment` with conditional logic
+- `<For>` -> `Node.keyedList`
+- `<Show>` -> `Node.signalText` or `SignalFragment` with conditional logic
 - `<A>` -> `<Router.Link>`
 - `@solidjs/router` -> `Router` module (built-in)
 - `renderToString` -> `SSR.renderToString`

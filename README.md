@@ -71,19 +71,19 @@ module App = {
 
     // Build the UI with JSX
     <div>
-      <h1> {Component.text("Counter")} </h1>
+      <h1> {Node.text("Counter")} </h1>
       <p>
-        {Component.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)}
+        {Node.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)}
       </p>
       <button onClick={increment}>
-        {Component.text("Increment")}
+        {Node.text("Increment")}
       </button>
     </div>
   }
 }
 
 // Mount to the DOM
-Component.mountById(<App />, "app")
+Node.mountById(<App />, "app")
 ```
 
 ## Core Concepts
@@ -106,7 +106,7 @@ All reactive primitives feature automatic dependency tracking - no manual subscr
 - **JSX syntax**: Use HTML tags like `<div>`, `<button>`, `<input>`
 - **Props**: Standard HTML attributes like `class`, `id`, `style`, `value`, `placeholder`
 - **Event handlers**: `onClick`, `onInput`, `onChange`, `onSubmit`, etc.
-- **Reactive content**: Wrap reactive text with `Component.signalText(() => ...)` (also `signalInt` and `signalFloat` for non-string values)
+- **Reactive content**: Wrap reactive text with `Node.signalText(() => ...)` (also `signalInt` and `signalFloat` for non-string values)
 - **HTML helpers**: `Html.div`, `Html.button`, `Html.p`, etc. for the function-based API; JSX covers the rest
 - **Component functions**: Define reusable components as functions that return JSX
 
@@ -138,9 +138,9 @@ let makeAppState = () => {
 
 let app = (count, items) => () => {
   <div>
-    <p> {Component.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)} </p>
+    <p> {Node.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)} </p>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
-      {Component.text("+")}
+      {Node.text("+")}
     </button>
   </div>
 }

@@ -11,19 +11,19 @@ let make = () => {
   <div class="demo-container">
     <div class="demo-section" style="text-align: center;">
       <div class="counter-demo-display">
-        {Component.signalText(() => Signal.get(count)->Int.toString)}
+        {Node.signalText(() => Signal.get(count)->Int.toString)}
       </div>
-      <div class="counter-demo-label"> {Component.text("Current Count")} </div>
+      <div class="counter-demo-label"> {Node.text("Current Count")} </div>
     </div>
     <div class="demo-btn-group">
       <button class="demo-btn demo-btn-primary" onClick={decrement}>
-        {Component.text("- Decrement")}
+        {Node.text("- Decrement")}
       </button>
       <button class="demo-btn demo-btn-secondary" onClick={reset}>
-        {Component.text("Reset")}
+        {Node.text("Reset")}
       </button>
       <button class="demo-btn demo-btn-primary" onClick={increment}>
-        {Component.text("+ Increment")}
+        {Node.text("+ Increment")}
       </button>
     </div>
   </div>

@@ -6,7 +6,7 @@
       "dir": "src",
       "subdirs": true,
       "public": [
-        "Component",
+        "Node",
         "Html",
         "XoteJSX",
         "ReactiveProp",

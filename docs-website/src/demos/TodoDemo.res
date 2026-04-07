@@ -112,9 +112,9 @@ module TodoItem = {
         class="todo-demo-checkbox"
         onChange={_ => toggleTodo(todo.id)}
       />
-      <span class="todo-demo-item-text"> {Component.text(todo.text)} </span>
+      <span class="todo-demo-item-text"> {Node.text(todo.text)} </span>
       <button class="todo-demo-delete-btn" onClick={_ => removeTodo(todo.id)}>
-        {Component.text("\u00D7")}
+        {Node.text("\u00D7")}
       </button>
     </li>
   }
@@ -135,7 +135,7 @@ module FilterButton = {
     })
 
     <button class={className} onClick={onClick}>
-      {Component.text(label)}
+      {Node.text(label)}
     </button>
   }
 }
@@ -153,7 +153,7 @@ let make = () => {
           onKeyDown={handleKeyDown}
         />
         <button class="demo-btn demo-btn-primary" onClick={handleAddClick}>
-          {Component.text("Add")}
+          {Node.text("Add")}
         </button>
       </div>
     </div>
@@ -167,7 +167,7 @@ let make = () => {
           />
         </div>
         <div class="todo-demo-summary">
-          {Component.signalText(() => {
+          {Node.signalText(() => {
             let active = Signal.get(activeCount)
             let total = Signal.get(totalCount)
             if total == 0 {
@@ -180,13 +180,13 @@ let make = () => {
       </div>
     </div>
     <div class="demo-section">
-      {Component.signalFragment(
+      {Node.signalFragment(
         Computed.make(() => {
           let items = Signal.get(filteredTodos)
           if Array.length(items) == 0 {
             [
               <div class="todo-demo-empty">
-                {Component.signalText(() =>
+                {Node.signalText(() =>
                   switch Signal.get(filterState) {
                   | "active" => "No active tasks"
                   | "completed" => "No completed tasks"
@@ -203,7 +203,7 @@ let make = () => {
           } else {
             [
               <ul class="todo-demo-list">
-                {Component.keyedList(
+                {Node.keyedList(
                   filteredTodos,
                   todo => todo.id->Int.toString,
                   todo => <TodoItem todo={todo} />,
@@ -214,14 +214,14 @@ let make = () => {
         }),
       )}
     </div>
-    {Component.signalFragment(
+    {Node.signalFragment(
       Computed.make(() => {
         let completed = Signal.get(completedCount)
         if completed > 0 {
           [
             <div style="text-align: center; margin-top: 0.5rem;">
               <button class="demo-btn demo-btn-secondary" onClick={clearCompleted}>
-                {Component.text("Clear completed (" ++ Int.toString(completed) ++ ")")}
+                {Node.text("Clear completed (" ++ Int.toString(completed) ++ ")")}
               </button>
             </div>,
           ]

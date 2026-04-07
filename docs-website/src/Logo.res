@@ -13,66 +13,66 @@ let make = (props: props) => {
   | Some(number) => number->Int.toString
   }
 
-  Component.element(
+  Node.element(
     "div",
-    ~attrs=[Component.attr("style", "width: " ++ size ++ "px; display: inline-flex;")],
+    ~attrs=[Node.attr("style", "width: " ++ size ++ "px; display: inline-flex;")],
     ~children=[
-      Component.element(
+      Node.element(
         "svg",
         ~attrs=[
-          Component.attr("viewBox", "0 0 37 52"),
-          Component.attr("fill", "none"),
-          Component.attr("preserveAspectRatio", "xMidYMid meet"),
-          Component.attr("style", "color: " ++ color),
-          Component.attr("width", "100%"),
-          Component.attr("height", "100%"),
+          Node.attr("viewBox", "0 0 37 52"),
+          Node.attr("fill", "none"),
+          Node.attr("preserveAspectRatio", "xMidYMid meet"),
+          Node.attr("style", "color: " ++ color),
+          Node.attr("width", "100%"),
+          Node.attr("height", "100%"),
         ],
         ~children=[
-          Component.element(
+          Node.element(
             "path",
             ~attrs=[
-              Component.attr(
+              Node.attr(
                 "d",
                 "M18.4755 30.3333V26.3939M18.4755 30.3333L2.47549 42.9394M18.4755 30.3333V52",
               ),
-              Component.attr("stroke", "currentColor"),
-              Component.attr("stroke-width", "8"),
+              Node.attr("stroke", "currentColor"),
+              Node.attr("stroke-width", "8"),
             ],
             (),
           ),
-          Component.element(
+          Node.element(
             "path",
             ~attrs=[
-              Component.attr("d", "M18.4755 25.6061V21.6667L34.4755 9.06061"),
-              Component.attr("stroke", "currentColor"),
-              Component.attr("stroke-width", "8"),
+              Node.attr("d", "M18.4755 25.6061V21.6667L34.4755 9.06061"),
+              Node.attr("stroke", "currentColor"),
+              Node.attr("stroke-width", "8"),
             ],
             (),
           ),
-          Component.element(
+          Node.element(
             "path",
             ~attrs=[
-              Component.attr("d", "M18.4755 26.3939V23.4101V0"),
-              Component.attr("stroke", "currentColor"),
-              Component.attr("stroke-width", "8"),
+              Node.attr("d", "M18.4755 26.3939V23.4101V0"),
+              Node.attr("stroke", "currentColor"),
+              Node.attr("stroke-width", "8"),
             ],
             (),
           ),
-          Component.element(
+          Node.element(
             "path",
             ~attrs=[
-              Component.attr("d", "M18.4755 25.6061V28.5899V52"),
-              Component.attr("stroke", "currentColor"),
-              Component.attr("stroke-width", "8"),
+              Node.attr("d", "M18.4755 25.6061V28.5899V52"),
+              Node.attr("stroke", "currentColor"),
+              Node.attr("stroke-width", "8"),
             ],
             (),
           ),
-          Component.element(
+          Node.element(
             "path",
             ~attrs=[
-              Component.attr("d", "M34.4755 26L2.47549 26"),
-              Component.attr("stroke", "currentColor"),
-              Component.attr("stroke-width", "8"),
+              Node.attr("d", "M34.4755 26L2.47549 26"),
+              Node.attr("stroke", "currentColor"),
+              Node.attr("stroke-width", "8"),
             ],
             (),
           ),

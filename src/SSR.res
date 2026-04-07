@@ -1,6 +1,5 @@
 open Signals
 
-module Component = Component
 
 /* ============================================================================
  * HTML Utilities
@@ -77,11 +76,11 @@ type renderOptions = {
 
 module Attributes = {
   /* Render a single attribute to string */
-  let renderAttr = ((key, value): (string, Component.attrValue)): string => {
+  let renderAttr = ((key, value): (string, Node.attrValue)): string => {
     let attrValue = switch value {
-    | Component.Static(v) => v
-    | Component.SignalValue(signal) => Signal.peek(signal)
-    | Component.Compute(fn) => fn()
+    | Node.Static(v) => v
+    | Node.SignalValue(signal) => Signal.peek(signal)
+    | Node.Compute(fn) => fn()
     }
 
     /* Handle boolean attributes */
@@ -104,7 +103,7 @@ module Attributes = {
   }
 
   /* Render all attributes to string */
-  let renderAttrs = (attrs: array<(string, Component.attrValue)>): string => {
+  let renderAttrs = (attrs: array<(string, Node.attrValue)>): string => {
     let rendered =
       attrs
       ->Array.map(renderAttr)
@@ -123,26 +122,26 @@ module Attributes = {
  * ============================================================================ */
 
 /* Render a virtual node to an HTML string */
-let rec renderNodeToString = (node: Component.node): string => {
+let rec renderNodeToString = (node: Node.node): string => {
   switch node {
-  | Component.Text(content) => Html.escape(content)
+  | Node.Text(content) => Html.escape(content)
 
-  | Component.SignalText(signal) => {
+  | Node.SignalText(signal) => {
       /* Read current signal value and wrap with hydration markers */
       let value = Signal.peek(signal)
       Markers.signalTextStart ++ Html.escape(value) ++ Markers.signalTextEnd
     }
 
-  | Component.Fragment(children) => children->Array.map(renderNodeToString)->Array.join("")
+  | Node.Fragment(children) => children->Array.map(renderNodeToString)->Array.join("")
 
-  | Component.SignalFragment(signal) => {
+  | Node.SignalFragment(signal) => {
       /* Read current signal value and wrap with hydration markers */
       let children = Signal.peek(signal)
       let content = children->Array.map(renderNodeToString)->Array.join("")
       Markers.signalFragmentStart ++ content ++ Markers.signalFragmentEnd
     }
 
-  | Component.Element({tag, attrs, children, events: _}) => {
+  | Node.Element({tag, attrs, children, events: _}) => {
       let attrsStr = Attributes.renderAttrs(attrs)
 
       if Html.isVoidElement(tag) {
@@ -153,13 +152,13 @@ let rec renderNodeToString = (node: Component.node): string => {
       }
     }
 
-  | Component.LazyComponent(fn) => {
+  | Node.LazyComponent(fn) => {
       /* Execute the lazy component and render its result */
       let childNode = fn()
       Markers.lazyComponentStart ++ renderNodeToString(childNode) ++ Markers.lazyComponentEnd
     }
 
-  | Component.KeyedList({signal, keyFn, renderItem}) => {
+  | Node.KeyedList({signal, keyFn, renderItem}) => {
       let items = Signal.peek(signal)
       let content =
         items
@@ -180,7 +179,7 @@ let rec renderNodeToString = (node: Component.node): string => {
  * ============================================================================ */
 
 /* Render a component to an HTML string synchronously */
-let renderToString = (component: unit => Component.node, ~options: renderOptions={}): string => {
+let renderToString = (component: unit => Node.node, ~options: renderOptions={}): string => {
   let _ = options /* Will be used for nonce/renderId in future phases */
   let node = component()
   renderNodeToString(node)
@@ -188,7 +187,7 @@ let renderToString = (component: unit => Component.node, ~options: renderOptions
 
 /* Render a component and wrap with a hydration root marker */
 let renderToStringWithRoot = (
-  component: unit => Component.node,
+  component: unit => Node.node,
   ~rootId: string="root",
   ~options: renderOptions={},
 ): string => {
@@ -218,7 +217,7 @@ let renderDocument = (
   ~styles: array<string>=[],
   ~stateScript: string="",
   ~nonce: option<string>=?,
-  component: unit => Component.node,
+  component: unit => Node.node,
 ): string => {
   let content = renderToString(component)
   let hydrationScript = generateHydrationScript(~nonce?)

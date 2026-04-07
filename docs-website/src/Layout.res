@@ -139,13 +139,13 @@ module SearchModal = {
       }
     }
 
-    Component.signalFragment(
+    Node.signalFragment(
       Computed.make(() => {
         if Signal.get(searchOpen) {
           [
-            Component.element(
+            Node.element(
               "div",
-              ~attrs=[Component.attr("class", "search-overlay")],
+              ~attrs=[Node.attr("class", "search-overlay")],
               ~events=[
                 (
                   "click",
@@ -164,24 +164,24 @@ module SearchModal = {
                     {Basefn.Icon.make({name: Search, size: Sm})}
                     {Html.input(
                       ~attrs=[
-                        Component.attr("class", "search-input"),
-                        Component.attr("placeholder", "Search documentation..."),
-                        Component.attr("autofocus", "true"),
+                        Node.attr("class", "search-input"),
+                        Node.attr("placeholder", "Search documentation..."),
+                        Node.attr("autofocus", "true"),
                       ],
                       ~events=[("input", handleInput), ("keydown", handleKeyDown)],
                       (),
                     )}
-                    <div class="search-trigger-key"> {Component.text("esc")} </div>
+                    <div class="search-trigger-key"> {Node.text("esc")} </div>
                   </div>
                   <div class="search-results">
-                    {Component.signalFragment(
+                    {Node.signalFragment(
                       Computed.make(() => {
                         let items = Signal.get(filteredItems)
                         let idx = Signal.get(selectedIndex)
                         if Array.length(items) == 0 {
                           [
                             <div class="search-empty">
-                              {Component.text("No results found.")}
+                              {Node.text("No results found.")}
                             </div>,
                           ]
                         } else {
@@ -194,7 +194,7 @@ module SearchModal = {
                               nodes
                               ->Array.push(
                                 <div class="search-group-label">
-                                  {Component.text(item.section)}
+                                  {Node.text(item.section)}
                                 </div>,
                               )
                               ->ignore
@@ -204,9 +204,9 @@ module SearchModal = {
                             let cn = "search-result-item" ++ (isActive ? " active" : "")
                             nodes
                             ->Array.push(
-                              Component.element(
+                              Node.element(
                                 "div",
-                                ~attrs=[Component.attr("class", cn)],
+                                ~attrs=[Node.attr("class", cn)],
                                 ~events=[
                                   (
                                     "click",
@@ -219,7 +219,7 @@ module SearchModal = {
                                 ],
                                 ~children=[
                                   <div class="search-result-title">
-                                    {Component.text(item.title)}
+                                    {Node.text(item.title)}
                                   </div>,
                                 ],
                                 (),
@@ -234,7 +234,7 @@ module SearchModal = {
                     )}
                   </div>
                   <div class="search-footer">
-                    {Component.text("Use arrow keys to navigate, Enter to select, Esc to close")}
+                    {Node.text("Use arrow keys to navigate, Enter to select, Esc to close")}
                   </div>
                 </div>,
               ],
@@ -266,10 +266,10 @@ module Header = {
       })
     }
 
-    Component.element(
+    Node.element(
       "header",
       ~attrs=[
-        Component.computedAttr("class", () =>
+        Node.computedAttr("class", () =>
           Signal.get(isScrolled) ? "site-header scrolled" : "site-header"
         ),
       ],
@@ -278,85 +278,85 @@ module Header = {
           <div class="header-left">
             {Router.link(
               ~to="/",
-              ~attrs=[Component.attr("class", "header-logo-link")],
+              ~attrs=[Node.attr("class", "header-logo-link")],
               ~children=[
                 <Logo size=20 color="var(--text-accent)" />,
-                <span class="logo-text"> {Component.text("xote")} </span>,
+                <span class="logo-text"> {Node.text("xote")} </span>,
               ],
               (),
             )}
             <a href="https://www.npmjs.com/package/xote" target="_blank" class="header-version">
-              {Component.text("v4.15.1")}
+              {Node.text("v4.15.1")}
             </a>
             <nav class="header-nav">
               {Router.link(
                 ~to="/docs",
-                ~attrs=[Component.attr("class", "header-nav-link")],
-                ~children=[Component.text("Learn")],
+                ~attrs=[Node.attr("class", "header-nav-link")],
+                ~children=[Node.text("Learn")],
                 (),
               )}
               {Router.link(
                 ~to="/docs/api/signals",
-                ~attrs=[Component.attr("class", "header-nav-link")],
-                ~children=[Component.text("API Reference")],
+                ~attrs=[Node.attr("class", "header-nav-link")],
+                ~children=[Node.text("API Reference")],
                 (),
               )}
             </nav>
           </div>
           <div class="header-right">
-            {Component.element(
+            {Node.element(
               "button",
-              ~attrs=[Component.attr("class", "search-trigger")],
+              ~attrs=[Node.attr("class", "search-trigger")],
               ~events=[("click", _ => openSearch())],
               ~children=[
                 Basefn.Icon.make({name: Search, size: Sm}),
-                <span> {Component.text("Search docs...")} </span>,
+                <span> {Node.text("Search docs...")} </span>,
                 <div class="search-trigger-keys">
-                  <span class="search-trigger-key"> {Component.text("\u2318")} </span>
-                  <span class="search-trigger-key"> {Component.text("K")} </span>
+                  <span class="search-trigger-key"> {Node.text("\u2318")} </span>
+                  <span class="search-trigger-key"> {Node.text("K")} </span>
                 </div>,
               ],
               (),
             )}
-            {Component.element(
+            {Node.element(
               "a",
               ~attrs=[
-                Component.attr("href", "https://github.com/brnrdog/xote"),
-                Component.attr("target", "_blank"),
-                Component.attr("class", "gh-star-btn"),
-                Component.attr("title", "Star on GitHub"),
+                Node.attr("href", "https://github.com/brnrdog/xote"),
+                Node.attr("target", "_blank"),
+                Node.attr("class", "gh-star-btn"),
+                Node.attr("title", "Star on GitHub"),
               ],
               ~children=[
                 Basefn.Icon.make({name: Star, size: Sm}),
-                Component.element(
+                Node.element(
                   "span",
-                  ~attrs=[Component.attr("class", "gh-star-label")],
-                  ~children=[Component.text("Star")],
+                  ~attrs=[Node.attr("class", "gh-star-label")],
+                  ~children=[Node.text("Star")],
                   (),
                 ),
               ],
               (),
             )}
-            {Component.element(
+            {Node.element(
               "a",
               ~attrs=[
-                Component.attr("href", "https://github.com/brnrdog/xote"),
-                Component.attr("target", "_blank"),
-                Component.attr("class", "header-icon-btn"),
-                Component.attr("title", "GitHub"),
+                Node.attr("href", "https://github.com/brnrdog/xote"),
+                Node.attr("target", "_blank"),
+                Node.attr("class", "header-icon-btn"),
+                Node.attr("title", "GitHub"),
               ],
               ~children=[Basefn.Icon.make({name: GitHub, size: Sm})],
               (),
             )}
-            {Component.element(
+            {Node.element(
               "button",
               ~attrs=[
-                Component.attr("class", "header-icon-btn"),
-                Component.attr("title", "Toggle theme"),
+                Node.attr("class", "header-icon-btn"),
+                Node.attr("title", "Toggle theme"),
               ],
               ~events=[("click", _ => toggleTheme())],
               ~children=[
-                Component.signalFragment(
+                Node.signalFragment(
                   Computed.make(() =>
                     Signal.get(theme) == "dark"
                       ? [Basefn.Icon.make({name: Sun, size: Sm})]
@@ -366,11 +366,11 @@ module Header = {
               ],
               (),
             )}
-            {Component.element(
+            {Node.element(
               "button",
               ~attrs=[
-                Component.attr("class", "header-icon-btn mobile-menu-btn"),
-                Component.attr("title", "Menu"),
+                Node.attr("class", "header-icon-btn mobile-menu-btn"),
+                Node.attr("title", "Menu"),
               ],
               ~events=[("click", _ => openSearch())],
               ~children=[Basefn.Icon.make({name: Menu, size: Sm})],
@@ -397,81 +397,81 @@ module Footer = {
           <div class="footer-brand">
             <div class="footer-brand-logo">
               <Logo size=16 color="var(--text-accent)" />
-              <span> {Component.text("xote")} </span>
+              <span> {Node.text("xote")} </span>
             </div>
             <p>
-              {Component.text(
+              {Node.text(
                 "A lightweight UI library for ReScript with fine-grained reactivity powered by TC39 Signals.",
               )}
             </p>
           </div>
           <div class="footer-col">
-            <h4> {Component.text("Docs")} </h4>
+            <h4> {Node.text("Docs")} </h4>
             <ul>
               <li>
-                {Router.link(~to="/docs", ~children=[Component.text("Getting Started")], ())}
+                {Router.link(~to="/docs", ~children=[Node.text("Getting Started")], ())}
               </li>
               <li>
                 {Router.link(
                   ~to="/docs/core-concepts/signals",
-                  ~children=[Component.text("Core Concepts")],
+                  ~children=[Node.text("Core Concepts")],
                   (),
                 )}
               </li>
               <li>
                 {Router.link(
                   ~to="/docs/api/signals",
-                  ~children=[Component.text("API Reference")],
+                  ~children=[Node.text("API Reference")],
                   (),
                 )}
               </li>
             </ul>
           </div>
           <div class="footer-col">
-            <h4> {Component.text("Community")} </h4>
+            <h4> {Node.text("Community")} </h4>
             <ul>
               <li>
                 <a href="https://github.com/brnrdog/xote" target="_blank">
-                  {Component.text("GitHub")}
+                  {Node.text("GitHub")}
                 </a>
               </li>
               <li>
                 <a href="https://www.npmjs.com/package/xote" target="_blank">
-                  {Component.text("npm")}
+                  {Node.text("npm")}
                 </a>
               </li>
               <li>
-                {Router.link(~to="/demos", ~children=[Component.text("Demos")], ())}
+                {Router.link(~to="/demos", ~children=[Node.text("Demos")], ())}
               </li>
             </ul>
           </div>
           <div class="footer-col">
-            <h4> {Component.text("More")} </h4>
+            <h4> {Node.text("More")} </h4>
             <ul>
               <li>
                 <a href="https://rescript-lang.org/" target="_blank">
-                  {Component.text("ReScript")}
+                  {Node.text("ReScript")}
                 </a>
               </li>
               <li>
                 <a href="https://github.com/tc39/proposal-signals" target="_blank">
-                  {Component.text("TC39 Signals")}
+                  {Node.text("TC39 Signals")}
                 </a>
               </li>
               <li>
                 <a href="https://brnrdog.github.io/rescript-signals" target="_blank">
-                  {Component.text("rescript-signals")}
+                  {Node.text("rescript-signals")}
                 </a>
               </li>
             </ul>
           </div>
         </div>
         <div class="footer-bottom">
-          <div> {Component.text(`Copyright \u00A9 ${year} Bernardo Gurgel. MIT License.`)} </div>
+          <div> {Node.text(`Copyright \u00A9 ${year} Bernardo Gurgel. MIT License.`)} </div>
           <div class="footer-bottom-right">
-            {Component.text("Built with ")}
+            {Node.text("Built with ")}
             <Logo size=14 color="var(--text-accent)" />
-            {Component.text(" xote")}
+            {Node.text(" xote")}
           </div>
         </div>
       </div>
@@ -500,7 +500,7 @@ if SSRContext.isClient {
 }
 
 // ---- Main layout wrapper ----
-type props = {children: Component.node}
+type props = {children: Node.node}
 
 let make = (props: props) => {
   <div>
