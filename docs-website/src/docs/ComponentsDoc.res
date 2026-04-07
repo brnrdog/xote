@@ -149,7 +149,7 @@ let greeting = () => {
         {Component.text(`{
   "jsx": {
     "version": 4,
-    "module": "Xote__JSX"
+    "module": "Xote.JSX"
   }
 }`)}
       </code>

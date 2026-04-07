@@ -165,7 +165,7 @@ let registry: Dict.t<JSON.t> = Dict.make()
 
 /* Register a signal for serialization (server only) */
 let register = (id: string, signal: Signal.t<'a>, codec: Codec.t<'a>): unit => {
-  if Xote__SSRContext.isServer {
+  if SSRContext.isServer {
     registry->Dict.set(id, codec.encode(Signal.peek(signal)))
   }
 }
@@ -192,7 +192,7 @@ let generateScript = (~nonce: option<string>=?): string => {
   let json = JSON.stringifyAny(registry)->Option.getOr("{}")
   let escapedJson = escapeForScript(json)
   let nonceAttr = switch nonce {
-  | Some(n) => ` nonce="${Xote__SSR.Html.escape(n)}"`
+  | Some(n) => ` nonce="${SSR.Html.escape(n)}"`
   | None => ""
   }
   `<script${nonceAttr}>window.__XOTE_STATE__=${escapedJson};</script>`
@@ -204,7 +204,7 @@ let generateScript = (~nonce: option<string>=?): string => {
 
 /* Get the serialized state from window */
 let getClientState = (): Dict.t<JSON.t> => {
-  if Xote__SSRContext.isClient {
+  if SSRContext.isClient {
     %raw(`window.__XOTE_STATE__ || {}`)
   } else {
     Dict.make()
@@ -213,7 +213,7 @@ let getClientState = (): Dict.t<JSON.t> => {
 
 /* Restore a signal from serialized state (client only) */
 let restore = (id: string, signal: Signal.t<'a>, codec: Codec.t<'a>): unit => {
-  if Xote__SSRContext.isClient {
+  if SSRContext.isClient {
     let state = getClientState()
     switch state->Dict.get(id) {
     | Some(json) =>
@@ -232,7 +232,7 @@ let restore = (id: string, signal: Signal.t<'a>, codec: Codec.t<'a>): unit => {
 
 /* Sync a signal: register on server, restore on client */
 let sync = (id: string, signal: Signal.t<'a>, codec: Codec.t<'a>): unit => {
-  Xote__SSRContext.match(
+  SSRContext.match(
     ~server=() => register(id, signal, codec),
     ~client=() => restore(id, signal, codec),
   )

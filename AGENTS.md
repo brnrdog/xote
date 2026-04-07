@@ -14,7 +14,7 @@ Instructions for AI coding agents working on this repository. This file compleme
 
 1. **Read `CLAUDE.md`** for full architecture, module descriptions, API surface, and code patterns
 2. **Compile first**: Always run `npm run res:build` before testing or building
-3. **Understand the module boundary**: Only `src/Xote.res` is the public API. Internal modules (`Xote__Component`, `Xote__JSX`, etc.) are implementation details
+3. **Understand the module boundary**: Only `src/Xote.res` is the public API. Internal modules (`Xote.Component`, `Xote.JSX`, etc.) are implementation details
 
 ## Development Workflow
 
@@ -28,13 +28,13 @@ Instructions for AI coding agents working on this repository. This file compleme
 | File | Purpose |
 |------|---------|
 | `src/Xote.res` | Public API - re-exports all modules |
-| `src/Xote__Component.res` | Core rendering, virtual DOM, reconciliation |
-| `src/Xote__JSX.res` | JSX v4 transform and Elements module |
-| `src/Xote__Router.res` | Client-side routing |
-| `src/Xote__SSR.res` | Server-side rendering |
-| `src/Xote__Hydration.res` | Client-side hydration |
-| `src/Xote__SSRState.res` | Server-client state transfer |
-| `src/Xote__ReactiveProp.res` | Static/Reactive prop wrapper |
+| `src/Xote.Component.res` | Core rendering, virtual DOM, reconciliation |
+| `src/Xote.JSX.res` | JSX v4 transform and Elements module |
+| `src/Xote.Router.res` | Client-side routing |
+| `src/Xote.SSR.res` | Server-side rendering |
+| `src/Xote.Hydration.res` | Client-side hydration |
+| `src/Xote.SSRState.res` | Server-client state transfer |
+| `src/Xote.ReactiveProp.res` | Static/Reactive prop wrapper |
 | `rescript.json` | ReScript compiler configuration |
 | `vite.config.js` | Library build configuration |
 

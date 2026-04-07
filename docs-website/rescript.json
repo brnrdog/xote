@@ -17,7 +17,7 @@
   "dependencies": ["@rescript/core", "rescript-signals", "xote", "basefn"],
   "jsx": {
     "version": 4,
-    "module": "Xote__JSX"
+    "module": "JSX"
   },
-  "compiler-flags": ["-open RescriptCore"]
+  "compiler-flags": ["-open RescriptCore", "-open Xote"]
 }

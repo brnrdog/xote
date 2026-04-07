@@ -51,22 +51,22 @@ let content = () => {
     </ul>
     <p>
       {Component.text("  - ")}
-      <code> {Component.text("Xote__Component")} </code>
+      <code> {Component.text("Xote.Component")} </code>
       {Component.text(" - Component system and virtual DOM")}
     </p>
     <p>
       {Component.text("  - ")}
-      <code> {Component.text("Xote__JSX")} </code>
+      <code> {Component.text("Xote.JSX")} </code>
       {Component.text(" - Generic JSX v4 implementation")}
     </p>
     <p>
       {Component.text("  - ")}
-      <code> {Component.text("Xote__Router")} </code>
+      <code> {Component.text("Xote.Router")} </code>
       {Component.text(" - Signal-based routing")}
     </p>
     <p>
       {Component.text("  - ")}
-      <code> {Component.text("Xote__Route")} </code>
+      <code> {Component.text("Xote.Route")} </code>
       {Component.text(" - Route matching utilities")}
     </p>
     <p>
@@ -153,7 +153,7 @@ let content = () => {
         {Component.text(`{
   "jsx": {
     "version": 4,
-    "module": "Xote__JSX"
+    "module": "Xote.JSX"
   }
 }`)}
       </code>
