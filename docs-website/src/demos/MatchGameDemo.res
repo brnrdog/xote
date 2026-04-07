@@ -259,10 +259,10 @@ let make = () => {
               | Player2 => "match-score-inactive"
               }}
           >
-            {Component.textSignal(() => "P1: " ++ Int.toString(Signal.get(player1Score)))}
+            {Component.signalText(() => "P1: " ++ Int.toString(Signal.get(player1Score)))}
           </div>
           <div style="font-size: 0.75rem; color: var(--text-muted);">
-            {Component.textSignal(() =>
+            {Component.signalText(() =>
               switch Signal.get(currentPlayer) {
               | Player1 => "Your Turn"
               | Player2 => ""
@@ -272,10 +272,10 @@ let make = () => {
         </div>
         <div style="text-align: center;">
           <div style="font-weight: bold; font-size: 1.125rem;">
-            {Component.textSignal(() => "Level " ++ Int.toString(Signal.get(currentLevel)))}
+            {Component.signalText(() => "Level " ++ Int.toString(Signal.get(currentLevel)))}
           </div>
           <div style="font-size: 0.75rem; color: var(--text-muted);">
-            {Component.textSignal(() => {
+            {Component.signalText(() => {
               let level = Signal.get(currentLevel)
               let numCards = levelsConfig[level - 1]->Option.getOr(4)
               Int.toString(numCards) ++ " cards"
@@ -290,10 +290,10 @@ let make = () => {
               | Player1 => "match-score-inactive"
               }}
           >
-            {Component.textSignal(() => "P2: " ++ Int.toString(Signal.get(player2Score)))}
+            {Component.signalText(() => "P2: " ++ Int.toString(Signal.get(player2Score)))}
           </div>
           <div style="font-size: 0.75rem; color: var(--text-muted);">
-            {Component.textSignal(() =>
+            {Component.signalText(() =>
               switch Signal.get(currentPlayer) {
               | Player2 => "Your Turn"
               | Player1 => ""
@@ -328,7 +328,7 @@ let make = () => {
         }
 
         <button class={className} onClick={handleCardClick(card.id, _)}>
-          {Component.textSignal(() =>
+          {Component.signalText(() =>
             if card.flipped || card.matched {
               card.symbol
             } else {
@@ -350,7 +350,7 @@ let make = () => {
     >
       <div class="match-modal">
         <h2 style="margin: 0 0 1rem 0;">
-          {Component.textSignal(() =>
+          {Component.signalText(() =>
             switch Signal.get(gameState) {
             | LevelComplete => "Level Complete!"
             | GameWon => "Game Won!"
@@ -360,7 +360,7 @@ let make = () => {
         </h2>
         <div style="margin-bottom: 1.5rem;">
           <div style="margin-bottom: 0.5rem; font-weight: bold;">
-            {Component.textSignal(() => {
+            {Component.signalText(() => {
               let p1 = Signal.get(player1Score)
               let p2 = Signal.get(player2Score)
               if p1 > p2 {
@@ -373,7 +373,7 @@ let make = () => {
             })}
           </div>
           <div style="color: var(--text-muted);">
-            {Component.textSignal(() =>
+            {Component.signalText(() =>
               "Player 1: " ++
               Int.toString(Signal.get(player1Score)) ++
               " | Player 2: " ++

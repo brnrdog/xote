@@ -287,7 +287,7 @@ Effect.run : (unit => option<unit => unit>) => {dispose: unit => unit}`)}
     <pre>
       <code>
         {Component.text(`Component.text : string => node
-Component.textSignal : (unit => string) => node
+Component.signalText : (unit => string) => node
 Component.list : (t<array<'a>>, 'a => node) => node
 Component.listKeyed : (t<array<'a>>, 'a => string, 'a => node) => node
 Component.mount : (node, Dom.element) => unit

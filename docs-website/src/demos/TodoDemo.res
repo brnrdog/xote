@@ -167,7 +167,7 @@ let make = () => {
           />
         </div>
         <div class="todo-demo-summary">
-          {Component.textSignal(() => {
+          {Component.signalText(() => {
             let active = Signal.get(activeCount)
             let total = Signal.get(totalCount)
             if total == 0 {
@@ -186,7 +186,7 @@ let make = () => {
           if Array.length(items) == 0 {
             [
               <div class="todo-demo-empty">
-                {Component.textSignal(() =>
+                {Component.signalText(() =>
                   switch Signal.get(filterState) {
                   | "active" => "No active tasks"
                   | "completed" => "No completed tasks"

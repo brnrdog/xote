@@ -116,7 +116,7 @@ module GameArea = {
     >
       <div style="text-align: center; padding: 1.5rem;">
         <p style="font-size: 1.5rem; font-weight: bold; color: white;">
-          {Component.textSignal(() => {
+          {Component.signalText(() => {
             switch Signal.get(state) {
             | Idle => "Click to Start"
             | Waiting => "Wait for green..."
@@ -173,14 +173,14 @@ module Statistics = {
         // Attempts count
         <div class="demo-stat">
           <div class="demo-stat-value">
-            {Component.textSignal(() => Signal.get(attemptsCount)->Int.toString)}
+            {Component.signalText(() => Signal.get(attemptsCount)->Int.toString)}
           </div>
           <div class="demo-stat-label"> {Component.text("Attempts")} </div>
         </div>
         // Best time
         <div class="demo-stat">
           <div class="demo-stat-value">
-            {Component.textSignal(() => {
+            {Component.signalText(() => {
               switch Signal.get(bestTime) {
               | Some(time) => `${Int.toString(time)} ms`
               | None => "-"
@@ -192,7 +192,7 @@ module Statistics = {
         // Average time
         <div class="demo-stat">
           <div class="demo-stat-value">
-            {Component.textSignal(() => {
+            {Component.signalText(() => {
               switch Signal.get(averageTime) {
               | Some(time) => `${Int.toString(time)} ms`
               | None => "-"

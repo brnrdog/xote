@@ -57,7 +57,7 @@ let app = () => {
   <div>
     <h1> {Component.text("Counter")} </h1>
     <p>
-      {Component.textSignal(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {Component.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
     </p>
     <button onClick={increment}>
       {Component.text("Increment")}

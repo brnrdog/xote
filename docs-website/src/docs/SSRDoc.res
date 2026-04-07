@@ -261,7 +261,7 @@ let app = (count, items, inputValue) => () => {
     <h1> {Component.text("SSR Demo")} </h1>
     <p>
       {Component.text("Count: ")}
-      {Component.textSignal(() =>
+      {Component.signalText(() =>
         Signal.get(count)->Int.toString
       )}
     </p>

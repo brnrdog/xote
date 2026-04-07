@@ -136,7 +136,7 @@ let suite = Zekr.suite(
           })
 
           <div>
-            <span> {Component.reactiveInt(() => Signal.get(counter))} </span>
+            <span> {Component.signalInt(() => Signal.get(counter))} </span>
             <button onClick={_evt => Signal.update(counter, n => n + 1)}>
               {Component.text("Inc")}
             </button>

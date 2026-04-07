@@ -11,7 +11,7 @@ let make = () => {
   <div class="demo-container">
     <div class="demo-section" style="text-align: center;">
       <div class="counter-demo-display">
-        {Component.textSignal(() => Signal.get(count)->Int.toString)}
+        {Component.signalText(() => Signal.get(count)->Int.toString)}
       </div>
       <div class="counter-demo-label"> {Component.text("Current Count")} </div>
     </div>

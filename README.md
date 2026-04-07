@@ -66,7 +66,7 @@ module App = {
     <div>
       <h1> {Component.text("Counter")} </h1>
       <p>
-        {Component.textSignal(() => `Count: ${Signal.get(count)->Int.toString}`)}
+        {Component.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)}
       </p>
       <button onClick={increment}>
         {Component.text("Increment")}
@@ -99,7 +99,7 @@ All reactive primitives feature automatic dependency tracking - no manual subscr
 - **JSX syntax**: Use HTML tags like `<div>`, `<button>`, `<input>`
 - **Props**: Standard HTML attributes like `class`, `id`, `style`, `value`, `placeholder`
 - **Event handlers**: `onClick`, `onInput`, `onChange`, `onSubmit`, etc.
-- **Reactive content**: Wrap reactive text with `Component.textSignal(() => ...)`
+- **Reactive content**: Wrap reactive text with `Component.signalText(() => ...)`
 - **Component functions**: Define reusable components as functions that return JSX
 
 ### Xote.Router Features
@@ -130,7 +130,7 @@ let makeAppState = () => {
 
 let app = (count, items) => () => {
   <div>
-    <p> {Component.textSignal(() => `Count: ${Signal.get(count)->Int.toString}`)} </p>
+    <p> {Component.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)} </p>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
       {Component.text("+")}
     </button>

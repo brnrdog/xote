@@ -124,7 +124,7 @@ let counter = () => {
   // Only the text node updates when count changes.
   <div>
     <h1>
-      {Component.textSignal(() =>
+      {Component.signalText(() =>
         "Count: " ++ Int.toString(Signal.get(count))
       )}
     </h1>

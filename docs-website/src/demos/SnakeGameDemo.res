@@ -359,21 +359,21 @@ module GameInfo = {
       <div class="demo-stat">
         <div class="demo-stat-label"> {Component.text("Level")} </div>
         <div class="demo-stat-value">
-          {Component.textSignal(() => Signal.get(currentLevelNum)->Int.toString)}
+          {Component.signalText(() => Signal.get(currentLevelNum)->Int.toString)}
         </div>
       </div>
       // Score
       <div class="demo-stat">
         <div class="demo-stat-label"> {Component.text("Score")} </div>
         <div class="demo-stat-value">
-          {Component.textSignal(() => Signal.get(score)->Int.toString)}
+          {Component.signalText(() => Signal.get(score)->Int.toString)}
         </div>
       </div>
       // Progress
       <div class="demo-stat">
         <div class="demo-stat-label"> {Component.text("Food")} </div>
         <div class="demo-stat-value">
-          {Component.textSignal(() => {
+          {Component.signalText(() => {
             let eaten = Signal.get(foodEaten)
             let needed = Signal.get(currentLevel).foodCount
             `${Int.toString(eaten)}/${Int.toString(needed)}`
@@ -475,14 +475,14 @@ module GameStatusDisplay = {
       | LevelComplete => [
           <div class="snake-status level-complete">
             <p style="font-size: 1.5rem; font-weight: bold; margin: 0 0 0.5rem 0;">
-              {Component.textSignal(() =>
+              {Component.signalText(() =>
                 Signal.get(currentLevelNum) >= 10
                   ? "You Win! All Levels Complete!"
                   : "Level Complete!"
               )}
             </p>
             <p style="margin: 0;">
-              {Component.textSignal(() =>
+              {Component.signalText(() =>
                 Signal.get(currentLevelNum) >= 10
                   ? `Final Score: ${Signal.get(score)->Int.toString}`
                   : "Great job! Ready for the next challenge?"

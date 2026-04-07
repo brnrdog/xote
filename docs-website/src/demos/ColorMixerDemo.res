@@ -144,7 +144,7 @@ module ColorSlider = {
       <div class="color-demo-slider-label">
         <span> {Component.text(label)} </span>
         <span class="color-demo-slider-value">
-          {Component.textSignal(() => Signal.get(value)->Int.toString)}
+          {Component.signalText(() => Signal.get(value)->Int.toString)}
         </span>
       </div>
       <input
@@ -168,7 +168,7 @@ module ColorPreview = {
           `background-color: ${Signal.get(rgbColor)}; transition: background-color 0.2s ease; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;`}
       >
         <div class="color-demo-hex-overlay">
-          {Component.textSignal(() => Signal.get(hexColor))}
+          {Component.signalText(() => Signal.get(hexColor))}
         </div>
       </div>
     </div>
@@ -182,7 +182,7 @@ module ColorInfo = {
       <div class="color-demo-value-row">
         <span> {Component.text(label)} </span>
         <div>
-          <span> {Component.textSignal(() => Signal.get(value))} </span>
+          <span> {Component.signalText(() => Signal.get(value))} </span>
           <button
             class="demo-btn demo-btn-secondary"
             onClick={_evt => copyToClipboard(Signal.get(value))}

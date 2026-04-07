@@ -82,7 +82,7 @@ Notes:
 ### Component/Rendering (`Xote__Component`)
 
 - Virtual node types: `Element`, `Text`, `SignalText(Core.t<string>)`, `Fragment`, `SignalFragment(Core.t<array<node>>)\`.
-- Builders: `text`, `textSignal`, `fragment`, `signalFragment`, `list(signal, renderItem)`, `element` and tag helpers (`div`, `span`, `button`, `input`, `h1`, etc.).
+- Builders: `text`, `signalText`, `fragment`, `signalFragment`, `list(signal, renderItem)`, `element` and tag helpers (`div`, `span`, `button`, `input`, `h1`, etc.).
 - Rendering:
   - `SignalText` creates a text node seeded with `peek`, and an effect that reads via `get` and writes `textContent` on change.
   - `SignalFragment` uses an effect to replace its container's children when the array signal changes.
@@ -157,7 +157,7 @@ See the TC39 draft for the intended semantics and motivations: `https://github.c
 Rendering helpers (selected):
 
 - `Component.text : string -> node`
-- `Component.textSignal : (unit -> string) -> node`
+- `Component.signalText : (unit -> string) -> node`
 - `Component.signalFragment : Core.t<array<node>> -> node`
 - `Component.list : (Core.t<array<'a>>, 'a -> node) -> node`
 - `Component.element : (~attrs=?, ~events=?, ~children=?, unit) -> node` and tag helpers.

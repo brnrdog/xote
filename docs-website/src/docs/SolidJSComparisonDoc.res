@@ -216,7 +216,7 @@ Effect.run(() => {
   // Runs once. Only the text node with Signal.get(count) updates.
   <div>
     <h1>
-      {Component.textSignal(() =>
+      {Component.signalText(() =>
         "Count: " ++ Int.toString(Signal.get(count))
       )}
     </h1>
@@ -231,7 +231,7 @@ Effect.run(() => {
       {Component.text("The main difference is that SolidJS embeds reactive expressions directly in JSX (")}
       <code> {Component.text("{count()}")} </code>
       {Component.text("), while Xote uses explicit reactive text nodes (")}
-      <code> {Component.text("Component.textSignal")} </code>
+      <code> {Component.text("Component.signalText")} </code>
       {Component.text("). SolidJS's compiler transforms the JSX to wrap signal reads in effects automatically. Xote's approach is more explicit -- you decide which parts are reactive.")}
     </p>
     <h2 id="list-rendering"> {Component.text("List Rendering")} </h2>
@@ -544,7 +544,7 @@ let app = () => {
       <li>
         <code> {Component.text("<Show>")} </code>
       {Component.text(" -> ")}
-      <code> {Component.text("Component.textSignal")} </code>
+      <code> {Component.text("Component.signalText")} </code>
       {Component.text(" or ")}
       <code> {Component.text("SignalFragment")} </code>
       {Component.text(" with conditional logic")}

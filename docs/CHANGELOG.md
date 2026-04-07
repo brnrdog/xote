@@ -339,7 +339,7 @@ like Solid and Preact, providing a cleaner and more intuitive API.
 * add demo ([cf3faf3](https://github.com/brnrdog/xote/commit/cf3faf34c07d85a60d78d5f9539d2e2132f3b85a))
 * bump version ([5ac8b19](https://github.com/brnrdog/xote/commit/5ac8b19a954d3fa10ce0f0d866f86fb74e3ad456))
 * **component:** set reactivity to component element attributes ([57217e3](https://github.com/brnrdog/xote/commit/57217e3951303033f4e29801bb24c85bc3313ad1))
-* **component:** simplify textSignal to accept function directly ([9a9d551](https://github.com/brnrdog/xote/commit/9a9d551b0f080ed2321597f9aeb85b41153890d3))
+* **component:** simplify signalText to accept function directly ([9a9d551](https://github.com/brnrdog/xote/commit/9a9d551b0f080ed2321597f9aeb85b41153890d3))
 * **component:** unify attrs and signalAttrs into single attrs parameter ([d8942d9](https://github.com/brnrdog/xote/commit/d8942d9b4522a2f232d37970b8f55a8883999ecc))
 * minimal signal implementation based on the TC39 proposal ([9b78d0b](https://github.com/brnrdog/xote/commit/9b78d0b62ba21c953d909459036246f334b6613e))
 * **router:** add signal-based routing with pattern matching ([7bab79e](https://github.com/brnrdog/xote/commit/7bab79eb46fc35c9f90d09391bb71209485aa1d5))
@@ -350,7 +350,7 @@ like Solid and Preact, providing a cleaner and more intuitive API.
 ### Features
 
 * **component:** set reactivity to component element attributes ([57217e3](https://github.com/brnrdog/xote/commit/57217e3951303033f4e29801bb24c85bc3313ad1))
-* **component:** simplify textSignal to accept function directly ([9a9d551](https://github.com/brnrdog/xote/commit/9a9d551b0f080ed2321597f9aeb85b41153890d3))
+* **component:** simplify signalText to accept function directly ([9a9d551](https://github.com/brnrdog/xote/commit/9a9d551b0f080ed2321597f9aeb85b41153890d3))
 * **component:** unify attrs and signalAttrs into single attrs parameter ([d8942d9](https://github.com/brnrdog/xote/commit/d8942d9b4522a2f232d37970b8f55a8883999ecc))
 * **router:** add signal-based routing with pattern matching ([7bab79e](https://github.com/brnrdog/xote/commit/7bab79eb46fc35c9f90d09391bb71209485aa1d5))
 
@@ -360,7 +360,7 @@ like Solid and Preact, providing a cleaner and more intuitive API.
 ### Features
 
 * **component:** set reactivity to component element attributes ([57217e3](https://github.com/brnrdog/xote/commit/57217e3951303033f4e29801bb24c85bc3313ad1))
-* **component:** simplify textSignal to accept function directly ([9a9d551](https://github.com/brnrdog/xote/commit/9a9d551b0f080ed2321597f9aeb85b41153890d3))
+* **component:** simplify signalText to accept function directly ([9a9d551](https://github.com/brnrdog/xote/commit/9a9d551b0f080ed2321597f9aeb85b41153890d3))
 * **component:** unify attrs and signalAttrs into single attrs parameter ([d8942d9](https://github.com/brnrdog/xote/commit/d8942d9b4522a2f232d37970b8f55a8883999ecc))
 
 # [1.1.0](https://github.com/brnrdog/xote/compare/v1.0.3...v1.1.0) (2025-10-31)
