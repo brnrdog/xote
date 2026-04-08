@@ -1,3 +1,34 @@
+# [6.0.0](https://github.com/brnrdog/xote/compare/v5.0.0...v6.0.0) (2026-04-08)
+
+
+* refactor!: drop Xote__ prefix and use ReScript namespacing ([08991c4](https://github.com/brnrdog/xote/commit/08991c4499951e53054b491940d1908bb8d744cb))
+* refactor!: rename Component module to Node ([0bb235b](https://github.com/brnrdog/xote/commit/0bb235bfa2a0e81b23710304cf0c93e9286a8cbd))
+* refactor!: rename JSX module to XoteJSX ([ee870d4](https://github.com/brnrdog/xote/commit/ee870d47abfa40e0c0eb5dbabd9aabeb82eedbb8))
+* refactor!: split HTML element builders into Html module ([8ffd83f](https://github.com/brnrdog/xote/commit/8ffd83f97ece1ef71640c3ab8cb9067140ab6542))
+* refactor!: unify reactive node helpers under `signal` prefix ([b1a3ca7](https://github.com/brnrdog/xote/commit/b1a3ca7837f3e7e599cfc745518c526f10080bca))
+
+
+### BREAKING CHANGES
+
+* `Xote.Component` is renamed to `Xote.Node`. Replace all
+`Component.text`, `Component.signalText`, `Component.element`,
+`Component.mount`, etc. with the equivalent `Node.*` calls.
+* The JSX module is now `Xote.XoteJSX`. Consumers must
+update `rescript.json`:
+
+  "jsx": { "version": 4, "module": "XoteJSX" }
+* Element builders moved from `Component` to `Html`.
+Replace `Xote.Component.div(...)` with `Xote.Html.div(...)` (and the
+same for `span`, `button`, `input`, `h1`-`h3`, `p`, `ul`, `li`, `a`).
+* The JSX module path changes from `Xote__JSX` to
+`Xote.JSX`. Consumers must update their `rescript.json`:
+
+  "jsx": { "version": 4, "module": "JSX" },
+  "compiler-flags": ["-open Xote"]
+* `Xote.Component.textSignal`, `reactiveString`,
+`reactiveInt`, and `reactiveFloat` are removed. Replace call sites with
+`signalText`, `signalInt`, and `signalFloat` respectively.
+
 # [5.0.0](https://github.com/brnrdog/xote/compare/v4.16.1...v5.0.0) (2026-04-04)
 
 
