@@ -1,19 +1,9 @@
-# xote
+# [Xote](https://brnrdog.github.io/xote/)
 ![NPM Version](https://img.shields.io/npm/v/xote)
 ![npm bundle size](https://img.shields.io/bundlephobia/min/xote)
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/xote)
 
-Xote is a lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system. Built on [rescript-signals](https://brnrdog.github.io/rescript-signals), it provides declarative components, JSX support, and signal-based routing for building reactive web applications.
-
-## Features
-
-- **Reactive Components**: Declarative UI building with JSX support and direct DOM updates
-- **Signal-based Reactivity**: Powered by [rescript-signals](https://brnrdog.github.io/rescript-signals) for automatic dependency tracking
-- **Fine-grained Updates**: Direct DOM manipulation without virtual DOM diffing
-- **Signal-based Router**: SPA navigation with pattern matching and dynamic parameters
-- **Server-Side Rendering**: SSR with hydration and automatic state transfer
-- **Lightweight**: Minimal runtime footprint
-- **Type-safe**: Full ReScript type safety throughout
+Xote is a lightweight [ReScript](https://rescript-lang.org/) library that combines fine-grained reactivity and a declarative component system for building user interfaces for the web.
 
 ## Getting Started
 
@@ -21,10 +11,6 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 
 ```bash
 npm install xote
-# or
-yarn add xote
-# or
-pnpm add xote
 ```
 
 Then, add it to your ReScript project's `rescript.json`. You'll need to declare `xote` as a dependency, configure JSX to use Xote's transform, and open `Xote` so the JSX module resolves:
@@ -40,23 +26,9 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
 }
 ```
 
-`-open Xote` makes `Component`, `Html`, `Signal`, `Router`, etc. available unqualified inside your source files.
-
-## Why Xote?
-
-Xote uses **rescript-signals** for reactive primitives (Signal, Computed, Effect), and it adds:
-
-- **Component System**: A minimal but powerful component model with JSX support for declarative UI
-- **Direct DOM Updates**: Fine-grained reactivity that updates DOM elements directly, no virtual DOM
-- **Signal-based Router**: Client-side routing with pattern matching and reactive location state
-- **Reactive Attributes**: Support for static, signal-based, and computed attributes on elements
-- **Automatic Cleanup**: Effect disposal and memory management built into the component lifecycle
-
-Xote focuses on clarity, control, and performance. The goal is to offer precise, fine-grained updates and predictable behavior with minimal abstractions, while leveraging the robust type system from ReScript.
+Optional: the `-open Xote` flag makes Xote modules available unqualified inside your source files.
 
 ### Quick Example
-
-#### Using JSX
 
 ```rescript
 open Xote
@@ -66,16 +38,29 @@ module App = {
     // Create reactive state
     let count = Signal.make(0)
 
-    // Event handler
-    let increment = (_evt: Dom.event) => Signal.update(count, n => n + 1)
+    // Create a derived state
+    let doubled = Computed.make(() => Signal.get(count) * 2)
+
+    // Logs every time count changes:
+    Effect.run(() => {
+      Console.log2("Count is ", Signal.get(count))
+    })
 
     // Build the UI with JSX
     <div>
       <h1> {Node.text("Counter")} </h1>
       <p>
-        {Node.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)}
+        {Node.text("Count: ")}
+        {Node.signalInt(count)}
       </p>
-      <button onClick={increment}>
+      <p>
+        {Node.text("Doubled: ")
+        {Node.signalInt(doubled)}
+      </p>
+      <p>
+        {Node.signalText(() => "Count is " ++ Signal.get(count) % 2 == 0 ? "even" : "odd") 
+      </p>
+      <button onClick={(_evt: Dom.event) => Signal.update(count, n => n + 1)}>
         {Node.text("Increment")}
       </button>
     </div>
@@ -88,170 +73,27 @@ Node.mountById(<App />, "app")
 
 ## Core Concepts
 
-### Reactive Primitives (from rescript-signals)
+Xote focuses on clarity, control, and performance. The goal is to offer precise, fine-grained updates and predictable behavior with a minimal set of abstractions, while leveraging the robust type system from ReScript.
+
+### Reactive Primitives
+
+Xote uses **[rescript-signals](https://github.com/brnrdog/rescript-signals)** for its reactive primitives:
 
 - **Signal**: Reactive state container - `Signal.make(value)`
 - **Computed**: Derived reactive value that updates automatically - `Computed.make(() => ...)`
 - **Effect**: Side-effect functions that re-run when dependencies change - `Effect.run(() => ...)`
 
-All reactive primitives feature automatic dependency tracking - no manual subscriptions needed.
+All reactive primitives feature automatic dependency tracking. No manual subscriptions needed.
 
-### Xote Features
+### Component System
 
-- **Component**: Declarative UI builder with JSX syntax and function-based APIs
-- **Router**: Signal-based navigation for SPAs with pattern matching and dynamic routes
+On top of the reactive primitives with signals, Xote provides a declarative component system:
 
-### Component Features
-
-- **JSX syntax**: Use HTML tags like `<div>`, `<button>`, `<input>`
-- **Props**: Standard HTML attributes like `class`, `id`, `style`, `value`, `placeholder`
-- **Event handlers**: `onClick`, `onInput`, `onChange`, `onSubmit`, etc.
-- **Reactive content**: Wrap reactive text with `Node.signalText(() => ...)` (also `signalInt` and `signalFloat` for non-string values)
-- **HTML helpers**: `Html.div`, `Html.button`, `Html.p`, etc. for the function-based API; JSX covers the rest
-- **Component functions**: Define reusable components as functions that return JSX
-
-### Xote.Router Features
-
-- **Initialization**: Call `Router.init()` once at app start
-- **Imperative navigation**: Use `Router.push()` and `Router.replace()` to navigate programmatically
-- **Declarative routing**: Define routes with `Router.routes()` and render components based on URL patterns
-- **Dynamic parameters**: Extract URL parameters using `:param` syntax (e.g., `/users/:id`)
-- **Navigation links**: Use `Router.link()` for SPA navigation without page reload
-- **Reactive location**: Access current route via `Router.location` signal
-
-## Server-Side Rendering (SSR)
-
-Xote supports server-side rendering with hydration. The same component code runs on both server and client, with the server rendering HTML and the client attaching reactivity to the existing DOM.
-
-### Basic SSR Setup
-
-**Shared component** (`App.res`):
-```rescript
-open Xote
-
-let makeAppState = () => {
-  // SSRState.make creates a signal that syncs between server and client
-  let count = SSRState.make("count", 0, SSRState.Codec.int)
-  let items = SSRState.make("items", ["Apple", "Banana"], SSRState.Codec.array(SSRState.Codec.string))
-  (count, items)
-}
-
-let app = (count, items) => () => {
-  <div>
-    <p> {Node.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)} </p>
-    <button onClick={_ => Signal.update(count, n => n + 1)}>
-      {Node.text("+")}
-    </button>
-  </div>
-}
-```
-
-**Server entry** (`server.res`):
-```rescript
-open Xote
-
-let (count, items) = App.makeAppState()
-let appComponent = App.app(count, items)
-
-let html = SSR.renderDocument(
-  ~head="<title>My App</title>",
-  ~scripts=["./client.res.mjs"],
-  ~stateScript=SSRState.generateScript(),
-  appComponent,
-)
-
-Console.log(html)
-```
-
-**Client entry** (`client.res`):
-```rescript
-open Xote
-
-let (count, items) = App.makeAppState()
-let appComponent = App.app(count, items)
-
-Hydration.hydrateById(appComponent, "root")
-```
-
-### Running the SSR Example
-
-```bash
-# Generate HTML
-node server.res.mjs > index.html
-
-# Serve with Vite (or any static server)
-npx vite
-```
-
-### SSR Features
-
-- **`SSR.renderToString`**: Render component to HTML string
-- **`SSR.renderDocument`**: Render full HTML document with head, scripts, styles
-- **`SSRState.make`**: Create signals that automatically sync between server and client
-- **`SSRState.generateScript`**: Generate `<script>` tag with serialized state
-- **`Hydration.hydrate`**: Attach reactivity to server-rendered DOM
-- **`SSRContext.isServer` / `isClient`**: Environment detection for conditional logic
-
-### Built-in Codecs for State Serialization
-
-```rescript
-SSRState.Codec.int
-SSRState.Codec.float
-SSRState.Codec.string
-SSRState.Codec.bool
-SSRState.Codec.array(itemCodec)
-SSRState.Codec.option(itemCodec)
-SSRState.Codec.dict(valueCodec)
-SSRState.Codec.tuple2(codec1, codec2)
-SSRState.Codec.tuple3(codec1, codec2, codec3)
-SSRState.Codec.make(~encode, ~decode)  // Custom codec
-```
-
-## Examples
-
-Check some examples of applications built with Xote at https://brnrdog.github.io/xote/demos/.
-
-### Running Examples Locally
-
-To run the example demos locally:
-
-1. Clone the repository:
-```bash
-git clone https://github.com/brnrdog/xote.git
-cd xote
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Compile ReScript and start the dev server:
-```bash
-npm run res:dev  # In one terminal (watches ReScript files)
-npm run dev      # In another terminal (starts Vite dev server)
-```
-
-4. Open your browser and navigate to `http://localhost:5173`
-
-The demo app includes a navigation menu to explore all examples interactively.
-
-## Documentation
-
-Comprehensive documentation with live embedded demos is available at:
-
-**https://brnrdog.github.io/xote/**
-
-
-### Building Documentation Locally
-
-To build and preview the documentation site:
-
-```bash
-npm run docs:start
-```
-
-This will build the demos and start the documentation server at `http://localhost:3000`.
+- **JSX Support**: Build user interface using JSX, in a declarative and familiar manner
+- **Reactive DOM Nodes**: Fine-grained reactivity that updates DOM nodes directly, no virtual DOM required
+- **Built-in Router**: Client-side routing with pattern matching and reactive location state
+- **Automatic Cleanup**: Effect disposal and memory management built into the component lifecycle
+- **Server-side Rendering**: pre-render your pages on the server with full hydration
 
 ## License
 
