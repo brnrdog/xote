@@ -34,6 +34,7 @@ Optional: the `-open Xote` flag makes Xote modules available unqualified inside 
 open Xote
 
 module App = {
+  @jsx.component
   let make = () => {
     // Create reactive state
     let count = Signal.make(0)
@@ -44,6 +45,8 @@ module App = {
     // Logs every time count changes:
     Effect.run(() => {
       Console.log2("Count is ", Signal.get(count))
+      
+      None
     })
 
     // Build the UI with JSX
@@ -51,14 +54,14 @@ module App = {
       <h1> {Node.text("Counter")} </h1>
       <p>
         {Node.text("Count: ")}
-        {Node.signalInt(count)}
+        {Node.signalInt(() => Signal.get(count))}
       </p>
       <p>
-        {Node.text("Doubled: ")
-        {Node.signalInt(doubled)}
+        {Node.text("Doubled: ")}
+        {Node.signalInt(() => Signal.get(doubled))}
       </p>
       <p>
-        {Node.signalText(() => "Count is " ++ Signal.get(count) % 2 == 0 ? "even" : "odd") 
+        {Node.signalText(() => "Count is " ++ (Signal.get(count) % 2 == 0 ? "even" : "odd"))}
       </p>
       <button onClick={(_evt: Dom.event) => Signal.update(count, n => n + 1)}>
         {Node.text("Increment")}
