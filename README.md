@@ -53,15 +53,10 @@ module App = {
     <div>
       <h1> {Node.text("Counter")} </h1>
       <p>
-        {Node.text("Count: ")}
-        {Node.signalInt(() => Signal.get(count))}
+        {Node.signalText("Count: " ++ Signal.get(count)->Int.toString)}
       </p>
       <p>
-        {Node.text("Doubled: ")}
-        {Node.signalInt(() => Signal.get(doubled))}
-      </p>
-      <p>
-        {Node.signalText(() => "Count is " ++ (Signal.get(count) % 2 == 0 ? "even" : "odd"))}
+        {Node.signalText(() => Signal.get(doubled)->Int.toString)}
       </p>
       <button onClick={(_evt: Dom.event) => Signal.update(count, n => n + 1)}>
         {Node.text("Increment")}
