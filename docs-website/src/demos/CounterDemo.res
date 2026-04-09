@@ -1,5 +1,3 @@
-open Xote
-
 let count = Signal.make(0)
 
 let increment = (_evt: Dom.event) => Signal.update(count, n => n + 1)

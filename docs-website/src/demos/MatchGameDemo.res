@@ -1,5 +1,3 @@
-open Xote
-
 @val external setTimeout: (unit => unit, int) => unit = "setTimeout"
 
 // Game configuration

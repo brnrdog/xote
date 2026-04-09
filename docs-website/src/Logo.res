@@ -1,5 +1,3 @@
-open Xote
-
 type props = {color?: string, size?: int}
 
 let make = (props: props) => {

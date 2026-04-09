@@ -255,22 +255,22 @@ function parseInlineMarkdown(text) {
 function generateInlineJSX(text) {
   const parts = parseInlineMarkdown(text);
   if (parts.length === 1 && parts[0].type === 'text') {
-    return `{Component.text("${escapeForReScript(parts[0].value)}")}`;
+    return `{Node.text("${escapeForReScript(parts[0].value)}")}`;
   }
 
   const elements = parts.map(part => {
     switch (part.type) {
       case 'text':
-        return `{Component.text("${escapeForReScript(part.value)}")}`;
+        return `{Node.text("${escapeForReScript(part.value)}")}`;
       case 'strong':
-        return `<strong> {Component.text("${escapeForReScript(part.value)}")} </strong>`;
+        return `<strong> {Node.text("${escapeForReScript(part.value)}")} </strong>`;
       case 'code':
-        return `<code> {Component.text("${escapeForReScript(part.value)}")} </code>`;
+        return `<code> {Node.text("${escapeForReScript(part.value)}")} </code>`;
       case 'link':
         if (part.url.startsWith('/')) {
-          return `{Router.link(~to="${part.url}", ~children=[Component.text("${escapeForReScript(part.text)}")], ())}`;
+          return `{Router.link(~to="${part.url}", ~children=[Node.text("${escapeForReScript(part.text)}")], ())}`;
         } else {
-          return `<a href="${part.url}" target="_blank"> {Component.text("${escapeForReScript(part.text)}")} </a>`;
+          return `<a href="${part.url}" target="_blank"> {Node.text("${escapeForReScript(part.text)}")} </a>`;
         }
       default:
         return '';
@@ -316,22 +316,22 @@ function generateJSX(nodes) {
   return nodes.map(node => {
     switch (node.type) {
       case 'h1':
-        return `    <h1> {Component.text("${escapeForReScript(node.text)}")} </h1>`;
+        return `    <h1> {Node.text("${escapeForReScript(node.text)}")} </h1>`;
       case 'h2':
         const h2Id = slugify(node.text);
-        return `    <h2 id="${h2Id}"> {Component.text("${escapeForReScript(node.text)}")} </h2>`;
+        return `    <h2 id="${h2Id}"> {Node.text("${escapeForReScript(node.text)}")} </h2>`;
       case 'h3':
         const h3Id = slugify(node.text);
         return `    <h3 id="${h3Id}"> ${generateInlineJSX(node.text)} </h3>`;
       case 'h4':
-        return `    <h4> {Component.text("${escapeForReScript(node.text)}")} </h4>`;
+        return `    <h4> {Node.text("${escapeForReScript(node.text)}")} </h4>`;
       case 'p':
         return `    <p>\n      ${generateInlineJSX(node.text)}\n    </p>`;
       case 'blockquote':
         return `    <div class="info-box">\n      <p>\n        ${generateInlineJSX(node.text)}\n      </p>\n    </div>`;
       case 'pre':
         const codeText = escapeForReScript(node.children[0].text);
-        return `    <pre>\n      <code>\n        {Component.text(\`${codeText}\`)}\n      </code>\n    </pre>`;
+        return `    <pre>\n      <code>\n        {Node.text(\`${codeText}\`)}\n      </code>\n    </pre>`;
       case 'ul':
         const ulItems = node.items.map(item =>
           `      <li>\n        ${generateInlineJSX(item)}\n      </li>`
@@ -382,8 +382,6 @@ function convertMarkdownToComponent(markdownPath, outputPath) {
 // * To update: modify the markdown file and run:
 // *   npm run generate-api-docs
 // ****************************************************
-
-open Xote
 
 let content = () => {
   <div>

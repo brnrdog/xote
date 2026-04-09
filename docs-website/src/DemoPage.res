@@ -1,5 +1,3 @@
-open Xote
-
 // Wrapper for rendering demos inside the docs layout with sidebar
 @jsx.component
 let make = (

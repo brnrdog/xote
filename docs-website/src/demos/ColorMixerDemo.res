@@ -1,5 +1,3 @@
-open Xote
-
 // Color channel signals (0-255)
 let red = Signal.make(100)
 let green = Signal.make(150)

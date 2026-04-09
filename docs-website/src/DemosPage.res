@@ -1,5 +1,3 @@
-open Xote
-
 // Demo data type
 type demo = {
   title: string,

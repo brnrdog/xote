@@ -1,5 +1,3 @@
-open Xote
-
 let content = () => {
   <div>
     <h2 id="overview"> {Node.text("Overview")} </h2>

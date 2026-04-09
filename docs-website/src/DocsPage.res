@@ -1,5 +1,3 @@
-open Xote
-
 // ---- Navigation data ----
 type docItem = {
   title: string,

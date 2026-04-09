@@ -1,5 +1,3 @@
-open Xote
-
 type todo = {
   id: int,
   text: string,

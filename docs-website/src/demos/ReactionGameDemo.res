@@ -1,5 +1,3 @@
-open Xote
-
 // External bindings for setTimeout/clearTimeout
 @val external setTimeout: (unit => unit, float) => int = "setTimeout"
 @val external clearTimeout: int => unit = "clearTimeout"

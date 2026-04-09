@@ -1,5 +1,3 @@
-open Xote
-
 // ---- Helper bindings ----
 module DomHelpers = {
   type target = {value: string}
