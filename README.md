@@ -5,30 +5,6 @@
 
 Xote is a lightweight [ReScript](https://rescript-lang.org/) library that combines fine-grained reactivity and a declarative component system for building user interfaces for the web.
 
-## Core Concepts
-
-Xote focuses on clarity, control, and performance. The goal is to offer precise, fine-grained updates and predictable behavior with a minimal set of abstractions, while leveraging the robust type system from ReScript.
-
-### Reactive Primitives
-
-Xote uses **[rescript-signals](https://github.com/brnrdog/rescript-signals)** for its reactive primitives:
-
-- **Signal**: Reactive state container - `Signal.make(value)`
-- **Computed**: Derived reactive value that updates automatically - `Computed.make(() => ...)`
-- **Effect**: Side-effect functions that re-run when dependencies change - `Effect.run(() => ...)`
-
-All reactive primitives feature automatic dependency tracking. No manual subscriptions needed.
-
-### Component System
-
-On top of the reactive primitives with signals, Xote provides a declarative component system:
-
-- **JSX Support**: Build user interface using JSX, in a declarative and familiar manner
-- **Reactive DOM Nodes**: Fine-grained reactivity that updates DOM nodes directly, no virtual DOM required
-- **Built-in Router**: Client-side routing with pattern matching and reactive location state
-- **Automatic Cleanup**: Effect disposal and memory management built into the component lifecycle
-- **Server-side Rendering**: pre-render your pages on the server with full hydration
-
 ## Getting Started
 
 ### Installation
@@ -94,6 +70,30 @@ module App = {
 // Mount to the DOM
 Node.mountById(<App />, "app")
 ```
+
+## Core Concepts
+
+Xote focuses on clarity, control, and performance. The goal is to offer precise, fine-grained updates and predictable behavior with a minimal set of abstractions, while leveraging the robust type system from ReScript.
+
+### Reactive Primitives
+
+Xote uses **[rescript-signals](https://github.com/brnrdog/rescript-signals)** for its reactive primitives:
+
+- **Signal**: Reactive state container - `Signal.make(value)`
+- **Computed**: Derived reactive value that updates automatically - `Computed.make(() => ...)`
+- **Effect**: Side-effect functions that re-run when dependencies change - `Effect.run(() => ...)`
+
+All reactive primitives feature automatic dependency tracking. No manual subscriptions needed.
+
+### Component System
+
+On top of the reactive primitives with signals, Xote provides a declarative component system:
+
+- **JSX Support**: Build user interface using JSX, in a declarative and familiar manner
+- **Reactive DOM Nodes**: Fine-grained reactivity that updates DOM nodes directly, no virtual DOM required
+- **Built-in Router**: Client-side routing with pattern matching and reactive location state
+- **Automatic Cleanup**: Effect disposal and memory management built into the component lifecycle
+- **Server-side Rendering**: pre-render your pages on the server with full hydration
 
 ## License
 
