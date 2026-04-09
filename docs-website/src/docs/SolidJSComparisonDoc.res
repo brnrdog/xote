@@ -5,8 +5,6 @@
 // *   npm run generate-api-docs
 // ****************************************************
 
-open Xote
-
 let content = () => {
   <div>
     <h1> {Node.text("Comparing Xote with SolidJS")} </h1>
@@ -171,7 +169,11 @@ Effect.run(() => {
       <code> {Node.text("Some(cleanupFn)")} </code>
       {Node.text(" or ")}
       <code> {Node.text("None")} </code>
-      {Node.text(".")}
+      {Node.text(", and use ")}
+      <code> {Node.text("Effect.run")} </code>
+      {Node.text(" (returns unit) or ")}
+      <code> {Node.text("Effect.runWithDisposer")} </code>
+      {Node.text(" (returns a disposer for manual cleanup).")}
       </li>
       <li>
         {Node.text("Xote signals use ")}
@@ -527,14 +529,15 @@ let app = () => {
       <code> {Node.text("Some(cleanupFn)")} </code>
       {Node.text(" or ")}
       <code> {Node.text("None")} </code>
-      {Node.text(")")}
+      {Node.text("; use ")}
+      <code> {Node.text("Effect.runWithDisposer")} </code>
+      {Node.text(" if you need the disposer)")}
       </li>
       <li>
         <code> {Node.text("onCleanup")} </code>
       {Node.text(" -> Return ")}
       <code> {Node.text("Some(cleanupFn)")} </code>
-      {Node.text(" from ")}
-      <code> {Node.text("Effect.run")} </code>
+      {Node.text(" from the effect")}
       </li>
       <li>
         <code> {Node.text("<For>")} </code>

@@ -5,8 +5,6 @@
 // *   npm run generate-api-docs
 // ****************************************************
 
-open Xote
-
 let content = () => {
   <div>
     <h1> {Node.text("Comparing Xote with React")} </h1>

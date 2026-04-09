@@ -1,5 +1,3 @@
-open Xote
-
 // Import modules to ensure they are included in the bundle
 module Website = Website
 

@@ -1,5 +1,3 @@
-open Xote
-
 // Card types
 type suit = Hearts | Diamonds | Clubs | Spades
 type rank = Ace | Two | Three | Four | Five | Six | Seven | Eight | Nine | Ten | Jack | Queen | King

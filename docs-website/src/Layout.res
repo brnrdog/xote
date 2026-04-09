@@ -1,5 +1,3 @@
-open Xote
-
 // ---- External bindings ----
 @val @scope("document.documentElement")
 external setHtmlAttribute: (string, string) => unit = "setAttribute"
@@ -286,7 +284,7 @@ module Header = {
               (),
             )}
             <a href="https://www.npmjs.com/package/xote" target="_blank" class="header-version">
-              {Node.text("v4.15.1")}
+              {Node.text("v6.0.0")}
             </a>
             <nav class="header-nav">
               {Router.link(

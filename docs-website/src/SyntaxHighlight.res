@@ -1,5 +1,4 @@
 // Simple ReScript syntax highlighter
-open Xote
 
 let keywords = [
   "let",

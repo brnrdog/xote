@@ -1,5 +1,3 @@
-open Xote
-
 // Import doc content
 module IntroDoc = IntroDoc
 module SignalsDoc = SignalsDoc
