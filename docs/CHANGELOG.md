@@ -1,3 +1,10 @@
+## [6.0.1](https://github.com/brnrdog/xote/compare/v6.0.0...v6.0.1) (2026-04-09)
+
+
+### Bug Fixes
+
+* add exports field to package.json ([c57ed32](https://github.com/brnrdog/xote/commit/c57ed3271263fa759c743990a104a56833ecc343))
+
 # [6.0.0](https://github.com/brnrdog/xote/compare/v5.0.0...v6.0.0) (2026-04-08)
 
 
