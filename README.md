@@ -73,7 +73,7 @@ Node.mountById(<App />, "app")
 
 ## Core Concepts
 
-Xote focuses on clarity, control, and performance. The goal is to offer precise, fine-grained updates and predictable behavior with a minimal set of abstractions, while leveraging the robust type system from ReScript.
+Xote focuses on clarity, control, and performance. The goal is to offer precise, fine-grained updates and predictable behavior with a minimal set of abstractions, while leveraging the robust type system from ReScript. 
 
 ### Reactive Primitives
 
@@ -94,6 +94,8 @@ On top of the reactive primitives with signals, Xote provides a declarative comp
 - **Built-in Router**: Client-side routing with pattern matching and reactive location state
 - **Automatic Cleanup**: Effect disposal and memory management built into the component lifecycle
 - **Server-side Rendering**: pre-render your pages on the server with full hydration
+
+Check the [website](https://brnrdog.github.io/xote/) for more comprehensive documentations about Xote and Signals.
 
 ## License
 
