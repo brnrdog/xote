@@ -6,6 +6,16 @@
   },
   "main": "./dist/xote.cjs",
   "module": "./dist/xote.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/xote.mjs",
+      "require": "./dist/xote.cjs",
+      "default": "./dist/xote.mjs"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json",
+    "./rescript.json": "./rescript.json"
+  },
   "sideEffects": false,
   "files": [
     "dist",
