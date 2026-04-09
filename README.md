@@ -1,7 +1,7 @@
 # [Xote](https://brnrdog.github.io/xote/)
 ![NPM Version](https://img.shields.io/npm/v/xote)
-![npm bundle size](https://img.shields.io/bundlephobia/min/xote)
-![npm bundle size](https://img.shields.io/bundlephobia/minzip/xote)
+![npm bundle size](https://badgen.net/bundlephobia/min/xote)
+![npm bundle size](https://badgen.net/bundlephobia/minzip/xote)
 
 Xote is a lightweight [ReScript](https://rescript-lang.org/) library that combines fine-grained reactivity and a declarative component system for building user interfaces for the web.
 
