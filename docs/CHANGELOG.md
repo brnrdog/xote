@@ -1,3 +1,10 @@
+# [6.1.0](https://github.com/brnrdog/xote/compare/v6.0.1...v6.1.0) (2026-04-10)
+
+
+### Features
+
+* add draggable, hidden, title, and other missing JSX props ([e6de2ba](https://github.com/brnrdog/xote/commit/e6de2bae6c586fa863a1b40bfe2132f52469e8ee))
+
 ## [6.0.1](https://github.com/brnrdog/xote/compare/v6.0.0...v6.0.1) (2026-04-09)
 
 
