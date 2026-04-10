@@ -79,11 +79,20 @@ module Elements = {
     'ariaHidden,
     'ariaExpanded,
     'ariaSelected,
+    'draggable,
+    'hidden,
+    'title,
+    'contentEditable,
+    'spellcheck,
+    'autofocus,
+    'action,
+    'method,
   > = {
     /* Standard attributes - accept raw strings or ReactiveProp.t<string> */
     id?: 'id,
     class?: 'class,
     style?: 'style,
+    title?: 'title,
     /* Form/Input attributes */
     @as("type") type_?: 'typ,
     name?: 'name,
@@ -104,6 +113,9 @@ module Elements = {
     accept?: 'accept,
     rows?: int,
     cols?: int,
+    autofocus?: 'autofocus,
+    action?: 'action,
+    method?: 'method,
     /* Label attributes */
     @as("for") for_?: 'forAttr,
     /* Link attributes */
@@ -114,6 +126,11 @@ module Elements = {
     alt?: 'alt,
     width?: 'width,
     height?: 'height,
+    /* Global attributes */
+    draggable?: 'draggable,
+    hidden?: 'hidden,
+    contentEditable?: 'contentEditable,
+    spellcheck?: 'spellcheck,
     /* Accessibility attributes */
     role?: 'role,
     tabIndex?: int,
@@ -138,6 +155,14 @@ module Elements = {
     onMouseMove?: Dom.event => unit,
     onMouseUp?: Dom.event => unit,
     onContextMenu?: Dom.event => unit,
+    /* Drag-and-drop event handlers */
+    onDrag?: Dom.event => unit,
+    onDragStart?: Dom.event => unit,
+    onDragEnd?: Dom.event => unit,
+    onDragOver?: Dom.event => unit,
+    onDragEnter?: Dom.event => unit,
+    onDragLeave?: Dom.event => unit,
+    onDrop?: Dom.event => unit,
     /* Children */
     children?: element,
   }
@@ -249,6 +274,14 @@ module Elements = {
       _,
       _,
       _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
     >,
   ): array<(string, Node.attrValue)> => {
     let attrs = []
@@ -257,6 +290,7 @@ module Elements = {
     addAttr(attrs, props.id, "id", convertAttrValue)
     addAttr(attrs, props.class, "class", convertAttrValue)
     addAttr(attrs, props.style, "style", convertAttrValue)
+    addAttr(attrs, props.title, "title", convertAttrValue)
 
     /* Form/Input attributes */
     addAttr(attrs, props.type_, "type", convertAttrValue)
@@ -278,6 +312,9 @@ module Elements = {
     addAttr(attrs, props.accept, "accept", convertAttrValue)
     addIntAttr(attrs, props.rows, "rows")
     addIntAttr(attrs, props.cols, "cols")
+    addAttr(attrs, props.autofocus, "autofocus", convertBoolAttrValue)
+    addAttr(attrs, props.action, "action", convertAttrValue)
+    addAttr(attrs, props.method, "method", convertAttrValue)
 
     /* Label attributes */
     addAttr(attrs, props.for_, "for", convertAttrValue)
@@ -291,6 +328,12 @@ module Elements = {
     addAttr(attrs, props.alt, "alt", convertAttrValue)
     addAttr(attrs, props.width, "width", convertAttrValue)
     addAttr(attrs, props.height, "height", convertAttrValue)
+
+    /* Global attributes */
+    addAttr(attrs, props.draggable, "draggable", convertBoolAttrValue)
+    addAttr(attrs, props.hidden, "hidden", convertBoolAttrValue)
+    addAttr(attrs, props.contentEditable, "contenteditable", convertBoolAttrValue)
+    addAttr(attrs, props.spellcheck, "spellcheck", convertBoolAttrValue)
 
     /* Accessibility attributes */
     addAttr(attrs, props.role, "role", convertAttrValue)
@@ -356,6 +399,14 @@ module Elements = {
       _,
       _,
       _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
     >,
   ): array<(string, Dom.event => unit)> => {
     let events = []
@@ -374,6 +425,13 @@ module Elements = {
     addEvent(events, props.onMouseMove, "mousemove")
     addEvent(events, props.onMouseUp, "mouseup")
     addEvent(events, props.onContextMenu, "contextmenu")
+    addEvent(events, props.onDrag, "drag")
+    addEvent(events, props.onDragStart, "dragstart")
+    addEvent(events, props.onDragEnd, "dragend")
+    addEvent(events, props.onDragOver, "dragover")
+    addEvent(events, props.onDragEnter, "dragenter")
+    addEvent(events, props.onDragLeave, "dragleave")
+    addEvent(events, props.onDrop, "drop")
 
     events
   }
@@ -381,6 +439,14 @@ module Elements = {
   /* Extract children from props */
   let getChildren = (
     props: props<
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
       _,
       _,
       _,
@@ -424,6 +490,14 @@ module Elements = {
   let createElement = (
     tag: string,
     props: props<
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
       _,
       _,
       _,
@@ -498,6 +572,14 @@ module Elements = {
       _,
       _,
       _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
     >,
   ): element => createElement(tag, props)
 
@@ -506,6 +588,14 @@ module Elements = {
   let jsxKeyed = (
     tag: string,
     props: props<
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
+      _,
       _,
       _,
       _,

@@ -28,6 +28,7 @@
     "res:build": "rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript -w",
+    "format": "rescript format",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
