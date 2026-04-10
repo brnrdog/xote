@@ -53,7 +53,7 @@ module App = {
     <div>
       <h1> {Node.text("Counter")} </h1>
       <p>
-        {Node.signalText("Count: " ++ Signal.get(count)->Int.toString)}
+        {Node.signalText(() => "Count: " ++ Signal.get(count)->Int.toString)}
       </p>
       <p>
         {Node.signalText(() => Signal.get(doubled)->Int.toString)}
