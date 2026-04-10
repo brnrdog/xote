@@ -47,10 +47,7 @@ let suite = Zekr.suite(
     }),
     test("nested codec: array of options", () => {
       let codec = Codec.array(Codec.option(Codec.int))
-      assertEqual(
-        roundTrip(codec, [Some(1), None, Some(3)]),
-        Some([Some(1), None, Some(3)]),
-      )
+      assertEqual(roundTrip(codec, [Some(1), None, Some(3)]), Some([Some(1), None, Some(3)]))
     }),
     test("int codec decoding a string returns None", () => {
       let json = Codec.string.encode("not a number")

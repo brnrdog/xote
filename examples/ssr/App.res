@@ -106,9 +106,7 @@ let app = (count, items, inputValue) =>
             ),
             Html.ul(
               ~attrs=[Node.attr("class", "item-list")],
-              ~children=[
-                Node.list(items, item => Html.li(~children=[Node.text(item)], ())),
-              ],
+              ~children=[Node.list(items, item => Html.li(~children=[Node.text(item)], ()))],
               (),
             ),
           ],

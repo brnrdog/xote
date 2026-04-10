@@ -29,8 +29,7 @@ let suite = Zekr.suite(
     }),
     test("extracts single route parameter", () => {
       switch Route.match("/users/:id", "/users/42") {
-      | Route.Match(params) =>
-        assertEqual(Dict.get(params, "id"), Some("42"))
+      | Route.Match(params) => assertEqual(Dict.get(params, "id"), Some("42"))
       | Route.NoMatch => Fail("Expected Match for /users/42")
       }
     }),

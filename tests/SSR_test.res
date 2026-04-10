@@ -12,35 +12,24 @@ let suite = Zekr.suite(
     }),
     test("renders element with class attribute", () => {
       let html = SSR.renderToString(() =>
-        Html.div(
-          ~attrs=[Node.attr("class", "box")],
-          ~children=[Node.text("content")],
-          (),
-        )
+        Html.div(~attrs=[Node.attr("class", "box")], ~children=[Node.text("content")], ())
       )
       assertMatchesSnapshot(html, ~name="ssr-element-with-class")
     }),
     test("renders nested elements", () => {
       let html = SSR.renderToString(() =>
-        Html.div(~children=[
-          Html.p(~children=[Node.text("nested")], ()),
-        ], ())
+        Html.div(~children=[Html.p(~children=[Node.text("nested")], ())], ())
       )
       assertMatchesSnapshot(html, ~name="ssr-nested-elements")
     }),
     test("renders void elements self-closing", () => {
       let html = SSR.renderToString(() =>
-        Node.fragment([
-          Html.input(~attrs=[Node.attr("type", "text")], ()),
-          Node.element("br", ()),
-        ])
+        Node.fragment([Html.input(~attrs=[Node.attr("type", "text")], ()), Node.element("br", ())])
       )
       assertMatchesSnapshot(html, ~name="ssr-void-elements")
     }),
     test("escapes HTML in text content", () => {
-      let html = SSR.renderToString(() =>
-        Node.text("<script>alert('xss')</script>")
-      )
+      let html = SSR.renderToString(() => Node.text("<script>alert('xss')</script>"))
       combineResults([
         assertContains(html, "&lt;script&gt;"),
         assertContains(html, "&lt;/script&gt;"),
@@ -71,9 +60,7 @@ let suite = Zekr.suite(
     test("wraps keyed list items with key markers", () => {
       let html = SSR.renderToString(() => {
         let items = Signal.make(["a", "b"])
-        Node.keyedList(items, item => item, item =>
-          Html.span(~children=[Node.text(item)], ())
-        )
+        Node.keyedList(items, item => item, item => Html.span(~children=[Node.text(item)], ()))
       })
       combineResults([
         assertContains(html, "<!--kl-->"),
@@ -84,9 +71,7 @@ let suite = Zekr.suite(
       ])
     }),
     test("wraps lazy component with markers", () => {
-      let html = SSR.renderToString(() =>
-        LazyComponent(() => Node.text("lazy"))
-      )
+      let html = SSR.renderToString(() => LazyComponent(() => Node.text("lazy")))
       combineResults([
         assertContains(html, "<!--lc-->"),
         assertContains(html, "lazy"),
@@ -94,9 +79,7 @@ let suite = Zekr.suite(
       ])
     }),
     test("renderToStringWithRoot adds root markers", () => {
-      let html = SSR.renderToStringWithRoot(() =>
-        Node.text("root content")
-      )
+      let html = SSR.renderToStringWithRoot(() => Node.text("root content"))
       combineResults([
         assertContains(html, "<!--xote-root:root-->"),
         assertContains(html, "root content"),
@@ -104,10 +87,8 @@ let suite = Zekr.suite(
       ])
     }),
     test("renderDocument generates full HTML document", () => {
-      let html = SSR.renderDocument(
-        ~scripts=["/app.js"],
-        ~styles=["/style.css"],
-        () => Node.text("page"),
+      let html = SSR.renderDocument(~scripts=["/app.js"], ~styles=["/style.css"], () =>
+        Node.text("page")
       )
       combineResults([
         assertContains(html, "<!DOCTYPE html>"),
@@ -120,13 +101,7 @@ let suite = Zekr.suite(
     }),
     test("renders boolean attributes without value", () => {
       let html = SSR.renderToString(() =>
-        Html.input(
-          ~attrs=[
-            Node.attr("type", "text"),
-            Node.attr("disabled", "true"),
-          ],
-          (),
-        )
+        Html.input(~attrs=[Node.attr("type", "text"), Node.attr("disabled", "true")], ())
       )
       combineResults([
         assertContains(html, "disabled"),
@@ -135,15 +110,9 @@ let suite = Zekr.suite(
     }),
     test("escapes attribute values", () => {
       let html = SSR.renderToString(() =>
-        Html.div(
-          ~attrs=[Node.attr("title", `say "hello" & goodbye`)],
-          (),
-        )
+        Html.div(~attrs=[Node.attr("title", `say "hello" & goodbye`)], ())
       )
-      combineResults([
-        assertContains(html, "&quot;"),
-        assertContains(html, "&amp;"),
-      ])
+      combineResults([assertContains(html, "&quot;"), assertContains(html, "&amp;")])
     }),
   ],
 )

@@ -11,8 +11,9 @@ type componentLike<'props, 'return> = 'props => 'return
  * This ensures component functions (which may create effects/computeds) are not
  * evaluated during a Computed context, which would incorrectly track their
  * dependencies as belonging to the outer computed. */
-let jsx = (component: component<'props>, props: 'props): element =>
-  Node.LazyComponent(() => component(props))
+let jsx = (component: component<'props>, props: 'props): element => Node.LazyComponent(
+  () => component(props),
+)
 
 let jsxs = jsx
 
