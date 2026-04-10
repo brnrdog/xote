@@ -1,4 +1,3 @@
-
 /* ============================================================================
  * DOM Bindings
  * ============================================================================ */
@@ -89,8 +88,17 @@ module DOM = {
     | "checked" => setChecked(el, value == "true")
     | "disabled" => setDisabled(el, value == "true")
     /* Boolean attributes that should be added/removed based on value */
-    | "required" | "readonly" | "multiple" | "aria-hidden" | "aria-expanded" | "aria-selected"
-    | "draggable" | "hidden" | "contenteditable" | "spellcheck" | "autofocus" =>
+    | "required"
+    | "readonly"
+    | "multiple"
+    | "aria-hidden"
+    | "aria-expanded"
+    | "aria-selected"
+    | "draggable"
+    | "hidden"
+    | "contenteditable"
+    | "spellcheck"
+    | "autofocus" =>
       if value == "true" {
         setAttribute(el, key, "")
       } else {

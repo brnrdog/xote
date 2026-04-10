@@ -10,25 +10,15 @@ let suite = Zekr.suite(
   [
     test("renders basic JSX element with class", () => {
       let {container} = Dom.render("")
-      let _ = mountTo(
-        <div class="container">
-          {Node.text("Hello JSX")}
-        </div>,
-        container,
-      )
+      let _ = mountTo(<div class="container"> {Node.text("Hello JSX")} </div>, container)
       let el = Dom.Query.getByText(container, "Hello JSX")
-      combineResults([
-        Dom.Assert.toBeInTheDocument(el),
-        Dom.Assert.toHaveClass(el, "container"),
-      ])
+      combineResults([Dom.Assert.toBeInTheDocument(el), Dom.Assert.toHaveClass(el, "container")])
     }),
     test("handles click events in JSX", () => {
       let {container} = Dom.render("")
       let clicked = ref(false)
       let _ = mountTo(
-        <button onClick={_evt => clicked := true}>
-          {Node.text("Press")}
-        </button>,
+        <button onClick={_evt => clicked := true}> {Node.text("Press")} </button>,
         container,
       )
       let btn = Dom.Query.getByRole(container, "button")
@@ -37,10 +27,7 @@ let suite = Zekr.suite(
     }),
     test("renders input with type and placeholder", () => {
       let {container} = Dom.render("")
-      let _ = mountTo(
-        <input type_="text" placeholder="Enter name" />,
-        container,
-      )
+      let _ = mountTo(<input type_="text" placeholder="Enter name" />, container)
       let input = Dom.Query.getByPlaceholder(container, "Enter name")
       Dom.Assert.toHaveAttribute(input, "type", ~value="text")
     }),
@@ -61,9 +48,7 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let cls = Signal.make("initial")
       let _ = mountTo(
-        <div class={ReactiveProp.reactive(cls)}>
-          {Node.text("reactive")}
-        </div>,
+        <div class={ReactiveProp.reactive(cls)}> {Node.text("reactive")} </div>,
         container,
       )
       let el = Dom.Query.getByText(container, "reactive")
@@ -91,29 +76,19 @@ let suite = Zekr.suite(
         container,
       )
       combineResults([
-        Dom.Assert.toBeInTheDocument(
-          Dom.Query.getByRole(container, "heading", ~level=1),
-        ),
-        Dom.Assert.toBeInTheDocument(
-          Dom.Query.getByRole(container, "heading", ~level=2),
-        ),
+        Dom.Assert.toBeInTheDocument(Dom.Query.getByRole(container, "heading", ~level=1)),
+        Dom.Assert.toBeInTheDocument(Dom.Query.getByRole(container, "heading", ~level=2)),
       ])
     }),
     test("renders link with href", () => {
       let {container} = Dom.render("")
-      let _ = mountTo(
-        <a href="/about"> {Node.text("About")} </a>,
-        container,
-      )
+      let _ = mountTo(<a href="/about"> {Node.text("About")} </a>, container)
       let link = Dom.Query.getByRole(container, "link")
       Dom.Assert.toHaveAttribute(link, "href", ~value="/about")
     }),
     test("renders image with src and alt", () => {
       let {container} = Dom.render("")
-      let _ = mountTo(
-        <img src="/logo.png" alt="Logo" />,
-        container,
-      )
+      let _ = mountTo(<img src="/logo.png" alt="Logo" />, container)
       let img = Dom.Query.getByAltText(container, "Logo")
       Dom.Assert.toHaveAttribute(img, "src", ~value="/logo.png")
     }),
@@ -129,10 +104,12 @@ let suite = Zekr.suite(
         let make = (_props: props) => {
           let counter = Signal.make(0)
 
-          Effect.run(() => {
-            let _ = Signal.get(counter)
-            None
-          })
+          Effect.run(
+            () => {
+              let _ = Signal.get(counter)
+              None
+            },
+          )
 
           <div>
             <span> {Node.signalInt(() => Signal.get(counter))} </span>
@@ -147,11 +124,12 @@ let suite = Zekr.suite(
 
       let _ = mountTo(
         Node.signalFragment(
-          Computed.make(() =>
-            switch Signal.get(tab) {
-            | "effect" => [<EffectComponent />]
-            | _ => [Node.text("other tab")]
-            }
+          Computed.make(
+            () =>
+              switch Signal.get(tab) {
+              | "effect" => [<EffectComponent />]
+              | _ => [Node.text("other tab")]
+              },
           ),
         ),
         container,

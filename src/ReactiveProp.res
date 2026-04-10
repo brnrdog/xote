@@ -1,4 +1,3 @@
-
 /* Defines a property that can either be a signal (Reactive) or a static value
  (Static) */
 type t<'a> = Reactive(Signal.t<'a>) | Static('a)

@@ -39,20 +39,13 @@ let suite = Zekr.suite(
     }),
     test("renders static int and float helpers", () => {
       let {container} = Dom.render("")
-      let _ = mountTo(
-        Node.fragment([Node.int(42), Node.text(" "), Node.float(2.5)]),
-        container,
-      )
+      let _ = mountTo(Node.fragment([Node.int(42), Node.text(" "), Node.float(2.5)]), container)
       Dom.Assert.toHaveTextContent(container, "42 2.5")
     }),
     test("renders element with static class attribute", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
-        Html.div(
-          ~attrs=[Node.attr("class", "box primary")],
-          ~children=[Node.text("content")],
-          (),
-        ),
+        Html.div(~attrs=[Node.attr("class", "box primary")], ~children=[Node.text("content")], ()),
         container,
       )
       let el = Dom.Query.getByText(container, "content")
@@ -62,11 +55,7 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let cls = Signal.make("inactive")
       let _ = mountTo(
-        Html.div(
-          ~attrs=[Node.signalAttr("class", cls)],
-          ~children=[Node.text("item")],
-          (),
-        ),
+        Html.div(~attrs=[Node.signalAttr("class", cls)], ~children=[Node.text("item")], ()),
         container,
       )
       let el = Dom.Query.getByText(container, "item")
@@ -80,11 +69,7 @@ let suite = Zekr.suite(
       let isActive = Signal.make(false)
       let _ = mountTo(
         Html.div(
-          ~attrs=[
-            Node.computedAttr("class", () =>
-              Signal.get(isActive) ? "active" : "inactive"
-            ),
-          ],
+          ~attrs=[Node.computedAttr("class", () => Signal.get(isActive) ? "active" : "inactive")],
           ~children=[Node.text("toggle")],
           (),
         ),
@@ -100,14 +85,17 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let count = Signal.make(0)
       let _ = mountTo(
-        Html.div(~children=[
-          Html.button(
-            ~events=[("click", _evt => Signal.update(count, n => n + 1))],
-            ~children=[Node.text("Click me")],
-            (),
-          ),
-          Node.signalInt(() => Signal.get(count)),
-        ], ()),
+        Html.div(
+          ~children=[
+            Html.button(
+              ~events=[("click", _evt => Signal.update(count, n => n + 1))],
+              ~children=[Node.text("Click me")],
+              (),
+            ),
+            Node.signalInt(() => Signal.get(count)),
+          ],
+          (),
+        ),
         container,
       )
       let btn = Dom.Query.getByRole(container, "button")
@@ -121,11 +109,7 @@ let suite = Zekr.suite(
     test("renders fragment with multiple children", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
-        Node.fragment([
-          Node.text("first"),
-          Node.text(" "),
-          Node.text("second"),
-        ]),
+        Node.fragment([Node.text("first"), Node.text(" "), Node.text("second")]),
         container,
       )
       Dom.Assert.toHaveTextContent(container, "first second")
@@ -142,21 +126,24 @@ let suite = Zekr.suite(
     }),
     test("null node renders empty content", () => {
       let {container} = Dom.render("")
-      let _ = mountTo(
-        Html.div(~children=[Node.null(), Node.text("visible")], ()),
-        container,
-      )
+      let _ = mountTo(Html.div(~children=[Node.null(), Node.text("visible")], ()), container)
       Dom.Assert.toHaveTextContent(container, "visible")
     }),
     test("renders nested element hierarchy", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
-        Html.div(~children=[
-          Html.ul(~children=[
-            Html.li(~children=[Node.text("Item 1")], ()),
-            Html.li(~children=[Node.text("Item 2")], ()),
-          ], ()),
-        ], ()),
+        Html.div(
+          ~children=[
+            Html.ul(
+              ~children=[
+                Html.li(~children=[Node.text("Item 1")], ()),
+                Html.li(~children=[Node.text("Item 2")], ()),
+              ],
+              (),
+            ),
+          ],
+          (),
+        ),
         container,
       )
       let items = Dom.Query.getAllByRole(container, "listitem")
@@ -170,11 +157,7 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let items = Signal.make(["Apple", "Banana"])
       let _ = mountTo(
-        Html.div(~children=[
-          Node.list(items, item =>
-            Html.p(~children=[Node.text(item)], ())
-          ),
-        ], ()),
+        Html.div(~children=[Node.list(items, item => Html.p(~children=[Node.text(item)], ()))], ()),
         container,
       )
       let r1 = Dom.Assert.toHaveTextContent(container, "AppleBanana")
@@ -186,10 +169,12 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let evaluated = ref(false)
       let _ = mountTo(
-        LazyComponent(() => {
-          evaluated := true
-          Node.text("lazy content")
-        }),
+        LazyComponent(
+          () => {
+            evaluated := true
+            Node.text("lazy content")
+          },
+        ),
         container,
       )
       combineResults([

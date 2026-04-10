@@ -5,9 +5,7 @@ let suite = Zekr.suite(
   [
     test("static content is preserved after hydration", () => {
       let component = () =>
-        Html.div(~children=[
-          Html.p(~children=[Node.text("Server rendered")], ()),
-        ], ())
+        Html.div(~children=[Html.p(~children=[Node.text("Server rendered")], ())], ())
       let ssrHtml = SSR.renderToString(component)
       let {container} = Dom.render(ssrHtml)
       Hydration.hydrate(component, container)
@@ -16,9 +14,10 @@ let suite = Zekr.suite(
     test("reactive text becomes interactive after hydration", () => {
       let count = Signal.make(0)
       let component = () =>
-        Html.div(~children=[
-          Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count))),
-        ], ())
+        Html.div(
+          ~children=[Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))],
+          (),
+        )
       let ssrHtml = SSR.renderToString(component)
       let {container} = Dom.render(ssrHtml)
       Hydration.hydrate(component, container)
@@ -45,11 +44,7 @@ let suite = Zekr.suite(
     test("reactive attributes update after hydration", () => {
       let cls = Signal.make("initial")
       let component = () =>
-        Html.div(
-          ~attrs=[Node.signalAttr("class", cls)],
-          ~children=[Node.text("box")],
-          (),
-        )
+        Html.div(~attrs=[Node.signalAttr("class", cls)], ~children=[Node.text("box")], ())
       let ssrHtml = SSR.renderToString(component)
       let {container} = Dom.render(ssrHtml)
       Hydration.hydrate(component, container)
@@ -62,18 +57,17 @@ let suite = Zekr.suite(
     test("nested elements hydrate correctly", () => {
       let visible = Signal.make(true)
       let component = () =>
-        Html.div(~children=[
-          Html.h1(~children=[Node.text("Title")], ()),
-          Html.p(
-            ~attrs=[
-              Node.computedAttr("class", () =>
-                Signal.get(visible) ? "shown" : "hidden"
-              ),
-            ],
-            ~children=[Node.text("Content")],
-            (),
-          ),
-        ], ())
+        Html.div(
+          ~children=[
+            Html.h1(~children=[Node.text("Title")], ()),
+            Html.p(
+              ~attrs=[Node.computedAttr("class", () => Signal.get(visible) ? "shown" : "hidden")],
+              ~children=[Node.text("Content")],
+              (),
+            ),
+          ],
+          (),
+        )
       let ssrHtml = SSR.renderToString(component)
       let {container} = Dom.render(ssrHtml)
       Hydration.hydrate(component, container)
