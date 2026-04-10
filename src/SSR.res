@@ -91,7 +91,12 @@ module Attributes = {
     | "multiple"
     | "aria-hidden"
     | "aria-expanded"
-    | "aria-selected" =>
+    | "aria-selected"
+    | "draggable"
+    | "hidden"
+    | "contenteditable"
+    | "spellcheck"
+    | "autofocus" =>
       if attrValue == "true" {
         key
       } else {
