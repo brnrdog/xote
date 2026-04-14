@@ -13,7 +13,7 @@ Xote is a lightweight [ReScript](https://rescript-lang.org/) library that combin
 npm install xote
 ```
 
-Then, add it to your ReScript project's `rescript.json`. You'll need to declare `xote` as a dependency, configure JSX to use Xote's transform, and open `Xote` so the JSX module resolves:
+Then, add it to your ReScript project's `rescript.json`. You'll need to declare `xote` as a dependency and configure JSX to use Xote's transform. The compiler flag `-open Xote` is optional, it makes the Xote moduels available unqualified inside your source files.
 
 ```json
 {
@@ -26,13 +26,9 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
 }
 ```
 
-Optional: the `-open Xote` flag makes Xote modules available unqualified inside your source files.
-
 ### Quick Example
 
 ```rescript
-open Xote
-
 module App = {
   @jsx.component
   let make = () => {
@@ -46,7 +42,7 @@ module App = {
     Effect.run(() => {
       Console.log2("Count is ", Signal.get(count))
       
-      None
+      None // Optional clean up function
     })
 
     // Build the UI with JSX
@@ -69,6 +65,22 @@ module App = {
 Node.mountById(<App />, "app")
 ```
 
+Since in ReScript each file is its own module, you can define a reusable component by exporting a `make` function from that file. The file name becomes the component name: `Counter.res` gives you `<Counter />`. The `@jsx.component` attribute instructs the compiler to derive a props type from the function's labeled arguments, enabling JSX usage without boilerplate. Here's an example of a reusable component with properties:
+
+```res
+// Greeting.res
+@jsx.component
+let make = (~name: string, ~greeting: string="Hello") => {
+  <p>
+    {Node.text(greeting ++ ", " ++ name ++ "!")}
+  </p>
+}
+
+// Usage from another file:
+<Greeting name="World" /> // <p>Hello, World!</p>
+<Greeting name="Universe" greeting="Hey" /> // <p>Hey, Universe!</p>
+```
+
 ## Core Concepts
 
 Xote focuses on clarity, control, and performance. The goal is to offer precise, fine-grained updates and predictable behavior with a minimal set of abstractions, while leveraging the robust type system from ReScript. 
@@ -87,11 +99,11 @@ All reactive primitives feature automatic dependency tracking. No manual subscri
 
 On top of the reactive primitives with signals, Xote provides a declarative component system:
 
-- **JSX Support**: Build user interface using JSX, in a declarative and familiar manner
+- **JSX Support**: Build user interface using JSX in a declarative and familiar manner
 - **Reactive DOM Nodes**: Fine-grained reactivity that updates DOM nodes directly, no virtual DOM required
-- **Built-in Router**: Client-side routing with pattern matching and reactive location state
+- **Built-in Router**: Client-side routing with pattern matching and a reactive location state
 - **Automatic Cleanup**: Effect disposal and memory management built into the component lifecycle
-- **Server-side Rendering**: pre-render your pages on the server with full hydration
+- **Server-side Rendering**: pre-render your pages on the server with full hydration (experimental)
 
 Check the [website](https://brnrdog.github.io/xote/) for more comprehensive documentations about Xote and Signals.
 
