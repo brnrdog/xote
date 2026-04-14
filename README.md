@@ -1,9 +1,9 @@
-# [Xote](https://brnrdog.github.io/xote/)
+# [xote](https://brnrdog.github.io/xote/)
 ![NPM Version](https://img.shields.io/npm/v/xote)
 ![npm bundle size](https://badgen.net/bundlephobia/min/xote)
 ![npm bundle size](https://badgen.net/bundlephobia/minzip/xote)
 
-Xote is a lightweight [ReScript](https://rescript-lang.org/) library that combines fine-grained reactivity and a declarative component system for building user interfaces for the web.
+xote is a lightweight [ReScript](https://rescript-lang.org/) library that combines fine-grained reactivity and a declarative component system for building user interfaces for the web.
 
 ## Getting Started
 
@@ -67,7 +67,11 @@ module App = {
 Node.mountById(<App />, "app")
 ```
 
-Since in ReScript each file is its own module, you can define a reusable component by exporting a `make` function from that file. The file name becomes the component name: `Counter.res` gives you `<Counter />`. The `@jsx.component` attribute instructs the compiler to derive a props type from the function's labeled arguments, enabling JSX usage without boilerplate. Here's an example of a reusable component with properties:
+Since in ReScript each file is its own module, you can define a reusable component by exporting a `make` function from that file. The file name becomes the component name: `Counter.res` gives you `<Counter />`. 
+
+The `@jsx.component` attribute instructs the compiler to derive a props type from the function's labeled arguments, enabling JSX usage without boilerplate. 
+
+Here's an example of a reusable component with properties:
 
 ```res
 // Greeting.res
