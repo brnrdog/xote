@@ -13,7 +13,7 @@ Xote is a lightweight [ReScript](https://rescript-lang.org/) library that combin
 npm install xote
 ```
 
-Then, add it to your ReScript project's `rescript.json`. You'll need to declare `xote` as a dependency and configure JSX to use Xote's transform. The compiler flag `-open Xote` is optional, it makes the Xote moduels available unqualified inside your source files.
+Then, add it to your ReScript project's `rescript.json`. You'll need to declare `xote` as a dependency and configure JSX to use Xote's transform:
 
 ```json
 {
@@ -25,6 +25,8 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
   "compiler-flags": ["-open Xote"]
 }
 ```
+
+The compiler flag `-open Xote` is optional, it makes the Xote moduels available unqualified inside your source files.
 
 ### Quick Example
 
