@@ -415,7 +415,7 @@ module Link = {
   }
 
   /* Convert props to attrs array */
-  let propsToAttrs = (props: props<_, _, _, _, _>): array<(string, Node.attrValue)> => {
+  let propsToAttrs = (props): array<(string, Node.attrValue)> => {
     let attrs = []
 
     switch props.class {
@@ -447,7 +447,7 @@ module Link = {
   }
 
   /* Extract children from props */
-  let getChildren = (props: props<_, _, _, _, _>): array<Node.node> => {
+  let getChildren = (props): array<Node.node> => {
     switch props.children {
     | Some(Node.Fragment(children)) => children
     | Some(child) => [child]
@@ -456,7 +456,7 @@ module Link = {
   }
 
   /* JSX component function */
-  let make = (props: props<_, _, _, _, _>): Node.node => {
+  let make = (props): Node.node => {
     warnIfNotInitialized("Router.Link")
 
     let handleClick = (evt: Dom.event) => {
@@ -481,7 +481,7 @@ module Link = {
   /* JSX transform functions */
   let jsx = make
   let jsxs = make
-  let jsxKeyed = (props: props<_, _, _, _, _>, ~key: option<string>=?, _: unit) => {
+  let jsxKeyed = (props, ~key: option<string>=?, _: unit) => {
     let _ = key
     make(props)
   }
