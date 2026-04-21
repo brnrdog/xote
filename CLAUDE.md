@@ -40,7 +40,7 @@ The codebase uses ReScript's `namespace: true` setting in `rescript.json`, so ev
 
 **Reactive Primitives (re-exported from rescript-signals):**
 - **`Xote.Signal`**: Reactive state cells with `make`, `get`, `peek`, `set`, `update`, plus `batch` and `untrack` from the scheduler. `Signal.make` accepts optional `~name` (for debugging) and `~equals` (a custom `('a, 'a) => bool` comparator) parameters. The default equality is JavaScript `===` (reference/strict), not structural — pass `~equals` when you need deep comparison. `set` only notifies dependents when the new value differs from the current one, preventing unnecessary updates and accidental infinite loops.
-- **`Xote.Computed`**: Derived signals that automatically recompute when dependencies change. `Computed.make` accepts an optional `~name` for debugging. **Lazy with push-based dirty flagging** — when upstream dependencies change, computeds are marked dirty immediately, but only recompute when read (via `Signal.get` or `Signal.peek`). **Auto-disposal**: automatically dispose when they lose all subscribers; use `Computed.dispose(signal)` for manual cleanup.
+- **`Xote.Computed`**: Derived signals that automatically recompute when dependencies change. `Computed.make` accepts optional `~name` (for debugging) and `~equals` (a custom `('a, 'a) => bool` comparator) parameters. As with `Signal.make`, the default equality is JavaScript `===` — pass `~equals` when downstream observers should ignore structurally-equal recomputations. **Lazy with push-based dirty flagging** — when upstream dependencies change, computeds are marked dirty immediately, but only recompute when read (via `Signal.get` or `Signal.peek`). **Auto-disposal**: automatically dispose when they lose all subscribers; use `Computed.dispose(signal)` for manual cleanup.
 - **`Xote.Effect`**: Side effects that run when dependencies change. **Can return cleanup callbacks** — signature is `unit => option<unit => unit>`. Two entry points: `Effect.run` is fire-and-forget and returns `unit`; `Effect.runWithDisposer` returns a `disposer` with a `dispose()` method for manual teardown. Both accept an optional `~name` for debugging.
 
 These three are thin shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.res`) that `include` the corresponding modules from `rescript-signals`.
@@ -194,7 +194,7 @@ The `DOM.setAttrOrProp` helper (in `Node.res`) handles the distinction between H
 
 1. **Unified attributes API**: All attributes use the single `attrs` parameter. Use helper functions `attr()`, `signalAttr()`, or `computedAttr()` to create attribute entries.
 
-2. **Signal equality check**: `Signal.set` uses JavaScript strict equality (`===`) by default and only notifies dependents when the new value differs from the current one. This prevents accidental infinite loops and reduces unnecessary work. Pass `~equals` to `Signal.make` when you need a custom comparator (e.g. deep equality for records/arrays).
+2. **Signal equality check**: `Signal.set` uses JavaScript strict equality (`===`) by default and only notifies dependents when the new value differs from the current one. This prevents accidental infinite loops and reduces unnecessary work. Pass `~equals` to `Signal.make` or `Computed.make` when you need a custom comparator (e.g. deep equality for records/arrays) — on a computed, `~equals` controls whether recomputed values propagate to downstream observers.
 
 3. **Effect cleanup callbacks**: Effects can return `Some(cleanupFn)` to register cleanup that runs before re-execution and on disposal. Return `None` when no cleanup is needed. Signature is `unit => option<unit => unit>`.
 
@@ -243,6 +243,10 @@ let total = Computed.make(() => Signal.get(price) * Signal.get(qty), ~name="orde
 // Custom equality (e.g. deep compare for records)
 type point = {x: int, y: int}
 let position = Signal.make({x: 0, y: 0}, ~equals=(a, b) => a.x === b.x && a.y === b.y)
+let translated = Computed.make(
+  () => {x: Signal.get(position).x + 1, y: Signal.get(position).y},
+  ~equals=(a, b) => a.x === b.x && a.y === b.y,
+)
 
 // Manual disposal (usually not needed - auto-disposes when subscribers drop to zero)
 Computed.dispose(doubled)
