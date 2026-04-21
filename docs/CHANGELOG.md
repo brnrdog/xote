@@ -1,3 +1,10 @@
+## [6.1.1](https://github.com/brnrdog/xote/compare/v6.1.0...v6.1.1) (2026-04-21)
+
+
+### Performance Improvements
+
+* bump rescript-signals to ^3.1.0 ([f9d3ef9](https://github.com/brnrdog/xote/commit/f9d3ef9a37acdc917dba35016e351fb82079fc17))
+
 # [6.1.0](https://github.com/brnrdog/xote/compare/v6.0.1...v6.1.0) (2026-04-10)
 
 
