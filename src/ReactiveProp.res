@@ -12,3 +12,5 @@ let get = value =>
 let static = value => Static(value)
 
 let reactive = signal => Reactive(signal)
+
+let signal = reactive

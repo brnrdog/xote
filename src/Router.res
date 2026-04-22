@@ -65,6 +65,8 @@ let getGlobalState = (): globalRouterState => {
 // Convenience accessors for global state
 // These replace the old module-level state variables
 let location = (): Signal.t<location> => getGlobalState().location
+let locationSignal = location
+let current = (): location => Signal.get(location())
 let basePath = (): ref<string> => getGlobalState().basePath
 
 // Warn if Router is used before initialization

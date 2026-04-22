@@ -9,9 +9,11 @@ Xote uses [rescript-signals](https://brnrdog.github.io/rescript-signals) for rea
 The ReScript compiler is configured with `"namespace": true`, so every source file in `src/` is namespaced under `Xote`. The public modules are listed in `rescript.json` under `sources.public`:
 
 - **`Xote.Node`**: Core UI node types, constructors, attributes, rendering, and mounting.
+- **`Xote.View`**: Alias for `Node` when view-oriented naming is clearer.
 - **`Xote.Html`**: Convenience constructors for common HTML tags.
 - **`Xote.XoteJSX`**: JSX v4 transform support and lowercase HTML element definitions.
 - **`Xote.ReactiveProp`**: Static-or-reactive prop wrapper for JSX-friendly APIs.
+- **`Xote.Prop`**: Alias for `ReactiveProp` with shorter prop helper names.
 - **`Xote.Route`**: Pure route pattern parsing and matching.
 - **`Xote.Router`**: Signal-based client and SSR routing helpers.
 - **`Xote.SSR`**: Server-side rendering to HTML strings.
@@ -65,12 +67,15 @@ Core constructors:
 - `Node.int(1)` and `Node.float(1.5)`
 - `Node.signalText(() => ...)`
 - `Node.signalInt(() => ...)` and `Node.signalFloat(() => ...)`
+- `Node.computedText(() => ...)`
+- `Node.computedInt(() => ...)` and `Node.computedFloat(() => ...)`
 - `Node.fragment(children)`
 - `Node.signalFragment(signal)`
 - `Node.list(signal, renderItem)`
 - `Node.keyedList(signal, keyFn, renderItem)`
+- `Node.each(signal, renderItem)` and `Node.keyedEach(signal, keyFn, renderItem)`
 - `Node.element("div", ~attrs?, ~events?, ~children?, ())`
-- `Node.null()`
+- `Node.null()` and `Node.empty()`
 - `Node.mount(node, container)`
 - `Node.mountById(node, "root")`
 
@@ -90,6 +95,7 @@ Attributes are represented as `(string, Node.attrValue)` pairs:
 - `Node.attr(key, value)` for static string attributes.
 - `Node.signalAttr(key, signal)` for reactive string attributes.
 - `Node.computedAttr(key, fn)` for computed string attributes.
+- `Node.Attr.string`, `Node.Attr.signal`, and `Node.Attr.compute` for grouped attribute helper access.
 
 The DOM renderer maps selected names to DOM properties or boolean attribute behavior:
 
@@ -114,21 +120,26 @@ SSR mirrors the same boolean attribute behavior when rendering strings.
 type t<'a> = Reactive(Signal.t<'a>) | Static('a)
 ```
 
-Use `ReactiveProp.static(value)` or `ReactiveProp.reactive(signal)` when a component prop should support either static or reactive input.
+Use `ReactiveProp.static(value)` or `ReactiveProp.reactive(signal)` when a component prop should support either static or reactive input. `Prop` is an alias for `ReactiveProp`, and `Prop.signal(signal)` is a shorter alias for `ReactiveProp.reactive(signal)`.
 
 ### Router
 
 `Xote.Route` provides pure route matching:
 
 - `Route.parsePattern("/users/:id")`
+- `Route.compile("/users/:id")`
 - `Route.matchPath(parsedPattern, pathname)`
+- `Route.matchCompiled(compiledPattern, pathname)`
 - `Route.match(pattern, pathname)`
+- `Route.matchPathname(pattern, pathname)`
 
 `Xote.Router` provides signal-based navigation:
 
 - `Router.init(~basePath?, ())` initializes browser routing and must be called before routing helpers on the client.
 - `Router.initSSR(~basePath?, ~pathname, ~search?, ~hash?, ())` initializes routing for server-side rendering without browser APIs.
 - `Router.location()` returns the shared `Signal.t<Router.location>`.
+- `Router.locationSignal()` is an alias that makes the signal return type explicit.
+- `Router.current()` returns the current location snapshot.
 - `Router.push(pathname, ~search?, ~hash?, ())`
 - `Router.replace(pathname, ~search?, ~hash?, ())`
 - `Router.route(pattern, params => node)`
@@ -168,6 +179,8 @@ SSR uses comment markers to identify reactive boundaries for hydration:
 - `SSRState.restore(id, signal, codec)` restores state on the client.
 - `SSRState.sync(id, signal, codec)` registers or restores depending on runtime.
 - `SSRState.make(id, initial, codec)` creates a signal and syncs it.
+- `SSRState.signal(id, initial, codec)` is a clearer alias for `make`.
+- `SSRState.syncSignal(id, signal, codec)` is a clearer alias for `sync`.
 - `SSRState.generateScript(~nonce?)` serializes state into a script tag.
 - `SSRState.clear()` resets the server registry between independent renders.
 
@@ -183,8 +196,7 @@ The package exposes a bundled root entry through `dist/` and currently also expo
 
 ### Known Limitations And Future Work
 
-- The renderer still has implementation details nested inside public modules; interface files and internal modules should narrow that surface over time.
+- The renderer still has some implementation details nested inside public modules; interface files should narrow that surface over time.
 - `XoteJSX.jsxKeyed` accepts keys but does not yet wire them into component-level keyed reconciliation.
 - JSX prop conversion currently uses dynamic checks to support several prop styles.
-- SSR and DOM attribute handling should stay centralized so browser rendering and server rendering cannot drift.
-- Hydration marker parsing should share the same marker definitions as SSR rendering.
+- Renderer extraction can continue by moving keyed reconciliation behind an internal render module while preserving `Node.Render` as a compatibility alias.
