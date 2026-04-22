@@ -579,43 +579,44 @@ blockquote {
   .btn { padding: 0.55rem 1.25rem; font-size: 0.85rem; }
 }
 
+/* ---- Buttons ---- */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.65rem 1.75rem;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.9rem;
+  justify-content: center;
+  gap: var(--s-2);
   font-family: var(--font-body);
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-default);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 1;
+  padding: var(--s-3) var(--s-5);
+  border-radius: 2px;
   border: 1px solid transparent;
   text-decoration: none;
+  cursor: pointer;
+  transition: opacity 120ms linear, background-color 120ms linear;
+}
+.btn:focus-visible {
+  outline: 1px solid var(--text);
+  outline-offset: 2px;
 }
 
 .btn-primary {
-  background: var(--green-500);
-  color: #fff;
-  border-color: var(--green-500);
+  background: var(--text);
+  color: var(--bg);
 }
-
 .btn-primary:hover {
-  background: var(--green-400);
-  border-color: var(--green-400);
-  color: #fff;
+  opacity: 0.9;
 }
 
 .btn-ghost {
   background: transparent;
-  color: var(--text-secondary);
-  border-color: var(--border-default);
+  color: var(--text);
+  border-color: var(--border);
 }
-
 .btn-ghost:hover {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-  border-color: var(--text-muted);
+  background: var(--elevated);
+  border-color: var(--text);
 }
 
 /* ============================================================
