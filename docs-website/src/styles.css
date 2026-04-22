@@ -1301,3 +1301,25 @@ pre {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* ---- Inline demos (in-prose figures) ---- */
+.inline-demo {
+  margin: var(--s-6) 0;
+  padding: 0;
+  max-width: var(--prose-width);
+}
+
+.inline-demo-stage {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: var(--s-5);
+  background: var(--surface);
+}
+
+.inline-demo-caption {
+  font-family: var(--font-mono);
+  font-style: italic;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  margin-top: var(--s-2);
+}
