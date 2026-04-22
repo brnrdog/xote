@@ -348,13 +348,10 @@ module Footer = {
       <div class="footer-inner">
         <div class="footer-grid">
           <div class="footer-brand">
-            <div class="footer-brand-logo">
-              <Logo size=16 color="var(--text-accent)" />
-              <span> {Node.text("xote")} </span>
-            </div>
+            <h4> {Node.text("Xote")} </h4>
             <p>
               {Node.text(
-                "A lightweight UI library for ReScript with fine-grained reactivity powered by TC39 Signals.",
+                "A lightweight UI library for ReScript with fine-grained reactivity.",
               )}
             </p>
           </div>
@@ -362,7 +359,7 @@ module Footer = {
             <h4> {Node.text("Docs")} </h4>
             <ul>
               <li>
-                {Router.link(~to="/docs", ~children=[Node.text("Getting Started")], ())}
+                {Router.link(~to="/docs", ~children=[Node.text("Introduction")], ())}
               </li>
               <li>
                 {Router.link(
@@ -385,47 +382,29 @@ module Footer = {
             <ul>
               <li>
                 <a href="https://github.com/brnrdog/xote" target="_blank">
-                  {Node.text("GitHub")}
+                  {Node.text("GitHub \u2197")}
                 </a>
               </li>
               <li>
                 <a href="https://www.npmjs.com/package/xote" target="_blank">
-                  {Node.text("npm")}
+                  {Node.text("npm \u2197")}
                 </a>
               </li>
               <li>
-                {Router.link(~to="/demos", ~children=[Node.text("Demos")], ())}
-              </li>
-            </ul>
-          </div>
-          <div class="footer-col">
-            <h4> {Node.text("More")} </h4>
-            <ul>
-              <li>
-                <a href="https://rescript-lang.org/" target="_blank">
-                  {Node.text("ReScript")}
-                </a>
-              </li>
-              <li>
-                <a href="https://github.com/tc39/proposal-signals" target="_blank">
-                  {Node.text("TC39 Signals")}
-                </a>
-              </li>
-              <li>
-                <a href="https://brnrdog.github.io/rescript-signals" target="_blank">
-                  {Node.text("rescript-signals")}
+                <a
+                  href="https://github.com/brnrdog/xote/issues"
+                  target="_blank">
+                  {Node.text("Issues \u2197")}
                 </a>
               </li>
             </ul>
           </div>
         </div>
         <div class="footer-bottom">
-          <div> {Node.text(`Copyright \u00A9 ${year} Bernardo Gurgel. MIT License.`)} </div>
-          <div class="footer-bottom-right">
-            {Node.text("Built with ")}
-            <Logo size=14 color="var(--text-accent)" />
-            {Node.text(" xote")}
+          <div>
+            {Node.text(`\u00A9 ${year} Bernardo Gurgel \u00B7 MIT License`)}
           </div>
+          <div> {Node.text("v6.1.1")} </div>
         </div>
       </div>
     </footer>
