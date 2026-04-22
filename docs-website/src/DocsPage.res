@@ -228,7 +228,7 @@ module TableOfContents = {
       Node.fragment([])
     } else {
       <aside class="docs-toc">
-        <div class="toc-title"> {Node.text("On this page")} </div>
+        <div class="toc-title"> {Node.text("Contents")} </div>
         {Node.fragment(
           props.items->Array.map(item => {
             let className = "toc-link" ++ (item.level == 3 ? " toc-link-h3" : "")
