@@ -264,121 +264,76 @@ module Header = {
       })
     }
 
-    Node.element(
-      "header",
-      ~attrs=[
-        Node.computedAttr("class", () =>
-          Signal.get(isScrolled) ? "site-header scrolled" : "site-header"
-        ),
-      ],
-      ~children=[
-        <div class="header-inner">
-          <div class="header-left">
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="header-left">
+          {Router.link(
+            ~to="/",
+            ~attrs=[Node.attr("class", "header-logo-link")],
+            ~children=[<span class="logo-text"> {Node.text("Xote")} </span>],
+            (),
+          )}
+          <a
+            href="https://www.npmjs.com/package/xote"
+            target="_blank"
+            class="header-version">
+            {Node.text("v6.1.1")}
+          </a>
+          <nav class="header-nav">
             {Router.link(
-              ~to="/",
-              ~attrs=[Node.attr("class", "header-logo-link")],
-              ~children=[
-                <Logo size=20 color="var(--text-accent)" />,
-                <span class="logo-text"> {Node.text("xote")} </span>,
-              ],
+              ~to="/docs",
+              ~attrs=[Node.attr("class", "header-nav-link")],
+              ~children=[Node.text("Docs")],
               (),
             )}
-            <a href="https://www.npmjs.com/package/xote" target="_blank" class="header-version">
-              {Node.text("v6.0.0")}
+            <a
+              href="https://github.com/brnrdog/xote"
+              target="_blank"
+              class="header-nav-link">
+              {Node.text("GitHub")}
             </a>
-            <nav class="header-nav">
-              {Router.link(
-                ~to="/docs",
-                ~attrs=[Node.attr("class", "header-nav-link")],
-                ~children=[Node.text("Learn")],
-                (),
-              )}
-              {Router.link(
-                ~to="/docs/api/signals",
-                ~attrs=[Node.attr("class", "header-nav-link")],
-                ~children=[Node.text("API Reference")],
-                (),
-              )}
-            </nav>
-          </div>
-          <div class="header-right">
-            {Node.element(
-              "button",
-              ~attrs=[Node.attr("class", "search-trigger")],
-              ~events=[("click", _ => openSearch())],
-              ~children=[
-                Basefn.Icon.make({name: Search, size: Sm}),
-                <span> {Node.text("Search docs...")} </span>,
-                <div class="search-trigger-keys">
-                  <span class="search-trigger-key"> {Node.text("\u2318")} </span>
-                  <span class="search-trigger-key"> {Node.text("K")} </span>
-                </div>,
-              ],
-              (),
-            )}
-            {Node.element(
-              "a",
-              ~attrs=[
-                Node.attr("href", "https://github.com/brnrdog/xote"),
-                Node.attr("target", "_blank"),
-                Node.attr("class", "gh-star-btn"),
-                Node.attr("title", "Star on GitHub"),
-              ],
-              ~children=[
-                Basefn.Icon.make({name: Star, size: Sm}),
-                Node.element(
-                  "span",
-                  ~attrs=[Node.attr("class", "gh-star-label")],
-                  ~children=[Node.text("Star")],
-                  (),
-                ),
-              ],
-              (),
-            )}
-            {Node.element(
-              "a",
-              ~attrs=[
-                Node.attr("href", "https://github.com/brnrdog/xote"),
-                Node.attr("target", "_blank"),
-                Node.attr("class", "header-icon-btn"),
-                Node.attr("title", "GitHub"),
-              ],
-              ~children=[Basefn.Icon.make({name: GitHub, size: Sm})],
-              (),
-            )}
-            {Node.element(
-              "button",
-              ~attrs=[
-                Node.attr("class", "header-icon-btn"),
-                Node.attr("title", "Toggle theme"),
-              ],
-              ~events=[("click", _ => toggleTheme())],
-              ~children=[
-                Node.signalFragment(
-                  Computed.make(() =>
-                    Signal.get(theme) == "dark"
-                      ? [Basefn.Icon.make({name: Sun, size: Sm})]
-                      : [Basefn.Icon.make({name: Moon, size: Sm})]
-                  ),
-                ),
-              ],
-              (),
-            )}
-            {Node.element(
-              "button",
-              ~attrs=[
-                Node.attr("class", "header-icon-btn mobile-menu-btn"),
-                Node.attr("title", "Menu"),
-              ],
-              ~events=[("click", _ => openSearch())],
-              ~children=[Basefn.Icon.make({name: Menu, size: Sm})],
-              (),
-            )}
-          </div>
-        </div>,
-      ],
-      (),
-    )
+          </nav>
+        </div>
+        <div class="header-right">
+          {Node.element(
+            "button",
+            ~attrs=[Node.attr("class", "search-trigger")],
+            ~events=[("click", _ => openSearch())],
+            ~children=[
+              <span> {Node.text("Search")} </span>,
+              <div class="search-trigger-keys">
+                <span class="search-trigger-key"> {Node.text("\u2318K")} </span>
+              </div>,
+            ],
+            (),
+          )}
+          {Node.element(
+            "button",
+            ~attrs=[
+              Node.attr("class", "header-icon-btn"),
+              Node.attr("title", "Toggle theme"),
+            ],
+            ~events=[("click", _ => toggleTheme())],
+            ~children=[
+              Node.signalText(() =>
+                Signal.get(theme) == "dark" ? "\u263E" : "\u2600"
+              ),
+            ],
+            (),
+          )}
+          {Node.element(
+            "button",
+            ~attrs=[
+              Node.attr("class", "header-icon-btn mobile-menu-btn"),
+              Node.attr("title", "Menu"),
+            ],
+            ~events=[("click", _ => openSearch())],
+            ~children=[Node.text("\u2261")],
+            (),
+          )}
+        </div>
+      </div>
+    </header>
   }
 }
 
