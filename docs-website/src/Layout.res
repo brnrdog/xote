@@ -60,22 +60,16 @@ type searchItem = {
 let searchItems: array<searchItem> = [
   {title: "Introduction", path: "/docs", section: "Getting Started"},
   {title: "Signals", path: "/docs/core-concepts/signals", section: "Core Concepts"},
-  {title: "Computed", path: "/docs/core-concepts/computed", section: "Core Concepts"},
+  {title: "Computeds", path: "/docs/core-concepts/computed", section: "Core Concepts"},
   {title: "Effects", path: "/docs/core-concepts/effects", section: "Core Concepts"},
-  {title: "Batching", path: "/docs/advanced/batching", section: "Advanced"},
-  {title: "Server-Side Rendering", path: "/docs/advanced/ssr", section: "Advanced"},
   {title: "Components Overview", path: "/docs/components/overview", section: "Components"},
   {title: "Router Overview", path: "/docs/router/overview", section: "Router"},
   {title: "Signals API", path: "/docs/api/signals", section: "API Reference"},
   {title: "React Comparison", path: "/docs/comparisons/react", section: "Comparisons"},
+  {title: "SolidJS Comparison", path: "/docs/comparisons/solidjs", section: "Comparisons"},
+  {title: "Server-Side Rendering", path: "/docs/advanced/ssr", section: "Advanced"},
+  {title: "Batching", path: "/docs/advanced/batching", section: "Advanced"},
   {title: "Technical Overview", path: "/docs/technical-overview", section: "Advanced"},
-  {title: "Counter", path: "/docs/demos/counter", section: "Demos"},
-  {title: "Todo List", path: "/docs/demos/todo", section: "Demos"},
-  {title: "Color Mixer", path: "/docs/demos/color-mixer", section: "Demos"},
-  {title: "Reaction Game", path: "/docs/demos/reaction-game", section: "Demos"},
-  {title: "Solitaire", path: "/docs/demos/solitaire", section: "Demos"},
-  {title: "Memory Match", path: "/docs/demos/memory-match", section: "Demos"},
-  {title: "Snake Game", path: "/docs/demos/snake", section: "Demos"},
 ]
 
 // ---- Search Modal ----
@@ -159,17 +153,15 @@ module SearchModal = {
               ~children=[
                 <div class="search-modal">
                   <div class="search-input-wrapper">
-                    {Basefn.Icon.make({name: Search, size: Sm})}
                     {Html.input(
                       ~attrs=[
                         Node.attr("class", "search-input"),
-                        Node.attr("placeholder", "Search documentation..."),
+                        Node.attr("placeholder", "Search the docs..."),
                         Node.attr("autofocus", "true"),
                       ],
                       ~events=[("input", handleInput), ("keydown", handleKeyDown)],
                       (),
                     )}
-                    <div class="search-trigger-key"> {Node.text("esc")} </div>
                   </div>
                   <div class="search-results">
                     {Node.signalFragment(
@@ -232,7 +224,7 @@ module SearchModal = {
                     )}
                   </div>
                   <div class="search-footer">
-                    {Node.text("Use arrow keys to navigate, Enter to select, Esc to close")}
+                    {Node.text("\u2191\u2193 navigate  \u21B5 select  esc close")}
                   </div>
                 </div>,
               ],
