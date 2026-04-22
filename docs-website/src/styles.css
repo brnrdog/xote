@@ -1,133 +1,79 @@
 /* ============================================================
-   Xote Documentation — Design System
-   Inspired by Anthropic/Claude aesthetics, green-shifted palette
+   Xote Documentation — Editorial Reference Design System
+   Pure-neutral palette, hairline rules, narrow reading column.
    ============================================================ */
 
-/* ---- CSS Custom Properties ---- */
 :root {
-  /* Base surfaces — dark default */
-  --bg-base: #0f1210;
-  --bg-surface: #161a17;
-  --bg-elevated: #1e2620;
-  --bg-subtle: #232b25;
-
-  /* Green accent ramp */
-  --green-50:  #f0faf2;
-  --green-100: #d6f5dc;
-  --green-200: #a8e8b4;
-  --green-300: #6dd688;
-  --green-400: #3cbd5e;
-  --green-500: #22a646;
-  --green-600: #1a8538;
-  --green-700: #136329;
-  --green-800: #0d421c;
-  --green-900: #07250f;
+  /* Surfaces (dark mode default) */
+  --bg:          #0a0a0a;
+  --surface:     #111111;
+  --elevated:    #171717;
+  --border:      #242424;
+  --border-soft: #1a1a1a;
 
   /* Text */
-  --text-primary:   #e8ede9;
-  --text-secondary: #9bab9e;
-  --text-muted:     #5e6e61;
-  --text-accent:    var(--green-400);
+  --text:        #f5f5f4;
+  --text-muted:  #a3a3a3;
+  --text-faint:  #525252;
 
-  /* Semantic borders & shadows */
-  --border-default: rgba(255,255,255,0.07);
-  --border-subtle:  rgba(255,255,255,0.04);
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.25);
-  --shadow-elevated: 0 4px 12px rgba(0,0,0,0.5), 0 16px 48px rgba(0,0,0,0.35);
+  /* Functional (monochrome — same as text / inverse of bg) */
+  --accent:      #f5f5f4;
+  --mark:        #fafaf7;
 
-  /* Callout colors */
-  --callout-note:    #3b82f6;
-  --callout-tip:     var(--green-500);
-  --callout-warning: #f59e0b;
-  --callout-danger:  #ef4444;
+  /* Typography families */
+  --font-display: "Domine", Georgia, serif;
+  --font-body:    "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono:    "DM Mono", "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  /* Type scale */
+  --fs-xs:      12px;
+  --fs-sm:      14px;
+  --fs-base:    16px;
+  --fs-lg:      18px;
+  --fs-xl:      22px;
+  --fs-2xl:     28px;
+  --fs-3xl:     40px;
+  --fs-4xl:     60px;
+  --fs-display: 96px;
+
+  /* Line heights */
+  --lh-tight:  1.15;
+  --lh-ui:     1.45;
+  --lh-prose:  1.65;
+
+  /* Spacing scale (8px base) */
+  --s-0:   0px;
+  --s-1:   4px;
+  --s-2:   8px;
+  --s-3:   12px;
+  --s-4:   16px;
+  --s-5:   24px;
+  --s-6:   32px;
+  --s-8:   48px;
+  --s-10:  64px;
+  --s-12:  80px;
 
   /* Layout */
-  --max-width: 1400px;
-  --sidebar-width: 260px;
-  --toc-width: 200px;
-  --content-max-width: 720px;
+  --prose-width:   680px;
+  --sidebar-width: 240px;
+  --toc-width:     200px;
+  --content-max:   1180px;
   --header-height: 56px;
-
-  /* Typography stacks */
-  --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
-  --font-body: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: "Geist Mono", "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
-
-  /* Transitions */
-  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
-  --duration-fast: 100ms;
-  --duration-base: 150ms;
-  --duration-slow: 300ms;
-
-  /* Override basefn theme vars to match our green palette */
-  --basefn-color-primary: var(--green-500);
-  --basefn-color-primary-hover: var(--green-400);
-  --basefn-color-primary-active: var(--green-600);
-  --basefn-color-primary-background: rgba(34,166,70,0.08);
-  --basefn-color-secondary: #475569;
-  --basefn-color-secondary-hover: #64748b;
-  --basefn-bg-primary: var(--bg-base);
-  --basefn-bg-secondary: var(--bg-surface);
-  --basefn-bg-tertiary: var(--bg-elevated);
-  --basefn-text-primary: var(--text-primary);
-  --basefn-text-secondary: var(--text-secondary);
-  --basefn-text-muted: var(--text-muted);
-  --basefn-border-primary: var(--border-default);
-  --basefn-border-secondary: var(--border-subtle);
-  --basefn-surface-elevated: var(--bg-elevated);
-  --basefn-font-family: var(--font-body);
-  --basefn-font-family-mono: var(--font-mono);
-  --basefn-focus-ring-color: rgba(60,189,94,0.4);
-  --basefn-color-success: var(--green-500);
-  --basefn-color-info: #3b82f6;
-  --basefn-color-warning: #f59e0b;
-  --basefn-color-error: #ef4444;
-  --basefn-form-input-bg: var(--bg-elevated);
-  --basefn-form-input-border: var(--border-default);
-  --basefn-form-input-text: var(--text-primary);
-  --basefn-shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-  --basefn-shadow-md: 0 4px 6px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
-  --basefn-shadow-lg: 0 10px 15px rgba(0,0,0,0.4), 0 4px 6px rgba(0,0,0,0.3);
 }
 
-/* ---- Light mode ---- */
 [data-theme="light"] {
-  --bg-base: #f7faf8;
-  --bg-surface: #ffffff;
-  --bg-elevated: #f0f4f1;
-  --bg-subtle: #e8ede9;
+  --bg:          #fafaf7;
+  --surface:     #ffffff;
+  --elevated:    #f5f5f2;
+  --border:      #e5e5e2;
+  --border-soft: #ededea;
 
-  --text-primary:   #1a2b1d;
-  --text-secondary: #4a5e4d;
-  --text-muted:     #8a9b8d;
-  --text-accent:    var(--green-600);
+  --text:        #0a0a0a;
+  --text-muted:  #525252;
+  --text-faint:  #a3a3a3;
 
-  --border-default: rgba(0,0,0,0.08);
-  --border-subtle:  rgba(0,0,0,0.04);
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
-  --shadow-elevated: 0 4px 12px rgba(0,0,0,0.08), 0 16px 48px rgba(0,0,0,0.06);
-
-  --basefn-color-primary: var(--green-600);
-  --basefn-color-primary-hover: var(--green-500);
-  --basefn-color-primary-active: var(--green-700);
-  --basefn-color-primary-background: rgba(26,133,56,0.06);
-  --basefn-color-secondary: #e2e8f0;
-  --basefn-color-secondary-hover: #cbd5e1;
-  --basefn-bg-primary: var(--bg-base);
-  --basefn-bg-secondary: var(--bg-surface);
-  --basefn-bg-tertiary: var(--bg-elevated);
-  --basefn-text-primary: var(--text-primary);
-  --basefn-text-secondary: var(--text-secondary);
-  --basefn-text-muted: var(--text-muted);
-  --basefn-border-primary: var(--border-default);
-  --basefn-border-secondary: var(--border-subtle);
-  --basefn-surface-elevated: var(--bg-surface);
-  --basefn-form-input-bg: var(--bg-surface);
-  --basefn-form-input-border: var(--border-default);
-  --basefn-form-input-text: var(--text-primary);
-  --basefn-shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-  --basefn-shadow-md: 0 4px 6px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
-  --basefn-shadow-lg: 0 10px 15px rgba(0,0,0,0.06), 0 4px 6px rgba(0,0,0,0.04);
+  --accent:      #0a0a0a;
+  --mark:        #0a0a0a;
 }
 
 /* ---- Reset ---- */
