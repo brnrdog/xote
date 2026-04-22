@@ -168,64 +168,6 @@ module Elements = {
     children?: element,
   }
 
-  /* Helper to detect if a value is a ReactiveProp variant (checks for Static/Reactive tags) */
-  let isReactiveProp = (value: 'a): bool => {
-    ignore(value)
-    %raw(`value && typeof value === 'object' && ('TAG' in value) && (value.TAG === 'Static' || value.TAG === 'Reactive')`)
-  }
-
-  /* Helper to convert string attribute value (supports raw string, ReactiveProp, Signal, or computed function) */
-  let convertAttrValue = (key: string, value: 'a): (string, Node.attrValue) => {
-    if isReactiveProp(value) {
-      // It's a ReactiveProp variant - pattern match on it
-      let rp: ReactiveProp.t<string> = Obj.magic(value)
-      switch rp {
-      | Static(s) => Node.attr(key, s)
-      | Reactive(signal) => Node.signalAttr(key, signal)
-      }
-    } else if typeof(value) == #function {
-      // It's a computed function (for backward compatibility)
-      let f: unit => string = Obj.magic(value)
-      Node.computedAttr(key, f)
-    } else if typeof(value) == #object {
-      // It's a raw signal (for backward compatibility)
-      let sig: Signal.t<string> = Obj.magic(value)
-      Node.signalAttr(key, sig)
-    } else {
-      // It's a raw string
-      let s: string = Obj.magic(value)
-      Node.attr(key, s)
-    }
-  }
-
-  /* Helper to convert boolean attribute value (supports raw bool, ReactiveProp, Signal, or computed function) */
-  let convertBoolAttrValue = (key: string, value: 'a): (string, Node.attrValue) => {
-    if isReactiveProp(value) {
-      // It's a ReactiveProp variant - pattern match on it
-      let rp: ReactiveProp.t<bool> = Obj.magic(value)
-      switch rp {
-      | Static(b) => Node.attr(key, b ? "true" : "false")
-      | Reactive(signal) => {
-          let strSignal = Computed.make(() => Signal.get(signal) ? "true" : "false")
-          Node.signalAttr(key, strSignal)
-        }
-      }
-    } else if typeof(value) == #function {
-      // It's a computed function that returns bool (for backward compatibility)
-      let f: unit => bool = Obj.magic(value)
-      Node.computedAttr(key, () => f() ? "true" : "false")
-    } else if typeof(value) == #object {
-      // It's a raw signal (for backward compatibility)
-      let sig: Signal.t<bool> = Obj.magic(value)
-      let strSignal = Computed.make(() => Signal.get(sig) ? "true" : "false")
-      Node.signalAttr(key, strSignal)
-    } else {
-      // It's a raw bool
-      let b: bool = Obj.magic(value)
-      Node.attr(key, b ? "true" : "false")
-    }
-  }
-
   /* Helper to add optional attribute to attrs array */
   let addAttr = (attrs, opt, key, converter) => {
     switch opt {
@@ -247,70 +189,70 @@ module Elements = {
     let attrs = []
 
     /* Standard attributes */
-    addAttr(attrs, props.id, "id", convertAttrValue)
-    addAttr(attrs, props.class, "class", convertAttrValue)
-    addAttr(attrs, props.style, "style", convertAttrValue)
-    addAttr(attrs, props.title, "title", convertAttrValue)
+    addAttr(attrs, props.id, "id", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.class, "class", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.style, "style", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.title, "title", RuntimeJsxProp.toStringAttr)
 
     /* Form/Input attributes */
-    addAttr(attrs, props.type_, "type", convertAttrValue)
-    addAttr(attrs, props.name, "name", convertAttrValue)
-    addAttr(attrs, props.value, "value", convertAttrValue)
-    addAttr(attrs, props.placeholder, "placeholder", convertAttrValue)
-    addAttr(attrs, props.disabled, "disabled", convertBoolAttrValue)
-    addAttr(attrs, props.checked, "checked", convertBoolAttrValue)
-    addAttr(attrs, props.required, "required", convertBoolAttrValue)
-    addAttr(attrs, props.readOnly, "readonly", convertBoolAttrValue)
+    addAttr(attrs, props.type_, "type", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.name, "name", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.value, "value", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.placeholder, "placeholder", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.disabled, "disabled", RuntimeJsxProp.toBoolAttr)
+    addAttr(attrs, props.checked, "checked", RuntimeJsxProp.toBoolAttr)
+    addAttr(attrs, props.required, "required", RuntimeJsxProp.toBoolAttr)
+    addAttr(attrs, props.readOnly, "readonly", RuntimeJsxProp.toBoolAttr)
     addIntAttr(attrs, props.maxLength, "maxlength")
     addIntAttr(attrs, props.minLength, "minlength")
-    addAttr(attrs, props.min, "min", convertAttrValue)
-    addAttr(attrs, props.max, "max", convertAttrValue)
-    addAttr(attrs, props.step, "step", convertAttrValue)
-    addAttr(attrs, props.pattern, "pattern", convertAttrValue)
-    addAttr(attrs, props.autoComplete, "autocomplete", convertAttrValue)
-    addAttr(attrs, props.multiple, "multiple", convertBoolAttrValue)
-    addAttr(attrs, props.accept, "accept", convertAttrValue)
+    addAttr(attrs, props.min, "min", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.max, "max", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.step, "step", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.pattern, "pattern", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.autoComplete, "autocomplete", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.multiple, "multiple", RuntimeJsxProp.toBoolAttr)
+    addAttr(attrs, props.accept, "accept", RuntimeJsxProp.toStringAttr)
     addIntAttr(attrs, props.rows, "rows")
     addIntAttr(attrs, props.cols, "cols")
-    addAttr(attrs, props.autofocus, "autofocus", convertBoolAttrValue)
-    addAttr(attrs, props.action, "action", convertAttrValue)
-    addAttr(attrs, props.method, "method", convertAttrValue)
+    addAttr(attrs, props.autofocus, "autofocus", RuntimeJsxProp.toBoolAttr)
+    addAttr(attrs, props.action, "action", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.method, "method", RuntimeJsxProp.toStringAttr)
 
     /* Label attributes */
-    addAttr(attrs, props.for_, "for", convertAttrValue)
+    addAttr(attrs, props.for_, "for", RuntimeJsxProp.toStringAttr)
 
     /* Link attributes */
-    addAttr(attrs, props.href, "href", convertAttrValue)
-    addAttr(attrs, props.target, "target", convertAttrValue)
+    addAttr(attrs, props.href, "href", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.target, "target", RuntimeJsxProp.toStringAttr)
 
     /* Image attributes */
-    addAttr(attrs, props.src, "src", convertAttrValue)
-    addAttr(attrs, props.alt, "alt", convertAttrValue)
-    addAttr(attrs, props.width, "width", convertAttrValue)
-    addAttr(attrs, props.height, "height", convertAttrValue)
+    addAttr(attrs, props.src, "src", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.alt, "alt", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.width, "width", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.height, "height", RuntimeJsxProp.toStringAttr)
 
     /* Global attributes */
-    addAttr(attrs, props.draggable, "draggable", convertBoolAttrValue)
-    addAttr(attrs, props.hidden, "hidden", convertBoolAttrValue)
-    addAttr(attrs, props.contentEditable, "contenteditable", convertBoolAttrValue)
-    addAttr(attrs, props.spellcheck, "spellcheck", convertBoolAttrValue)
+    addAttr(attrs, props.draggable, "draggable", RuntimeJsxProp.toBoolAttr)
+    addAttr(attrs, props.hidden, "hidden", RuntimeJsxProp.toBoolAttr)
+    addAttr(attrs, props.contentEditable, "contenteditable", RuntimeJsxProp.toBoolAttr)
+    addAttr(attrs, props.spellcheck, "spellcheck", RuntimeJsxProp.toBoolAttr)
 
     /* Accessibility attributes */
-    addAttr(attrs, props.role, "role", convertAttrValue)
+    addAttr(attrs, props.role, "role", RuntimeJsxProp.toStringAttr)
     addIntAttr(attrs, props.tabIndex, "tabindex")
-    addAttr(attrs, props.ariaLabel, "aria-label", convertAttrValue)
-    addAttr(attrs, props.ariaHidden, "aria-hidden", convertBoolAttrValue)
-    addAttr(attrs, props.ariaExpanded, "aria-expanded", convertBoolAttrValue)
-    addAttr(attrs, props.ariaSelected, "aria-selected", convertBoolAttrValue)
+    addAttr(attrs, props.ariaLabel, "aria-label", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.ariaHidden, "aria-hidden", RuntimeJsxProp.toBoolAttr)
+    addAttr(attrs, props.ariaExpanded, "aria-expanded", RuntimeJsxProp.toBoolAttr)
+    addAttr(attrs, props.ariaSelected, "aria-selected", RuntimeJsxProp.toBoolAttr)
 
     /* Data attributes */
     switch props.data {
-    | Some(_dataObj) => {
-        let _ = %raw(`
-          Object.entries(_dataObj).forEach(([key, value]) => {
-            attrs.push(convertAttrValue("data-" + key, value))
-          })
-        `)
+    | Some(dataObj) => {
+        ignore(dataObj)
+        let entries: array<(string, Obj.t)> = %raw(`Object.entries(dataObj)`)
+        entries->Array.forEach(((key, value)) => {
+          attrs->Array.push(RuntimeJsxProp.toStringAttr("data-" ++ key, value))->ignore
+        })
       }
     | None => ()
     }

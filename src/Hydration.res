@@ -1,5 +1,6 @@
 module DOM = Node.DOM
 module Reactivity = Node.Reactivity
+module Markers = RuntimeHydrationMarkers
 
 /* ============================================================================
  * Hydration Options
@@ -66,7 +67,8 @@ module DOMWalker = {
   let extractKey = (node: Dom.element): option<string> => {
     if nodeType(node) == commentNode {
       switch nodeValue(node)->Nullable.toOption {
-      | Some(value) if String.startsWith(value, "k:") => Some(String.slice(value, ~start=2))
+      | Some(value) if String.startsWith(value, Markers.keyedItemPrefixContent) =>
+        Some(String.slice(value, ~start=String.length(Markers.keyedItemPrefixContent)))
       | _ => None
       }
     } else {
@@ -286,17 +288,17 @@ let rec hydrateNode = (node: Node.node, domNode: Dom.element): unit => {
       let walker = DOMWalker.make(domNode)
 
       /* Skip to list start marker */
-      let _ = DOMWalker.skipUntilMarker(walker, "kl")
+      let _ = DOMWalker.skipUntilMarker(walker, Markers.keyedListStartContent)
 
       /* Parse existing keyed items */
       let rec parseKeyedItems = () => {
         switch DOMWalker.peek(walker) {
-        | Some(node) if DOMWalker.isMarkerPrefix(node, "k:") => {
+        | Some(node) if DOMWalker.isMarkerPrefix(node, Markers.keyedItemPrefixContent) => {
             let key = DOMWalker.extractKey(node)->Option.getOr("")
             let _ = DOMWalker.next(walker) // consume start marker
 
             /* Collect item elements until end marker */
-            let itemElements = DOMWalker.collectUntilMarker(walker, "/k")
+            let itemElements = DOMWalker.collectUntilMarker(walker, Markers.keyedItemEndContent)
 
             /* Get the first actual element (skip text nodes) */
             switch itemElements->Array.find(el => DOMWalker.nodeType(el) == DOMWalker.elementNode) {
@@ -311,7 +313,7 @@ let rec hydrateNode = (node: Node.node, domNode: Dom.element): unit => {
 
             parseKeyedItems()
           }
-        | Some(node) if DOMWalker.isMarker(node, "/kl") => {
+        | Some(node) if DOMWalker.isMarker(node, Markers.keyedListEndContent) => {
             let _ = DOMWalker.next(walker) // consume end marker
           }
         | _ => ()
@@ -438,7 +440,7 @@ and hydrateNodeWithWalker = (node: Node.node, walker: DOMWalker.t): unit => {
 
   | Node.SignalText(signal) => {
       /* Find the marker, then hydrate the text node */
-      let _ = DOMWalker.skipUntilMarker(walker, "$")
+      let _ = DOMWalker.skipUntilMarker(walker, Markers.signalTextStartContent)
 
       /* Get the text node */
       switch DOMWalker.next(walker) {
@@ -455,7 +457,7 @@ and hydrateNodeWithWalker = (node: Node.node, walker: DOMWalker.t): unit => {
           })
 
           /* Skip end marker */
-          let _ = DOMWalker.skipUntilMarker(walker, "/$")
+          let _ = DOMWalker.skipUntilMarker(walker, Markers.signalTextEndContent)
         }
       | None => logHydrationWarning("Missing text node for SignalText")
       }
@@ -469,10 +471,10 @@ and hydrateNodeWithWalker = (node: Node.node, walker: DOMWalker.t): unit => {
 
   | Node.SignalFragment(signal) => {
       /* Find the container (div with display:contents in SSR, markers in comments) */
-      let _ = DOMWalker.skipUntilMarker(walker, "#")
+      let _ = DOMWalker.skipUntilMarker(walker, Markers.signalFragmentStartContent)
 
       /* Collect all nodes until end marker - these become the container's content */
-      let contentNodes = DOMWalker.collectUntilMarker(walker, "/#")
+      let contentNodes = DOMWalker.collectUntilMarker(walker, Markers.signalFragmentEndContent)
 
       /* Create a container div to hold the signal fragment */
       let container = DOM.createElement("div")
@@ -574,28 +576,28 @@ and hydrateNodeWithWalker = (node: Node.node, walker: DOMWalker.t): unit => {
 
   | Node.LazyComponent(fn) => {
       /* Skip the lazy component markers and hydrate the content */
-      let _ = DOMWalker.skipUntilMarker(walker, "lc")
+      let _ = DOMWalker.skipUntilMarker(walker, Markers.lazyComponentStartContent)
 
       let childNode = fn()
       hydrateNodeWithWalker(childNode, walker)
 
-      let _ = DOMWalker.skipUntilMarker(walker, "/lc")
+      let _ = DOMWalker.skipUntilMarker(walker, Markers.lazyComponentEndContent)
     }
 
   | Node.KeyedList({signal, keyFn, renderItem: _}) => {
       /* Find the keyed list in the DOM */
-      let _ = DOMWalker.skipUntilMarker(walker, "kl")
+      let _ = DOMWalker.skipUntilMarker(walker, Markers.keyedListStartContent)
 
       /* Parse existing keyed items from DOM */
       let keyedItems: Dict.t<Node.Render.keyedItem<Obj.t>> = Dict.make()
 
       let rec parseKeyedItems = () => {
         switch DOMWalker.peek(walker) {
-        | Some(node) if DOMWalker.isMarkerPrefix(node, "k:") => {
+        | Some(node) if DOMWalker.isMarkerPrefix(node, Markers.keyedItemPrefixContent) => {
             let key = DOMWalker.extractKey(node)->Option.getOr("")
             let _ = DOMWalker.next(walker)
 
-            let itemElements = DOMWalker.collectUntilMarker(walker, "/k")
+            let itemElements = DOMWalker.collectUntilMarker(walker, Markers.keyedItemEndContent)
 
             switch itemElements->Array.find(el => DOMWalker.nodeType(el) == DOMWalker.elementNode) {
             | Some(element) => {
@@ -609,7 +611,7 @@ and hydrateNodeWithWalker = (node: Node.node, walker: DOMWalker.t): unit => {
 
             parseKeyedItems()
           }
-        | Some(node) if DOMWalker.isMarker(node, "/kl") => {
+        | Some(node) if DOMWalker.isMarker(node, Markers.keyedListEndContent) => {
             let _ = DOMWalker.next(walker)
           }
         | _ => ()
