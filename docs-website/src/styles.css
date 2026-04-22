@@ -1449,6 +1449,37 @@ pre {
 .syntax-comment { color: var(--text-faint);  font-style: italic; }
 .syntax-text    { color: var(--text); }
 
+/* ---- Callouts (margin-notes) ---- */
+.callout {
+  border-left: 4px solid var(--border);
+  padding: var(--s-1) 0 var(--s-1) var(--s-4);
+  margin: var(--s-5) 0;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.callout-label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: var(--s-1);
+}
+
+.callout-deprecated {
+  border-left: 0;
+  border-top: 2px solid var(--border);
+  padding: var(--s-3) 0 0 0;
+}
+
+.callout p:last-child {
+  margin-bottom: 0;
+}
+
 /* ============================================================
    COUNTER / TEMP / TIMER EXAMPLE APPS
    ============================================================ */
