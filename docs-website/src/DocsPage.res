@@ -18,7 +18,7 @@ let docsNav: array<docCategory> = [
     label: "Core Concepts",
     items: [
       {title: "Signals", path: "/docs/core-concepts/signals"},
-      {title: "Computed", path: "/docs/core-concepts/computed"},
+      {title: "Computeds", path: "/docs/core-concepts/computed"},
       {title: "Effects", path: "/docs/core-concepts/effects"},
     ],
   },
@@ -47,18 +47,6 @@ let docsNav: array<docCategory> = [
       {title: "Server-Side Rendering", path: "/docs/advanced/ssr"},
       {title: "Batching", path: "/docs/advanced/batching"},
       {title: "Technical Overview", path: "/docs/technical-overview"},
-    ],
-  },
-  {
-    label: "Demos",
-    items: [
-      {title: "Counter", path: "/docs/demos/counter"},
-      {title: "Todo List", path: "/docs/demos/todo"},
-      {title: "Color Mixer", path: "/docs/demos/color-mixer"},
-      {title: "Reaction Game", path: "/docs/demos/reaction-game"},
-      {title: "Solitaire", path: "/docs/demos/solitaire"},
-      {title: "Memory Match", path: "/docs/demos/memory-match"},
-      {title: "Snake Game", path: "/docs/demos/snake"},
     ],
   },
 ]
