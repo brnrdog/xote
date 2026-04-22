@@ -28,6 +28,12 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
 
 The compiler flag `-open Xote` is optional, it makes the Xote modules available unqualified inside your source files.
 
+This README uses the clearer aliases introduced for application code:
+
+- `View` is an alias for `Node`.
+- `Prop` is an alias for `ReactiveProp`.
+- `View.computedText`, `View.each`, `View.Attr.*`, and `SSRState.signal` are preferred in examples, while the original `Node.signalText`, `Node.list`, `Node.attr`, and `SSRState.make` names remain supported.
+
 ### Quick Example
 
 ```rescript
@@ -49,22 +55,22 @@ module App = {
 
     // Build the UI with JSX
     <div>
-      <h1> {Node.text("Counter")} </h1>
+      <h1> {View.text("Counter")} </h1>
       <p>
-        {Node.signalText(() => "Count: " ++ Signal.get(count)->Int.toString)}
+        {View.computedText(() => "Count: " ++ Signal.get(count)->Int.toString)}
       </p>
       <p>
-        {Node.signalText(() => Signal.get(doubled)->Int.toString)}
+        {View.computedText(() => "Doubled: " ++ Signal.get(doubled)->Int.toString)}
       </p>
       <button onClick={(_evt: Dom.event) => Signal.update(count, n => n + 1)}>
-        {Node.text("Increment")}
+        {View.text("Increment")}
       </button>
     </div>
   }
 }
 
 // Mount to the DOM
-Node.mountById(<App />, "app")
+View.mountById(<App />, "app")
 ```
 
 Since in ReScript each file is its own module, you can define a reusable component by exporting a `make` function from that file. The file name becomes the component name: `Counter.res` gives you `<Counter />`. 
@@ -78,7 +84,7 @@ Here's an example of a reusable component with properties:
 @jsx.component
 let make = (~name: string, ~greeting: string="Hello") => {
   <p>
-    {Node.text(greeting ++ ", " ++ name ++ "!")}
+    {View.text(greeting ++ ", " ++ name ++ "!")}
   </p>
 }
 
@@ -110,6 +116,78 @@ On top of the reactive primitives with signals, Xote provides a declarative comp
 - **Built-in Router**: Client-side routing with pattern matching and a reactive location state
 - **Automatic Cleanup**: Effect disposal and memory management built into the component lifecycle
 - **Server-side Rendering**: pre-render your pages on the server with full hydration (experimental)
+
+### Views and Attributes
+
+`View` creates UI nodes. It is the clearer application-facing alias for `Node`, and both names are available:
+
+```rescript
+let className = Signal.make("card")
+
+Html.div(
+  ~attrs=[View.Attr.signal("class", className)],
+  ~children=[
+    View.text("Status: "),
+    View.computedText(() => Signal.get(className)),
+  ],
+  (),
+)
+```
+
+For rendering collections, prefer `View.each` for simple lists and `View.keyedEach` when items have stable identity:
+
+```rescript
+type todo = {id: string, title: string}
+
+let todos = Signal.make([
+  {id: "1", title: "Write docs"},
+  {id: "2", title: "Ship release"},
+])
+
+View.keyedEach(
+  todos,
+  todo => todo.id,
+  todo => <li> {View.text(todo.title)} </li>,
+)
+```
+
+### Static or Reactive Props
+
+Use `Prop` when a component prop can accept either a static value or a signal:
+
+```rescript
+@jsx.component
+let make = (~className: Prop.t<string>=Prop.static("badge"), ~children) => {
+  <span class={className}> {children} </span>
+}
+
+let tone = Signal.make("badge badge-info")
+
+<Badge className={Prop.signal(tone)}>
+  {View.text("Live")}
+</Badge>
+```
+
+`Prop` is an alias for `ReactiveProp`; `Prop.signal(signal)` is the shorter name for `ReactiveProp.reactive(signal)`.
+
+### Router and SSR State
+
+Router state is signal-based. Prefer `Router.locationSignal()` when you want the reactive signal and `Router.current()` when you only need a snapshot:
+
+```rescript
+Router.init(())
+
+let pathname = View.computedText(() => {
+  let location = Signal.get(Router.locationSignal())
+  "Current path: " ++ location.pathname
+})
+```
+
+For server/client state transfer, prefer `SSRState.signal` when creating a synced signal:
+
+```rescript
+let count = SSRState.signal("count", 0, SSRState.Codec.int)
+```
 
 Check the [website](https://brnrdog.github.io/xote/) for more comprehensive documentations about Xote and Signals.
 
