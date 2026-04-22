@@ -176,6 +176,9 @@ let fullName = Computed.make(() =>
       </code>
     </pre>
     <h2 id="example-counter"> {Node.text("Example: Counter")} </h2>
+    <InlineDemo caption="fig. 1 \u2014 a counter, synchronously reactive">
+      <CounterDemo />
+    </InlineDemo>
     <p>
       {Node.text("Here's a complete example showing signals in action:")}
     </p>
