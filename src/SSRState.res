@@ -244,3 +244,6 @@ let make = (id: string, initial: 'a, codec: Codec.t<'a>): Signal.t<'a> => {
   sync(id, signal, codec)
   signal
 }
+
+let signal = make
+let syncSignal = sync

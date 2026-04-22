@@ -14,7 +14,7 @@ Instructions for AI coding agents working on this repository. This file compleme
 
 1. **Read `CLAUDE.md`** for full architecture, module descriptions, API surface, and code patterns
 2. **Compile first**: Always run `npm run res:build` before testing or building
-3. **Understand the module boundary**: The public surface is the list of modules in `rescript.json`'s `sources.public` (`Node`, `Html`, `XoteJSX`, `ReactiveProp`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Signal`, `Computed`, `Effect`). Helpers like `DOM`, `Reactivity`, and `Render` are implementation details and should not be relied on by consumers.
+3. **Understand the module boundary**: The public surface is the list of modules in `rescript.json`'s `sources.public` (`Node`, `View`, `Html`, `XoteJSX`, `ReactiveProp`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Signal`, `Computed`, `Effect`). Helpers like `DOM`, `Reactivity`, and `Render` are implementation details and should not be relied on by consumers.
 
 ## Development Workflow
 
@@ -28,6 +28,7 @@ Instructions for AI coding agents working on this repository. This file compleme
 | File | Purpose |
 |------|---------|
 | `src/Node.res` | Core rendering, node primitives, mount, reconciliation |
+| `src/View.res` | Alias for `Node` with clearer UI-view naming |
 | `src/Html.res` | Common HTML element constructors (`div`, `button`, ...) |
 | `src/XoteJSX.res` | JSX v4 transform and `Elements` module |
 | `src/Router.res` | Client-side routing |
@@ -37,6 +38,7 @@ Instructions for AI coding agents working on this repository. This file compleme
 | `src/SSRState.res` | Server-client state transfer |
 | `src/SSRContext.res` | Server/client environment detection |
 | `src/ReactiveProp.res` | Static/Reactive prop wrapper |
+| `src/Prop.res` | Alias for `ReactiveProp` with shorter prop naming |
 | `src/Signal.res`, `src/Computed.res`, `src/Effect.res` | Re-export shims for `rescript-signals` |
 | `rescript.json` | ReScript compiler configuration (`namespace: true`) |
 | `vite.config.js` | Library build configuration |

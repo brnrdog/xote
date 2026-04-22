@@ -49,6 +49,12 @@ let attr = Attributes.static
 let signalAttr = Attributes.signal
 let computedAttr = Attributes.computed
 
+module Attr = {
+  let string = attr
+  let signal = signalAttr
+  let compute = computedAttr
+}
+
 /* ============================================================================
  * Rendering
  * ============================================================================ */
@@ -367,6 +373,10 @@ let signalFloat = (compute: unit => float): node => {
   SignalText(signal)
 }
 
+let computedText = signalText
+let computedInt = signalInt
+let computedFloat = signalFloat
+
 /* Static text nodes with type-specific helpers */
 let int = (value: int): node => Text(Int.toString(value))
 
@@ -397,6 +407,9 @@ let keyedList = (
   })
 }
 
+let each = list
+let keyedEach = keyedList
+
 /* Element constructor */
 let element = (
   tag: string,
@@ -408,6 +421,7 @@ let element = (
 
 /* Null representation */
 let null = () => text("")
+let empty = null
 
 /* Mounting */
 let mount = (node: node, container: Dom.element): unit => {

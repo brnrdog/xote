@@ -13,9 +13,11 @@
       "default": "./dist/xote.mjs"
     },
     "./node": "./src/Node.res.mjs",
+    "./view": "./src/View.res.mjs",
     "./html": "./src/Html.res.mjs",
     "./jsx": "./src/XoteJSX.res.mjs",
     "./reactive-prop": "./src/ReactiveProp.res.mjs",
+    "./prop": "./src/Prop.res.mjs",
     "./route": "./src/Route.res.mjs",
     "./router": "./src/Router.res.mjs",
     "./ssr": "./src/SSR.res.mjs",

@@ -60,3 +60,7 @@ let matchPath = (pattern: array<segment>, pathname: string): matchResult => {
 let match = (pattern: string, pathname: string): matchResult => {
   matchPath(parsePattern(pattern), pathname)
 }
+
+let compile = parsePattern
+let matchCompiled = matchPath
+let matchPathname = match

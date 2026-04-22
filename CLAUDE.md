@@ -46,10 +46,12 @@ The codebase uses ReScript's `namespace: true` setting in `rescript.json`, so ev
 These three are thin shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.res`) that `include` the corresponding modules from `rescript-signals`.
 
 **Xote Modules:**
-- **`Xote.Node`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `fragment`, `signalFragment`, `list`, `keyedList`, `element`), attribute helpers (`attr`, `signalAttr`, `computedAttr`), the `null` placeholder, and `mount`/`mountById`. The owner-based reactivity system for resource cleanup also lives here.
+- **`Xote.Node`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `computedText`, `computedInt`, `computedFloat`, `fragment`, `signalFragment`, `list`, `keyedList`, `each`, `keyedEach`, `element`), attribute helpers (`attr`, `signalAttr`, `computedAttr`, `Attr`), the `null`/`empty` placeholders, and `mount`/`mountById`. The owner-based reactivity system for resource cleanup also lives here.
+- **`Xote.View`**: Alias module for `Node`, useful when the term "view" reads more clearly than "node" in application code.
 - **`Xote.Html`**: Convenience constructors for common HTML tags (`div`, `span`, `button`, `input`, `h1`-`h3`, `p`, `ul`, `li`, `a`). Thin wrappers over `Node.element`. For tags not listed, call `Node.element(tag, ...)` directly or use JSX.
 - **`Xote.XoteJSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with a broad set of supported attributes (standard, form/input, link, media, accessibility, drag-and-drop, and data attributes). Named `XoteJSX` (not `JSX`) to avoid colliding with unrelated modules when consumers use `open Xote`. Note: to defer side-effecting component evaluation out of any surrounding `Computed` context, `XoteJSX.jsx` wraps user-defined components in `Node.LazyComponent`.
 - **`Xote.ReactiveProp`**: A helper type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` for flexible prop handling in JSX - allows props to accept either static values or reactive signals.
+- **`Xote.Prop`**: Alias module for `ReactiveProp`, including `Prop.signal(signal)` as a shorter alias for `ReactiveProp.reactive(signal)`.
 - **`Xote.Router`**: Signal-based client-side router with pattern matching, dynamic routes, base path support, scroll position restoration, and a global singleton state (via `Symbol.for()`) that works across multiple bundles.
 - **`Xote.Route`**: Route matching utilities.
 - **`Xote.SSR`**: Server-side rendering to HTML strings with hydration markers (`<!--$-->`, `<!--#-->`, `<!--kl-->`, `<!--k:KEY-->`, `<!--lc-->`).
@@ -77,7 +79,7 @@ All reactive behavior is provided by **rescript-signals**:
 
 - **Build system**: ReScript compiler v12+ with `esmodule` output format
 - **Output**: In-source compilation (`.res.mjs` files alongside `.res` files)
-- **Namespacing**: `namespace: true` in `rescript.json` automatically scopes every module under `Xote`. Public modules are listed explicitly in `sources.public` (`Node`, `Html`, `XoteJSX`, `ReactiveProp`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Signal`, `Computed`, `Effect`); everything else (e.g. `DOM`, `Reactivity`, which live inside `Node.res`) stays internal.
+- **Namespacing**: `namespace: true` in `rescript.json` automatically scopes every module under `Xote`. Public modules are listed explicitly in `sources.public` (`Node`, `View`, `Html`, `XoteJSX`, `ReactiveProp`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Signal`, `Computed`, `Effect`); everything else (e.g. `DOM`, `Reactivity`, which live inside `Node.res`) stays internal.
 - **Dependencies**: `rescript-signals` ^2.1.0 (the only runtime dependency)
 - **JSX**: ReScript JSX v4 configured with `module: "XoteJSX"` (generic JSX transform). Consumers must mirror this in their own `rescript.json`.
 
