@@ -456,29 +456,6 @@ blockquote {
   justify-content: center;
 }
 
-/* ============================================================
-   MOBILE DRAWER
-   ============================================================ */
-.mobile-drawer-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 150;
-  background: rgba(0,0,0,0.5);
-}
-
-.mobile-drawer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 300px;
-  z-index: 151;
-  background: var(--bg-surface);
-  border-right: 1px solid var(--border-default);
-  padding: 1rem;
-  overflow-y: auto;
-}
-
 /* ---- Hero (homepage) ---- */
 .hero {
   max-width: var(--content-max);
@@ -1198,12 +1175,6 @@ pre {
 /* ============================================================
    UTILITY CLASSES
    ============================================================ */
-.container {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 0 2rem;
-}
-
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1214,69 +1185,6 @@ pre {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-/* Version selector dropdown styles */
-.version-selector {
-  position: relative;
-}
-
-.version-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
-  font-family: var(--font-mono);
-  padding: 0.2rem 0.5rem;
-  border: 1px solid var(--border-default);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-default);
-}
-
-.version-btn:hover {
-  border-color: var(--text-muted);
-  color: var(--text-secondary);
-}
-
-/* Alert component overrides for docs */
-.alert-info {
-  border-left: 3px solid var(--callout-note);
-  background: rgba(59,130,246,0.06);
-  padding: 1rem 1.25rem;
-  border-radius: 0 8px 8px 0;
-  margin-bottom: 1.5rem;
-}
-
-.alert-info h4 {
-  color: var(--callout-note);
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-}
-
-.alert-info p,
-.alert-info li {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-}
-
-.alert-info code {
-  font-family: var(--font-mono);
-  font-size: 0.8em;
-  padding: 0.15rem 0.35rem;
-  background: var(--bg-elevated);
-  border-radius: 3px;
-}
-
-.alert-info ol {
-  padding-left: 1.25rem;
-  margin-top: 0.5rem;
-}
-
-.alert-info li {
-  margin-bottom: 0.35rem;
 }
 
 /* 404 page */
@@ -1292,7 +1200,7 @@ pre {
 }
 
 .not-found p {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   margin-bottom: 2rem;
 }
 
