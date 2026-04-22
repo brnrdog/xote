@@ -479,104 +479,94 @@ blockquote {
   overflow-y: auto;
 }
 
-/* ============================================================
-   HOMEPAGE — HERO
-   ============================================================ */
+/* ---- Hero (homepage) ---- */
 .hero {
-  position: relative;
-  padding: 6rem 2rem 4rem;
-  text-align: center;
-  overflow: hidden;
-}
-
-.hero::before {
-  content: '';
-  position: absolute;
-  top: -20%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 800px;
-  height: 800px;
-  background: radial-gradient(
-    circle,
-    rgba(34,166,70,0.08) 0%,
-    rgba(34,166,70,0.03) 40%,
-    transparent 70%
-  );
-  pointer-events: none;
-}
-
-[data-theme="light"] .hero::before {
-  background: radial-gradient(
-    circle,
-    rgba(26,133,56,0.06) 0%,
-    rgba(26,133,56,0.02) 40%,
-    transparent 70%
-  );
-}
-
-.hero-inner {
-  position: relative;
-  max-width: 52rem;
+  max-width: var(--content-max);
   margin: 0 auto;
+  padding: var(--s-12) var(--s-5);
+  border-bottom: 1px solid var(--border);
 }
 
-.hero-logo {
+.hero-head {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: var(--s-5);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
 }
 
-.hero-logo-text {
-  font-family: "Sono", var(--font-body);
-  font-size: 2.5rem;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  color: var(--text-primary);
-}
-
-.hero h1 {
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem, 5vw, 3.75rem);
-  line-height: 1.15;
-  font-weight: 400;
-  color: var(--text-primary);
-  margin-bottom: 1.5rem;
+.hero-head .wordmark {
+  font-family: var(--font-body);
+  font-size: var(--fs-xl);
+  font-weight: 500;
+  color: var(--text);
   letter-spacing: -0.01em;
 }
 
-.hero h1 em {
-  font-style: italic;
-  color: var(--text-accent);
+.hero-head .imprint {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
 }
 
-.hero-subtitle {
-  font-size: 1.15rem;
-  line-height: 1.7;
-  color: var(--text-secondary);
-  max-width: 40rem;
-  margin: 0 auto 2.5rem;
+.hero-display {
+  font-family: var(--font-display);
+  font-size: var(--fs-display);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  margin: var(--s-10) 0 var(--s-8) 0;
+  max-width: 14ch;
+  font-weight: 400;
 }
 
-.hero-buttons {
+.hero-lead {
+  font-family: var(--font-body);
+  font-size: var(--fs-lg);
+  line-height: 1.5;
+  color: var(--text-muted);
+  max-width: 50ch;
+  margin: 0 0 var(--s-8) 0;
+}
+
+.hero-ctas {
   display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
+  gap: var(--s-4);
+  align-items: center;
+  margin-bottom: var(--s-10);
+}
+.hero-ctas a.btn-secondary-link {
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  color: var(--text);
+  text-decoration: none;
+}
+.hero-ctas a.btn-secondary-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+.hero-foot {
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
 }
 
 @media (max-width: 768px) {
-  .hero { padding: 4rem 1.5rem 3rem; }
-}
-
-@media (max-width: 480px) {
-  .hero { padding: 3rem 1rem 2rem; }
-  .hero-subtitle { font-size: 1rem; margin-bottom: 2rem; }
-  .hero-logo-text { font-size: 2rem; }
-  .hero-buttons { gap: 0.75rem; }
-  .btn { padding: 0.55rem 1.25rem; font-size: 0.85rem; }
+  .hero-display {
+    font-size: 48px;
+    max-width: 18ch;
+  }
+  .hero-head .wordmark {
+    font-size: var(--fs-base);
+  }
 }
 
 /* ---- Buttons ---- */
@@ -902,40 +892,43 @@ blockquote {
   min-height: 380px;
 }
 
-/* ============================================================
-   HOMEPAGE — COMMUNITY SECTION
-   ============================================================ */
-.community-section {
-  padding: 4rem 2rem;
-  background: var(--bg-surface);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.community-inner {
-  max-width: var(--max-width);
+/* ---- Code example block on the homepage ---- */
+.code-example-section {
+  max-width: var(--content-max);
   margin: 0 auto;
-  text-align: center;
+  padding: var(--s-10) var(--s-5);
 }
 
-.community-inner h2 {
+.code-example-section h2 {
   font-family: var(--font-display);
-  font-size: 2rem;
-  margin-bottom: 0.75rem;
+  font-size: var(--fs-3xl);
+  font-style: italic;
+  letter-spacing: -0.015em;
+  margin: 0 0 var(--s-5) 0;
 }
 
-.community-inner > p {
-  color: var(--text-secondary);
-  margin-bottom: 2rem;
-  max-width: 36rem;
-  margin-left: auto;
-  margin-right: auto;
+.code-example-section h2::before {
+  content: "\00A7 ";
+  color: var(--text-muted);
+  font-style: normal;
 }
 
-.community-links {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
+/* ---- Community close ---- */
+.community-close {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--s-12) var(--s-5);
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+
+.community-close p {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  color: var(--text);
+  margin: 0 auto var(--s-6) auto;
+  max-width: 32ch;
+  line-height: 1.3;
 }
 
 /* ============================================================
