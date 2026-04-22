@@ -1,185 +1,190 @@
 ## Xote Technical Overview
 
-This document describes the architecture and APIs of the Xote reactive core and minimal component renderer, inspired by the TC39 Signals proposal. It summarizes the data model, dependency tracking, scheduling, and module boundaries.
+This document describes the current architecture and public API of Xote, a lightweight ReScript UI library for building components with fine-grained signal reactivity.
 
-Reference: TC39 Signals proposal `https://github.com/tc39/proposal-signals`.
+Xote uses [rescript-signals](https://brnrdog.github.io/rescript-signals) for reactive primitives and layers a small DOM renderer, JSX support, routing, server-side rendering, hydration, and SSR state transfer on top.
 
-### Modules and Responsibilities
+### Module Boundary
 
-- **`Xote__Core`**: Low-level runtime for dependency tracking and scheduling of observers (effects and computeds). Defines the signal cell shape (`t<'a>`) and maintains global maps of dependencies and observers. Potentially some of these modules could be moved into other modules (e.g observers scheduling to `Xote__Observer`, signal observers to `Xote__Signal`, and so on).
-- **`Xote__Signal`**: User-facing state cells. `make`, `get`, `peek`, `set`, `update` with automatic dependency capture on `get`.
-- **`Xote__Computed`**: Derived signals. Creates an internal observer that recomputes and writes into a backing signal.
-- **`Xote__Effect`**: Effects that run a function tracked against any signals it reads. Returns a disposer fn.
-- **`Xote__Observer`**: Observer types and structure used by the scheduler.
-- **`Xote__Id`**: Monotonic integer ID generator.
-- **`Xote.Node`**: Minimal virtual DOM with reactive text and fragment nodes, render and mount to DOM. Convenience element constructors.
-- **`Xote.Route`**: Pure route matching logic with pattern-based string matching. Supports dynamic parameters using `:param` syntax.
-- **`Xote.Router`**: Signal-based router with browser History API integration. Provides location signal, imperative navigation, declarative routing components, and SPA navigation links.
-- **`Xote`**: Public module surface that re-exports the above.
+The ReScript compiler is configured with `"namespace": true`, so every source file in `src/` is namespaced under `Xote`. The public modules are listed in `rescript.json` under `sources.public`:
 
-### Core Data Structures (`Xote__Core`)
+- **`Xote.Node`**: Core UI node types, constructors, attributes, rendering, and mounting.
+- **`Xote.Html`**: Convenience constructors for common HTML tags.
+- **`Xote.XoteJSX`**: JSX v4 transform support and lowercase HTML element definitions.
+- **`Xote.ReactiveProp`**: Static-or-reactive prop wrapper for JSX-friendly APIs.
+- **`Xote.Route`**: Pure route pattern parsing and matching.
+- **`Xote.Router`**: Signal-based client and SSR routing helpers.
+- **`Xote.SSR`**: Server-side rendering to HTML strings.
+- **`Xote.SSRContext`**: Runtime server/client environment checks.
+- **`Xote.SSRState`**: Server-to-client state serialization and restoration.
+- **`Xote.Hydration`**: Client-side hydration for server-rendered DOM.
+- **`Xote.Signal`**, **`Xote.Computed`**, **`Xote.Effect`**: Re-export shims for `rescript-signals`.
 
-- **Signal cell**: `t<'a> = { id: int, value: ref<'a>, version: ref<int> }`.
-- **Global state**:
-  - `observers: Map<int, Observer.t>` — all observers by id.
-  - `signalObservers: Map<int, Set<int>>` — signal id -> set of observer ids.
-  - `currentObserverId: option<int>` — the observer currently tracking reads.
-  - `pending: Set<int>` and `batching: bool` — simple synchronous scheduler queue and batching flag.
+There is no central `Xote.res` barrel and no `Xote__` prefixed source module naming. Consumers access modules through the generated namespace, for example `Xote.Node`, `Xote.Router`, or unqualified `Node` after `-open Xote`.
 
-### Dependency Tracking
+Some implementation modules are currently nested inside public modules, such as `Node.DOM`, `Node.Reactivity`, `Node.Render`, `SSR.Html`, `SSR.Markers`, and `Hydration.DOMWalker`. These exist to share implementation code inside the package and should be treated as internal details unless they are explicitly documented as public API.
 
-- Reads under tracking are captured: when `currentObserverId` is `Some(id)`, `Signal.get` calls `Core.addDep(id, signalId)`.
-- `addDep` both records the dependency in the observer and adds the observer to the signal’s reverse index. `clearDeps` removes an observer from all its dependency buckets before re-tracking.
+### Reactive Primitives
 
-### Scheduling Model
+Reactive behavior comes from `rescript-signals`:
 
-- `notify(signalId)` looks up dependent observers and enqueues them via `schedule`.
-- `schedule(observerId)` queues the observer; if not batching, it immediately flushes: clears previous deps, sets `currentObserverId`, runs the observer’s `run`, then unsets tracking.
-- `batch(f)` sets `batching = true` for the duration of `f` and flushes the queued observers afterward.
-- `untrack(f)` temporarily disables dependency capture during `f`.
+- **`Signal.t<'a>`** stores mutable reactive state.
+- **`Signal.make(~name?, ~equals?, value)`** creates a signal. The default equality is JavaScript strict equality (`===`); pass `~equals` for custom comparison.
+- **`Signal.get(signal)`** reads and tracks a dependency when called inside an effect or computed.
+- **`Signal.peek(signal)`** reads without dependency tracking.
+- **`Signal.set(signal, value)`** updates and notifies dependents when the value differs by the configured equality check.
+- **`Signal.update(signal, fn)`** updates from the current value.
+- **`Signal.batch(fn)`** coalesces multiple signal writes.
+- **`Signal.untrack(fn)`** disables dependency capture inside a function.
 
-Semantics:
+Computed values and effects are also provided by `rescript-signals`:
 
-- Synchronous, immediate scheduling by default (microtask-like but runs inline when not batching).
-- Re-execution always re-tracks dependencies to reflect the latest graph.
+- **`Computed.make(~name?, ~equals?, fn)`** creates a lazy derived signal. Upstream writes mark it dirty; it recomputes when read.
+- **`Computed.dispose(signal)`** manually disposes a computed signal when needed.
+- **`Effect.run(~name?, fn)`** creates a fire-and-forget effect.
+- **`Effect.runWithDisposer(~name?, fn)`** returns a disposer with `dispose()`.
+- Effect callbacks return `option<unit => unit>`: `Some(cleanup)` for teardown or `None` when no cleanup is needed.
 
-### Signals (`Xote__Signal`)
+### Component And Rendering Model
 
-- `make(v)` creates a new cell.
-- `get(s)` returns the value and, if tracking, captures a dependency.
-- `peek(s)` returns the value without dependency capture.
-- `set(s, v)` writes the value, increments a version counter, and `notify`s dependents.
-- `update(s, f)` convenience helper that sets `f(get(s))`.
+Xote components are functions that return `Node.node`.
 
-Notes:
+`Node.node` variants:
 
-- No equality check on `set`; every write notifies.
+- `Text(string)`
+- `SignalText(Signal.t<string>)`
+- `Element({tag, attrs, events, children})`
+- `Fragment(array<node>)`
+- `SignalFragment(Signal.t<array<node>>)`
+- `LazyComponent(unit => node)`
+- `KeyedList({signal, keyFn, renderItem})`
 
-### Computed (`Xote__Computed`)
+Core constructors:
 
-- `make(calc)` creates a backing signal `s` and registers an observer whose `run` recomputes `calc()` and writes into `s`.
-- Initial compute runs under tracking to establish dependencies.
-- On dependency writes, the core re-runs the computed’s observer which pushes the new value into `s` and notifies any downstream dependents of `s`.
+- `Node.text("hello")`
+- `Node.int(1)` and `Node.float(1.5)`
+- `Node.signalText(() => ...)`
+- `Node.signalInt(() => ...)` and `Node.signalFloat(() => ...)`
+- `Node.fragment(children)`
+- `Node.signalFragment(signal)`
+- `Node.list(signal, renderItem)`
+- `Node.keyedList(signal, keyFn, renderItem)`
+- `Node.element("div", ~attrs?, ~events?, ~children?, ())`
+- `Node.null()`
+- `Node.mount(node, container)`
+- `Node.mountById(node, "root")`
 
-Implication:
+Rendering is fine-grained:
 
-- Computeds are realized via push into a backing signal rather than being lazily re-evaluated only on read. They are re-evaluated when upstream dependencies notify and the scheduler flushes.
+- Static text renders once.
+- `SignalText` attaches an effect that updates the text node.
+- Reactive attributes attach effects that update only the affected attribute/property.
+- `SignalFragment` replaces its child region when its signal changes.
+- `KeyedList` uses comment anchors and key-based reconciliation to preserve DOM identity.
+- `LazyComponent` defers component evaluation until render/hydration time.
 
-### Effects (`Xote__Effect`)
+### Attributes
 
-- `run(fn)` registers an observer of kind `#Effect` and runs `fn` under tracking. Returns `{ dispose }` to stop observing.
-- On dependency writes, the effect re-runs synchronously (or after batching) and re-tracks.
+Attributes are represented as `(string, Node.attrValue)` pairs:
 
-Notes:
+- `Node.attr(key, value)` for static string attributes.
+- `Node.signalAttr(key, signal)` for reactive string attributes.
+- `Node.computedAttr(key, fn)` for computed string attributes.
 
-- No explicit cleanup callback API (e.g., returning a disposer from `fn`); explicit `dispose()` removes the observer and clears deps.
+The DOM renderer maps selected names to DOM properties or boolean attribute behavior:
 
-### Observers (`Xote__Observer`)
+- `value`, `checked`, and `disabled` are set as properties.
+- Boolean attributes such as `required`, `readonly`, `multiple`, `hidden`, `autofocus`, and selected ARIA/global attributes are added for `"true"` and removed otherwise.
+- Other attributes use `setAttribute`.
 
-- `type kind = [ #Effect | #Computed(int) ]` — computed carries the id of its backing signal.
-- `type t = { id, kind, run, mutable deps }` — internal unit of scheduling.
+SSR mirrors the same boolean attribute behavior when rendering strings.
 
-### Component/Rendering (`Xote.Node`)
+### JSX Support
 
-- Virtual node types: `Element`, `Text`, `SignalText(Core.t<string>)`, `Fragment`, `SignalFragment(Core.t<array<node>>)\`.
-- Builders: `text`, `signalText`, `fragment`, `signalFragment`, `list(signal, renderItem)`, `element` and tag helpers (`div`, `span`, `button`, `input`, `h1`, etc.).
-- Rendering:
-  - `SignalText` creates a text node seeded with `peek`, and an effect that reads via `get` and writes `textContent` on change.
-  - `SignalFragment` uses an effect to replace its container's children when the array signal changes.
-  - `list` is built with a computed that maps the array signal through the item renderer and is rendered as a `SignalFragment`.
-- Mounting: `mount(node, container)` and `mountById(node, containerId)`.
+`Xote.XoteJSX` implements ReScript JSX v4:
 
-### Router (`Xote.Route` and `Xote.Router`)
+- `jsx`, `jsxs`, `jsxKeyed`, and `jsxsKeyed` are entry points for the JSX transform.
+- Lowercase HTML tags are implemented in `XoteJSX.Elements`.
+- JSX components are wrapped in `Node.LazyComponent` so component evaluation happens during render/hydration rather than inside an unrelated computed context.
+- JSX attributes accept raw values, `ReactiveProp.t<'a>`, raw `Signal.t<'a>`, or computed functions for compatibility.
 
-#### Route Matching (`Xote.Route`)
+`ReactiveProp.t<'a>` is:
 
-- Pattern-based string matching with `:param` syntax for dynamic segments.
-- `parsePattern(pattern)` converts a route pattern like `/users/:id` into an array of `segment` (either `Static(string)` or `Param(string)`).
-- `matchPath(pattern, pathname)` returns `Match(params)` with extracted parameters or `NoMatch`.
-- `match(pattern, pathname)` is a convenience function that parses and matches in one call.
-- Parameters are returned as `Dict.t<string>` for flexible access.
+```rescript
+type t<'a> = Reactive(Signal.t<'a>) | Static('a)
+```
 
-Notes:
-- No regex complexity; simple string-based matching covers common use cases.
-- All matching is synchronous and deterministic.
+Use `ReactiveProp.static(value)` or `ReactiveProp.reactive(signal)` when a component prop should support either static or reactive input.
 
-#### Router State and Navigation (`Xote.Router`)
+### Router
 
-- **Location signal**: `location: Core.t<location>` where `location = {pathname, search, hash}`.
-- **Initialization**: `init()` sets initial location from browser and adds `popstate` listener for back/forward buttons.
-- **Imperative navigation**:
-  - `push(pathname, ())` navigates with a new history entry using `pushState`.
-  - `replace(pathname, ())` navigates without a new history entry using `replaceState`.
-- **Declarative routing components**:
-  - `route(pattern, render)` renders a component when the pattern matches the current location.
-  - `routes(configs)` renders the first matching route from an array of `{pattern, render}` configs.
-  - Both use `SignalFragment` + `Computed` internally for reactive rendering.
-- **Navigation links**: `link(~to, ~children, ())` creates an anchor element that calls `push` on click (prevents page reload).
+`Xote.Route` provides pure route matching:
 
-Characteristics:
-- Router location is a signal, so all components reading it automatically re-render on navigation.
-- Browser History API integration ensures back/forward buttons work correctly.
-- Synchronous route matching aligns with Xote's default scheduling model.
-- Zero dependencies; uses only browser APIs and Xote primitives.
+- `Route.parsePattern("/users/:id")`
+- `Route.matchPath(parsedPattern, pathname)`
+- `Route.match(pattern, pathname)`
 
-### Execution Characteristics
+`Xote.Router` provides signal-based navigation:
 
-- **Push-based Dirty Flagging, Lazy Recomputation**: Signals push dirty flags to dependent computeds immediately, but computeds only recompute lazily when read (via `Signal.get` or `Signal.peek`). Effects run synchronously (unless wrapped in `batch`).
-- **Reactivity Graph**: Auto-tracked; observers re-track on every run to maintain an accurate dependency set.
-- **Batching**: Groups multiple writes; flush runs after the batch completes.
+- `Router.init(~basePath?, ())` initializes browser routing and must be called before routing helpers on the client.
+- `Router.initSSR(~basePath?, ~pathname, ~search?, ~hash?, ())` initializes routing for server-side rendering without browser APIs.
+- `Router.location()` returns the shared `Signal.t<Router.location>`.
+- `Router.push(pathname, ~search?, ~hash?, ())`
+- `Router.replace(pathname, ~search?, ~hash?, ())`
+- `Router.route(pattern, params => node)`
+- `Router.routes(configs)`
+- `Router.link(~to, ~attrs?, ~children?, ())`
+- `<Router.Link to="/path">...</Router.Link>` for JSX.
 
-### Relation to TC39 Signals Proposal
+Router state is stored on `globalThis` with `Symbol.for("xote.router.state")`, so multiple bundled copies of Xote can share the same router state.
 
-- Aligned concepts:
-  - Cells/signals with automatic dependency tracking on read, invalidation on write.
-  - Observer-based recomputation and re-tracking; batching and untracked execution helpers.
-- Notable differences from the current proposal draft:
-  - Computeds are realized via a backing state signal with lazy evaluation — dirty flags are pushed on upstream notification, but recomputation only occurs on read (pull-based), which aligns with the proposal's pull-evaluation approach.
-  - Effects here are regular observers that run user code and may read signals during execution; the proposal’s low-level `Watcher.notify` is synchronous and not permitted to read or write signals.
-  - No subtle namespace or formalized `versioned`/`dirty` semantics; a simple `version` counter is maintained per signal but is not exposed.
-  - Scheduler flush is synchronous and inline (microtask-like semantics are not modeled explicitly).
-  - No built-in cleanup/teardown API for effects beyond `dispose()`; no error handling or cancellation API.
+### SSR And Hydration
 
-See the TC39 draft for the intended semantics and motivations: `https://github.com/tc39/proposal-signals`.
+`Xote.SSR` renders nodes to HTML strings:
 
-### API Summary
+- `SSR.renderToString(component, ~options?)`
+- `SSR.renderToStringWithRoot(component, ~rootId?, ~options?)`
+- `SSR.generateHydrationScript(~nonce?)`
+- `SSR.renderDocument(~head?, ~bodyAttrs?, ~scripts?, ~styles?, ~stateScript?, ~nonce?, component)`
 
-- `Signal.make : 'a -> Core.t<'a>`
-- `Signal.get : Core.t<'a> -> 'a`
-- `Signal.peek : Core.t<'a> -> 'a`
-- `Signal.set : (Core.t<'a>, 'a) -> unit`
-- `Signal.update : (Core.t<'a>, 'a -> 'a) -> unit`
-- `Computed.make : (unit -> 'a) -> Core.t<'a>`
-- `Effect.run : (unit -> unit) -> { dispose: unit -> unit }`
-- `Core.batch : (unit -> 'a) -> 'a`
-- `Core.untrack : (unit -> 'a) -> 'a`
+SSR uses comment markers to identify reactive boundaries for hydration:
 
-Rendering helpers (selected):
+- Signal text: `<!--$-->...<!--/$-->`
+- Signal fragments: `<!--#-->...<!--/#-->`
+- Keyed lists: `<!--kl-->...<!--/kl-->`
+- Keyed items: `<!--k:KEY-->...<!--/k-->`
+- Lazy components: `<!--lc-->...<!--/lc-->`
 
-- `Node.text : string -> node`
-- `Node.signalText : (unit -> string) -> node`
-- `Node.signalFragment : Core.t<array<node>> -> node`
-- `Node.list : (Core.t<array<'a>>, 'a -> node) -> node`
-- `Node.element : (~attrs=?, ~events=?, ~children=?, unit) -> node` and tag helpers.
-- `Node.mount : (node, Dom.element) -> unit`
-- `Node.mountById : (node, string) -> unit`
+`Xote.Hydration` walks server-rendered DOM and attaches effects/events without replacing the full tree:
 
-Router helpers:
+- `Hydration.hydrate(component, container, ~options?)`
+- `Hydration.hydrateById(component, containerId, ~options?)`
 
-- `Router.init : unit -> unit`
-- `Router.location : Core.t<{pathname: string, search: string, hash: string}>`
-- `Router.push : (string, ~search: string=?, ~hash: string=?, unit) -> unit`
-- `Router.replace : (string, ~search: string=?, ~hash: string=?, unit) -> unit`
-- `Router.route : (string, Route.params -> Node.node) -> Node.node`
-- `Router.routes : array<{pattern: string, render: Route.params -> Node.node}> -> Node.node`
-- `Router.link : (~to: string, ~attrs: array<(string, Node.attrValue)>=?, ~children: array<Node.node>=?, unit) -> Node.node`
-- `Route.match : (string, string) -> matchResult` where `matchResult = Match(Dict.t<string>) | NoMatch`
+### SSR State
 
-### Known Limitations and Future Work
+`Xote.SSRState` transfers signal values from server to client:
 
-- Computed laziness differs from the proposal; to be considered pull-style recomputation.
-- Microtask-based scheduling and consolidation of redundant recomputations.
-- Effect cleanup hooks and error handling.
-- Optional equality/comparator for `set` to avoid unnecessary notifications.
-- More granular DOM updates for fragments and lists (diffing instead of replace-all).
-- Remove redundancy from signal consumption when using computed within components.
+- `SSRState.register(id, signal, codec)` records state on the server.
+- `SSRState.restore(id, signal, codec)` restores state on the client.
+- `SSRState.sync(id, signal, codec)` registers or restores depending on runtime.
+- `SSRState.make(id, initial, codec)` creates a signal and syncs it.
+- `SSRState.generateScript(~nonce?)` serializes state into a script tag.
+- `SSRState.clear()` resets the server registry between independent renders.
+
+`SSRState.Codec` includes codecs for primitives, arrays, options, tuples, dictionaries, and custom encode/decode functions.
+
+### Build And Distribution
+
+- `npm run res:build` compiles ReScript sources.
+- `npm run test` compiles and runs the test suite.
+- `npm run build` builds the Vite library output.
+
+The package exposes a bundled root entry through `dist/` and currently also exposes `./src/*` for ReScript/source-level consumers.
+
+### Known Limitations And Future Work
+
+- The renderer still has implementation details nested inside public modules; interface files and internal modules should narrow that surface over time.
+- `XoteJSX.jsxKeyed` accepts keys but does not yet wire them into component-level keyed reconciliation.
+- JSX prop conversion currently uses dynamic checks to support several prop styles.
+- SSR and DOM attribute handling should stay centralized so browser rendering and server rendering cannot drift.
+- Hydration marker parsing should share the same marker definitions as SSR rendering.

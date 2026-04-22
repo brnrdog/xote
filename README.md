@@ -26,7 +26,7 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
 }
 ```
 
-The compiler flag `-open Xote` is optional, it makes the Xote moduels available unqualified inside your source files.
+The compiler flag `-open Xote` is optional, it makes the Xote modules available unqualified inside your source files.
 
 ### Quick Example
 

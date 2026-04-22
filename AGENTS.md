@@ -14,7 +14,7 @@ Instructions for AI coding agents working on this repository. This file compleme
 
 1. **Read `CLAUDE.md`** for full architecture, module descriptions, API surface, and code patterns
 2. **Compile first**: Always run `npm run res:build` before testing or building
-3. **Understand the module boundary**: The public surface is the list of modules in `rescript.json`'s `sources.public` (`Component`, `Html`, `XoteJSX`, `ReactiveProp`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Signal`, `Computed`, `Effect`). Helpers like `DOM`, `Reactivity`, and `Render` are internal.
+3. **Understand the module boundary**: The public surface is the list of modules in `rescript.json`'s `sources.public` (`Node`, `Html`, `XoteJSX`, `ReactiveProp`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Signal`, `Computed`, `Effect`). Helpers like `DOM`, `Reactivity`, and `Render` are implementation details and should not be relied on by consumers.
 
 ## Development Workflow
 
