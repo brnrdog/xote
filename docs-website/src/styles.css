@@ -1390,41 +1390,64 @@ blockquote {
   gap: 0.75rem;
 }
 
-/* ============================================================
-   SYNTAX HIGHLIGHTING (code blocks)
-   ============================================================ */
-.syntax-line {
-  display: flex;
-  padding: 0 0.5rem;
-  transition: background-color var(--duration-fast) var(--ease-default);
+/* ---- Code blocks ---- */
+pre {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.55;
+  background: transparent;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: var(--s-4) 0;
+  margin: var(--s-5) 0;
+  overflow-x: auto;
+  color: var(--text);
 }
 
-.syntax-line:hover {
-  background: rgba(255,255,255,0.03);
+.code-filename {
+  font-family: var(--font-mono);
+  font-style: italic;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  margin-top: var(--s-5);
+  margin-bottom: var(--s-2);
+}
+
+.code-caption {
+  font-family: var(--font-mono);
+  font-style: italic;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  margin-top: var(--s-2);
+}
+
+.syntax-line {
+  display: flex;
+  padding: 0 var(--s-3);
 }
 
 .syntax-line-number {
-  min-width: 2.5rem;
+  display: inline-block;
+  width: 2.5em;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
   text-align: right;
-  padding-right: 1rem;
-  color: rgba(255,255,255,0.2);
+  margin-right: var(--s-3);
   user-select: none;
-  font-size: 0.8em;
 }
 
 .syntax-line-content {
   flex: 1;
+  white-space: pre;
 }
 
-/* Syntax token colors — dark green-tinted theme */
-.syntax-keyword  { color: #c792ea; font-weight: 500; }
-.syntax-type     { color: #82aaff; }
-.syntax-string   { color: #c3e88d; }
-.syntax-number   { color: #f78c6c; }
-.syntax-comment  { color: #546e54; font-style: italic; }
-.syntax-text     { color: #d4dbd6; }
-.syntax-function { color: #82aaff; }
-.syntax-operator { color: #89ddff; }
+/* Monochrome highlighting — weight + italic only */
+.syntax-keyword { color: var(--text-muted); font-style: italic; }
+.syntax-type    { color: var(--text);        font-weight: 600; }
+.syntax-string  { color: var(--text); }
+.syntax-number  { color: var(--text);        text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+.syntax-comment { color: var(--text-faint);  font-style: italic; }
+.syntax-text    { color: var(--text); }
 
 /* ============================================================
    COUNTER / TEMP / TIMER EXAMPLE APPS
