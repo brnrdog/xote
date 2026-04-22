@@ -709,6 +709,27 @@ blockquote {
   }
 }
 
+/* ---- Code example block on the homepage ---- */
+.code-example-section {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--s-10) var(--s-5);
+}
+
+.code-example-section h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  font-style: italic;
+  letter-spacing: -0.015em;
+  margin: 0 0 var(--s-5) 0;
+}
+
+.code-example-section h2::before {
+  content: "\00A7 ";
+  color: var(--text-muted);
+  font-style: normal;
+}
+
 /* ---- Community close ---- */
 .community-close {
   max-width: var(--content-max);
