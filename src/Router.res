@@ -388,58 +388,32 @@ module Link = {
     children?: Node.node,
   }
 
-  /* Helper to detect if a value is a ReactiveProp variant */
-  let isReactiveProp = (value: 'a): bool => {
-    ignore(value)
-    %raw(`value && typeof value === 'object' && ('TAG' in value) && (value.TAG === 'Static' || value.TAG === 'Reactive')`)
-  }
-
-  /* Helper to convert string attribute value */
-  let convertAttrValue = (key: string, value: 'a): (string, Node.attrValue) => {
-    if isReactiveProp(value) {
-      let rp: ReactiveProp.t<string> = Obj.magic(value)
-      switch rp {
-      | Static(s) => Node.attr(key, s)
-      | Reactive(signal) => Node.signalAttr(key, signal)
-      }
-    } else if typeof(value) == #function {
-      let f: unit => string = Obj.magic(value)
-      Node.computedAttr(key, f)
-    } else if typeof(value) == #object {
-      let sig: Signal.t<string> = Obj.magic(value)
-      Node.signalAttr(key, sig)
-    } else {
-      let s: string = Obj.magic(value)
-      Node.attr(key, s)
-    }
-  }
-
   /* Convert props to attrs array */
   let propsToAttrs = (props): array<(string, Node.attrValue)> => {
     let attrs = []
 
     switch props.class {
-    | Some(v) => attrs->Array.push(convertAttrValue("class", v))
+    | Some(v) => attrs->Array.push(RuntimeJsxProp.toStringAttr("class", v))
     | None => ()
     }
 
     switch props.id {
-    | Some(v) => attrs->Array.push(convertAttrValue("id", v))
+    | Some(v) => attrs->Array.push(RuntimeJsxProp.toStringAttr("id", v))
     | None => ()
     }
 
     switch props.style {
-    | Some(v) => attrs->Array.push(convertAttrValue("style", v))
+    | Some(v) => attrs->Array.push(RuntimeJsxProp.toStringAttr("style", v))
     | None => ()
     }
 
     switch props.target {
-    | Some(v) => attrs->Array.push(convertAttrValue("target", v))
+    | Some(v) => attrs->Array.push(RuntimeJsxProp.toStringAttr("target", v))
     | None => ()
     }
 
     switch props.ariaLabel {
-    | Some(v) => attrs->Array.push(convertAttrValue("aria-label", v))
+    | Some(v) => attrs->Array.push(RuntimeJsxProp.toStringAttr("aria-label", v))
     | None => ()
     }
 

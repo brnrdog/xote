@@ -1,62 +1,5 @@
-/* ============================================================================
- * HTML Utilities
- * ============================================================================ */
-
-module Html = {
-  /* Escape HTML special characters to prevent XSS */
-  let escape = (str: string): string => {
-    str
-    ->String.replaceAll("&", "&amp;")
-    ->String.replaceAll("<", "&lt;")
-    ->String.replaceAll(">", "&gt;")
-    ->String.replaceAll("\"", "&quot;")
-    ->String.replaceAll("'", "&#x27;")
-  }
-
-  /* Void elements that don't have closing tags */
-  let voidElements = [
-    "area",
-    "base",
-    "br",
-    "col",
-    "embed",
-    "hr",
-    "img",
-    "input",
-    "link",
-    "meta",
-    "param",
-    "source",
-    "track",
-    "wbr",
-  ]
-
-  let isVoidElement = (tag: string): bool => {
-    voidElements->Array.includes(tag)
-  }
-}
-
-/* ============================================================================
- * Hydration Markers
- * ============================================================================ */
-
-module Markers = {
-  /* Markers for different reactive node types */
-  let signalTextStart = "<!--$-->"
-  let signalTextEnd = "<!--/$-->"
-
-  let signalFragmentStart = "<!--#-->"
-  let signalFragmentEnd = "<!--/#-->"
-
-  let keyedListStart = "<!--kl-->"
-  let keyedListEnd = "<!--/kl-->"
-
-  let keyedItemStart = (key: string): string => `<!--k:${key}-->`
-  let keyedItemEnd = "<!--/k-->"
-
-  let lazyComponentStart = "<!--lc-->"
-  let lazyComponentEnd = "<!--/lc-->"
-}
+module Html = RuntimeHtml
+module Markers = RuntimeHydrationMarkers
 
 /* ============================================================================
  * Render Options
@@ -80,27 +23,14 @@ module Attributes = {
     | Node.Compute(fn) => fn()
     }
 
-    /* Handle boolean attributes */
-    switch key {
-    | "checked"
-    | "disabled"
-    | "required"
-    | "readonly"
-    | "multiple"
-    | "aria-hidden"
-    | "aria-expanded"
-    | "aria-selected"
-    | "draggable"
-    | "hidden"
-    | "contenteditable"
-    | "spellcheck"
-    | "autofocus" =>
-      if attrValue == "true" {
+    if RuntimeAttr.isBoolean(key) {
+      if RuntimeAttr.shouldRenderBoolean(attrValue) {
         key
       } else {
         ""
       }
-    | _ => `${key}="${Html.escape(attrValue)}"`
+    } else {
+      `${key}="${Html.escape(attrValue)}"`
     }
   }
 
