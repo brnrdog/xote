@@ -67,7 +67,7 @@ module Hero = {
   let make = (_props: props) => {
     <section class="hero">
       <h1 class="hero-display">
-        {Node.text("A small UI library for ReScript, with fine-grained reactivity.")}
+        {Node.text("A reactive UI library for ReScript.")}
       </h1>
       <p class="hero-lead">
         {Node.text(
