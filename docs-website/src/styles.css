@@ -610,11 +610,6 @@ blockquote {
   margin: 0;
 }
 
-.features-heading h2::before {
-  content: "\00A7 ";
-  color: var(--text-muted);
-  font-style: normal;
-}
 
 .features-grid {
   display: grid;
@@ -701,11 +696,6 @@ blockquote {
   margin: 0 0 var(--s-5) 0;
 }
 
-.code-example-section h2::before {
-  content: "\00A7 ";
-  color: var(--text-muted);
-  font-style: normal;
-}
 
 /* ---- Community close ---- */
 .community-close {
@@ -852,15 +842,7 @@ blockquote {
 }
 .sidebar-link.active {
   color: var(--text);
-}
-.sidebar-link.active::before {
-  content: "\25A0";
-  position: absolute;
-  left: -14px;
-  top: var(--s-1);
-  color: var(--mark);
-  font-size: 10px;
-  line-height: 1.5;
+  font-weight: 500;
 }
 
 @media (max-width: 1024px) {

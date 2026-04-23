@@ -343,7 +343,7 @@ module Footer = {
             <h4> {Node.text("Xote")} </h4>
             <p>
               {Node.text(
-                "A lightweight UI library for ReScript with fine-grained reactivity.",
+                "A small UI library for ReScript with fine-grained reactivity.",
               )}
             </p>
           </div>
@@ -394,7 +394,7 @@ module Footer = {
         </div>
         <div class="footer-bottom">
           <div>
-            {Node.text(`\u00A9 ${year} Bernardo Gurgel \u00B7 MIT License`)}
+            {Node.text("MIT License \u00B7 Built with ReScript and Xote")}
           </div>
           <div> {Node.text("v6.1.1")} </div>
         </div>

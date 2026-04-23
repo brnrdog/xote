@@ -17,10 +17,10 @@ let features: array<feature> = [
   },
   {
     number: "02",
-    title: "Isomorphic rendering",
-    description: "Render on the server, hydrate on the client. Same code, both sides.",
-    linkText: Some("SSR guide"),
-    linkTo: Some("/docs/advanced/ssr"),
+    title: "Built-in router",
+    description: "Signal-based client-side router with pattern matching and dynamic routes.",
+    linkText: Some("Router overview"),
+    linkTo: Some("/docs/router/overview"),
   },
   {
     number: "03",
@@ -32,7 +32,7 @@ let features: array<feature> = [
   {
     number: "04",
     title: "Minimal footprint",
-    description: "One runtime dependency. Tree-shakeable per module. No hidden complexity.",
+    description: "One runtime dependency. Tree-shakeable per module.",
     linkText: Some("Read the overview"),
     linkTo: Some("/docs/technical-overview"),
   },
@@ -66,16 +66,12 @@ module Hero = {
 
   let make = (_props: props) => {
     <section class="hero">
-      <div class="hero-head">
-        <span class="wordmark"> {Node.text("Xote")} </span>
-        <span class="imprint"> {Node.text("v6.1.1")} </span>
-      </div>
       <h1 class="hero-display">
-        {Node.text("A lightweight UI library for ReScript, with fine-grained reactivity.")}
+        {Node.text("A small UI library for ReScript, with fine-grained reactivity.")}
       </h1>
       <p class="hero-lead">
         {Node.text(
-          "Build reactive interfaces with signals, computeds, and effects. Server-render, hydrate, compile.",
+          "Build reactive interfaces with signals, computeds, and effects. Components are plain ReScript functions.",
         )}
       </p>
       <div class="hero-ctas">
@@ -91,9 +87,6 @@ module Hero = {
           ~children=[Node.text("Read the docs \u2192")],
           (),
         )}
-      </div>
-      <div class="hero-foot">
-        {Node.text("EST. 2025 \u00B7 BY BERNARDO GURGEL \u00B7 MIT LICENSED")}
       </div>
     </section>
   }
@@ -139,9 +132,6 @@ let make = () => {
       <pre>
         <code> {SyntaxHighlight.highlight(counterCode)} </code>
       </pre>
-      <div class="code-caption">
-        {Node.text("fig. 1 \u2014 signals and effects in 14 lines")}
-      </div>
     </section>
   }
 }
@@ -151,9 +141,6 @@ module CommunityClose = {
 
   let make = (_props: props) => {
     <section class="community-close">
-      <p>
-        {Node.text("Open source on GitHub. Built with ReScript. Published under MIT.")}
-      </p>
       <a href="https://github.com/brnrdog/xote" target="_blank" class="btn btn-ghost">
         {Node.text("View on GitHub \u2197")}
       </a>
