@@ -5,80 +5,104 @@
 
 :root {
   /* Surfaces (dark mode default) */
-  --bg:          #0a0a0a;
-  --surface:     #111111;
-  --elevated:    #171717;
-  --border:      #242424;
+  --bg: #0a0a0a;
+  --surface: #111111;
+  --elevated: #171717;
+  --border: #242424;
   --border-soft: #1a1a1a;
 
   /* Text */
-  --text:        #f5f5f4;
-  --text-muted:  #a3a3a3;
-  --text-faint:  #525252;
+  --text: #f5f5f4;
+  --text-muted: #a3a3a3;
+  --text-faint: #525252;
 
   /* Functional (monochrome — same as text / inverse of bg) */
-  --accent:      #f5f5f4;
-  --mark:        #fafaf7;
+  --accent: #f5f5f4;
+  --mark: #fafaf7;
+
+  /* Syntax accent — warm golden/brown, dark mode */
+  --syntax-warm: #c9a268;
+  --syntax-warm-soft: #9d8456;
+  --syntax-warm-deep: #b88b4a;
 
   /* Typography families */
   --font-display: "Domine", Georgia, serif;
-  --font-body:    "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono:    "DM Mono", "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  --font-body:
+    "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono:
+    "DM Mono", "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
 
   /* Type scale */
-  --fs-xs:      12px;
-  --fs-sm:      14px;
-  --fs-base:    16px;
-  --fs-lg:      18px;
-  --fs-xl:      22px;
-  --fs-2xl:     28px;
-  --fs-3xl:     40px;
-  --fs-4xl:     60px;
-  --fs-display: 96px;
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-base: 16px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-2xl: 28px;
+  --fs-3xl: 40px;
+  --fs-4xl: 60px;
+  --fs-display: 98px;
 
   /* Line heights */
-  --lh-tight:  1.15;
-  --lh-ui:     1.45;
-  --lh-prose:  1.65;
+  --lh-tight: 1.15;
+  --lh-ui: 1.45;
+  --lh-prose: 1.65;
 
   /* Spacing scale (8px base) */
-  --s-0:   0px;
-  --s-1:   4px;
-  --s-2:   8px;
-  --s-3:   12px;
-  --s-4:   16px;
-  --s-5:   24px;
-  --s-6:   32px;
-  --s-8:   48px;
-  --s-10:  64px;
-  --s-12:  80px;
+  --s-0: 0px;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-8: 48px;
+  --s-10: 64px;
+  --s-12: 80px;
 
   /* Layout */
-  --prose-width:   680px;
+  --prose-width: 680px;
   --sidebar-width: 240px;
-  --toc-width:     200px;
-  --content-max:   1180px;
+  --toc-width: 200px;
+  --content-max: 1180px;
   --header-height: 56px;
 }
 
 [data-theme="light"] {
-  --bg:          #fafaf7;
-  --surface:     #ffffff;
-  --elevated:    #f5f5f2;
-  --border:      #e5e5e2;
+  --bg: #fafaf7;
+  --surface: #ffffff;
+  --elevated: #f5f5f2;
+  --border: #e5e5e2;
   --border-soft: #ededea;
 
-  --text:        #0a0a0a;
-  --text-muted:  #525252;
-  --text-faint:  #a3a3a3;
+  --text: #0a0a0a;
+  --text-muted: #525252;
+  --text-faint: #a3a3a3;
 
-  --accent:      #0a0a0a;
-  --mark:        #0a0a0a;
+  --accent: #0a0a0a;
+  --mark: #0a0a0a;
+
+  /* Syntax accent — warm brown, light mode */
+  --syntax-warm: #8a6a2e;
+  --syntax-warm-soft: #a88a52;
+  --syntax-warm-deep: #6f5220;
 }
 
 /* ---- Global reset ---- */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+/* Neutralize basefn's injected `* { font-family: "Source Sans" }` rule.
+   `html *` has specificity 0,0,1 (type + universal), which beats basefn's
+   `*` (0,0,0), while `inherit` restores normal font-family inheritance so
+   our class-based rules below still take effect. */
+html *,
+html *::before,
+html *::after {
+  font-family: inherit;
 }
 
 html {
@@ -104,7 +128,9 @@ a {
   text-decoration: none;
 }
 
-img, svg, video {
+img,
+svg,
+video {
   display: block;
   max-width: 100%;
 }
@@ -118,7 +144,9 @@ button {
   cursor: pointer;
 }
 
-input, textarea, select {
+input,
+textarea,
+select {
   font: inherit;
   color: inherit;
 }
@@ -144,7 +172,12 @@ input, textarea, select {
 }
 
 /* ---- Typography ---- */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 400;
@@ -207,12 +240,14 @@ hr {
   margin: var(--s-6) 0;
 }
 
-ul, ol {
+ul,
+ol {
   margin: 0 0 var(--s-5) 0;
   padding-left: var(--s-5);
 }
 
-ul li, ol li {
+ul li,
+ol li {
   margin: var(--s-1) 0;
 }
 
@@ -255,14 +290,15 @@ blockquote {
   align-items: baseline;
   gap: var(--s-2);
   color: var(--text);
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   font-size: var(--fs-base);
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .header-logo-link .logo-text {
   display: inline;
+  text-transform: lowercase;
 }
 
 .header-version {
@@ -378,7 +414,7 @@ blockquote {
   max-width: 92vw;
   background: var(--elevated);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 0;
   display: flex;
   flex-direction: column;
   max-height: 75vh;
@@ -458,10 +494,50 @@ blockquote {
 
 /* ---- Hero (homepage) ---- */
 .hero {
+  position: relative;
   max-width: var(--content-max);
   margin: 0 auto;
   padding: var(--s-12) var(--s-5);
   border-bottom: 1px solid var(--border);
+}
+
+.hero > *:not(.hero-bg) {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-bg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.55;
+  mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.9), transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.9), transparent 75%);
+}
+
+.hero-bg-svg {
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  display: block;
+}
+
+.hero-tri {
+  fill: transparent;
+  stroke: var(--border-soft);
+  stroke-width: 0.5;
+  transition: fill 0.9s ease-out;
+}
+
+.hero-tri.active {
+  fill: var(--text-faint);
+  transition: fill 0.08s ease-in;
 }
 
 .hero-head {
@@ -476,11 +552,12 @@ blockquote {
 }
 
 .hero-head .wordmark {
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   font-size: var(--fs-xl);
-  font-weight: 500;
+  font-weight: 700;
   color: var(--text);
   letter-spacing: -0.01em;
+  text-transform: lowercase;
 }
 
 .hero-head .imprint {
@@ -497,6 +574,7 @@ blockquote {
   margin: var(--s-10) 0 var(--s-8) 0;
   max-width: 14ch;
   font-weight: 400;
+  pointer-events: none;
 }
 
 .hero-lead {
@@ -506,6 +584,7 @@ blockquote {
   color: var(--text-muted);
   max-width: 50ch;
   margin: 0 0 var(--s-8) 0;
+  pointer-events: none;
 }
 
 .hero-ctas {
@@ -557,11 +636,13 @@ blockquote {
   font-weight: 500;
   line-height: 1;
   padding: var(--s-3) var(--s-5);
-  border-radius: 2px;
+  border-radius: 0px;
   border: 1px solid transparent;
   text-decoration: none;
   cursor: pointer;
-  transition: opacity 120ms linear, background-color 120ms linear;
+  transition:
+    opacity 120ms linear,
+    background-color 120ms linear;
 }
 .btn:focus-visible {
   outline: 1px solid var(--text);
@@ -610,7 +691,6 @@ blockquote {
   margin: 0;
 }
 
-
 .features-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -619,7 +699,7 @@ blockquote {
 
 .feature-card {
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 0px;
   padding: var(--s-6) var(--s-5);
   display: flex;
   flex-direction: column;
@@ -630,12 +710,12 @@ blockquote {
   border-color: var(--text);
 }
 
-.feature-card-number {
+/* .feature-card-number {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-faint);
   margin-bottom: var(--s-5);
-}
+} */
 
 .feature-card h3 {
   font-family: var(--font-display);
@@ -696,6 +776,329 @@ blockquote {
   margin: 0 0 var(--s-5) 0;
 }
 
+/* ---- Homepage tutorial ---- */
+.tutorial-section {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--s-10) var(--s-5);
+  border-top: 1px solid var(--border);
+}
+
+.tutorial-heading {
+  max-width: 60ch;
+  margin-bottom: var(--s-8);
+}
+
+.tutorial-heading h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  font-style: italic;
+  letter-spacing: -0.015em;
+  margin: 0 0 var(--s-3) 0;
+}
+
+.tutorial-heading p {
+  font-size: var(--fs-lg);
+  color: var(--text-muted);
+  line-height: var(--lh-prose);
+  margin: 0;
+}
+
+.tutorial-step {
+  position: relative;
+  border-top: 1px solid var(--border-soft);
+  padding: var(--s-8) 0;
+}
+
+.tutorial-step-head {
+  margin-bottom: var(--s-6);
+}
+
+.tutorial-step-number {
+  position: absolute;
+  top: var(--s-8);
+  right: calc(100% + var(--s-5));
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text-faint);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .tutorial-step-number {
+    position: static;
+    display: block;
+    margin-bottom: var(--s-3);
+  }
+}
+
+.tutorial-step-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  margin: 0 0 var(--s-2) 0;
+  letter-spacing: -0.01em;
+}
+
+.tutorial-step-blurb {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: var(--lh-prose);
+  max-width: 68ch;
+}
+
+.tutorial-step-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-6);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .tutorial-step-body {
+    grid-template-columns: 1fr;
+    gap: var(--s-4);
+  }
+}
+
+@media (max-width: 640px) {
+  .tutorial-section {
+    padding: var(--s-8) var(--s-4);
+  }
+  .tutorial-heading {
+    margin-bottom: var(--s-6);
+  }
+  .tutorial-heading h2 {
+    font-size: var(--fs-2xl);
+  }
+  .tutorial-heading p {
+    font-size: var(--fs-base);
+  }
+  .tutorial-step {
+    padding: var(--s-6) 0;
+  }
+  .tutorial-step-head {
+    margin-bottom: var(--s-4);
+  }
+  .tutorial-step-title {
+    font-size: var(--fs-xl);
+  }
+  .tutorial-step-blurb {
+    font-size: var(--fs-sm);
+  }
+  .tutorial-code-filename {
+    padding: var(--s-2) var(--s-3);
+  }
+  .tutorial-code .tutorial-code-pre {
+    font-size: 13px;
+    line-height: 1.55;
+    padding: var(--s-3) 0;
+    max-height: 320px;
+  }
+  .tutorial-code .tutorial-code-pre .syntax-line {
+    padding: 0 var(--s-3);
+  }
+  .tutorial-figure-stage {
+    padding: var(--s-4) var(--s-3);
+    min-height: 140px;
+  }
+  .temp-row {
+    flex-wrap: wrap;
+    gap: var(--s-2);
+  }
+}
+
+.tutorial-code {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  background: var(--elevated);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.tutorial-code-filename {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  padding: var(--s-2) var(--s-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.tutorial-code .tutorial-code-pre,
+.tutorial-code .tutorial-code-pre code,
+.tutorial-code .tutorial-code-pre * {
+  font-family: "Source Code Pro", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.tutorial-code .tutorial-code-pre {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.6;
+  background: var(--elevated);
+  border: 0;
+  border-radius: 0;
+  padding: var(--s-4) 0;
+  margin: 0;
+  max-height: 420px;
+  overflow: auto;
+  color: var(--text);
+}
+
+.tutorial-code .tutorial-code-pre .syntax-line {
+  padding: 0 var(--s-4);
+}
+
+.tutorial-code .tutorial-code-pre .syntax-keyword {
+  font-weight: 600;
+}
+
+.tutorial-code .tutorial-code-pre .syntax-type {
+  font-weight: 700;
+}
+
+.tutorial-figure {
+  margin: 0;
+}
+
+.tutorial-figure-stage {
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: var(--s-6) var(--s-5);
+  background: var(--surface);
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tutorial-figure-caption {
+  font-family: var(--font-mono);
+  font-style: italic;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  margin-top: var(--s-2);
+}
+
+.tutorial-stage {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+.tutorial-slider {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  width: min(360px, 100%);
+}
+
+.tutorial-slider input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.tutorial-capital {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+}
+
+.tutorial-capital-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tutorial-capital-name {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  color: var(--text);
+  min-width: 10ch;
+  display: inline-block;
+}
+
+.tutorial-status {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  min-height: 1.5em;
+  line-height: 1.5em;
+}
+
+.tutorial-shuffle {
+  margin-top: var(--s-2);
+}
+
+/* ---- Temperature display widget ---- */
+.temp-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--s-3);
+  justify-content: center;
+  width: 100%;
+}
+
+.temp-row .temp-display {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.temp-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--elevated);
+  min-width: 140px;
+  position: relative;
+}
+
+.temp-display .temp-value {
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  min-width: 5ch;
+  text-align: center;
+  display: inline-block;
+}
+
+.temp-display .temp-unit {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin-top: var(--s-1);
+}
+
+.temp-display .temp-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-faint);
+  margin-top: var(--s-2);
+}
+
+.temp-display.temp-celsius { border-top: 2px solid var(--text); }
+.temp-display.temp-fahrenheit { border-top: 2px solid var(--text-muted); }
+.temp-display.temp-kelvin { border-top: 2px solid var(--text-faint); }
 
 /* ---- Community close ---- */
 .community-close {
@@ -745,6 +1148,11 @@ blockquote {
   font-weight: 400;
   font-style: normal;
   margin: 0 0 var(--s-3) 0;
+}
+
+.footer-brand-name {
+  font-weight: 700 !important;
+  text-transform: lowercase;
 }
 
 .footer-brand p {
@@ -1115,13 +1523,62 @@ pre {
   white-space: pre;
 }
 
-/* Monochrome highlighting — weight + italic only */
-.syntax-keyword { color: var(--text-muted); font-style: italic; }
-.syntax-type    { color: var(--text);        font-weight: 600; }
-.syntax-string  { color: var(--text); }
-.syntax-number  { color: var(--text);        text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
-.syntax-comment { color: var(--text-faint);  font-style: italic; }
-.syntax-text    { color: var(--text); }
+/* Syntax highlighting — neutral palette with warm accents */
+.syntax-keyword {
+  color: var(--syntax-warm);
+  font-style: italic;
+  font-weight: 600;
+}
+.syntax-type,
+.syntax-module {
+  color: var(--text);
+  font-weight: 700;
+}
+.syntax-ctor {
+  color: var(--syntax-warm-deep);
+  font-weight: 600;
+}
+.syntax-fn {
+  color: var(--text);
+  font-weight: 500;
+}
+.syntax-ident {
+  color: var(--text);
+}
+.syntax-label {
+  color: var(--syntax-warm-soft);
+  font-style: italic;
+}
+.syntax-string {
+  color: var(--syntax-warm-deep);
+}
+.syntax-number {
+  color: var(--syntax-warm);
+  font-weight: 500;
+}
+.syntax-comment {
+  color: var(--text-faint);
+  font-style: italic;
+}
+.syntax-operator {
+  color: var(--text-muted);
+}
+.syntax-bracket {
+  color: var(--text-muted);
+}
+.syntax-punct {
+  color: var(--text-faint);
+}
+.syntax-tag {
+  color: var(--text);
+  font-weight: 600;
+}
+.syntax-whitespace {
+  white-space: pre;
+}
+.syntax-text {
+  color: var(--text);
+}
 
 /* ---- Callouts (margin-notes) ---- */
 .callout {
@@ -1186,10 +1643,14 @@ pre {
   margin-bottom: 2rem;
 }
 
-
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* ---- Inline demos (in-prose figures) ---- */

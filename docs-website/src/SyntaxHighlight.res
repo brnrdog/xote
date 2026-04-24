@@ -1,89 +1,214 @@
-// Simple ReScript syntax highlighter
+// ReScript syntax highlighter — neutral palette, weight/italic only.
 
 let keywords = [
   "let",
+  "and",
+  "rec",
   "type",
   "module",
   "open",
+  "include",
+  "external",
   "switch",
   "if",
   "else",
+  "when",
+  "for",
+  "while",
+  "do",
+  "in",
+  "to",
+  "downto",
   "true",
   "false",
-  "and",
-  "or",
-  "rec",
-  "external",
-  "include",
-  "when",
+  "try",
+  "catch",
+  "exception",
+  "mutable",
+  "of",
+  "as",
+  "lazy",
+  "fun",
+  "assert",
+  "async",
+  "await",
+  "None",
+  "Some",
+  "Ok",
+  "Error",
 ]
 
-let types = ["int", "string", "bool", "float", "array", "option", "unit"]
+let isDigit = c => c >= "0" && c <= "9"
+let isLower = c => c >= "a" && c <= "z"
+let isUpper = c => c >= "A" && c <= "Z"
+let isAlpha = c => isLower(c) || isUpper(c)
+let isIdentStart = c => isAlpha(c) || c == "_"
+let isIdentChar = c => isIdentStart(c) || isDigit(c) || c == "'"
 
-let operators = ["=>", "->", "|>", "==", "!=", "+", "-", "*", "/", "="]
+let operatorChars = "+-*/<>=|&!?:.@^"
+let isOperatorChar = c => String.includes(operatorChars, c)
 
-// Simple tokenizer for ReScript code
+type token = {class_: string, text: string}
+
+// Tokenize a single line into a sequence of classified spans.
+let tokenizeLine = (line: string): array<token> => {
+  let chars = line->String.split("")
+  let len = Array.length(chars)
+  let tokens: array<token> = []
+  let i = ref(0)
+
+  let at = n =>
+    if n < len {
+      chars->Array.getUnsafe(n)
+    } else {
+      ""
+    }
+
+  let sliceText = (start, end) => chars->Array.slice(~start, ~end)->Array.join("")
+
+  while i.contents < len {
+    let start = i.contents
+    let c = at(start)
+
+    if c == "/" && at(start + 1) == "/" {
+      // line comment: consume to end
+      tokens->Array.push({class_: "syntax-comment", text: sliceText(start, len)})
+      i := len
+    } else if c == "\"" {
+      // string literal
+      i := start + 1
+      let escaped = ref(false)
+      let closed = ref(false)
+      while i.contents < len && !closed.contents {
+        let ch = at(i.contents)
+        if escaped.contents {
+          escaped := false
+          i := i.contents + 1
+        } else if ch == "\\" {
+          escaped := true
+          i := i.contents + 1
+        } else if ch == "\"" {
+          i := i.contents + 1
+          closed := true
+        } else {
+          i := i.contents + 1
+        }
+      }
+      tokens->Array.push({class_: "syntax-string", text: sliceText(start, i.contents)})
+    } else if c == "`" {
+      // template literal (single-line portion)
+      i := start + 1
+      let escaped = ref(false)
+      let closed = ref(false)
+      while i.contents < len && !closed.contents {
+        let ch = at(i.contents)
+        if escaped.contents {
+          escaped := false
+          i := i.contents + 1
+        } else if ch == "\\" {
+          escaped := true
+          i := i.contents + 1
+        } else if ch == "`" {
+          i := i.contents + 1
+          closed := true
+        } else {
+          i := i.contents + 1
+        }
+      }
+      tokens->Array.push({class_: "syntax-string", text: sliceText(start, i.contents)})
+    } else if c == " " || c == "\t" {
+      while i.contents < len && (at(i.contents) == " " || at(i.contents) == "\t") {
+        i := i.contents + 1
+      }
+      tokens->Array.push({class_: "syntax-whitespace", text: sliceText(start, i.contents)})
+    } else if isDigit(c) {
+      while i.contents < len && isDigit(at(i.contents)) {
+        i := i.contents + 1
+      }
+      if at(i.contents) == "." && isDigit(at(i.contents + 1)) {
+        i := i.contents + 1
+        while i.contents < len && isDigit(at(i.contents)) {
+          i := i.contents + 1
+        }
+      }
+      tokens->Array.push({class_: "syntax-number", text: sliceText(start, i.contents)})
+    } else if isIdentStart(c) {
+      while i.contents < len && isIdentChar(at(i.contents)) {
+        i := i.contents + 1
+      }
+      let text = sliceText(start, i.contents)
+      let first = text->String.charAt(0)
+      let cls = if keywords->Array.includes(text) {
+        "syntax-keyword"
+      } else if isUpper(first) {
+        // Module / variant / type constructor
+        at(i.contents) == "." ? "syntax-module" : "syntax-ctor"
+      } else if at(i.contents) == "(" {
+        "syntax-fn"
+      } else if c == "~" {
+        "syntax-label"
+      } else {
+        "syntax-ident"
+      }
+      tokens->Array.push({class_: cls, text})
+    } else if c == "~" && isLower(at(start + 1)) {
+      // labelled argument: ~name
+      i := start + 1
+      while i.contents < len && isIdentChar(at(i.contents)) {
+        i := i.contents + 1
+      }
+      tokens->Array.push({class_: "syntax-label", text: sliceText(start, i.contents)})
+    } else if c == "<" && (isAlpha(at(start + 1)) || at(start + 1) == "/") {
+      // JSX tag opening
+      i := start + 1
+      if at(i.contents) == "/" {
+        i := i.contents + 1
+      }
+      while i.contents < len && (isIdentChar(at(i.contents)) || at(i.contents) == ".") {
+        i := i.contents + 1
+      }
+      tokens->Array.push({class_: "syntax-tag", text: sliceText(start, i.contents)})
+    } else if c == "/" && at(start + 1) == ">" {
+      tokens->Array.push({class_: "syntax-tag", text: "/>"})
+      i := start + 2
+    } else if c == ">" || c == "<" {
+      tokens->Array.push({class_: "syntax-tag", text: c})
+      i := start + 1
+    } else if isOperatorChar(c) {
+      while i.contents < len && isOperatorChar(at(i.contents)) {
+        i := i.contents + 1
+      }
+      tokens->Array.push({class_: "syntax-operator", text: sliceText(start, i.contents)})
+    } else if c == "(" || c == ")" || c == "{" || c == "}" || c == "[" || c == "]" {
+      tokens->Array.push({class_: "syntax-bracket", text: c})
+      i := start + 1
+    } else if c == "," || c == ";" {
+      tokens->Array.push({class_: "syntax-punct", text: c})
+      i := start + 1
+    } else {
+      tokens->Array.push({class_: "syntax-text", text: c})
+      i := start + 1
+    }
+  }
+
+  tokens
+}
+
+let renderToken = (t: token) =>
+  Node.element(
+    "span",
+    ~attrs=[Node.attr("class", t.class_)],
+    ~children=[Node.text(t.text)],
+    (),
+  )
+
 let highlight = (code: string): Node.node => {
   let lines = code->String.split("\n")
 
   let highlightLine = (line: string, lineNumber: int): Node.node => {
     let lineNum = (lineNumber + 1)->Int.toString
-
-    // Check if line is a comment
-    let lineContent = if line->String.trim->String.startsWith("//") {
-      Node.element(
-        "span",
-        ~attrs=[Node.attr("class", "syntax-comment")],
-        ~children=[Node.text(line)],
-        (),
-      )
-    } else {
-      // Simple word-based highlighting
-      let words = line->String.split(" ")
-      let highlightedWords = words->Array.mapWithIndex((word, idx) => {
-        let trimmed = word->String.trim
-
-        // Check for keywords
-        let isKeyword = keywords->Array.some(k => trimmed == k || trimmed->String.startsWith(k ++ "("))
-
-        // Check for types
-        let isType = types->Array.some(t => trimmed == t)
-
-        // Check for strings
-        let isString = trimmed->String.startsWith("\"") || trimmed->String.startsWith("`")
-
-        // Check for numbers
-        let isNumber =
-          trimmed->String.match(%re("/^[0-9]+$/")) != None ||
-            trimmed->String.match(%re("/^[0-9]+\.[0-9]+$/")) != None
-
-        let className = if isKeyword {
-          "syntax-keyword"
-        } else if isType {
-          "syntax-type"
-        } else if isString {
-          "syntax-string"
-        } else if isNumber {
-          "syntax-number"
-        } else {
-          "syntax-text"
-        }
-
-        Node.fragment([
-          Node.element(
-            "span",
-            ~attrs=[Node.attr("class", className)],
-            ~children=[Node.text(word)],
-            (),
-          ),
-          idx < Array.length(words) - 1
-            ? Node.text(" ")
-            : Node.fragment([]),
-        ])
-      })
-
-      Node.fragment(highlightedWords)
-    }
+    let tokens = tokenizeLine(line)
+    let content = tokens->Array.map(renderToken)
 
     Node.element(
       "div",
@@ -98,7 +223,7 @@ let highlight = (code: string): Node.node => {
         Node.element(
           "span",
           ~attrs=[Node.attr("class", "syntax-line-content")],
-          ~children=[lineContent],
+          ~children=content,
           (),
         ),
       ],

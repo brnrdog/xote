@@ -262,7 +262,7 @@ module Header = {
           {Router.link(
             ~to="/",
             ~attrs=[Node.attr("class", "header-logo-link")],
-            ~children=[<span class="logo-text"> {Node.text("Xote")} </span>],
+            ~children=[<span class="logo-text"> {Node.text("xote")} </span>],
             (),
           )}
           <a
@@ -340,7 +340,7 @@ module Footer = {
       <div class="footer-inner">
         <div class="footer-grid">
           <div class="footer-brand">
-            <h4> {Node.text("Xote")} </h4>
+            <h4 class="footer-brand-name"> {Node.text("xote")} </h4>
             <p>
               {Node.text(
                 "A small UI library for ReScript with fine-grained reactivity.",
@@ -394,7 +394,7 @@ module Footer = {
         </div>
         <div class="footer-bottom">
           <div>
-            {Node.text("MIT License \u00B7 Built with ReScript and Xote")}
+            {Node.text("MIT License \u00B7 Built with ReScript and xote")}
           </div>
           <div> {Node.text("v6.1.1")} </div>
         </div>
