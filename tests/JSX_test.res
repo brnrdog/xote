@@ -5,6 +5,10 @@ let mountTo = (node, container) => {
   container
 }
 
+@get external valueOf: 'a => string = "value"
+@get external selectedIndexOf: 'a => int = "selectedIndex"
+@send external querySelector: ('a, string) => Nullable.t<'b> = "querySelector"
+
 let suite = Zekr.suite(
   "JSX",
   [
@@ -56,6 +60,27 @@ let suite = Zekr.suite(
       Signal.set(cls, "updated")
       let r2 = Dom.Assert.toHaveClass(el, "updated")
       combineResults([r1, r2])
+    }),
+    test("controlled select honors the initial reactive value", () => {
+      let {container} = Dom.render("")
+      let selected = Signal.make("green")
+
+      let _ = mountTo(
+        <select value={ReactiveProp.reactive(selected)}>
+          <option value="red"> {Node.text("Red")} </option>
+          <option value="green"> {Node.text("Green")} </option>
+        </select>,
+        container,
+      )
+
+      switch querySelector(container, "select")->Nullable.toOption {
+      | Some(select) =>
+          combineResults([
+            assertEqual(valueOf(select), "green"),
+            assertEqual(selectedIndexOf(select), 1),
+          ])
+      | None => assertTrue(false)
+      }
     }),
     test("renders disabled input via JSX boolean attribute", () => {
       let {container} = Dom.render("")
