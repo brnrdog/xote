@@ -1,3 +1,10 @@
+## [6.1.2](https://github.com/brnrdog/xote/compare/v6.1.1...v6.1.2) (2026-04-25)
+
+
+### Bug Fixes
+
+* defer initial select value until options mount ([7dd1c7f](https://github.com/brnrdog/xote/commit/7dd1c7ff45100edd1f7f56e1db3acf517e7fed6e))
+
 ## [6.1.1](https://github.com/brnrdog/xote/compare/v6.1.0...v6.1.1) (2026-04-25)
 
 
