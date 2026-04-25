@@ -17,24 +17,24 @@ let features: array<feature> = [
   },
   {
     number: "02",
-    title: "Built-in router",
-    description: "Signal-based client-side router with pattern matching and dynamic routes.",
-    linkText: Some("Router overview"),
-    linkTo: Some("/docs/router/overview"),
+    title: "Sound type system",
+    description: "ReScript catches invalid states at compile time with exhaustive matching and stronger null-safety by default.",
+    linkText: Some("Read the introduction"),
+    linkTo: Some("/docs"),
   },
   {
     number: "03",
-    title: "JSX or function API",
-    description: "Write components in JSX or plain ReScript. Both compile to the same lightweight nodes.",
-    linkText: Some("Component docs"),
-    linkTo: Some("/docs/components/overview"),
+    title: "Minimal footprint",
+    description: "A small runtime, tree-shakeable modules, and built-in primitives instead of a stack of add-on packages.",
+    linkText: Some("Read the overview"),
+    linkTo: Some("/docs/technical-overview"),
   },
   {
     number: "04",
-    title: "Minimal footprint",
-    description: "One runtime dependency. Tree-shakeable per module.",
-    linkText: Some("Read the overview"),
-    linkTo: Some("/docs/technical-overview"),
+    title: "JSX support + built-in router",
+    description: "Write components in JSX and handle routing with first-party primitives instead of stitching the basics together yourself.",
+    linkText: Some("Components and router"),
+    linkTo: Some("/docs/components/overview"),
   },
 ]
 
@@ -456,18 +456,6 @@ module Features = {
   }
 }
 
-module CommunityClose = {
-  type props = {}
-
-  let make = (_props: props) => {
-    <section class="community-close">
-      <a href="https://github.com/brnrdog/xote" target="_blank" class="btn btn-ghost">
-        {Node.text("View on GitHub \u2197")}
-      </a>
-    </section>
-  }
-}
-
 type props = {}
 
 let make = (_props: props) => {
@@ -476,7 +464,6 @@ let make = (_props: props) => {
       <Hero />,
       <Features />,
       <Tutorial />,
-      <CommunityClose />,
     ])}
   />
 }
