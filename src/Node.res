@@ -317,8 +317,10 @@ module Render = {
         setOwner(el, owner)
 
         runWithOwner(owner, () => {
-          /* Set attributes */
-          attrs->Array.forEach(((key, value)) => {
+          let shouldDeferAttrUntilAfterChildren = ((key, _value)) =>
+            tag == "select" && key == "value"
+
+          let applyAttr = ((key, value)) => {
             switch value {
             | Static(v) => DOM.setAttrOrProp(el, key, v)
             | SignalValue(signal) => {
@@ -341,6 +343,13 @@ module Render = {
                 addDisposer(owner, disposer)
               }
             }
+          }
+
+          /* Set attributes that do not depend on mounted children */
+          attrs->Array.forEach(attr => {
+            if !shouldDeferAttrUntilAfterChildren(attr) {
+              applyAttr(attr)
+            }
           })
 
           /* Attach event listeners */
@@ -352,6 +361,13 @@ module Render = {
           children->Array.forEach(child => {
             let childEl = render(child)
             el->DOM.appendChild(childEl)
+          })
+
+          /* Some DOM properties need the child tree to exist before the browser can resolve them */
+          attrs->Array.forEach(attr => {
+            if shouldDeferAttrUntilAfterChildren(attr) {
+              applyAttr(attr)
+            }
           })
         })
 
