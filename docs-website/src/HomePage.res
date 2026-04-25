@@ -63,9 +63,9 @@ module FeatureCard = {
 module HeroBackground = {
   type props = {}
 
-  let cols = 42
-  let rows = 15
-  let size = 32
+  let cols = 56
+  let rows = 20
+  let size = 24
 
   let makeTriangles = () => {
     let out = []
@@ -398,14 +398,6 @@ Effect.run(() => {
 
   let make = (_props: props) => {
     <section class="tutorial-section">
-      <div class="tutorial-heading">
-        <h2> {Node.text("Your First xote Component")} </h2>
-        <p>
-          {Node.text(
-            "Let's build a tiny temperature widget with xote, from a plain component, to reactive derivations, to live data from the network.",
-          )}
-        </p>
-      </div>
       <div class="tutorial-step">
         {stepHeader(
           ~n="01",
@@ -457,9 +449,6 @@ module Features = {
 
   let make = (_props: props) => {
     <section class="features-section">
-      <div class="features-heading">
-        <h2> {Node.text("Features")} </h2>
-      </div>
       <div class="features-grid">
         {Node.fragment(features->Array.map(f => <FeatureCard feature={f} />))}
       </div>
@@ -485,8 +474,8 @@ let make = (_props: props) => {
   <Layout
     children={Node.fragment([
       <Hero />,
-      <Tutorial />,
       <Features />,
+      <Tutorial />,
       <CommunityClose />,
     ])}
   />

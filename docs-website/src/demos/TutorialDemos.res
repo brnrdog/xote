@@ -48,6 +48,139 @@ module Step1 = {
     </div>
 }
 
+// ---- DOM inspector panel (used by Step 2) ----
+// Uses a live MutationObserver on the stage to show the actual
+// characterData mutations the reactive system emits — no simulation.
+
+module DomInspector = {
+  type entry = {
+    id: int,
+    label: string,
+    oldValue: string,
+    newValue: string,
+  }
+
+  let idCounter = ref(0)
+  let maxEntries = 6
+
+  @val external getById: string => Nullable.t<Dom.element> = "document.getElementById"
+  @val external queueMicrotask: (unit => unit) => unit = "queueMicrotask"
+
+  let describeTextTarget = (target: 'a): string => {
+    let parent: Nullable.t<'b> = (target->Obj.magic)["parentElement"]
+    switch parent->Nullable.toOption {
+    | Some(el) =>
+      let tag: string = (el->Obj.magic)["tagName"]
+      let tagLower = tag->String.toLowerCase
+      let className: string = (el->Obj.magic)["className"]
+      let firstClass =
+        className
+        ->String.split(" ")
+        ->Array.find(s => s !== "")
+        ->Option.getOr("")
+      firstClass === "" ? tagLower : `${tagLower}.${firstClass}`
+    | None => "#text"
+    }
+  }
+
+  @jsx.component
+  let make = (~stageId: string) => {
+    let entries = Signal.make([])
+
+    if SSRContext.isClient {
+      Effect.run(() => {
+        let handler = records => {
+          let fresh = records->Array.filterMap(mut => {
+            let recType: string = (mut->Obj.magic)["type"]
+            if recType === "characterData" {
+              let target = (mut->Obj.magic)["target"]
+              let oldValue: Nullable.t<string> = (mut->Obj.magic)["oldValue"]
+              let newValue: string = (target->Obj.magic)["data"]
+              let id = idCounter.contents
+              idCounter := id + 1
+              Some({
+                id,
+                label: describeTextTarget(target),
+                oldValue: oldValue->Nullable.toOption->Option.getOr(""),
+                newValue,
+              })
+            } else {
+              None
+            }
+          })
+          if Array.length(fresh) > 0 {
+            Signal.update(entries, prev => {
+              let combined = Array.concat(fresh->Array.toReversed, prev)
+              combined->Array.slice(~start=0, ~end=maxEntries)
+            })
+          }
+        }
+        let mkObserver: ('a => unit) => 'b = %raw(`(h) => new MutationObserver(h)`)
+        let observeFn: ('b, Dom.element, 'c) => unit = %raw(`(o, el, init) => o.observe(el, init)`)
+        let disconnectFn: 'b => unit = %raw(`(o) => o.disconnect()`)
+        let obs = mkObserver(handler)
+        let disposed = ref(false)
+        // Defer until after the stage element has been inserted into the document.
+        queueMicrotask(() => {
+          if !disposed.contents {
+            switch getById(stageId)->Nullable.toOption {
+            | Some(el) =>
+              observeFn(
+                obs,
+                el,
+                {
+                  "characterData": true,
+                  "characterDataOldValue": true,
+                  "subtree": true,
+                },
+              )
+            | None => ()
+            }
+          }
+        })
+        Some(() => {
+          disposed := true
+          disconnectFn(obs)
+        })
+      })
+    }
+
+    <aside class="dom-inspector" ariaLabel="DOM mutations">
+      <div class="dom-inspector-header">
+        <span class="dom-inspector-title"> {Node.text("DOM mutations")} </span>
+        <span class="dom-inspector-hint">
+          {Node.text("live from MutationObserver")}
+        </span>
+      </div>
+      <ol class="dom-inspector-list">
+        {Node.keyedList(
+          entries,
+          e => Int.toString(e.id),
+          e =>
+            <li class="dom-inspector-row">
+              <span class="dom-inspector-target"> {Node.text(e.label)} </span>
+              <span class="dom-inspector-diff">
+                <span class="dom-inspector-old"> {Node.text(e.oldValue)} </span>
+                <span class="dom-inspector-arrow"> {Node.text("\u2192")} </span>
+                <span class="dom-inspector-new"> {Node.text(e.newValue)} </span>
+              </span>
+            </li>,
+        )}
+      </ol>
+      <p
+        class={ReactiveProp.reactive(
+          Computed.make(() =>
+            Array.length(Signal.get(entries)) > 0
+              ? "dom-inspector-empty is-hidden"
+              : "dom-inspector-empty"
+          ),
+        )}>
+        {Node.text("Drag the slider \u2014 only the changed text nodes will update.")}
+      </p>
+    </aside>
+  }
+}
+
 // ---- Step 2: one signal, derived computeds ----
 
 module Step2 = {
@@ -63,25 +196,30 @@ module Step2 = {
     }
   }
 
+  let stageId = "tutorial-step2-stage"
+
   @jsx.component
   let make = () =>
-    <div class="tutorial-stage">
-      <div class="temp-row">
-        <TemperatureDisplay value={() => Signal.get(celsius)} unit=Celsius />
-        <TemperatureDisplay value={() => Signal.get(fahrenheit)} unit=Fahrenheit />
-        <TemperatureDisplay value={() => Signal.get(kelvin)} unit=Kelvin />
+    <div class="tutorial-step2">
+      <div class="tutorial-stage" id=stageId>
+        <div class="temp-row">
+          <TemperatureDisplay value={() => Signal.get(celsius)} unit=Celsius />
+          <TemperatureDisplay value={() => Signal.get(fahrenheit)} unit=Fahrenheit />
+          <TemperatureDisplay value={() => Signal.get(kelvin)} unit=Kelvin />
+        </div>
+        <label class="tutorial-slider">
+          <span> {Node.text("Drag to change °C")} </span>
+          <input
+            type_="range"
+            min="-20"
+            max="40"
+            step="0.5"
+            value={Signal.peek(celsius)->Float.toString}
+            onInput={onSlide}
+          />
+        </label>
       </div>
-      <label class="tutorial-slider">
-        <span> {Node.text("Drag to change °C")} </span>
-        <input
-          type_="range"
-          min="-20"
-          max="40"
-          step="0.5"
-          value={Signal.peek(celsius)->Float.toString}
-          onInput={onSlide}
-        />
-      </label>
+      <DomInspector stageId />
     </div>
 }
 

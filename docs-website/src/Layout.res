@@ -59,11 +59,11 @@ type searchItem = {
 
 let searchItems: array<searchItem> = [
   {title: "Introduction", path: "/docs", section: "Getting Started"},
-  {title: "Signals", path: "/docs/core-concepts/signals", section: "Core Concepts"},
-  {title: "Computeds", path: "/docs/core-concepts/computed", section: "Core Concepts"},
-  {title: "Effects", path: "/docs/core-concepts/effects", section: "Core Concepts"},
-  {title: "Components Overview", path: "/docs/components/overview", section: "Components"},
-  {title: "Router Overview", path: "/docs/router/overview", section: "Router"},
+  {title: "Signals", path: "/docs/core-concepts/signals", section: "Core Modules"},
+  {title: "Computeds", path: "/docs/core-concepts/computed", section: "Core Modules"},
+  {title: "Effects", path: "/docs/core-concepts/effects", section: "Core Modules"},
+  {title: "Components", path: "/docs/components/overview", section: "Core Modules"},
+  {title: "Router", path: "/docs/router/overview", section: "Router"},
   {title: "Signals API", path: "/docs/api/signals", section: "API Reference"},
   {title: "React Comparison", path: "/docs/comparisons/react", section: "Comparisons"},
   {title: "SolidJS Comparison", path: "/docs/comparisons/solidjs", section: "Comparisons"},
@@ -151,7 +151,10 @@ module SearchModal = {
                 ),
               ],
               ~children=[
-                <div class="search-modal">
+                <div
+                  class="search-modal"
+                  tabIndex=0
+                  onKeyDown={handleKeyDown}>
                   <div class="search-input-wrapper">
                     {Html.input(
                       ~attrs=[
@@ -159,7 +162,7 @@ module SearchModal = {
                         Node.attr("placeholder", "Search the docs..."),
                         Node.attr("autofocus", "true"),
                       ],
-                      ~events=[("input", handleInput), ("keydown", handleKeyDown)],
+                      ~events=[("input", handleInput)],
                       (),
                     )}
                   </div>
@@ -334,16 +337,16 @@ module Footer = {
   type props = {}
 
   let make = (_props: props) => {
-    let year = Date.now()->Date.fromTime->Date.getFullYear->Int.toString
-
     <footer class="site-footer">
       <div class="footer-inner">
         <div class="footer-grid">
           <div class="footer-brand">
-            <h4 class="footer-brand-name"> {Node.text("xote")} </h4>
+            <h4 class="footer-brand-name">
+              <span class="logo-text"> {Node.text("xote")} </span>
+            </h4>
             <p>
               {Node.text(
-                "A small UI library for ReScript with fine-grained reactivity.",
+                "A ReScript Library for Interactive User Interfaces",
               )}
             </p>
           </div>
@@ -356,7 +359,7 @@ module Footer = {
               <li>
                 {Router.link(
                   ~to="/docs/core-concepts/signals",
-                  ~children=[Node.text("Core Concepts")],
+                  ~children=[Node.text("Core Modules")],
                   (),
                 )}
               </li>
@@ -394,7 +397,7 @@ module Footer = {
         </div>
         <div class="footer-bottom">
           <div>
-            {Node.text("MIT License \u00B7 Built with ReScript and xote")}
+            {Node.text("Bernardo Gurgel \u00B7  MIT License \u00B7 Built with ReScript and xote")}
           </div>
           <div> {Node.text("v6.1.1")} </div>
         </div>
