@@ -17,7 +17,7 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
 
 ```json
 {
-  "bs-dependencies": ["xote"],
+  "dependencies": ["xote"],
   "jsx": {
     "version": 4,
     "module": "XoteJSX"
