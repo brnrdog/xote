@@ -7,144 +7,46 @@
 
 let content = () => {
   <div>
-    <h1> {Node.text("Components Overview")} </h1>
     <p>
-      {Node.text("Xote provides a lightweight component system for building reactive UIs. Components are functions that return virtual nodes, which are then rendered to the DOM.")}
-    </p>
-    <p>
-      {Node.text("Xote supports two syntax styles for building components:")}
-    </p>
-    <ul>
-      <li>
-        <strong> {Node.text("JSX Syntax:")} </strong>
-      {Node.text(" Modern, declarative JSX syntax (recommended)")}
-      </li>
-      <li>
-        <strong> {Node.text("Function API:")} </strong>
-      {Node.text(" Explicit function calls with labeled parameters")}
-      </li>
-    </ul>
-    <h2 id="what-are-components"> {Node.text("What are Components?")} </h2>
-    <p>
-      {Node.text("In Xote, a component is simply a function that returns a ")}
+      {Node.text("A Xote component is a function that returns a ")}
       <code> {Node.text("Node.node")} </code>
-      {Node.text(". The recommended way to define components is with the ")}
-      <strong> {Node.text("component module pattern")} </strong>
-      {Node.text(" using ")}
+      {Node.text(". The component usually runs once, sets up its reactive graph, and then reactive nodes update in place over time.")}
+    </p>
+    <p>
+      {Node.text("The recommended path is JSX plus ")}
       <code> {Node.text("@jsx.component")} </code>
-      {Node.text(":")}
+      {Node.text(". The function-based ")}
+      <code> {Node.text("Node")} </code>
+      {Node.text(" and ")}
+      <code> {Node.text("Html")} </code>
+      {Node.text(" APIs stay available when you need lower-level control or are generating UI programmatically.")}
     </p>
-    <h3 id="component-module-pattern"> {Node.text("Component Module Pattern (Recommended)")} </h3>
-    <p>
-      {Node.text("Use ")}
-      <code> {Node.text("@jsx.component")} </code>
-      {Node.text(" to define components as modules with a ")}
-      <code> {Node.text("make")} </code>
-      {Node.text(" function. This decorator automatically generates the props type from labeled arguments, enabling clean JSX usage:")}
-    </p>
-    <pre>
-      <code>
-        {Node.text(`open Xote
 
-module Greeting = {
-  @jsx.component
-  let make = (~name: string) => {
-    <div>
-      <h1> {Node.text("Hello, " ++ name ++ "!")} </h1>
-    </div>
-  }
-}
-
-// Usage in JSX:
-<Greeting name="World" />`)}
-      </code>
-    </pre>
+    <h2 id="component-model"> {Node.text("Component Model")} </h2>
     <p>
-      {Node.text("Components without props simply omit the labeled arguments:")}
-    </p>
-    <pre>
-      <code>
-        {Node.text(`module Header = {
-  @jsx.component
-  let make = () => {
-    <header>
-      <h1> {Node.text("My App")} </h1>
-    </header>
-  }
-}
-
-// Usage:
-<Header />`)}
-      </code>
-    </pre>
-    <p>
-      <strong> {Node.text("Key points:")} </strong>
+      {Node.text("Think in two layers:")}
     </p>
     <ul>
       <li>
-        {Node.text("Components are defined as modules with a ")}
-        <code> {Node.text("make")} </code>
-        {Node.text(" function")}
+        <strong> {Node.text("Static structure:")} </strong>
+        {Node.text(" the component function builds the node tree")}
       </li>
       <li>
-        {Node.text("The ")}
-        <code> {Node.text("@jsx.component")} </code>
-        {Node.text(" decorator transforms labeled arguments (")}
-        <code> {Node.text("~propName")} </code>
-        {Node.text(") into a props record type automatically")}
-      </li>
-      <li>
-        {Node.text("Components are used in JSX with ")}
-        <code> {Node.text("<ComponentName prop={value} />")} </code>
-        {Node.text(" syntax")}
-      </li>
-      <li>
-        {Node.text("File-level modules can also be components \u2014 just add ")}
-        <code> {Node.text("@jsx.component")} </code>
-        {Node.text(" to a top-level ")}
-        <code> {Node.text("make")} </code>
-        {Node.text(" function")}
+        <strong> {Node.text("Reactive bindings:")} </strong>
+        {Node.text(" signal reads inside reactive nodes, computeds, and effects keep specific parts up to date")}
       </li>
     </ul>
-    <h3 id="jsx-syntax"> {Node.text("Plain JSX Syntax")} </h3>
-    <p>
-      {Node.text("You can also define components as simple functions without the decorator:")}
-    </p>
-    <pre>
-      <code>
-        {Node.text(`open Xote
 
-let greeting = () => {
-  <div>
-    <h1> {Node.text("Hello, Xote!")} </h1>
-  </div>
-}`)}
-      </code>
-    </pre>
-    <h3 id="function-api"> {Node.text("Function API")} </h3>
-    <pre>
-      <code>
-        {Node.text(`open Xote
-
-let greeting = () => {
-  Html.div(
-    ~children=[
-      Html.h1(~children=[Node.text("Hello, Xote!")], ())
-    ],
-    ()
-  )
-}`)}
-      </code>
-    </pre>
-    <h2 id="jsx-configuration"> {Node.text("JSX Configuration")} </h2>
+    <h2 id="building-components"> {Node.text("Building Components")} </h2>
+    <h3 id="jsx-configuration"> {Node.text("JSX Configuration")} </h3>
     <p>
-      {Node.text("To use JSX syntax, configure your ")}
-      <code> {Node.text("rescript.json")} </code>
-      {Node.text(":")}
+      {Node.text("To use JSX with Xote, point ReScript at ")}
+      <code> {Node.text("XoteJSX")} </code>
+      {Node.text(".")}
     </p>
-    <pre>
+    <pre class="docs-code-pre">
       <code>
-        {Node.text(`{
+        {SyntaxHighlight.highlight(`{
   "bs-dependencies": ["xote"],
   "jsx": {
     "version": 4,
@@ -154,279 +56,188 @@ let greeting = () => {
 }`)}
       </code>
     </pre>
-    <h2 id="text-nodes"> {Node.text("Text Nodes")} </h2>
-    <h3 id="static-text"> {Node.text("Static Text")} </h3>
+
+    <h3 id="writing-components"> {Node.text("Writing Components")} </h3>
+    <h4 id="component-module-pattern"> {Node.text("Recommended Pattern")} </h4>
     <p>
-      {Node.text("Use ")}
-      <code> {Node.text("Node.text()")} </code>
-      {Node.text(" for static text:")}
+      {Node.text("Use a module with a ")}
+      <code> {Node.text("make")} </code>
+      {Node.text(" function and annotate it with ")}
+      <code> {Node.text("@jsx.component")} </code>
+      {Node.text(". ReScript derives the props shape from labeled arguments.")}
     </p>
-    <pre>
+    <pre class="docs-code-pre">
       <code>
-        {Node.text(`<div>
-  {Node.text("This text never changes")}
-</div>`)}
+        {SyntaxHighlight.highlight(`open Xote
+
+module Greeting = {
+  @jsx.component
+  let make = (~name: string, ~emphasis=false) => {
+    <div class={emphasis ? "greeting strong" : "greeting"}>
+      <h1> {Node.text("Hello, " ++ name)} </h1>
+    </div>
+  }
+}
+
+let app = () => {
+  <Greeting name="World" emphasis />
+}`)}
       </code>
     </pre>
-    <h3 id="reactive-text"> {Node.text("Reactive Text")} </h3>
+    <h4 id="function-api"> {Node.text("Function API")} </h4>
     <p>
-      {Node.text("Use ")}
-      <code> {Node.text("Node.signalText()")} </code>
-      {Node.text(" for text that updates with signals:")}
+      {Node.text("The lower-level API is still useful when JSX is not a good fit.")}
     </p>
-    <pre>
+    <pre class="docs-code-pre">
       <code>
-        {Node.text(`let count = Signal.make(0)
+        {SyntaxHighlight.highlight(`open Xote
+
+let greeting = (name: string) => {
+  Html.div(
+    ~children=[
+      Html.h1(~children=[Node.text("Hello, " ++ name)], ())
+    ],
+    (),
+  )
+}`)}
+      </code>
+    </pre>
+
+    <h3 id="reactive-output"> {Node.text("Reactive Output")} </h3>
+    <p>
+      {Node.text("JSX expressions are just nodes. For reactive text, use ")}
+      <code> {Node.text("Node.signalText")} </code>
+      {Node.text(". For arrays of reactive children, use ")}
+      <code> {Node.text("Node.signalFragment")} </code>
+      {Node.text(" or one of the list helpers.")}
+    </p>
+    <pre class="docs-code-pre">
+      <code>
+        {SyntaxHighlight.highlight(`let count = Signal.make(0)
 
 <div>
-  {Node.signalText(() =>
-    "Count: " ++ Int.toString(Signal.get(count))
-  )}
+  {Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
 </div>`)}
       </code>
     </pre>
+
+    <h3 id="attributes-and-events"> {Node.text("Attributes and Events")} </h3>
     <p>
-      {Node.text("The function is tracked, so the text automatically updates when ")}
-      <code> {Node.text("count")} </code>
-      {Node.text(" changes.")}
+      {Node.text("In JSX, common HTML props are exposed directly. In the function API, use ")}
+      <code> {Node.text("Node.attr")} </code>
+      {Node.text(", ")}
+      <code> {Node.text("Node.signalAttr")} </code>
+      {Node.text(", and ")}
+      <code> {Node.text("Node.computedAttr")} </code>
+      {Node.text(".")}
     </p>
-    <h2 id="attributes"> {Node.text("Attributes")} </h2>
-    <h3 id="jsx-props"> {Node.text("JSX Props")} </h3>
+    <pre class="docs-code-pre">
+      <code>
+        {SyntaxHighlight.highlight(`let isActive = Signal.make(false)
+
+let toggle = (_evt: Dom.event) => {
+  Signal.update(isActive, active => !active)
+}
+
+<button
+  class={Signal.get(isActive) ? "btn active" : "btn"}
+  onClick={toggle}>
+  {Node.text("Toggle")}
+</button>`)}
+      </code>
+    </pre>
+    <pre class="docs-code-pre">
+      <code>
+        {SyntaxHighlight.highlight(`Html.button(
+  ~attrs=[
+    Node.computedAttr("class", () =>
+      Signal.get(isActive) ? "btn active" : "btn"
+    ),
+  ],
+  ~events=[("click", toggle)],
+  ~children=[Node.text("Toggle")],
+  (),
+)`)}
+      </code>
+    </pre>
     <p>
-      {Node.text("JSX elements support common HTML attributes:")}
-    </p>
-    <ul>
-      <li>
-        <code> {Node.text("class")} </code>
-      {Node.text(" - CSS classes (note: ")}
+      {Node.text("In JSX, use ")}
       <code> {Node.text("class")} </code>
       {Node.text(", not ")}
       <code> {Node.text("className")} </code>
-      {Node.text(")")}
-      </li>
-      <li>
-        <code> {Node.text("id")} </code>
-      {Node.text(" - Element ID")}
-      </li>
-      <li>
-        <code> {Node.text("style")} </code>
-      {Node.text(" - Inline styles")}
-      </li>
-      <li>
-        <code> {Node.text("type_")} </code>
-      {Node.text(" - Input type (with underscore to avoid keyword conflict)")}
-      </li>
-      <li>
-        <code> {Node.text("value")} </code>
-      {Node.text(" - Input value")}
-      </li>
-      <li>
-        <code> {Node.text("placeholder")} </code>
-      {Node.text(" - Input placeholder")}
-      </li>
-      <li>
-        <code> {Node.text("disabled")} </code>
-      {Node.text(" - Boolean disabled state")}
-      </li>
-      <li>
-        <code> {Node.text("checked")} </code>
-      {Node.text(" - Boolean checked state")}
-      </li>
-    </ul>
-    <pre>
-      <code>
-        {Node.text(`<button
-  class="btn btn-primary"
-  type_="button"
-  disabled={true}>
-  {Node.text("Submit")}
-</button>`)}
-      </code>
-    </pre>
-    <h3 id="static-attributes-function-api"> {Node.text("Static Attributes (Function API)")} </h3>
-    <pre>
-      <code>
-        {Node.text(`Html.button(
-  ~attrs=[
-    Node.attr("class", "btn btn-primary"),
-    Node.attr("type", "button"),
-    Node.attr("disabled", "true"),
-  ],
-  ()
-)`)}
-      </code>
-    </pre>
-    <h3 id="reactive-attributes"> {Node.text("Reactive Attributes")} </h3>
-    <p>
-      {Node.text("Function API supports reactive attributes:")}
+      {Node.text(". Use ")}
+      <code> {Node.text("type_")} </code>
+      {Node.text(" for the HTML ")}
+      <code> {Node.text("type")} </code>
+      {Node.text(" attribute because ")}
+      <code> {Node.text("type")} </code>
+      {Node.text(" is reserved in ReScript.")}
     </p>
-    <pre>
-      <code>
-        {Node.text(`let isActive = Signal.make(false)
 
-Html.div(
-  ~attrs=[
-    Node.computedAttr("class", () =>
-      Signal.get(isActive) ? "active" : "inactive"
-    )
-  ],
-  ()
-)`)}
-      </code>
-    </pre>
-    <h2 id="event-handlers"> {Node.text("Event Handlers")} </h2>
-    <h3 id="jsx-event-props"> {Node.text("JSX Event Props")} </h3>
-    <p>
-      {Node.text("JSX elements support common event handlers:")}
-    </p>
-    <ul>
-      <li>
-        <code> {Node.text("onClick")} </code>
-      {Node.text(" - Click events")}
-      </li>
-      <li>
-        <code> {Node.text("onInput")} </code>
-      {Node.text(" - Input events")}
-      </li>
-      <li>
-        <code> {Node.text("onChange")} </code>
-      {Node.text(" - Change events")}
-      </li>
-      <li>
-        <code> {Node.text("onSubmit")} </code>
-      {Node.text(" - Form submit events")}
-      </li>
-      <li>
-        <code> {Node.text("onFocus")} </code>
-      {Node.text(", ")}
-      <code> {Node.text("onBlur")} </code>
-      {Node.text(" - Focus events")}
-      </li>
-      <li>
-        <code> {Node.text("onKeyDown")} </code>
-      {Node.text(", ")}
-      <code> {Node.text("onKeyUp")} </code>
-      {Node.text(" - Keyboard events")}
-      </li>
-    </ul>
-    <pre>
-      <code>
-        {Node.text(`let count = Signal.make(0)
-
-let increment = (_evt: Dom.event) => {
-  Signal.update(count, n => n + 1)
-}
-
-<button onClick={increment}>
-  {Node.text("+1")}
-</button>`)}
-      </code>
-    </pre>
-    <h2 id="lists"> {Node.text("Lists")} </h2>
-    <h3 id="simple-lists-non-keyed"> {Node.text("Simple Lists (Non-Keyed)")} </h3>
+    <h3 id="lists"> {Node.text("Lists")} </h3>
     <p>
       {Node.text("Use ")}
-      <code> {Node.text("Node.list()")} </code>
-      {Node.text(" for simple lists where the entire list re-renders on any change:")}
+      <code> {Node.text("Node.list")} </code>
+      {Node.text(" for simple arrays that can be fully re-rendered, and ")}
+      <code> {Node.text("Node.keyedList")} </code>
+      {Node.text(" when item identity matters.")}
     </p>
-    <pre>
+    <pre class="docs-code-pre">
       <code>
-        {Node.text(`let items = Signal.make(["Apple", "Banana", "Cherry"])
+        {SyntaxHighlight.highlight(`let items = Signal.make(["Apple", "Banana", "Cherry"])
 
 <ul>
-  {Node.list(items, item =>
-    <li> {Node.text(item)} </li>
-  )}
+  {Node.list(items, item => <li> {Node.text(item)} </li>)}
 </ul>`)}
       </code>
     </pre>
-    <p>
-      <strong> {Node.text("Note:")} </strong>
-      {Node.text(" Simple lists re-render completely when the array changes (no diffing). For better performance, use keyed lists.")}
-    </p>
-    <h3 id="keyed-lists-efficient-reconciliation"> {Node.text("Keyed Lists (Efficient Reconciliation)")} </h3>
-    <p>
-      {Node.text("Use ")}
-      <code> {Node.text("Node.listKeyed()")} </code>
-      {Node.text(" for efficient list rendering with DOM element reuse:")}
-    </p>
-    <pre>
+    <pre class="docs-code-pre">
       <code>
-        {Node.text(`type todo = {id: int, text: string, completed: bool}
+        {SyntaxHighlight.highlight(`type todo = {id: string, text: string}
 let todos = Signal.make([
-  {id: 1, text: "Buy milk", completed: false},
-  {id: 2, text: "Walk dog", completed: true},
+  {id: "1", text: "Write docs"},
+  {id: "2", text: "Ship release"},
 ])
 
 <ul>
-  {Node.listKeyed(
+  {Node.keyedList(
     todos,
-    todo => todo.id->Int.toString,  // Key extractor
-    todo => <li> {Node.text(todo.text)} </li>  // Renderer
+    todo => todo.id,
+    todo => <li> {Node.text(todo.text)} </li>,
   )}
 </ul>`)}
       </code>
     </pre>
     <p>
-      <strong> {Node.text("Benefits of keyed lists:")} </strong>
+      {Node.text("Choose stable keys. Database IDs and route slugs are good. Array indexes are not.")}
     </p>
-    <ul>
-      <li>
-        <strong> {Node.text("Reuses DOM elements")} </strong>
-      {Node.text(" - Only updates what changed")}
-      </li>
-      <li>
-        <strong> {Node.text("Preserves component state")} </strong>
-      {Node.text(" - When list items move position")}
-      </li>
-      <li>
-        <strong> {Node.text("Better performance")} </strong>
-      {Node.text(" - Fewer DOM operations for large lists")}
-      </li>
-      <li>
-        <strong> {Node.text("Efficient reconciliation")} </strong>
-      {Node.text(" - Adds/removes/moves only necessary elements")}
-      </li>
-    </ul>
-    <p>
-      <strong> {Node.text("Best practices:")} </strong>
-    </p>
-    <ul>
-      <li>
-        {Node.text("Always use unique, stable keys (like database IDs)")}
-      </li>
-      <li>
-        {Node.text("Don't use array indices as keys")}
-      </li>
-      <li>
-        {Node.text("Keys should be strings")}
-      </li>
-      <li>
-        {Node.text("Use listKeyed for any list that can be reordered, filtered, or modified")}
-      </li>
-    </ul>
-    <h2 id="mounting-to-the-dom"> {Node.text("Mounting to the DOM")} </h2>
+
+    <h3 id="mounting"> {Node.text("Mounting")} </h3>
     <p>
       {Node.text("Use ")}
-      <code> {Node.text("mountById")} </code>
-      {Node.text(" to attach your component to an existing DOM element:")}
+      <code> {Node.text("Node.mount")} </code>
+      {Node.text(" when you already have a DOM element, or ")}
+      <code> {Node.text("Node.mountById")} </code>
+      {Node.text(" when you want to look one up by id.")}
     </p>
-    <pre>
+    <pre class="docs-code-pre">
       <code>
-        {Node.text(`let app = () => {
-  <div> {Node.text("Hello, World!")} </div>
+        {SyntaxHighlight.highlight(`let app = () => {
+  <div> {Node.text("Hello, Xote")} </div>
 }
 
 Node.mountById(app(), "app")`)}
       </code>
     </pre>
-    <h2 id="example-counter-component"> {Node.text("Example: Counter Component")} </h2>
+
+    <h2 id="components-in-practice"> {Node.text("In Practice")} </h2>
+    <h3 id="example-counter-component"> {Node.text("Example: Counter Component")} </h3>
     <p>
-      {Node.text("Here's a complete counter component using the component module pattern:")}
+      {Node.text("This example keeps state local to the component and exposes only props.")}
     </p>
-    <pre>
+    <pre class="docs-code-pre">
       <code>
-        {Node.text(`open Xote
+        {SyntaxHighlight.highlight(`open Xote
 
 module Counter = {
   @jsx.component
@@ -443,82 +254,48 @@ module Counter = {
 
     <div class="counter">
       <h2>
-        {Node.signalText(() =>
-          "Count: " ++ Int.toString(Signal.get(count))
-        )}
+        {Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
       </h2>
-      <div class="controls">
-        <button onClick={decrement}>
-          {Node.text("-")}
-        </button>
-        <button onClick={increment}>
-          {Node.text("+")}
-        </button>
-      </div>
+      <button onClick={decrement}> {Node.text("-")} </button>
+      <button onClick={increment}> {Node.text("+")} </button>
     </div>
   }
 }
 
-// Use the component in JSX
-module App = {
-  @jsx.component
-  let make = () => {
-    <Counter initialValue={10} />
-  }
-}
-
-Node.mountById(App.make({}), "app")`)}
+let app = () => {
+  <Counter initialValue={10} />
+}`)}
       </code>
     </pre>
-    <h2 id="best-practices"> {Node.text("Best Practices")} </h2>
+
+    <h2 id="components-working-style"> {Node.text("Working Style")} </h2>
+    <h3 id="best-practices"> {Node.text("Best Practices")} </h3>
     <ul>
       <li>
-        <strong> {Node.text("Keep components small:")} </strong>
-      {Node.text(" Each component should do one thing well")}
+        {Node.text("Default to the JSX module pattern when there is no reason to drop lower.")}
       </li>
       <li>
-        <strong> {Node.text("Use signals for local state:")} </strong>
-      {Node.text(" Create signals inside components for component-specific state")}
+        {Node.text("Keep state close to where it is used. Local signals are cheap and usually easier to follow.")}
       </li>
       <li>
-        <strong> {Node.text("Pass data via props:")} </strong>
-      {Node.text(" Use record types for component parameters")}
+        {Node.text("Use ")}
+        <code> {Node.text("Node.keyedList")} </code>
+        {Node.text(" for collections that reorder, insert, or preserve local DOM state.")}
       </li>
       <li>
-        <strong> {Node.text("Compose components:")} </strong>
-      {Node.text(" Build complex UIs from simple, reusable components")}
-      </li>
-      <li>
-        <strong> {Node.text("Choose the right list type:")} </strong>
-      {Node.text(" Use ")}
-      <code> {Node.text("listKeyed")} </code>
-      {Node.text(" for dynamic lists, ")}
-      <code> {Node.text("list")} </code>
-      {Node.text(" for simple static lists")}
-      </li>
-      <li>
-        <strong> {Node.text("Use class not className:")} </strong>
-      {Node.text(" In JSX, use the ")}
-      <code> {Node.text("class")} </code>
-      {Node.text(" prop for CSS classes")}
+        {Node.text("Be explicit about reactive output so the update boundaries stay readable in the component.")}
       </li>
     </ul>
-    <h2 id="next-steps"> {Node.text("Next Steps")} </h2>
+
+    <h3 id="next-steps"> {Node.text("Next Steps")} </h3>
     <ul>
       <li>
-        {Node.text("Try the ")}
-      {Router.link(~to="/demos", ~children=[Node.text("Demos")], ())}
-      {Node.text(" to see components in action")}
+        {Router.link(~to="/docs/router/overview", ~children=[Node.text("Read Router")], ())}
+        {Node.text(" when these components need client-side navigation.")}
       </li>
       <li>
-        {Node.text("Learn about ")}
-      {Router.link(~to="/docs/router/overview", ~children=[Node.text("Routing")], ())}
-      {Node.text(" for building SPAs")}
-      </li>
-      <li>
-        {Node.text("Explore the ")}
-      {Router.link(~to="/docs/api/signals", ~children=[Node.text("API Reference")], ())}
-      {Node.text(" for detailed documentation")}
+        {Router.link(~to="/docs/advanced/ssr", ~children=[Node.text("Read Server-Side Rendering")], ())}
+        {Node.text(" if the same components need to render on the server.")}
       </li>
     </ul>
   </div>

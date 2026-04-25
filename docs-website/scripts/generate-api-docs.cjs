@@ -331,7 +331,7 @@ function generateJSX(nodes) {
         return `    <div class="info-box">\n      <p>\n        ${generateInlineJSX(node.text)}\n      </p>\n    </div>`;
       case 'pre':
         const codeText = escapeForReScript(node.children[0].text);
-        return `    <pre>\n      <code>\n        {Node.text(\`${codeText}\`)}\n      </code>\n    </pre>`;
+        return `    <pre class="docs-code-pre">\n      <code>\n        {SyntaxHighlight.highlight(\`${codeText}\`)}\n      </code>\n    </pre>`;
       case 'ul':
         const ulItems = node.items.map(item =>
           `      <li>\n        ${generateInlineJSX(item)}\n      </li>`
