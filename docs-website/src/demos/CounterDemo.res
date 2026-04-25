@@ -6,23 +6,60 @@ let reset = (_evt: Dom.event) => Signal.set(count, 0)
 
 @jsx.component
 let make = () => {
-  <div class="demo-container">
-    <div class="demo-section" style="text-align: center;">
-      <div class="counter-demo-display">
-        {Node.signalText(() => Signal.get(count)->Int.toString)}
+  let countTone = () => {
+    let value = Signal.get(count)
+    if value > 0 {
+      "counter-demo-value positive"
+    } else if value < 0 {
+      "counter-demo-value negative"
+    } else {
+      "counter-demo-value neutral"
+    }
+  }
+
+  let countStatus = () => {
+    let value = Signal.get(count)
+    if value > 0 {
+      "Positive"
+    } else if value < 0 {
+      "Negative"
+    } else {
+      "Neutral"
+    }
+  }
+
+  <div class="counter-demo">
+    <div class="counter-demo-panel">
+      <div class="counter-demo-head">
+        <div>
+          <div class="counter-demo-kicker"> {Node.text("Signal state")} </div>
+          <h3 class="counter-demo-title"> {Node.text("Counter")} </h3>
+        </div>
+        <div class={() => "counter-demo-status " ++ String.toLowerCase(countStatus())}>
+          {Node.signalText(countStatus)}
+        </div>
       </div>
-      <div class="counter-demo-label"> {Node.text("Current Count")} </div>
-    </div>
-    <div class="demo-btn-group">
-      <button class="demo-btn demo-btn-primary" onClick={decrement}>
-        {Node.text("- Decrement")}
-      </button>
-      <button class="demo-btn demo-btn-secondary" onClick={reset}>
-        {Node.text("Reset")}
-      </button>
-      <button class="demo-btn demo-btn-primary" onClick={increment}>
-        {Node.text("+ Increment")}
-      </button>
+
+      <div class="counter-demo-readout">
+        <div class={() => countTone()}>{Node.signalText(() => Signal.get(count)->Int.toString)}</div>
+        <div class="counter-demo-label"> {Node.text("Current Count")} </div>
+      </div>
+
+      <div class="counter-demo-note">
+        {Node.text("One writable signal updates the UI immediately when the value changes.")}
+      </div>
+
+      <div class="counter-demo-actions">
+        <button class="counter-demo-btn" onClick={decrement}>
+          {Node.text("Decrease")}
+        </button>
+        <button class="counter-demo-btn subtle" onClick={reset}>
+          {Node.text("Reset")}
+        </button>
+        <button class="counter-demo-btn" onClick={increment}>
+          {Node.text("Increase")}
+        </button>
+      </div>
     </div>
   </div>
 }
