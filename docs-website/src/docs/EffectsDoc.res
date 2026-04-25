@@ -7,379 +7,226 @@
 
 let content = () => {
   <div>
-    <h1> {Node.text("Effects")} </h1>
     <p>
-      {Node.text("Effects are functions that run side effects in response to reactive state changes. They automatically re-execute when any signal they depend on changes.")}
+      {Node.text("Effects connect the reactive graph to the outside world. They run immediately, track the signals they read, and re-run when those dependencies change.")}
     </p>
-    <div class="info-box">
-      <p>
-        <strong> {Node.text("Info:")} </strong>
-      {Node.text(" Xote re-exports ")}
-      <code> {Node.text("Effect")} </code>
-      {Node.text(" from ")}
-      <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {Node.text("rescript-signals")} </a>
-      {Node.text(". The API and behavior are provided by that library.")}
-      </p>
-    </div>
-    <h2 id="creating-effects"> {Node.text("Creating Effects")} </h2>
+    <p>
+      {Node.text("Use them for DOM APIs, timers, network coordination, logging, or any other work that should happen because state changed. Do not use them to compute values that could stay inside the reactive graph.")}
+    </p>
+
+    <h2 id="working-with-effects"> {Node.text("Working with Effects")} </h2>
+    <h3 id="creating-effects"> {Node.text("Creating Effects")} </h3>
     <p>
       {Node.text("Use ")}
-      <code> {Node.text("Effect.run()")} </code>
-      {Node.text(" to create an effect. The effect function can optionally return a cleanup function:")}
+      <code> {Node.text("Effect.run")} </code>
+      {Node.text(" for fire-and-forget effects and ")}
+      <code> {Node.text("Effect.runWithDisposer")} </code>
+      {Node.text(" when you need to stop the effect manually.")}
     </p>
-    <pre>
+    <pre class="docs-code-pre">
       <code>
-        {Node.text(`open Xote
+        {SyntaxHighlight.highlight(`open Xote
 
 let count = Signal.make(0)
 
 Effect.run(() => {
-  Console.log2("Count is now:", Signal.get(count))
-  None // No cleanup needed
-})
-// Prints: "Count is now: 0"
-
-Signal.set(count, 1)
-// Prints: "Count is now: 1"`)}
+  Console.log2("Count:", Signal.get(count))
+  None
+})`)}
       </code>
     </pre>
-    <h2 id="how-effects-work"> {Node.text("How Effects Work")} </h2>
-    <ol>
-      <li>
-        {Node.text("The effect function runs immediately when created")}
-      </li>
-      <li>
-        {Node.text("Any Signal.get() calls during execution are tracked as dependencies")}
-      </li>
-      <li>
-        {Node.text("When a dependency changes, the effect re-runs")}
-      </li>
-      <li>
-        {Node.text("Dependencies are re-tracked on every execution")}
-      </li>
-      <li>
-        {Node.text("If a cleanup function was returned, it runs before re-execution")}
-      </li>
-    </ol>
-    <h2 id="cleanup-callbacks"> {Node.text("Cleanup Callbacks")} </h2>
-    <p>
-      {Node.text("Effects can return an optional cleanup function that runs before the effect re-executes or when the effect is disposed:")}
-    </p>
-    <pre>
-      <code>
-        {Node.text(`open Xote
 
-let url = Signal.make("https://api.example.com/data")
+    <h3 id="dependency-tracking"> {Node.text("Dependency Tracking")} </h3>
+    <p>
+      {Node.text("Effects track dependencies automatically. Every ")}
+      <code> {Node.text("Signal.get")} </code>
+      {Node.text(" call inside the effect subscribes the effect to that signal. On each run, dependencies are cleared and tracked again.")}
+    </p>
+    <pre class="docs-code-pre">
+      <code>
+        {SyntaxHighlight.highlight(`let showDetails = Signal.make(false)
+let name = Signal.make("Ada")
+let age = Signal.make(36)
+
+Effect.run(() => {
+  if Signal.get(showDetails) {
+    Console.log2("Name:", Signal.get(name))
+    Console.log2("Age:", Signal.get(age))
+  }
+  None
+})`)}
+      </code>
+    </pre>
+
+    <h3 id="cleanup-callbacks"> {Node.text("Cleanup Callbacks")} </h3>
+    <p>
+      {Node.text("An effect can return ")}
+      <code> {Node.text("Some(cleanupFn)")} </code>
+      {Node.text(" or ")}
+      <code> {Node.text("None")} </code>
+      {Node.text(". Cleanup runs before the next execution and when the effect is disposed.")}
+    </p>
+    <pre class="docs-code-pre">
+      <code>
+        {SyntaxHighlight.highlight(`let url = Signal.make("/api/users")
 
 Effect.run(() => {
   let currentUrl = Signal.get(url)
-  Console.log2("Fetching:", currentUrl)
-
-  // Simulate an API call with AbortController
   let controller = AbortController.make()
 
-  fetch(currentUrl, {signal: controller.signal})
-    ->Promise.then(response => {
-      Console.log("Data received")
-      Promise.resolve()
-    })
-    ->ignore
+  fetch(currentUrl, {"signal": controller##signal})->ignore
 
-  // Return cleanup function
-  Some(() => {
-    Console.log("Aborting previous request")
-    controller.abort()
-  })
-})
-
-// When url changes, the cleanup function runs first,
-// then the effect re-executes with the new URL
-Signal.set(url, "https://api.example.com/other-data")`)}
+  Some(() => controller##abort())
+})`)}
       </code>
     </pre>
+
+    <h3 id="disposing-effects"> {Node.text("Disposing Effects")} </h3>
     <p>
-      <strong> {Node.text("Key points about cleanup:")} </strong>
+      {Node.text("When you need explicit teardown, use ")}
+      <code> {Node.text("Effect.runWithDisposer")} </code>
+      {Node.text(". It returns an object with a ")}
+      <code> {Node.text("dispose()")} </code>
+      {Node.text(" method.")}
     </p>
+    <pre class="docs-code-pre">
+      <code>
+        {SyntaxHighlight.highlight(`let disposer = Effect.runWithDisposer(() => {
+  Console.log(Signal.get(count))
+  None
+})
+
+disposer.dispose()`)}
+      </code>
+    </pre>
+
+    <h3 id="avoiding-dependencies"> {Node.text("Avoiding Dependencies")} </h3>
+    <p>
+      {Node.text("If you need a value inside an effect without subscribing to it, use ")}
+      <code> {Node.text("Signal.peek")} </code>
+      {Node.text(" for one read or ")}
+      <code> {Node.text("Signal.untrack")} </code>
+      {Node.text(" for a larger block.")}
+    </p>
+    <pre class="docs-code-pre">
+      <code>
+        {SyntaxHighlight.highlight(`let debug = Signal.make(true)
+
+Effect.run(() => {
+  let tracked = Signal.get(count)
+
+  if Signal.peek(debug) {
+    Console.log2("Debug count:", tracked)
+  }
+
+  None
+})`)}
+      </code>
+    </pre>
+
+    <h2 id="effects-common-patterns"> {Node.text("Common Patterns")} </h2>
+    <h3 id="common-use-cases"> {Node.text("Common Use Cases")} </h3>
     <ul>
       <li>
-        {Node.text("Return None when no cleanup is needed")}
+        <strong> {Node.text("Browser APIs:")} </strong>
+        {Node.text(" document title, localStorage, media queries, history, and scroll state")}
       </li>
       <li>
-        {Node.text("Return Some(cleanupFn) to register cleanup")}
+        <strong> {Node.text("Timers and subscriptions:")} </strong>
+        {Node.text(" intervals, event listeners, sockets, and observers")}
       </li>
       <li>
-        {Node.text("Cleanup runs before the effect re-executes")}
+        <strong> {Node.text("Synchronization:")} </strong>
+        {Node.text(" push reactive state into another system")}
       </li>
       <li>
-        {Node.text("Cleanup runs when the effect is disposed via dispose()")}
-      </li>
-      <li>
-        {Node.text("Cleanup is useful for canceling requests, clearing timers, removing event listeners, etc.")}
+        <strong> {Node.text("Diagnostics:")} </strong>
+        {Node.text(" logging, instrumentation, and dev-only inspection")}
       </li>
     </ul>
-    <h2 id="common-use-cases"> {Node.text("Common Use Cases")} </h2>
-    <h3 id="timers-with-cleanup"> {Node.text("Timers with Cleanup")} </h3>
+
+    <h3 id="example-auto-save"> {Node.text("Example: Auto-save")} </h3>
     <p>
-      {Node.text("Properly clean up timers:")}
+      {Node.text("This pattern is common: track a draft, debounce the work, and clean up old timers when the draft changes again.")}
     </p>
-    <pre>
-      <code>
-        {Node.text(`let interval = Signal.make(1000)
+    <DocsExamplePanel
+      filename="DraftAutoSave.res"
+      caption="fig. 1 - an effect debounces auto-save work"
+      code={`open Xote
 
-Effect.run(() => {
-  let ms = Signal.get(interval)
+let draft = Signal.make("")
+let saveStatus = Signal.make("Start typing to queue a save")
 
-  let timerId = setInterval(() => {
-    Console.log("Tick")
-  }, ms)
-
-  // Clear timer when interval changes or effect disposes
-  Some(() => {
-    clearInterval(timerId)
-  })
-})`)}
-      </code>
-    </pre>
-    <h3 id="logging-and-debugging"> {Node.text("Logging and Debugging")} </h3>
-    <p>
-      {Node.text("Track state changes for debugging:")}
-    </p>
-    <pre>
-      <code>
-        {Node.text(`let user = Signal.make({id: 1, name: "Alice"})
-
-Effect.run(() => {
-  let currentUser = Signal.get(user)
-  Console.log2("User changed:", currentUser)
-  None // No cleanup needed
-})`)}
-      </code>
-    </pre>
-    <h3 id="synchronization"> {Node.text("Synchronization")} </h3>
-    <p>
-      {Node.text("Sync reactive state with external systems:")}
-    </p>
-    <pre>
-      <code>
-        {Node.text(`let settings = Signal.make({theme: "dark", language: "en"})
-
-Effect.run(() => {
-  let current = Signal.get(settings)
-  // Save to localStorage
-  LocalStorage.setItem("settings", JSON.stringify(current))
-  None // No cleanup needed
-})`)}
-      </code>
-    </pre>
-    <h2 id="disposing-effects"> {Node.text("Disposing Effects")} </h2>
-    <p>
-      {Node.text("Effect.runWithDisposer() returns a disposer object with a dispose() method to stop the effect. When disposed, any registered cleanup function is called. Use Effect.run() when you don't need the disposer (it returns unit):")}
-    </p>
-    <pre>
-      <code>
-        {Node.text(`let count = Signal.make(0)
-
-// Use Effect.runWithDisposer when you need to stop the effect later
-let disposer = Effect.runWithDisposer(() => {
-  Console.log(Signal.get(count))
-  None // No cleanup needed
-})
-
-Signal.set(count, 1) // Effect runs
-Signal.set(count, 2) // Effect runs
-
-disposer.dispose() // Stop the effect
-
-Signal.set(count, 3) // Effect does NOT run`)}
-      </code>
-    </pre>
-    <p>
-      <strong> {Node.text("With cleanup:")} </strong>
-    </p>
-    <pre>
-      <code>
-        {Node.text(`let disposer = Effect.runWithDisposer(() => {
-  let timerId = setInterval(() => Console.log("Tick"), 1000)
-
-  // Cleanup function
-  Some(() => {
-    clearInterval(timerId)
-    Console.log("Timer cleared")
-  })
-})
-
-// Later...
-disposer.dispose() // Runs cleanup, prints "Timer cleared"`)}
-      </code>
-    </pre>
-    <h2 id="dynamic-dependencies"> {Node.text("Dynamic Dependencies")} </h2>
-    <p>
-      {Node.text("Effects re-track dependencies on each execution, adapting to conditional logic:")}
-    </p>
-    <pre>
-      <code>
-        {Node.text(`let showDetails = Signal.make(false)
-let name = Signal.make("Alice")
-let age = Signal.make(30)
-
-Effect.run(() => {
-  Console.log(Signal.get(name))
-
-  if Signal.get(showDetails) {
-    Console.log2("Age:", Signal.get(age))
-  }
-
-  None // No cleanup needed
-})
-
-// Initially depends on: name, showDetails
-// After setting showDetails to true, depends on: name, showDetails, age`)}
-      </code>
-    </pre>
-    <h2 id="avoiding-dependencies"> {Node.text("Avoiding Dependencies")} </h2>
-    <p>
-      {Node.text("Use ")}
-      <code> {Node.text("Signal.peek()")} </code>
-      {Node.text(" to read signals without creating dependencies:")}
-    </p>
-    <pre>
-      <code>
-        {Node.text(`let count = Signal.make(0)
-let debug = Signal.make(true)
-
-Effect.run(() => {
-  Console.log2("Count:", Signal.get(count))
-
-  // Read debug flag without depending on it
-  if Signal.peek(debug) {
-    Console.log("Debug mode is on")
-  }
-
-  None // No cleanup needed
-})`)}
-      </code>
-    </pre>
-    <h2 id="example-auto-save"> {Node.text("Example: Auto-save")} </h2>
-    <p>
-      {Node.text("Here's a practical example of an auto-save effect with proper cleanup:")}
-    </p>
-    <pre>
-      <code>
-        {Node.text(`open Xote
-
-type draft = {
-  title: string,
-  content: string,
+let handleInput = evt => {
+  let target: {"value": string} = (evt->Obj.magic)["target"]
+  Signal.set(draft, target["value"])
 }
 
-let draft = Signal.make({
-  title: "",
-  content: "",
-})
-
-let saveStatus = Signal.make("Saved")
-
-// Auto-save effect with debouncing and cleanup
 Effect.run(() => {
-  let current = Signal.get(draft)
+  let currentDraft = Signal.get(draft)->String.trim
 
-  Signal.set(saveStatus, "Unsaved changes...")
+  if currentDraft == "" {
+    Signal.set(saveStatus, "Start typing to queue a save")
+    None
+  } else {
+    Signal.set(saveStatus, "Saving in 600ms")
 
-  // Save after 1 second of no changes
   let timeoutId = setTimeout(() => {
-    // Save to server
-    saveToServer(current)
-    Signal.set(saveStatus, "Saved")
-  }, 1000)
+      Console.log2("Saving draft:", currentDraft)
+  }, 500)
 
-  // Clean up timeout when draft changes again
-  Some(() => {
-    clearTimeout(timeoutId)
-  })
-})`)}
-      </code>
-    </pre>
-    <h2 id="best-practices"> {Node.text("Best Practices")} </h2>
+    Some(() => clearTimeout(timeoutId))
+  }
+})`}
+    >
+      <EffectAutosaveDemo />
+    </DocsExamplePanel>
+
+    <h3 id="effects-vs-computed"> {Node.text("Effects vs Computed")} </h3>
+    <p>
+      {Node.text("Ask one question: is the result another value inside the reactive graph, or is it work outside the graph?")}
+    </p>
     <ul>
       <li>
-        <strong> {Node.text("Keep effects focused:")} </strong>
-      {Node.text(" Each effect should do one thing")}
+        <strong> {Node.text("Use a computed")} </strong>
+        {Node.text(" when you are deriving a value from other values")}
       </li>
       <li>
-        <strong> {Node.text("Clean up resources:")} </strong>
-      {Node.text(" Return cleanup functions for timers, listeners, subscriptions, etc.")}
-      </li>
-      <li>
-        <strong> {Node.text("Dispose effects:")} </strong>
-      {Node.text(" Use the disposer when effects are no longer needed (e.g., component unmount)")}
-      </li>
-      <li>
-        <strong> {Node.text("Avoid infinite loops:")} </strong>
-      {Node.text(" Don't set signals that the effect depends on (unless using equality checks)")}
-      </li>
-      <li>
-        <strong> {Node.text("Use for side effects only:")} </strong>
-      {Node.text(" Effects should not compute values (use Computed instead)")}
-      </li>
-      <li>
-        <strong> {Node.text("Return None when no cleanup needed:")} </strong>
-      {Node.text(" Be explicit about cleanup needs")}
+        <strong> {Node.text("Use an effect")} </strong>
+        {Node.text(" when you need to talk to something external")}
       </li>
     </ul>
-    <h2 id="effects-vs-computed"> {Node.text("Effects vs Computed")} </h2>
-    <table>
-      <thead>
-        <tr>
-          <th> {Node.text("Feature")} </th>
-          <th> {Node.text("Effect")} </th>
-          <th> {Node.text("Computed")} </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td> {Node.text("Purpose")} </td>
-          <td> {Node.text("Side effects")} </td>
-          <td> {Node.text("Derive values")} </td>
-        </tr>
-        <tr>
-          <td> {Node.text("Returns")} </td>
-          <td> {Node.text("unit (or Disposer via runWithDisposer)")} </td>
-          <td> {Node.text("Signal")} </td>
-        </tr>
-        <tr>
-          <td> {Node.text("When runs")} </td>
-          <td> {Node.text("Immediately and on changes")} </td>
-          <td> {Node.text("Immediately and on changes")} </td>
-        </tr>
-        <tr>
-          <td> {Node.text("Result")} </td>
-          <td> {Node.text("None (performs actions)")} </td>
-          <td> {Node.text("New reactive value")} </td>
-        </tr>
-      </tbody>
-    </table>
-    <p>
-      {Node.text("Use ")}
-      <strong> {Node.text("Computed")} </strong>
-      {Node.text(" for pure calculations, ")}
-      <strong> {Node.text("Effects")} </strong>
-      {Node.text(" for side effects.")}
-    </p>
-    <h2 id="next-steps"> {Node.text("Next Steps")} </h2>
+
+    <h2 id="effects-working-style"> {Node.text("Working Style")} </h2>
+    <h3 id="best-practices"> {Node.text("Best Practices")} </h3>
     <ul>
       <li>
-        {Node.text("Learn about ")}
-      {Router.link(~to="/docs/core-concepts/batching", ~children=[Node.text("Batching")], ())}
-      {Node.text(" to optimize multiple updates")}
+        {Node.text("Keep one effect focused on one kind of external work so cleanup stays obvious.")}
       </li>
       <li>
-        {Node.text("See how effects work in ")}
-      {Router.link(~to="/docs/components/overview", ~children=[Node.text("Components")], ())}
+        {Node.text("Return cleanup whenever you allocate timers, listeners, requests, or subscriptions.")}
       </li>
       <li>
-        {Node.text("Try the ")}
-      {Router.link(~to="/demos", ~children=[Node.text("Demos")], ())}
-      {Node.text(" to see effects in action")}
+        {Node.text("Do not use effects to keep derived state in sync. If the output is another value, use a computed.")}
+      </li>
+      <li>
+        {Node.text("Use ")}
+        <code> {Node.text("peek")} </code>
+        {Node.text(" and ")}
+        <code> {Node.text("untrack")} </code>
+        {Node.text(" deliberately, because they opt out of tracking.")}
+      </li>
+    </ul>
+
+    <h3 id="next-steps"> {Node.text("Next Steps")} </h3>
+    <ul>
+      <li>
+        {Router.link(~to="/docs/components/overview", ~children=[Node.text("Move to Components")], ())}
+        {Node.text(" to see how effects fit into real UI code.")}
+      </li>
+      <li>
+        {Router.link(~to="/docs/advanced/batching", ~children=[Node.text("Read Batching")], ())}
+        {Node.text(" when several writes should flush as one coordinated update.")}
       </li>
     </ul>
   </div>

@@ -1,50 +1,40 @@
-# Comparing Xote with React
+## At a Glance
 
-This guide provides a detailed comparison between Xote and React, covering their fundamental approaches to building web applications, their feature sets, and when each is the better choice.
-
-## Overview
+### Overview
 
 | Aspect | React | Xote |
 | --- | --- | --- |
-| **Reactivity** | Virtual DOM diffing and reconciliation | Fine-grained reactivity with signals |
-| **Updates** | Re-renders component trees on state change | Direct DOM updates at the signal level |
-| **State** | useState, useReducer hooks | Signal primitives (Signal, Computed, Effect) |
-| **Side Effects** | useEffect with manual dependency arrays | Effect.run with automatic dependency tracking |
-| **SSR** | Built-in (renderToString, Server Components) | Built-in (renderToString, hydration, state transfer) |
-| **Routing** | Third-party (React Router, TanStack Router) | Built-in signal-based router |
-| **List Rendering** | Key-based reconciliation via VDOM diffing | KeyedList with 3-phase DOM reconciliation |
-| **Language** | JavaScript / TypeScript | ReScript (compiles to JavaScript) |
-| **Bundle Size** | ~44KB min (react + react-dom) | ~6KB min (xote + rescript-signals) |
+| **Update model** | Re-render component trees, then diff | Update the specific reactive consumers directly |
+| **State** | `useState`, `useReducer`, external stores | `Signal`, `Computed`, `Effect` |
+| **Effects** | `useEffect` with explicit dependency arrays | `Effect.run` with tracked dependencies |
+| **Routing** | Third-party packages | Built in |
+| **SSR** | Mature ecosystem and frameworks | Built-in primitives for SSR, hydration, and state transfer |
+| **Language** | JavaScript / TypeScript | ReScript |
 
-## Reactivity Model
+React and Xote solve many of the same problems, but they optimize for different tradeoffs. React optimizes for ecosystem reach and framework maturity. Xote optimizes for a smaller runtime, explicit fine-grained reactivity, and a tighter built-in surface.
 
-**React** re-renders entire component subtrees when state changes. Every `useState` setter triggers a re-render of the component and all its children. React then diffs the new virtual DOM against the previous one to determine the minimal DOM operations. This works well but means components can re-execute their entire body unnecessarily. Optimizations like `React.memo`, `useMemo`, and `useCallback` exist to mitigate this, but they add complexity and are easy to get wrong.
+## Runtime Model
 
-**Xote** uses fine-grained reactivity based on signals. When a signal changes, only the specific DOM nodes or effects that read that signal are updated. There is no virtual DOM and no diffing. Components execute once to set up their reactive graph, and from that point, updates flow directly to the DOM. This means there is no need for memoization APIs -- updates are surgical by default.
+### Reactivity Model
 
-### Counter Example
+React updates by re-running component functions and diffing the next virtual tree against the previous one. That model is flexible and well understood, but it means the render pass is the default unit of work.
 
-**React:**
+Xote updates at the signal consumer level. When a signal changes, only the effects, computeds, or reactive DOM bindings that read that signal need to run again. The component function itself usually does not.
 
 ```jsx
-import { useState } from 'react';
+import { useState } from "react";
 
 function Counter() {
   const [count, setCount] = useState(0);
 
-  // This entire function body re-executes on every click
   return (
     <div>
       <h1>Count: {count}</h1>
-      <button onClick={() => setCount(c => c + 1)}>
-        Increment
-      </button>
+      <button onClick={() => setCount(c => c + 1)}>Increment</button>
     </div>
   );
 }
 ```
-
-**Xote:**
 
 ```rescript
 open Xote
@@ -52,13 +42,9 @@ open Xote
 let counter = () => {
   let count = Signal.make(0)
 
-  // This function body executes once.
-  // Only the text node updates when count changes.
   <div>
     <h1>
-      {Node.signalText(() =>
-        "Count: " ++ Int.toString(Signal.get(count))
-      )}
+      {Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
       {Node.text("Increment")}
@@ -67,71 +53,38 @@ let counter = () => {
 }
 ```
 
-## Side Effects and Dependencies
+### Effects and Derived State
 
-One of the most common sources of bugs in React is the `useEffect` dependency array. Forgetting a dependency leads to stale closures; including too many causes infinite loops. Lint rules help, but they cannot catch all cases.
+React's `useEffect` and `useMemo` depend on manually maintained dependency arrays. That is workable, but stale or over-broad dependency lists are a common source of bugs and noise.
 
-Xote effects track dependencies automatically. Any signal read during effect execution becomes a dependency. When dependencies change, the effect re-runs. There is no array to maintain.
-
-**React:**
+Xote tracks dependencies automatically. `Effect.run` subscribes to the signals it reads, and `Computed.make` derives values from the signals it reads.
 
 ```jsx
-// Must manually list every dependency
 useEffect(() => {
   document.title = `Count: ${count}`;
-}, [count]); // Forget count here and the title never updates
+}, [count]);
 ```
 
-**Xote:**
-
 ```rescript
-// Dependencies tracked automatically
 Effect.run(() => {
   document.title = "Count: " ++ Int.toString(Signal.get(count))
   None
 })
-```
 
-**Derived state** follows the same pattern. React's `useMemo` requires a dependency array. Xote's `Computed.make` tracks dependencies automatically and is lazy -- it only recomputes when read.
-
-```rescript
-// Recomputes only when count changes, and only when someone reads it
 let doubled = Computed.make(() => Signal.get(count) * 2)
 ```
 
-## Component Lifecycle
+The tradeoff is that React's hook model is familiar to more teams and supported by more tooling, while Xote's model is smaller and more explicit once you adopt signals.
 
-In React, components are functions that re-execute on every render. Hooks must follow strict ordering rules, and cleanup requires returning a function from `useEffect`.
+### Component Lifecycle
 
-In Xote, component functions execute once. Signals, effects, and computed values are created during that single execution. Cleanup is handled by the **owner system** -- each DOM element tracks its reactive resources, and when the element is removed from the DOM, all associated effects and computeds are disposed automatically.
+React components re-run whenever their state or props change. That is why hooks exist: they preserve values across renders and enforce ordering rules.
 
-**React:**
+Xote components usually run once. Signals, computeds, and effects are ordinary values created during that initial execution. Cleanup is handled by effect cleanups and the owner system that disposes reactive resources when DOM nodes are removed.
 
-- Component functions re-execute on every render
-- Hooks must follow the rules of hooks (no conditionals, fixed order)
-- Cleanup via useEffect return functions
-- Must use useRef to persist values across renders
+### List Rendering
 
-**Xote:**
-
-- Component functions execute once
-- No hook rules -- signals and effects can be created anywhere
-- Cleanup via Effect return values and automatic owner-based disposal
-- All values naturally persist (they are just local variables)
-
-## List Rendering
-
-**React** uses key-based reconciliation during its virtual DOM diff. When a list changes, React matches elements by key and determines insertions, deletions, and moves. This works well but happens as part of the full VDOM reconciliation pass.
-
-**Xote** provides `keyedList` with a dedicated 3-phase reconciliation algorithm that operates directly on the DOM:
-
-1. **Remove** items no longer in the list
-2. **Build new order** reusing existing DOM elements for unchanged keys
-3. **Reconcile DOM** by inserting, moving, and replacing elements
-
-This preserves DOM element identity across updates -- an important property for elements with focus state, animations, or internal state.
-
-**React:**
+React uses keys during virtual DOM reconciliation. Xote uses `Node.keyedList`, which works directly against DOM anchors and explicit keys.
 
 ```jsx
 function TodoList({ todos }) {
@@ -145,8 +98,6 @@ function TodoList({ todos }) {
 }
 ```
 
-**Xote:**
-
 ```rescript
 let todoList = () => {
   let todos = Signal.make([{id: "1", text: "Buy milk"}])
@@ -155,144 +106,86 @@ let todoList = () => {
     {Node.keyedList(
       todos,
       todo => todo.id,
-      todo => <li> {Node.text(todo.text)} </li>
+      todo => <li> {Node.text(todo.text)} </li>,
     )}
   </ul>
 }
 ```
 
-## Server-Side Rendering
+In practice, both can preserve item identity. The difference is mostly where the work happens: inside a general-purpose renderer in React, or through a dedicated keyed-list primitive in Xote.
 
-**React** has mature SSR support through `renderToString`, streaming with `renderToPipeableStream`, and the newer Server Components architecture (via frameworks like Next.js). React's SSR ecosystem is extensive and battle-tested.
+## Platform Surface
 
-**Xote** provides built-in SSR with a focused feature set:
+### Server-Side Rendering
 
-- **`SSR.renderToString`** renders components to HTML strings
-- **`SSR.renderDocument`** generates full HTML documents with head, scripts, and styles
-- **Hydration markers** (HTML comments) mark reactive boundaries so the client can attach reactivity without re-rendering
-- **`SSRState`** handles state transfer between server and client with a type-safe codec system
-- **`Hydration.hydrate`** walks server-rendered DOM and attaches signals, effects, and event listeners
+React has the stronger SSR ecosystem. Frameworks like Next.js and Remix add routing, data loading, streaming, server actions, and deployment integrations on top of the core renderer.
+
+Xote gives you lower-level primitives directly: `SSR.renderToString`, `SSR.renderDocument`, `SSRState`, and `Hydration`. That is enough for custom SSR pipelines, but it is intentionally not a batteries-included application framework.
 
 ```rescript
-// Server
 let html = SSR.renderDocument(
   ~scripts=["/client.js"],
   ~stateScript=SSRState.generateScript(),
-  app
+  app,
 )
 
-// Client
 Hydration.hydrateById(app, "root")
 ```
 
-React's SSR ecosystem is more mature and offers features like streaming and Server Components. Xote's SSR is simpler and more lightweight, handling the core use case of server rendering with client hydration and state transfer without requiring a framework.
+### Routing
 
-## Routing
+React relies on external routers such as React Router or TanStack Router. That is not a weakness by itself, but it does mean routing decisions also become ecosystem decisions.
 
-**React** does not include a router. You need a third-party library like React Router or TanStack Router. These are excellent but add to your dependency count and bundle size.
+Xote includes a router in the main library. If you want pattern matching, links, imperative navigation, and SSR-aware initialization without another dependency, that is a meaningful simplification.
 
-**Xote** includes a signal-based router out of the box:
+### Runtime Footprint
 
-- Pattern matching with dynamic segments (`/users/:id`)
-- Imperative navigation (`Router.push`, `Router.replace`)
-- A `Router.Link` JSX component for declarative navigation
-- Base path support for sub-app routing
-- Scroll position restoration on back/forward navigation
-- SSR-compatible initialization (`Router.initSSR`)
-- Global singleton state via `Symbol.for()` so multiple bundles share the same router
+React's runtime is larger because it carries a general rendering engine and is often paired with more packages. Xote stays smaller because the reactive graph and direct DOM updates remove the need for a general virtual DOM reconciliation path during normal updates.
 
-```rescript
-Router.init()
+Bundle size should not be the only decision criterion, but it matters for widgets, embedded apps, and performance-sensitive pages.
 
-let nav = () => {
-  <nav>
-    <Router.Link to="/" class="nav-link">
-      {Node.text("Home")}
-    </Router.Link>
-    <Router.Link to="/users" class="nav-link">
-      {Node.text("Users")}
-    </Router.Link>
-  </nav>
-}
+### Type Safety
 
-let app = () => {
-  <div>
-    <nav />
-    {Router.routes([
-      {pattern: "/", render: _ => <HomePage />},
-      {pattern: "/users/:id", render: params =>
-        <UserPage id={params->Dict.getUnsafe("id")} />
-      },
-    ])}
-  </div>
-}
-```
+React with TypeScript gives strong ergonomics and wide adoption, but the type system is still optional and structurally typed.
 
-Having routing built in means one less dependency to manage, and the router integrates naturally with the signal system -- route changes trigger reactive updates like any other signal change.
+Xote inherits ReScript's sounder model. Pattern matching, `option`, and exhaustiveness checks reduce a class of runtime mistakes that TypeScript projects still need discipline to avoid.
 
-## Bundle Size and Runtime Footprint
+### Ecosystem
 
-This is one of the most significant practical differences. React's runtime (react + react-dom) is approximately **44KB minified** (about 14KB gzipped). Add a router and you are looking at another 10-20KB.
+React is the safer choice if your project depends on third-party UI kits, data tooling, or hiring from a very large pool.
 
-Xote's entire runtime including the signals library is approximately **6KB minified**. The built-in router and SSR modules are included in that figure.
+Xote is the better fit when you want to own the stack, keep runtime dependencies minimal, and work from a smaller but more integrated API.
 
-This difference comes from two factors:
+## Choosing Between Them
 
-1. **No virtual DOM**: Xote does not need a diffing/reconciliation engine for general updates. The signal graph handles targeted updates directly.
-2. **ReScript's zero-cost JSX**: ReScript's JSX compiles to direct function calls with no runtime JSX transformer. There is no `React.createElement` equivalent that builds intermediate objects. The compiled output is lean JavaScript that directly constructs the component tree.
+### When to Choose React
 
-For applications where initial load time matters -- mobile web, embedded widgets, progressive web apps, or performance-constrained environments -- this difference is substantial.
+- Reach for React when ecosystem depth is a hard requirement.
+- Reach for React when the team is already fluent in React and TypeScript.
+- Reach for React when third-party UI kits or integrations are central to the product.
+- Reach for React when React Native is part of the broader platform story.
 
-## Type Safety
+### When to Choose Xote
 
-**React** with TypeScript provides good type safety, but it is opt-in and structural. Generic component patterns, higher-order components, and complex hooks often require manual type annotations. Runtime type errors are still possible.
+- Reach for Xote when you want fine-grained updates without a virtual DOM render cycle.
+- Reach for Xote when built-in routing and SSR primitives reduce project overhead.
+- Reach for Xote when ReScript's type model is part of the value proposition.
+- Reach for Xote when the UI is focused enough that a smaller ecosystem is a benefit, not a cost.
 
-**Xote** uses ReScript, which has a sound type system with full type inference. Types are checked at compile time and cover the entire codebase. The compiler guarantees that if your code compiles, types are correct -- there are no runtime type errors from type mismatches. Pattern matching is exhaustive, and the absence of `null`/`undefined` exceptions (replaced by the `option` type) eliminates an entire class of bugs.
+### Migration Considerations
 
-## Ecosystem
+React developers usually adapt to Xote fastest when they stop looking for hook equivalents and instead map responsibilities directly:
 
-This is where React has a clear advantage. React has thousands of UI component libraries, state management solutions, form libraries, data fetching tools, animation frameworks, and more. The community is enormous, and finding help, tutorials, and examples is straightforward.
+1. `useState` becomes `Signal.make`
+2. `useMemo` becomes `Computed.make`
+3. `useEffect` becomes `Effect.run`
+4. keyed `.map()` rendering becomes `Node.keyedList` when identity matters
 
-Xote's ecosystem is minimal by design. It provides the core building blocks -- reactivity, components, routing, and SSR -- and leaves the rest to the application. This means less choice paralysis but also fewer off-the-shelf solutions.
+The conceptual shift is from re-rendered components to persistent reactive values.
 
-## When to Choose React
+### Further Reading
 
-- **Large ecosystem needed:** Your project relies on third-party React component libraries or integrations
-- **Team experience:** Your team is already proficient with React and JavaScript/TypeScript
-- **Mobile apps:** You want to use React Native for cross-platform development
-- **Hiring:** Finding React developers is easier in the current job market
-- **Mature SSR frameworks:** You need Next.js, Remix, or similar full-stack frameworks with advanced features like Server Components and streaming
-
-## When to Choose Xote
-
-- **Performance-sensitive applications:** You need minimal bundle size and fast initial load times
-- **Fine-grained reactivity:** You want precise, efficient updates without virtual DOM overhead or memoization boilerplate
-- **Full-stack type safety:** You value a sound type system that catches errors at compile time
-- **Built-in essentials:** You prefer having routing, SSR, and hydration included without additional dependencies
-- **Signal-based architecture:** You want to build with a reactivity model aligned with the TC39 Signals proposal
-- **Minimal dependency footprint:** You want a focused library with a single runtime dependency
-
-## Migration Considerations
-
-If you are coming from React, here is how core concepts map:
-
-- `useState` -> `Signal.make`
-- `useMemo` -> `Computed.make` (no dependency array needed)
-- `useEffect` -> `Effect.run` (no dependency array needed)
-- `useRef` -> Just use a `ref()` or a local `let` binding (components execute once)
-- `React.memo` -> Not needed (fine-grained updates by default)
-- `useCallback` -> Not needed (no re-renders to cause reference changes)
-- `JSX` -> ReScript JSX (very similar syntax)
-- `React Router` -> `Router` module (built-in)
-- `renderToString` -> `SSR.renderToString`
-
-The main learning curve is ReScript itself -- its syntax, type system, and functional programming patterns. The reactivity model is arguably simpler than React's hooks system once you understand signals.
-
-## Further Reading
-
-- [Xote Signals Guide](/docs/core-concepts/signals)
-- [Xote Components](/docs/components/overview)
-- [Router Overview](/docs/router/overview)
-- [Server-Side Rendering](/docs/advanced/ssr)
-- [React Documentation](https://react.dev)
-- [TC39 Signals Proposal](https://github.com/tc39/proposal-signals)
+- [Signals](/docs/core-concepts/signals)
+- [Computeds](/docs/core-concepts/computed)
+- [Effects](/docs/core-concepts/effects)
+- [Components](/docs/components/overview)

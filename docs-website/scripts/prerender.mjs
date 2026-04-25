@@ -17,7 +17,6 @@ const buildDir = path.join(__dirname, '..', 'build', 'client')
 // All routes to pre-render (app-relative paths, without base path)
 const routes = [
   '/',
-  '/demos',
   '/docs',
   '/docs/core-concepts/signals',
   '/docs/core-concepts/computed',
@@ -28,14 +27,8 @@ const routes = [
   '/docs/router/overview',
   '/docs/api/signals',
   '/docs/comparisons/react',
+  '/docs/comparisons/solidjs',
   '/docs/technical-overview',
-  '/docs/demos/counter',
-  '/docs/demos/todo',
-  '/docs/demos/color-mixer',
-  '/docs/demos/reaction-game',
-  '/docs/demos/solitaire',
-  '/docs/demos/memory-match',
-  '/docs/demos/snake',
 ]
 
 // Suppress expected SSR errors from client-only code (e.g., basefn Icon

@@ -15,30 +15,27 @@ let docsNav: array<docCategory> = [
     items: [{title: "Introduction", path: "/docs"}],
   },
   {
-    label: "Core Concepts",
+    label: "Core Modules",
     items: [
       {title: "Signals", path: "/docs/core-concepts/signals"},
-      {title: "Computed", path: "/docs/core-concepts/computed"},
+      {title: "Computeds", path: "/docs/core-concepts/computed"},
       {title: "Effects", path: "/docs/core-concepts/effects"},
+      {title: "Components", path: "/docs/components/overview"},
     ],
   },
   {
-    label: "Components",
-    items: [{title: "Overview", path: "/docs/components/overview"}],
-  },
-  {
     label: "Router",
-    items: [{title: "Overview", path: "/docs/router/overview"}],
+    items: [{title: "Router", path: "/docs/router/overview"}],
   },
   {
     label: "API Reference",
-    items: [{title: "Signals", path: "/docs/api/signals"}],
+    items: [{title: "Signals API", path: "/docs/api/signals"}],
   },
   {
     label: "Comparisons",
     items: [
-      {title: "React", path: "/docs/comparisons/react"},
-      {title: "SolidJS", path: "/docs/comparisons/solidjs"},
+      {title: "React Comparison", path: "/docs/comparisons/react"},
+      {title: "SolidJS Comparison", path: "/docs/comparisons/solidjs"},
     ],
   },
   {
@@ -47,18 +44,6 @@ let docsNav: array<docCategory> = [
       {title: "Server-Side Rendering", path: "/docs/advanced/ssr"},
       {title: "Batching", path: "/docs/advanced/batching"},
       {title: "Technical Overview", path: "/docs/technical-overview"},
-    ],
-  },
-  {
-    label: "Demos",
-    items: [
-      {title: "Counter", path: "/docs/demos/counter"},
-      {title: "Todo List", path: "/docs/demos/todo"},
-      {title: "Color Mixer", path: "/docs/demos/color-mixer"},
-      {title: "Reaction Game", path: "/docs/demos/reaction-game"},
-      {title: "Solitaire", path: "/docs/demos/solitaire"},
-      {title: "Memory Match", path: "/docs/demos/memory-match"},
-      {title: "Snake Game", path: "/docs/demos/snake"},
     ],
   },
 ]
@@ -188,43 +173,6 @@ module PrevNextNav = {
   }
 }
 
-// ---- Feedback Widget ----
-module FeedbackWidget = {
-  type props = {}
-
-  let make = (_props: props) => {
-    let feedback = Signal.make("")
-
-    <div class="docs-feedback">
-      {Node.text("Was this page helpful?")}
-      {Node.element(
-        "button",
-        ~attrs=[
-          Node.computedAttr("class", () =>
-            "feedback-btn" ++ (Signal.get(feedback) == "yes" ? " selected" : "")
-          ),
-          Node.attr("title", "Yes"),
-        ],
-        ~events=[("click", _ => Signal.set(feedback, "yes"))],
-        ~children=[Node.text("\u{1F44D}")],
-        (),
-      )}
-      {Node.element(
-        "button",
-        ~attrs=[
-          Node.computedAttr("class", () =>
-            "feedback-btn" ++ (Signal.get(feedback) == "no" ? " selected" : "")
-          ),
-          Node.attr("title", "No"),
-        ],
-        ~events=[("click", _ => Signal.set(feedback, "no"))],
-        ~children=[Node.text("\u{1F44E}")],
-        (),
-      )}
-    </div>
-  }
-}
-
 // ---- Table of Contents (right side) ----
 module TableOfContents = {
   type tocItem = {
@@ -240,7 +188,7 @@ module TableOfContents = {
       Node.fragment([])
     } else {
       <aside class="docs-toc">
-        <div class="toc-title"> {Node.text("On this page")} </div>
+        <div class="toc-title"> {Node.text("Contents")} </div>
         {Node.fragment(
           props.items->Array.map(item => {
             let className = "toc-link" ++ (item.level == 3 ? " toc-link-h3" : "")
@@ -290,7 +238,6 @@ let make = (props: props) => {
           }}
           <div class="docs-content"> {content} </div>
           <PrevNextNav currentPath />
-          <FeedbackWidget />
         </div>
         <TableOfContents items={tocItems} />
       </div>

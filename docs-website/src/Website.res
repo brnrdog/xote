@@ -12,14 +12,8 @@ module SolidJSComparisonDoc = SolidJSComparisonDoc
 module TechnicalOverviewDoc = TechnicalOverviewDoc
 module SSRDoc = SSRDoc
 
-// Import demo content
-module CounterDemo = CounterDemo
-module TodoDemo = TodoDemo
-module ColorMixerDemo = ColorMixerDemo
-module ReactionGameDemo = ReactionGameDemo
-module SolitaireDemo = SolitaireDemo
-module MatchGameDemo = MatchGameDemo
-module SnakeGameDemo = SnakeGameDemo
+// Demo modules are still on disk under `src/demos/*.res` for reuse as
+// inline figures, but no longer routed as standalone pages.
 
 // 404 Page component
 module NotFoundPage = {
@@ -55,24 +49,20 @@ module App = {
           render: _params => <HomePage />,
         },
         {
-          pattern: "/demos",
-          render: _params => <DemosPage />,
-        },
-        {
           pattern: "/docs",
           render: _params =>
             <DocsPage
               currentPath="/docs"
               pageTitle="Introduction"
-              pageLead="Get started with Xote, a lightweight reactive UI library for ReScript."
+              pageLead="Get oriented around Xote's reactive model, UI primitives, and setup."
               content={IntroDoc.content()}
               tocItems=[
                 {text: "What is Xote?", id: "what-is-xote", level: 2},
-                {text: "Quick Example", id: "quick-example", level: 2},
+                {text: "Start Here", id: "quick-example", level: 2},
                 {text: "Using JSX Syntax", id: "using-jsx-syntax", level: 3},
-                {text: "Core Concepts", id: "core-concepts", level: 2},
-                {text: "Installation", id: "installation", level: 2},
-                {text: "Next Steps", id: "next-steps", level: 2},
+                {text: "How the Docs Are Organized", id: "core-modules", level: 2},
+                {text: "Installation", id: "installation", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 3},
                 {text: "Philosophy", id: "philosophy", level: 2},
               ]
             />,
@@ -83,15 +73,15 @@ module App = {
             <DocsPage
               currentPath="/docs"
               pageTitle="Introduction"
-              pageLead="Get started with Xote, a lightweight reactive UI library for ReScript."
+              pageLead="Get oriented around Xote's reactive model, UI primitives, and setup."
               content={IntroDoc.content()}
               tocItems=[
                 {text: "What is Xote?", id: "what-is-xote", level: 2},
-                {text: "Quick Example", id: "quick-example", level: 2},
+                {text: "Start Here", id: "quick-example", level: 2},
                 {text: "Using JSX Syntax", id: "using-jsx-syntax", level: 3},
-                {text: "Core Concepts", id: "core-concepts", level: 2},
-                {text: "Installation", id: "installation", level: 2},
-                {text: "Next Steps", id: "next-steps", level: 2},
+                {text: "How the Docs Are Organized", id: "core-modules", level: 2},
+                {text: "Installation", id: "installation", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 3},
                 {text: "Philosophy", id: "philosophy", level: 2},
               ]
             />,
@@ -102,20 +92,21 @@ module App = {
             <DocsPage
               currentPath="/docs/core-concepts/signals"
               pageTitle="Signals"
-              pageLead="Reactive state cells that form the foundation of Xote's reactivity model."
+              pageLead="State containers that drive Xote's reactive graph."
               content={SignalsDoc.content()}
               tocItems=[
-                {text: "Creating Signals", id: "creating-signals", level: 2},
-                {text: "Reading Signal Values", id: "reading-signal-values", level: 2},
-                {text: "Signal.get()", id: "signal-get", level: 3},
-                {text: "Signal.peek()", id: "signal-peek", level: 3},
-                {text: "Updating Signals", id: "updating-signals", level: 2},
-                {text: "Signal.set()", id: "signal-set", level: 3},
-                {text: "Signal.update()", id: "signal-update", level: 3},
-                {text: "Important Behaviors", id: "important-behaviors", level: 2},
-                {text: "Example: Counter", id: "example-counter", level: 2},
-                {text: "Best Practices", id: "best-practices", level: 2},
-                {text: "Next Steps", id: "next-steps", level: 2},
+                {text: "Working with Signals", id: "working-with-signals", level: 2},
+                {text: "Creating Signals", id: "creating-signals", level: 3},
+                {text: "Reading Signal Values", id: "reading-signal-values", level: 3},
+                {text: "Updating Signals", id: "updating-signals", level: 3},
+                {text: "How Signals Decide to Update", id: "how-signals-decide-to-update", level: 2},
+                {text: "Equality and Change Detection", id: "equality-and-change-detection", level: 3},
+                {text: "Dependency Tracking", id: "dependency-tracking", level: 3},
+                {text: "In Practice", id: "signals-in-practice", level: 2},
+                {text: "Example: Counter", id: "example-counter", level: 3},
+                {text: "Working Style", id: "signals-working-style", level: 2},
+                {text: "Best Practices", id: "best-practices", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 3},
               ]
             />,
         },
@@ -124,20 +115,21 @@ module App = {
           render: _params =>
             <DocsPage
               currentPath="/docs/core-concepts/computed"
-              pageTitle="Computed"
-              pageLead="Derived signals that automatically recompute when their dependencies change."
+              pageTitle="Computeds"
+              pageLead="Derived signals that stay in sync with the values they read."
               content={ComputedDoc.content()}
               tocItems=[
-                {text: "Creating Computed Values", id: "creating-computed-values", level: 2},
-                {text: "How Computed Values Work", id: "how-computed-values-work", level: 2},
-                {text: "Reading Computed Values", id: "reading-computed-values", level: 2},
-                {text: "Automatic Disposal", id: "automatic-disposal", level: 2},
-                {text: "Chaining Computed Values", id: "chaining-computed-values", level: 2},
-                {text: "Computed vs Manual Updates", id: "computed-vs-manual-updates", level: 2},
-                {text: "Dynamic Dependencies", id: "dynamic-dependencies", level: 2},
-                {text: "Best Practices", id: "best-practices", level: 2},
-                {text: "Important Notes", id: "important-notes", level: 2},
-                {text: "Next Steps", id: "next-steps", level: 2},
+                {text: "Working with Computeds", id: "working-with-computeds", level: 2},
+                {text: "Creating Computed Values", id: "creating-computed-values", level: 3},
+                {text: "Reading Computed Values", id: "reading-computed-values", level: 3},
+                {text: "Lazy Recomputation", id: "lazy-recomputation", level: 3},
+                {text: "Dynamic Dependencies", id: "dynamic-dependencies", level: 3},
+                {text: "Lifecycle", id: "computed-lifecycle", level: 2},
+                {text: "Disposal", id: "disposal", level: 3},
+                {text: "Computed vs Manual Updates", id: "computed-vs-manual-updates", level: 3},
+                {text: "Working Style", id: "computed-working-style", level: 2},
+                {text: "Best Practices", id: "best-practices", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 3},
               ]
             />,
         },
@@ -147,20 +139,22 @@ module App = {
             <DocsPage
               currentPath="/docs/core-concepts/effects"
               pageTitle="Effects"
-              pageLead="Side effects that run when their dependencies change, with automatic cleanup."
+              pageLead="Reactive side effects for work that happens outside the signal graph."
               content={EffectsDoc.content()}
               tocItems=[
-                {text: "Creating Effects", id: "creating-effects", level: 2},
-                {text: "How Effects Work", id: "how-effects-work", level: 2},
-                {text: "Cleanup Callbacks", id: "cleanup-callbacks", level: 2},
-                {text: "Common Use Cases", id: "common-use-cases", level: 2},
-                {text: "Disposing Effects", id: "disposing-effects", level: 2},
-                {text: "Dynamic Dependencies", id: "dynamic-dependencies", level: 2},
-                {text: "Avoiding Dependencies", id: "avoiding-dependencies", level: 2},
-                {text: "Example: Auto-save", id: "example-auto-save", level: 2},
-                {text: "Best Practices", id: "best-practices", level: 2},
-                {text: "Effects vs Computed", id: "effects-vs-computed", level: 2},
-                {text: "Next Steps", id: "next-steps", level: 2},
+                {text: "Working with Effects", id: "working-with-effects", level: 2},
+                {text: "Creating Effects", id: "creating-effects", level: 3},
+                {text: "Dependency Tracking", id: "dependency-tracking", level: 3},
+                {text: "Cleanup Callbacks", id: "cleanup-callbacks", level: 3},
+                {text: "Disposing Effects", id: "disposing-effects", level: 3},
+                {text: "Avoiding Dependencies", id: "avoiding-dependencies", level: 3},
+                {text: "Common Patterns", id: "effects-common-patterns", level: 2},
+                {text: "Common Use Cases", id: "common-use-cases", level: 3},
+                {text: "Example: Auto-save", id: "example-auto-save", level: 3},
+                {text: "Effects vs Computed", id: "effects-vs-computed", level: 3},
+                {text: "Working Style", id: "effects-working-style", level: 2},
+                {text: "Best Practices", id: "best-practices", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 3},
               ]
             />,
         },
@@ -170,23 +164,26 @@ module App = {
             <DocsPage
               currentPath="/docs/advanced/ssr"
               pageTitle="Server-Side Rendering"
-              pageLead="Render components on the server and hydrate on the client with seamless state transfer."
+              pageLead="Render on the server, transfer state explicitly, and hydrate without re-rendering."
               content={SSRDoc.content()}
               tocItems=[
-                {text: "Overview", id: "overview", level: 2},
-                {text: "Environment Detection", id: "environment-detection", level: 2},
-                {text: "Rendering to HTML", id: "rendering-to-html", level: 2},
+                {text: "Rendering Model", id: "rendering-model", level: 2},
+                {text: "Overview", id: "overview", level: 3},
+                {text: "Render on the Server", id: "render-on-the-server", level: 3},
                 {text: "Full Document Rendering", id: "full-document-rendering", level: 3},
-                {text: "State Transfer", id: "state-transfer", level: 2},
+                {text: "Environment Detection", id: "environment-detection", level: 3},
+                {text: "State and Hydration", id: "state-and-hydration", level: 2},
+                {text: "State Transfer", id: "state-transfer", level: 3},
                 {text: "Creating Synced State", id: "creating-synced-state", level: 3},
-                {text: "Built-in Codecs", id: "built-in-codecs", level: 3},
                 {text: "Syncing Existing Signals", id: "syncing-existing-signals", level: 3},
-                {text: "Generating the State Script", id: "generating-the-state-script", level: 3},
-                {text: "Client-Side Hydration", id: "hydration", level: 2},
-                {text: "Complete Example", id: "complete-example", level: 2},
-                {text: "Hydration Markers", id: "hydration-markers", level: 2},
-                {text: "Best Practices", id: "best-practices", level: 2},
-                {text: "Next Steps", id: "next-steps", level: 2},
+                {text: "Built-in Codecs", id: "built-in-codecs", level: 3},
+                {text: "Client-Side Hydration", id: "hydration", level: 3},
+                {text: "In Practice", id: "ssr-in-practice", level: 2},
+                {text: "Complete Example", id: "complete-example", level: 3},
+                {text: "Hydration Markers", id: "hydration-markers", level: 3},
+                {text: "Working Style", id: "ssr-working-style", level: 2},
+                {text: "Best Practices", id: "best-practices", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 3},
               ]
             />,
         },
@@ -199,18 +196,18 @@ module App = {
               pageLead="Group multiple signal updates to run observers only once."
               content={BatchingDoc.content()}
               tocItems=[
-                {text: "Why Batch?", id: "why-batch", level: 2},
-                {text: "Using Signal.batch()", id: "using-signal-batch", level: 2},
-                {text: "How Batching Works", id: "how-batching-works", level: 2},
-                {text: "Example: Form Updates", id: "example-form-updates", level: 2},
-                {text: "Nested Batches", id: "nested-batches", level: 2},
-                {text: "Returning Values from Batches", id: "returning-values-from-batches", level: 2},
-                {text: "When to Use Batching", id: "when-to-use-batching", level: 2},
-                {text: "Example: Animation", id: "example-animation", level: 2},
-                {text: "Performance Considerations", id: "performance-considerations", level: 2},
-                {text: "Best Practices", id: "best-practices", level: 2},
-                {text: "Example: Shopping Cart", id: "example-shopping-cart", level: 2},
-                {text: "Next Steps", id: "next-steps", level: 2},
+                {text: "Why and When to Batch", id: "why-and-when-to-batch", level: 2},
+                {text: "Why Batch?", id: "why-batch", level: 3},
+                {text: "When Not to Batch", id: "when-not-to-batch", level: 3},
+                {text: "Using Batching", id: "using-batching", level: 2},
+                {text: "Using Signal.batch()", id: "using-signal-batch", level: 3},
+                {text: "How Batching Works", id: "how-batching-works", level: 3},
+                {text: "Common Cases", id: "common-cases", level: 3},
+                {text: "Nested Batches", id: "nested-batches", level: 3},
+                {text: "Returning Values from Batches", id: "returning-values-from-batches", level: 3},
+                {text: "Working Style", id: "batching-working-style", level: 2},
+                {text: "Best Practices", id: "best-practices", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 3},
               ]
             />,
         },
@@ -220,19 +217,24 @@ module App = {
             <DocsPage
               currentPath="/docs/components/overview"
               pageTitle="Components"
-              pageLead="The Xote component system for building reactive user interfaces."
+              pageLead="How Xote components render once and stay reactive over time."
               content={ComponentsDoc.content()}
               tocItems=[
-                {text: "What are Components?", id: "what-are-components", level: 2},
-                {text: "JSX Configuration", id: "jsx-configuration", level: 2},
-                {text: "Text Nodes", id: "text-nodes", level: 2},
-                {text: "Attributes", id: "attributes", level: 2},
-                {text: "Event Handlers", id: "event-handlers", level: 2},
-                {text: "Lists", id: "lists", level: 2},
-                {text: "Mounting to the DOM", id: "mounting-to-the-dom", level: 2},
-                {text: "Example: Counter Component", id: "example-counter-component", level: 2},
-                {text: "Best Practices", id: "best-practices", level: 2},
-                {text: "Next Steps", id: "next-steps", level: 2},
+                {text: "Component Model", id: "component-model", level: 2},
+                {text: "Building Components", id: "building-components", level: 2},
+                {text: "JSX Configuration", id: "jsx-configuration", level: 3},
+                {text: "Writing Components", id: "writing-components", level: 3},
+                {text: "Recommended Pattern", id: "component-module-pattern", level: 3},
+                {text: "Function API", id: "function-api", level: 3},
+                {text: "Reactive Output", id: "reactive-output", level: 3},
+                {text: "Attributes and Events", id: "attributes-and-events", level: 3},
+                {text: "Lists", id: "lists", level: 3},
+                {text: "Mounting", id: "mounting", level: 3},
+                {text: "In Practice", id: "components-in-practice", level: 2},
+                {text: "Example: Counter Component", id: "example-counter-component", level: 3},
+                {text: "Working Style", id: "components-working-style", level: 2},
+                {text: "Best Practices", id: "best-practices", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 3},
               ]
             />,
         },
@@ -242,19 +244,21 @@ module App = {
             <DocsPage
               currentPath="/docs/router/overview"
               pageTitle="Router"
-              pageLead="Signal-based client-side router with pattern matching and dynamic routes."
+              pageLead="Signal-based navigation with route matching, links, and SSR-aware initialization."
               content={RouterDoc.content()}
               tocItems=[
-                {text: "Features", id: "features", level: 2},
-                {text: "Quick Start", id: "quick-start", level: 2},
-                {text: "The Location Signal", id: "the-location-signal", level: 2},
-                {text: "Route Patterns", id: "route-patterns", level: 2},
-                {text: "Navigation Methods", id: "navigation-methods", level: 2},
-                {text: "Navigation Links", id: "navigation-links", level: 2},
-                {text: "Complete Example", id: "complete-example", level: 2},
-                {text: "How It Works", id: "how-it-works", level: 2},
-                {text: "Best Practices", id: "best-practices", level: 2},
-                {text: "Next Steps", id: "next-steps", level: 2},
+                {text: "Getting Started", id: "getting-started-with-routing", level: 2},
+                {text: "Quick Start", id: "quick-start", level: 3},
+                {text: "Reading the Current Location", id: "reading-the-location", level: 3},
+                {text: "Route Patterns", id: "route-patterns", level: 3},
+                {text: "Navigation Methods", id: "navigation-methods", level: 3},
+                {text: "Navigation Links", id: "navigation-links", level: 3},
+                {text: "Server Rendering", id: "server-rendering", level: 3},
+                {text: "In Practice", id: "routing-in-practice", level: 2},
+                {text: "Complete Example", id: "complete-example", level: 3},
+                {text: "Working Style", id: "router-working-style", level: 2},
+                {text: "Best Practices", id: "best-practices", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 3},
               ]
             />,
         },
@@ -264,21 +268,19 @@ module App = {
             <DocsPage
               currentPath="/docs/api/signals"
               pageTitle="Signals API"
-              pageLead="Complete API reference for Signal, Computed, and Effect."
+              pageLead="Reference for the Signal module, plus the related Computed and Effect entry points."
               content={ApiSignalsDoc.content()}
               tocItems=[
-                {text: "Type", id: "type", level: 2},
-                {text: "Functions", id: "functions", level: 2},
-                {text: "make", id: "make", level: 3},
-                {text: "get", id: "get", level: 3},
-                {text: "peek", id: "peek", level: 3},
-                {text: "set", id: "set", level: 3},
-                {text: "update", id: "update", level: 3},
-                {text: "batch", id: "batch", level: 3},
-                {text: "untrack", id: "untrack", level: 3},
-                {text: "Examples", id: "examples", level: 2},
-                {text: "Notes", id: "notes", level: 2},
-                {text: "See Also", id: "see-also", level: 2},
+                {text: "Signal", id: "signal-api", level: 2},
+                {text: "Type", id: "type", level: 3},
+                {text: "Functions", id: "functions", level: 3},
+                {text: "Related APIs", id: "related-signal-apis", level: 2},
+                {text: "Behavior Notes", id: "behavior-notes", level: 3},
+                {text: "Companion Modules", id: "companion-modules", level: 3},
+                {text: "In Practice", id: "signals-in-practice", level: 2},
+                {text: "Examples", id: "examples", level: 3},
+                {text: "Where to Go Next", id: "where-to-go-next", level: 2},
+                {text: "See Also", id: "see-also", level: 3},
               ]
             />,
         },
@@ -288,23 +290,27 @@ module App = {
             <DocsPage
               currentPath="/docs/comparisons/react"
               pageTitle="React Comparison"
-              pageLead="A detailed comparison of Xote and React, covering reactivity, SSR, routing, bundle size, and when to choose each."
+              pageLead="How Xote differs from React in rendering, effects, routing, SSR, and team tradeoffs."
               content={ReactComparisonDoc.content()}
               tocItems=[
-                {text: "Overview", id: "overview", level: 2},
-                {text: "Reactivity Model", id: "reactivity-model", level: 2},
-                {text: "Side Effects and Dependencies", id: "side-effects-and-dependencies", level: 2},
-                {text: "Component Lifecycle", id: "component-lifecycle", level: 2},
-                {text: "List Rendering", id: "list-rendering", level: 2},
-                {text: "Server-Side Rendering", id: "server-side-rendering", level: 2},
-                {text: "Routing", id: "routing", level: 2},
-                {text: "Bundle Size", id: "bundle-size-and-runtime-footprint", level: 2},
-                {text: "Type Safety", id: "type-safety", level: 2},
-                {text: "Ecosystem", id: "ecosystem", level: 2},
-                {text: "When to Choose React", id: "when-to-choose-react", level: 2},
-                {text: "When to Choose Xote", id: "when-to-choose-xote", level: 2},
-                {text: "Migration Considerations", id: "migration-considerations", level: 2},
-                {text: "Further Reading", id: "further-reading", level: 2},
+                {text: "At a Glance", id: "at-a-glance", level: 2},
+                {text: "Overview", id: "overview", level: 3},
+                {text: "Runtime Model", id: "runtime-model", level: 2},
+                {text: "Reactivity Model", id: "reactivity-model", level: 3},
+                {text: "Effects and Derived State", id: "effects-and-derived-state", level: 3},
+                {text: "Component Lifecycle", id: "component-lifecycle", level: 3},
+                {text: "List Rendering", id: "list-rendering", level: 3},
+                {text: "Platform Surface", id: "platform-surface", level: 2},
+                {text: "Server-Side Rendering", id: "server-side-rendering", level: 3},
+                {text: "Routing", id: "routing", level: 3},
+                {text: "Runtime Footprint", id: "runtime-footprint", level: 3},
+                {text: "Type Safety", id: "type-safety", level: 3},
+                {text: "Ecosystem", id: "ecosystem", level: 3},
+                {text: "Choosing Between Them", id: "choosing-between-them", level: 2},
+                {text: "When to Choose React", id: "when-to-choose-react", level: 3},
+                {text: "When to Choose Xote", id: "when-to-choose-xote", level: 3},
+                {text: "Migration Considerations", id: "migration-considerations", level: 3},
+                {text: "Further Reading", id: "further-reading", level: 3},
               ]
             />,
         },
@@ -314,23 +320,28 @@ module App = {
             <DocsPage
               currentPath="/docs/comparisons/solidjs"
               pageTitle="SolidJS Comparison"
-              pageLead="How Xote compares to SolidJS -- two signal-based frameworks with different language choices and scope."
+              pageLead="How Xote compares to SolidJS, especially where they share the same reactive model."
               content={SolidJSComparisonDoc.content()}
               tocItems=[
-                {text: "Overview", id: "overview", level: 2},
-                {text: "Shared Philosophy", id: "shared-philosophy", level: 2},
-                {text: "Signals and State", id: "signals-and-state", level: 2},
-                {text: "Component Model", id: "component-model", level: 2},
-                {text: "List Rendering", id: "list-rendering", level: 2},
-                {text: "Server-Side Rendering", id: "server-side-rendering", level: 2},
-                {text: "Routing", id: "routing", level: 2},
-                {text: "Bundle Size", id: "bundle-size-and-compilation", level: 2},
-                {text: "Type Safety", id: "type-safety", level: 2},
-                {text: "Ecosystem", id: "ecosystem", level: 2},
-                {text: "When to Choose SolidJS", id: "when-to-choose-solidjs", level: 2},
-                {text: "When to Choose Xote", id: "when-to-choose-xote", level: 2},
-                {text: "Migration Considerations", id: "migration-considerations", level: 2},
-                {text: "Further Reading", id: "further-reading", level: 2},
+                {text: "At a Glance", id: "at-a-glance", level: 2},
+                {text: "Overview", id: "overview", level: 3},
+                {text: "Shared Ground", id: "shared-ground", level: 2},
+                {text: "Shared Philosophy", id: "shared-philosophy", level: 3},
+                {text: "Runtime Model", id: "runtime-model", level: 2},
+                {text: "Signals and State", id: "signals-and-state", level: 3},
+                {text: "Component Model", id: "component-model", level: 3},
+                {text: "List Rendering", id: "list-rendering", level: 3},
+                {text: "Platform Surface", id: "platform-surface", level: 2},
+                {text: "Server-Side Rendering", id: "server-side-rendering", level: 3},
+                {text: "Routing", id: "routing", level: 3},
+                {text: "Runtime Footprint and Compilation", id: "runtime-footprint-and-compilation", level: 3},
+                {text: "Type Safety", id: "type-safety", level: 3},
+                {text: "Ecosystem", id: "ecosystem", level: 3},
+                {text: "Choosing Between Them", id: "choosing-between-them", level: 2},
+                {text: "When to Choose SolidJS", id: "when-to-choose-solidjs", level: 3},
+                {text: "When to Choose Xote", id: "when-to-choose-xote", level: 3},
+                {text: "Migration Considerations", id: "migration-considerations", level: 3},
+                {text: "Further Reading", id: "further-reading", level: 3},
               ]
             />,
         },
@@ -340,98 +351,27 @@ module App = {
             <DocsPage
               currentPath="/docs/technical-overview"
               pageTitle="Technical Overview"
-              pageLead="Deep dive into Xote's architecture, scheduling, and reactivity internals."
+              pageLead="A lower-level view of Xote's modules, runtime behavior, and rendering model."
               content={TechnicalOverviewDoc.content()}
               tocItems=[
-                {text: "Architecture Overview", id: "architecture-overview", level: 2},
-                {text: "Reactivity Model", id: "reactivity-model", level: 2},
-                {text: "Component System", id: "component-system", level: 2},
-                {text: "JSX Support", id: "jsx-support", level: 2},
-                {text: "Router Architecture", id: "router-architecture", level: 2},
-                {text: "Execution Characteristics", id: "execution-characteristics", level: 2},
-                {text: "TC39 Signals Proposal", id: "relation-to-tc39-signals-proposal", level: 2},
-                {text: "API Summary", id: "api-summary", level: 2},
-                {text: "Best Practices", id: "best-practices", level: 2},
-                {text: "Next Steps", id: "next-steps", level: 2},
+                {text: "System Shape", id: "system-shape", level: 2},
+                {text: "Architecture Overview", id: "architecture-overview", level: 3},
+                {text: "Module Structure", id: "module-structure", level: 3},
+                {text: "Runtime Model", id: "runtime-model", level: 2},
+                {text: "Reactivity Model", id: "reactivity-model", level: 3},
+                {text: "Component Rendering", id: "component-rendering", level: 3},
+                {text: "Router Architecture", id: "router-architecture", level: 3},
+                {text: "SSR and Hydration", id: "ssr-and-hydration", level: 3},
+                {text: "Execution Characteristics", id: "execution-characteristics", level: 3},
+                {text: "Reference Map", id: "reference-map", level: 2},
+                {text: "API Summary", id: "api-summary", level: 3},
+                {text: "Reactive Primitives", id: "reactive-primitives", level: 3},
+                {text: "Component Helpers", id: "component-helpers", level: 3},
+                {text: "Router Helpers", id: "router-helpers", level: 3},
+                {text: "Working Style", id: "working-style", level: 2},
+                {text: "Best Practices", id: "best-practices", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 3},
               ]
-            />,
-        },
-        // Demo routes
-        {
-          pattern: "/docs/demos/counter",
-          render: _params =>
-            <DemoPage
-              currentPath="/docs/demos/counter"
-              demoTitle="Counter"
-              demoLead="Simple reactive counter with signals and event handlers."
-              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/CounterDemo.res"
-              content={<CounterDemo />}
-            />,
-        },
-        {
-          pattern: "/docs/demos/todo",
-          render: _params =>
-            <DemoPage
-              currentPath="/docs/demos/todo"
-              demoTitle="Todo List"
-              demoLead="Complete todo app with filters, computed values, and reactive lists."
-              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/TodoDemo.res"
-              content={<TodoDemo />}
-            />,
-        },
-        {
-          pattern: "/docs/demos/color-mixer",
-          render: _params =>
-            <DemoPage
-              currentPath="/docs/demos/color-mixer"
-              demoTitle="Color Mixer"
-              demoLead="RGB color mixing with live preview, format conversions, and palette variations."
-              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/ColorMixerDemo.res"
-              content={<ColorMixerDemo />}
-            />,
-        },
-        {
-          pattern: "/docs/demos/reaction-game",
-          render: _params =>
-            <DemoPage
-              currentPath="/docs/demos/reaction-game"
-              demoTitle="Reaction Game"
-              demoLead="Reflex testing game with timers, statistics, and computed averages."
-              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/ReactionGameDemo.res"
-              content={<ReactionGameDemo />}
-            />,
-        },
-        {
-          pattern: "/docs/demos/solitaire",
-          render: _params =>
-            <DemoPage
-              currentPath="/docs/demos/solitaire"
-              demoTitle="Solitaire"
-              demoLead="Classic Klondike Solitaire with click-to-move gameplay and win detection."
-              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/SolitaireDemo.res"
-              content={<SolitaireDemo />}
-            />,
-        },
-        {
-          pattern: "/docs/demos/memory-match",
-          render: _params =>
-            <DemoPage
-              currentPath="/docs/demos/memory-match"
-              demoTitle="Memory Match"
-              demoLead="2-player memory matching game with 10 progressive levels and score tracking."
-              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/MatchGameDemo.res"
-              content={<MatchGameDemo />}
-            />,
-        },
-        {
-          pattern: "/docs/demos/snake",
-          render: _params =>
-            <DemoPage
-              currentPath="/docs/demos/snake"
-              demoTitle="Snake Game"
-              demoLead="Classic snake game with 10 challenging levels, obstacles, and increasing difficulty."
-              sourceUrl="https://github.com/brnrdog/xote/blob/main/docs-website/src/demos/SnakeGameDemo.res"
-              content={<SnakeGameDemo />}
             />,
         },
         {
@@ -442,4 +382,3 @@ module App = {
     )
   }
 }
-

@@ -1,93 +1,49 @@
-// ---- Helper bindings ----
-module DomHelpers = {
-  type target = {value: string}
-  @get external target: Dom.event => target = "target"
-  let targetValue = (evt: Dom.event): string => target(evt).value
-
-  @val external setInterval: (unit => unit, int) => int = "setInterval"
-  @val external clearInterval: int => unit = "clearInterval"
-  @val external setTimeout: (unit => unit, int) => int = "setTimeout"
-
-  type clipboard
-  @val @scope("navigator") external clipboard: clipboard = "clipboard"
-  @send external writeText: (clipboard, string) => Promise.t<unit> = "writeText"
-
-  let copyToClipboard = (text: string): unit => {
-    clipboard->writeText(text)->ignore
-  }
-}
-
 // ---- Feature data ----
 type feature = {
+  number: string,
   title: string,
   description: string,
-  iconName: Basefn.Icon.name,
   linkText: option<string>,
   linkTo: option<string>,
 }
 
-let features = [
+let features: array<feature> = [
   {
-    title: "Fine-Grained Reactivity",
-    description: "Direct DOM updates without a virtual DOM. Automatic dependency tracking means only what changed gets updated.",
-    iconName: Basefn.Icon.Star,
-    linkText: Some("Learn about Signals"),
+    number: "01",
+    title: "Fine-grained reactivity",
+    description: "Signals, computeds, and effects recompute only what changed. No virtual DOM diff.",
+    linkText: Some("Learn about signals"),
     linkTo: Some("/docs/core-concepts/signals"),
   },
   {
-    title: "Based on TC39 Signals",
-    description: "Aligned with the TC39 Signals proposal. Build with patterns that will become native to JavaScript.",
-    iconName: Basefn.Icon.Heart,
-    linkText: Some("Read the spec"),
+    number: "02",
+    title: "Sound type system",
+    description: "ReScript catches invalid states at compile time with exhaustive matching and stronger null-safety by default.",
+    linkText: Some("Read the introduction"),
+    linkTo: Some("/docs"),
+  },
+  {
+    number: "03",
+    title: "Minimal footprint",
+    description: "A small runtime, tree-shakeable modules, and built-in primitives instead of a stack of add-on packages.",
+    linkText: Some("Read the overview"),
     linkTo: Some("/docs/technical-overview"),
   },
   {
-    title: "Type-Safe by Default",
-    description: "Built with ReScript's powerful type system. Catch bugs at compile time with sound types and pattern matching.",
-    iconName: Basefn.Icon.Check,
-    linkText: Some("View API Reference"),
-    linkTo: Some("/docs/api/signals"),
-  },
-  {
-    title: "Lightweight & Fast",
-    description: "Minimal runtime overhead with no virtual DOM diffing. Components compile to efficient JavaScript.",
-    iconName: Basefn.Icon.Download,
-    linkText: None,
-    linkTo: None,
-  },
-  {
-    title: "JSX Support",
-    description: "Full ReScript JSX v4 support for declarative components. Familiar markup with type system safety.",
-    iconName: Basefn.Icon.Edit,
-    linkText: Some("Component docs"),
+    number: "04",
+    title: "JSX support + built-in router",
+    description: "Write components in JSX and handle routing with first-party primitives instead of stitching the basics together yourself.",
+    linkText: Some("Components and router"),
     linkTo: Some("/docs/components/overview"),
-  },
-  {
-    title: "Client-Side Router",
-    description: "Built-in signal-based router with pattern matching and dynamic routes — no extra dependencies.",
-    iconName: Basefn.Icon.ExternalLink,
-    linkText: Some("Router guide"),
-    linkTo: Some("/docs/router/overview"),
-  },
-  {
-    title: "Server-Side Rendering",
-    description: "Full SSR with hydration, state serialization, and environment-aware components — render on the server, hydrate on the client.",
-    iconName: Basefn.Icon.Download,
-    linkText: Some("SSR guide"),
-    linkTo: Some("/docs/advanced/ssr"),
   },
 ]
 
-// ---- Feature Card ----
 module FeatureCard = {
   type props = {feature: feature}
 
   let make = (props: props) => {
     let {feature: f} = props
     <div class="feature-card">
-      <div class="feature-card-icon">
-        {Basefn.Icon.make({name: f.iconName, size: Md})}
-      </div>
       <h3> {Node.text(f.title)} </h3>
       <p> {Node.text(f.description)} </p>
       {switch (f.linkText, f.linkTo) {
@@ -95,10 +51,7 @@ module FeatureCard = {
         Router.link(
           ~to,
           ~attrs=[Node.attr("class", "feature-card-link")],
-          ~children=[
-            Node.text(text ++ " "),
-            Basefn.Icon.make({name: ChevronRight, size: Sm}),
-          ],
+          ~children=[Node.text(text ++ " \u2192")],
           (),
         )
       | _ => Node.fragment([])
@@ -107,445 +60,410 @@ module FeatureCard = {
   }
 }
 
-// ---- Hero ----
+module HeroBackground = {
+  type props = {}
+
+  let cols = 56
+  let rows = 20
+  let size = 24
+
+  let makeTriangles = () => {
+    let out = []
+    for r in 0 to rows - 1 {
+      for c in 0 to cols - 1 {
+        let x = c * size
+        let y = r * size
+        let x2 = x + size
+        let y2 = y + size
+        let sx = Int.toString(x)
+        let sy = Int.toString(y)
+        let sx2 = Int.toString(x2)
+        let sy2 = Int.toString(y2)
+        let upper = `${sx},${sy} ${sx2},${sy} ${sx},${sy2}`
+        let lower = `${sx2},${sy} ${sx2},${sy2} ${sx},${sy2}`
+        out
+        ->Array.push(
+          Node.element(
+            "polygon",
+            ~attrs=[Node.attr("points", upper), Node.attr("class", "hero-tri")],
+            (),
+          ),
+        )
+        ->ignore
+        out
+        ->Array.push(
+          Node.element(
+            "polygon",
+            ~attrs=[Node.attr("points", lower), Node.attr("class", "hero-tri")],
+            (),
+          ),
+        )
+        ->ignore
+      }
+    }
+    out
+  }
+
+  let make = (_props: props) => {
+    let width = cols * size
+    let height = rows * size
+    let viewBox = `0 0 ${Int.toString(width)} ${Int.toString(height)}`
+
+    let handleOver = (_evt: Dom.event) => {
+      let _ = %raw(`(function(evt) {
+        var svg = evt.currentTarget;
+        if (!svg.__xoteFire) return;
+        svg.__xoteHover = true;
+        clearTimeout(svg.__xoteHoverEnd);
+        svg.__xoteHoverEnd = setTimeout(function() { svg.__xoteHover = false; }, 600);
+        var rect = svg.getBoundingClientRect();
+        var vb = svg.viewBox && svg.viewBox.baseVal;
+        if (!vb || !rect.width || !rect.height) return;
+        var sx = vb.width / rect.width;
+        var sy = vb.height / rect.height;
+        var cx = (evt.clientX - rect.left) * sx;
+        var cy = (evt.clientY - rect.top) * sy;
+        var polys = svg.querySelectorAll('polygon.hero-tri');
+        var nearest = null, nearestD2 = Infinity;
+        for (var i = 0; i < polys.length; i++) {
+          var p = polys[i];
+          if (p.__xoteCx === undefined) {
+            var pts = p.points, ax = 0, ay = 0, n = pts.numberOfItems;
+            for (var j = 0; j < n; j++) {
+              var pt = pts.getItem(j);
+              ax += pt.x; ay += pt.y;
+            }
+            p.__xoteCx = ax / n;
+            p.__xoteCy = ay / n;
+          }
+          var dx = p.__xoteCx - cx;
+          var dy = p.__xoteCy - cy;
+          var d2 = dx * dx + dy * dy;
+          if (d2 < nearestD2) { nearestD2 = d2; nearest = p; }
+        }
+        svg.__xoteFire(nearest, true);
+      })(_evt)`)
+    }
+
+    if SSRContext.isClient {
+      Effect.run(() => {
+        let _ = %raw(`(function(){
+          var tries = 0;
+          function init() {
+            var svg = document.querySelector('.hero-bg-svg');
+            if (!svg) { if (tries++ < 50) setTimeout(init, 100); return; }
+            if (svg.__xoteFire) return;
+            svg.__xoteFire = function(nearest, throttle, idle) {
+              if (!nearest) return;
+              var vb = svg.viewBox && svg.viewBox.baseVal;
+              if (!vb) return;
+              function activate(el, delay, ttl) {
+                clearTimeout(el.__xoteTimer);
+                clearTimeout(el.__xoteDelay);
+                el.__xoteDelay = setTimeout(function() {
+                  el.classList.add('active');
+                  el.__xoteTimer = setTimeout(function() {
+                    el.classList.remove('active');
+                  }, ttl);
+                }, delay);
+              }
+              if (throttle && svg.__xoteLastRipple && performance.now() - svg.__xoteLastRipple < 140) {
+                activate(nearest, 0, 600);
+                return;
+              }
+              svg.__xoteLastRipple = performance.now();
+              var polys = svg.querySelectorAll('polygon.hero-tri');
+              var cellVb = (vb.width / 42 + vb.height / 15) / 2;
+              var maxRings = idle ? 5 : 3;
+              var ringStep = cellVb * (idle ? 1.4 : 1.2);
+              var ringDelay = idle ? 140 : 70;
+              var ringDuration = idle ? 520 : 360;
+              var biasAngle = idle ? Math.random() * Math.PI * 2 : 0;
+              var biasStrength = idle ? 0.55 : 0;
+              for (var k = 0; k < polys.length; k++) {
+                var q = polys[k];
+                if (q.__xoteCx === undefined) {
+                  var pts = q.points, ax = 0, ay = 0, n = pts.numberOfItems;
+                  for (var j = 0; j < n; j++) {
+                    var pt = pts.getItem(j);
+                    ax += pt.x; ay += pt.y;
+                  }
+                  q.__xoteCx = ax / n;
+                  q.__xoteCy = ay / n;
+                }
+                var ddx = q.__xoteCx - nearest.__xoteCx;
+                var ddy = q.__xoteCy - nearest.__xoteCy;
+                var dist = Math.sqrt(ddx * ddx + ddy * ddy);
+                var ring = Math.round(dist / ringStep);
+                if (ring > maxRings) continue;
+                var prob;
+                if (idle) {
+                  var dirWeight = 1;
+                  if (dist > 0) {
+                    var ang = Math.atan2(ddy, ddx);
+                    var align = Math.cos(ang - biasAngle);
+                    dirWeight = 1 + biasStrength * align;
+                  }
+                  prob = ring === 0 ? 1 : Math.max(0, (0.55 - ring * 0.09) * dirWeight);
+                } else {
+                  prob = ring === 0 ? 1 : 0.35 - ring * 0.08;
+                }
+                if (Math.random() > prob) continue;
+                var jitter = (Math.random() - 0.5) * (idle ? 120 : 60);
+                var ttl = ringDuration + ring * (idle ? 110 : 50) + Math.random() * (idle ? 320 : 160);
+                activate(q, ring * ringDelay + jitter, ttl);
+              }
+            };
+            (function tick() {
+              var delay = 900 + Math.random() * 1600;
+              setTimeout(function() {
+                if (!document.body.contains(svg)) return;
+                if (!svg.__xoteHover) {
+                  var polys = svg.querySelectorAll('polygon.hero-tri');
+                  if (polys.length) {
+                    var seed = polys[Math.floor(Math.random() * polys.length)];
+                    if (seed.__xoteCx === undefined) {
+                      var pts = seed.points, ax = 0, ay = 0, n = pts.numberOfItems;
+                      for (var j = 0; j < n; j++) {
+                        var pt = pts.getItem(j);
+                        ax += pt.x; ay += pt.y;
+                      }
+                      seed.__xoteCx = ax / n;
+                      seed.__xoteCy = ay / n;
+                    }
+                    svg.__xoteFire(seed, false, true);
+                  }
+                }
+                tick();
+              }, delay);
+            })();
+          }
+          init();
+        })()`)
+        None
+      })
+    }
+
+    Node.element(
+      "div",
+      ~attrs=[Node.attr("class", "hero-bg"), Node.attr("aria-hidden", "true")],
+      ~children=[
+        Node.element(
+          "svg",
+          ~attrs=[
+            Node.attr("viewBox", viewBox),
+            Node.attr("preserveAspectRatio", "xMidYMid slice"),
+            Node.attr("class", "hero-bg-svg"),
+          ],
+          ~events=[("mousemove", handleOver)],
+          ~children=makeTriangles(),
+          (),
+        ),
+      ],
+      (),
+    )
+  }
+}
+
 module Hero = {
   type props = {}
 
   let make = (_props: props) => {
     <section class="hero">
-      <div class="hero-inner">
-        <div class="hero-logo">
-          <Logo size=48 color="var(--text-accent)" />
-          <span class="hero-logo-text"> {Node.text("xote")} </span>
+      <HeroBackground />
+      <h1 class="hero-display">
+        {Node.text("A ReScript Library for Interactive User Interfaces")}
+      </h1>
+      <p class="hero-lead">
+        {Node.text(
+          "Build components and web applications with fine-grained reactivity in a sound type system world.",
+        )}
+      </p>
+      <div class="hero-ctas">
+        {Router.link(
+          ~to="/docs",
+          ~attrs=[Node.attr("class", "btn btn-primary")],
+          ~children=[Node.text("Get started")],
+          (),
+        )}
+        {Router.link(
+          ~to="/docs/core-concepts/signals",
+          ~attrs=[Node.attr("class", "btn-secondary-link")],
+          ~children=[Node.text("Read the docs \u2192")],
+          (),
+        )}
+      </div>
+    </section>
+  }
+}
+
+module Tutorial = {
+  type props = {}
+
+  let step1Code = `type tempUnit = Celsius | Fahrenheit | Kelvin
+
+let symbolFor = u =>
+  switch u {
+  | Celsius => "°C"
+  | Fahrenheit => "°F"
+  | Kelvin => "K"
+  }
+
+@jsx.component
+let make = (~value: float, ~unit: tempUnit) =>
+  <div class="temp-display">
+    <span class="temp-value">
+      {Node.text(value->Float.toFixed(~digits=1))}
+    </span>
+    <span class="temp-unit">
+      {Node.text(symbolFor(unit))}
+    </span>
+  </div>`
+
+  let step2Code = `let celsius = Signal.make(22.0)
+
+let fahrenheit = Computed.make(() =>
+  Signal.get(celsius) *. 9.0 /. 5.0 +. 32.0
+)
+let kelvin = Computed.make(() =>
+  Signal.get(celsius) +. 273.15
+)
+
+@jsx.component
+let make = () =>
+  <div class="temp-row">
+    <TemperatureDisplay
+      value={() => Signal.get(celsius)} unit=Celsius
+    />
+    <TemperatureDisplay
+      value={() => Signal.get(fahrenheit)} unit=Fahrenheit
+    />
+    <TemperatureDisplay
+      value={() => Signal.get(kelvin)} unit=Kelvin
+    />
+  </div>`
+
+  let step3Code = `let capital = Signal.make(pickRandomCapital())
+let celsius = Signal.make(None)
+
+let fahrenheit = Computed.make(() =>
+  switch Signal.get(celsius) {
+  | Some(c) => Some(c *. 9.0 /. 5.0 +. 32.0)
+  | None => None
+  }
+)
+
+Effect.run(() => {
+  let c = Signal.get(capital)
+  Signal.set(celsius, None)
+
+  let url =
+    \`https://api.open-meteo.com/v1/forecast?\` ++
+    \`latitude=\${c.lat}&longitude=\${c.lng}\` ++
+    \`&current_weather=true\`
+
+  fetch(url)
+  ->Promise.then(r => r->Response.json)
+  ->Promise.then(json => {
+    Signal.set(celsius, Some(json["current_weather"]["temperature"]))
+    Promise.resolve()
+  })
+  ->ignore
+
+  None
+})`
+
+  let stepHeader = (~n, ~title, ~blurb) =>
+    <div class="tutorial-step-head">
+      <span class="tutorial-step-number"> {Node.text(n)} </span>
+      <div>
+        <h3 class="tutorial-step-title"> {Node.text(title)} </h3>
+        <p class="tutorial-step-blurb"> {Node.text(blurb)} </p>
+      </div>
+    </div>
+
+  let codeBlock = (~filename, ~code) =>
+    <div class="tutorial-code">
+      <div class="tutorial-code-filename"> {Node.text(filename)} </div>
+      <pre class="tutorial-code-pre">
+        <code> {SyntaxHighlight.highlight(code)} </code>
+      </pre>
+    </div>
+
+  let stage = (~caption, ~children) =>
+    <figure class="tutorial-figure">
+      <div class="tutorial-figure-stage"> {children} </div>
+      <figcaption class="tutorial-figure-caption"> {Node.text(caption)} </figcaption>
+    </figure>
+
+  let make = (_props: props) => {
+    <section class="tutorial-section">
+      <div class="tutorial-step">
+        {stepHeader(
+          ~n="01",
+          ~title="Build a presentational component",
+          ~blurb="Components are plain functions. TemperatureDisplay takes a value and a unit and renders them in a styled card.",
+        )}
+        <div class="tutorial-step-body">
+          {codeBlock(~filename="TemperatureDisplay.res", ~code=step1Code)}
+          {stage(
+            ~caption="Preview — TemperatureDisplay with a static value of 22 °C",
+            ~children=<TutorialDemos.Step1 />,
+          )}
         </div>
-        <h1>
-          {Node.text("Build reactive interfaces with ")}
-          <em> {Node.text("fine-grained signals")} </em>
-          {Node.text(" and ")}
-          <em> {Node.text("sound types")} </em>
-        </h1>
-        <p class="hero-subtitle">
-          {Node.text(
-            "Xote is a lightweight UI library for ReScript that combines signal-powered reactivity with a minimal component system. No virtual DOM, no diffing \u2014 just precise, efficient updates.",
+      </div>
+      <div class="tutorial-step">
+        {stepHeader(
+          ~n="02",
+          ~title="Add reactivity with signals and computeds",
+          ~blurb="One signal holds the Celsius value. Computeds derive Fahrenheit and Kelvin automatically. Move the slider — the display updates without re-rendering the tree.",
+        )}
+        <div class="tutorial-step-body">
+          {codeBlock(~filename="TemperatureDashboard.res", ~code=step2Code)}
+          {stage(
+            ~caption="Preview — a single signal drives three synchronized readouts",
+            ~children=<TutorialDemos.Step2 />,
           )}
-        </p>
-        <div class="hero-buttons">
-          {Router.link(
-            ~to="/docs",
-            ~attrs=[Node.attr("class", "btn btn-primary")],
-            ~children=[
-              Node.text("Get Started "),
-              Basefn.Icon.make({name: ChevronRight, size: Sm}),
-            ],
-            (),
+        </div>
+      </div>
+      <div class="tutorial-step">
+        {stepHeader(
+          ~n="03",
+          ~title="Fetch live data in an effect",
+          ~blurb="An effect tracks the selected capital and fetches the current temperature from the free Open-Meteo API. When the capital changes, the effect re-runs and the dashboard re-renders.",
+        )}
+        <div class="tutorial-step-body">
+          {codeBlock(~filename="CapitalWeather.res", ~code=step3Code)}
+          {stage(
+            ~caption="Preview — real weather from a random world capital (Open-Meteo, no API key)",
+            ~children=<TutorialDemos.Step3 />,
           )}
-          <a href="https://github.com/brnrdog/xote" target="_blank" class="btn btn-ghost">
-            {Basefn.Icon.make({name: GitHub, size: Sm})}
-            {Node.text(" View on GitHub")}
-          </a>
         </div>
       </div>
     </section>
   }
 }
 
-// ---- Features Section ----
 module Features = {
   type props = {}
 
   let make = (_props: props) => {
     <section class="features-section">
-      <div class="features-inner">
-        <div class="features-heading">
-          <h2> {Node.text("Everything you need for reactive UIs")} </h2>
-          <p>
-            {Node.text(
-              "Powerful reactive primitives, a declarative component system, and type safety \u2014 all in a focused package.",
-            )}
-          </p>
-        </div>
-        <div class="features-grid">
-          {Node.fragment(features->Array.map(f => <FeatureCard feature={f} />))}
-        </div>
+      <div class="features-grid">
+        {Node.fragment(features->Array.map(f => <FeatureCard feature={f} />))}
       </div>
     </section>
   }
 }
 
-// ---- Interactive Code Demo ----
-module CodeDemo = {
-  type props = {}
-
-  module CounterApp = {
-    type props = {}
-    let make = (_props: props) => {
-      {
-        let count = Signal.make(0)
-        let increment = (_evt: Dom.event) => Signal.update(count, n => n + 1)
-        let decrement = (_evt: Dom.event) => Signal.update(count, n => n - 1)
-        let reset = (_evt: Dom.event) => Signal.set(count, 0)
-
-        <div class="counter-app">
-          <div class="counter-display">
-            {Node.signalText(() => Signal.get(count)->Int.toString)}
-          </div>
-          <div class="counter-buttons">
-            <button onClick={decrement} class="counter-btn"> {Node.text("-")} </button>
-            <button onClick={reset} class="counter-btn counter-btn-reset">
-              {Node.text("Reset")}
-            </button>
-            <button onClick={increment} class="counter-btn"> {Node.text("+")} </button>
-          </div>
-        </div>
-      }
-    }
-  }
-
-  module TemperatureApp = {
-    type props = {}
-    let make = (_props: props) => {
-      {
-        let celsius = Signal.make(0.0)
-        let fahrenheit = Computed.make(() => Signal.get(celsius) *. 9.0 /. 5.0 +. 32.0)
-        let kelvin = Computed.make(() => Signal.get(celsius) +. 273.15)
-
-        let handleInput = (evt: Dom.event) => {
-          let value = DomHelpers.targetValue(evt)
-          switch value->Float.fromString {
-          | Some(num) => Signal.set(celsius, num)
-          | None => ()
-          }
-        }
-
-        <div class="temp-app">
-          <div class="temp-input-group">
-            <label class="temp-label"> {Node.text("Celsius")} </label>
-            {Html.input(
-              ~attrs=[
-                Node.attr("type", "number"),
-                Node.attr("class", "temp-input"),
-                Node.attr("placeholder", "0"),
-              ],
-              ~events=[("input", handleInput)],
-              (),
-            )}
-          </div>
-          <div class="temp-results">
-            <div class="temp-result">
-              <span class="temp-result-label"> {Node.text("Fahrenheit")} </span>
-              <span class="temp-result-value">
-                {Node.signalText(() => Signal.get(fahrenheit)->Float.toFixed(~digits=1))}
-              </span>
-            </div>
-            <div class="temp-result">
-              <span class="temp-result-label"> {Node.text("Kelvin")} </span>
-              <span class="temp-result-value">
-                {Node.signalText(() => Signal.get(kelvin)->Float.toFixed(~digits=1))}
-              </span>
-            </div>
-          </div>
-        </div>
-      }
-    }
-  }
-
-  module TimerApp = {
-    type props = {}
-    let make = (_props: props) => {
-      {
-        let isRunning = Signal.make(false)
-        let seconds = Signal.make(0)
-
-        if SSRContext.isClient {
-          Effect.run(() => {
-            if Signal.get(isRunning) {
-              let id = DomHelpers.setInterval(() => Signal.update(seconds, s => s + 1), 1000)
-              Some(() => DomHelpers.clearInterval(id))
-            } else {
-              None
-            }
-          })
-        }
-
-        let toggleTimer = (_evt: Dom.event) => Signal.update(isRunning, r => !r)
-        let resetTimer = (_evt: Dom.event) => {
-          Signal.set(isRunning, false)
-          Signal.set(seconds, 0)
-        }
-
-        <div class="timer-app">
-          <div class="timer-display">
-            {Node.signalText(() => {
-              let s = Signal.get(seconds)
-              let mins = s / 60
-              let secs = mod(s, 60)
-              `${mins->Int.toString->String.padStart(2, "0")}:${secs->Int.toString->String.padStart(2, "0")}`
-            })}
-          </div>
-          <div class="timer-buttons">
-            <button onClick={toggleTimer} class="timer-btn timer-btn-primary">
-              {Node.signalText(() => Signal.get(isRunning) ? "Pause" : "Start")}
-            </button>
-            <button onClick={resetTimer} class="timer-btn"> {Node.text("Reset")} </button>
-          </div>
-        </div>
-      }
-    }
-  }
-
-  let counterCode = `open Xote
-
-let make = () => {
-  let count = Signal.make(0)
-
-  let increment = (_evt) =>
-    Signal.update(count, n => n + 1)
-
-  let decrement = (_evt) =>
-    Signal.update(count, n => n - 1)
-
-  <div class="counter-app">
-    <div class="counter-display">
-      {Node.signalText(() =>
-        Signal.get(count)->Int.toString
-      )}
-    </div>
-    <div class="counter-buttons">
-      <button onClick={decrement}>
-        {Node.text("-")}
-      </button>
-      <button onClick={increment}>
-        {Node.text("+")}
-      </button>
-    </div>
-  </div>
-}`
-
-  let tempCode = `open Xote
-
-let make = () => {
-  let celsius = Signal.make(0.0)
-
-  // Computed values auto-update
-  let fahrenheit = Computed.make(() =>
-    Signal.get(celsius) *. 9.0 /. 5.0 +. 32.0
-  )
-
-  let kelvin = Computed.make(() =>
-    Signal.get(celsius) +. 273.15
-  )
-
-  <div class="temp-app">
-    <label> {Node.text("Celsius")} </label>
-    {Html.input(
-      ~attrs=[Node.attr("type", "number")],
-      ~events=[("input", handleInput)],
-      (),
-    )}
-    <span>
-      {Node.signalText(() =>
-        Signal.get(fahrenheit)
-          ->Float.toFixed(~digits=1)
-      )}
-    </span>
-  </div>
-}`
-
-  let timerCode = `open Xote
-
-let make = () => {
-  let isRunning = Signal.make(false)
-  let seconds = Signal.make(0)
-
-  // Effect with cleanup callback
-  Effect.run(() => {
-    if Signal.get(isRunning) {
-      let id = setInterval(
-        () => Signal.update(seconds, s => s + 1),
-        1000
-      )
-      // Cleanup: clear interval
-      Some(() => clearInterval(id))
-    } else {
-      None
-    }
-  })
-
-  <button onClick={toggleTimer}>
-    {Node.signalText(() =>
-      Signal.get(isRunning)
-        ? "Pause" : "Start"
-    )}
-  </button>
-}`
-
-  let make = (_props: props) => {
-    let activeTab = Signal.make("counter")
-    let copied = Signal.make(false)
-
-    let setTab = (tab: string) => (_evt: Dom.event) => Signal.set(activeTab, tab)
-
-    let handleCopy = (_evt: Dom.event) => {
-      let snippet = switch Signal.peek(activeTab) {
-      | "counter" => counterCode
-      | "temperature" => tempCode
-      | _ => timerCode
-      }
-      DomHelpers.copyToClipboard(snippet)
-      Signal.set(copied, true)
-      let _ = DomHelpers.setTimeout(() => Signal.set(copied, false), 2000)
-    }
-
-    <section class="code-demo-section">
-      <div class="code-demo-inner">
-        <div class="code-demo-heading">
-          <h2> {Node.text("Signals, Computeds, and Effects")} </h2>
-          <p>
-            {Node.text(
-              "Three powerful building blocks for seamless reactivity. Your mental model stays simple and predictable.",
-            )}
-          </p>
-        </div>
-        <div class="code-demo-container">
-          <div class="code-editor-pane">
-            <div class="code-editor-tabs">
-              {Node.element(
-                "div",
-                ~attrs=[
-                  Node.computedAttr("class", () =>
-                    "code-editor-tab" ++ (Signal.get(activeTab) == "counter" ? " active" : "")
-                  ),
-                ],
-                ~events=[("click", setTab("counter"))],
-                ~children=[Node.text("Counter.res")],
-                (),
-              )}
-              {Node.element(
-                "div",
-                ~attrs=[
-                  Node.computedAttr("class", () =>
-                    "code-editor-tab" ++ (Signal.get(activeTab) == "temperature" ? " active" : "")
-                  ),
-                ],
-                ~events=[("click", setTab("temperature"))],
-                ~children=[Node.text("Temperature.res")],
-                (),
-              )}
-              {Node.element(
-                "div",
-                ~attrs=[
-                  Node.computedAttr("class", () =>
-                    "code-editor-tab" ++ (Signal.get(activeTab) == "timer" ? " active" : "")
-                  ),
-                ],
-                ~events=[("click", setTab("timer"))],
-                ~children=[Node.text("Timer.res")],
-                (),
-              )}
-            </div>
-            <div class="code-editor-body">
-              {Node.element(
-                "button",
-                ~attrs=[
-                  Node.computedAttr("class", () =>
-                    "code-copy-btn" ++ (Signal.get(copied) ? " copied" : "")
-                  ),
-                ],
-                ~events=[("click", handleCopy)],
-                ~children=[
-                  Node.signalFragment(
-                    Computed.make(() =>
-                      Signal.get(copied)
-                        ? [Basefn.Icon.make({name: Check, size: Sm}), Node.text(" Copied")]
-                        : [Basefn.Icon.make({name: Copy, size: Sm}), Node.text(" Copy")]
-                    ),
-                  ),
-                ],
-                (),
-              )}
-              <pre class="code-editor-pre">
-                <code>
-                  {Node.signalFragment(
-                    Computed.make(() => {
-                      let code = switch Signal.get(activeTab) {
-                      | "counter" => counterCode
-                      | "temperature" => tempCode
-                      | _ => timerCode
-                      }
-                      [SyntaxHighlight.highlight(code)]
-                    }),
-                  )}
-                </code>
-              </pre>
-            </div>
-          </div>
-          <div class="code-preview-pane">
-            <div class="code-preview-header">
-              <div class="browser-dots">
-                <span class="browser-dot browser-dot-red" />
-                <span class="browser-dot browser-dot-yellow" />
-                <span class="browser-dot browser-dot-green" />
-              </div>
-              <div class="browser-url"> {Node.text("localhost:5173")} </div>
-            </div>
-            <div class="code-preview-body">
-              {Node.signalFragment(
-                Computed.make(() =>
-                  switch Signal.get(activeTab) {
-                  | "counter" => [<CounterApp />]
-                  | "temperature" => [<TemperatureApp />]
-                  | _ => [<TimerApp />]
-                  }
-                ),
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  }
-}
-
-// ---- Community Section ----
-module Community = {
-  type props = {}
-
-  let make = (_props: props) => {
-    <section class="community-section">
-      <div class="community-inner">
-        <h2> {Node.text("Join the community")} </h2>
-        <p>
-          {Node.text(
-            "Xote is open source and built for developers who value simplicity, type safety, and fine-grained reactivity.",
-          )}
-        </p>
-        <div class="community-links">
-          <a href="https://github.com/brnrdog/xote" target="_blank" class="btn btn-ghost">
-            {Basefn.Icon.make({name: GitHub, size: Sm})}
-            {Node.text(" GitHub")}
-          </a>
-          <a href="https://www.npmjs.com/package/xote" target="_blank" class="btn btn-ghost">
-            {Basefn.Icon.make({name: Download, size: Sm})}
-            {Node.text(" npm")}
-          </a>
-          {Router.link(
-            ~to="/demos",
-            ~attrs=[Node.attr("class", "btn btn-ghost")],
-            ~children=[
-              Basefn.Icon.make({name: Star, size: Sm}),
-              Node.text(" Demos"),
-            ],
-            (),
-          )}
-        </div>
-      </div>
-    </section>
-  }
-}
-
-// ---- Main page component ----
 type props = {}
 
 let make = (_props: props) => {
-  <Layout children={Node.fragment([<Hero />, <Features />, <CodeDemo />, <Community />])} />
+  <Layout
+    children={Node.fragment([
+      <Hero />,
+      <Features />,
+      <Tutorial />,
+    ])}
+  />
 }

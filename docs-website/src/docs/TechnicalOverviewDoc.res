@@ -7,345 +7,208 @@
 
 let content = () => {
   <div>
-    <h1> {Node.text("Technical Overview")} </h1>
     <p>
-      {Node.text("This document describes the architecture of Xote, a lightweight UI library for ReScript that combines fine-grained reactivity with a minimal component system.")}
+      {Node.text("This page explains how Xote is put together at a module and runtime level. It is meant for readers who already know the public API and want the internal model behind it.")}
     </p>
     <div class="info-box">
       <p>
-        <strong> {Node.text("Note:")} </strong>
-      {Node.text(" Xote v3.0+ uses rescript-signals for all reactive primitives (Signal, Computed, Effect). This overview focuses on Xote-specific features: Components, Router, and JSX support.")}
+        <strong> {Node.text("Scope:")} </strong>
+        {Node.text(" This is architecture-level guidance, not a substitute for the API docs.")}
       </p>
     </div>
-    <h2 id="architecture-overview"> {Node.text("Architecture Overview")} </h2>
+
+    <h2 id="system-shape"> {Node.text("System Shape")} </h2>
+    <h3 id="architecture-overview"> {Node.text("Architecture Overview")} </h3>
     <h3 id="module-structure"> {Node.text("Module Structure")} </h3>
     <p>
-      {Node.text("Xote is organized into focused modules:")}
+      {Node.text("The public surface is intentionally small. Xote re-exports reactive primitives and layers UI-focused modules on top.")}
     </p>
     <ul>
       <li>
-        <strong> {Node.text("Reactive Primitives (from rescript-signals):")} </strong>
+        <code> {Node.text("Signal")} </code>
+        {Node.text(", ")}
+        <code> {Node.text("Computed")} </code>
+        {Node.text(", ")}
+        <code> {Node.text("Effect")} </code>
+        {Node.text(" - state, derived state, and side effects")}
+      </li>
+      <li>
+        <code> {Node.text("Node")} </code>
+        {Node.text(" and ")}
+        <code> {Node.text("Html")} </code>
+        {Node.text(" - node constructors, attributes, mounting, and HTML helpers")}
+      </li>
+      <li>
+        <code> {Node.text("XoteJSX")} </code>
+        {Node.text(" - generic JSX v4 integration")}
+      </li>
+      <li>
+        <code> {Node.text("Router")} </code>
+        {Node.text(" and ")}
+        <code> {Node.text("Route")} </code>
+        {Node.text(" - navigation and route matching")}
+      </li>
+      <li>
+        <code> {Node.text("SSR")} </code>
+        {Node.text(", ")}
+        <code> {Node.text("SSRState")} </code>
+        {Node.text(", ")}
+        <code> {Node.text("Hydration")} </code>
+        {Node.text(", and ")}
+        <code> {Node.text("SSRContext")} </code>
+        {Node.text(" - server rendering and client resume")}
       </li>
     </ul>
     <p>
-      {Node.text("  - ")}
-      <code> {Node.text("Signal")} </code>
-      {Node.text(" - Reactive state cells")}
+      {Node.text("Source files stay as bare module names in ")}
+      <code> {Node.text("src/")} </code>
+      {Node.text(". ReScript's ")}
+      <code> {Node.text("namespace: true")} </code>
+      {Node.text(" setting scopes them under ")}
+      <code> {Node.text("Xote")} </code>
+      {Node.text(" for consumers.")}
     </p>
+
+    <h2 id="runtime-model"> {Node.text("Runtime Model")} </h2>
+    <h3 id="reactivity-model"> {Node.text("Reactivity Model")} </h3>
     <p>
-      {Node.text("  - ")}
-      <code> {Node.text("Computed")} </code>
-      {Node.text(" - Derived values that auto-update")}
-    </p>
-    <p>
-      {Node.text("  - ")}
-      <code> {Node.text("Effect")} </code>
-      {Node.text(" - Side effects that re-run on changes")}
+      {Node.text("Xote delegates reactivity to rescript-signals. The important runtime properties are:")}
     </p>
     <ul>
       <li>
-        <strong> {Node.text("Xote Modules:")} </strong>
+        <strong> {Node.text("Tracked reads:")} </strong>
+        {Node.text(" Signal.get subscribes the active observer")}
+      </li>
+      <li>
+        <strong> {Node.text("Synchronous scheduling:")} </strong>
+        {Node.text(" updates flush immediately unless wrapped in Signal.batch")}
+      </li>
+      <li>
+        <strong> {Node.text("Lazy computeds:")} </strong>
+        {Node.text(" upstream changes mark them dirty, but recomputation happens on read")}
+      </li>
+      <li>
+        <strong> {Node.text("Equality checks on write:")} </strong>
+        {Node.text(" signals notify only when the new value is considered different")}
       </li>
     </ul>
+
+    <h3 id="component-rendering"> {Node.text("Component Rendering")} </h3>
     <p>
-      {Node.text("  - ")}
-      <code> {Node.text("Xote.Node")} </code>
-      {Node.text(" - Component system and virtual DOM")}
+      {Node.text("Xote does not rely on a general virtual DOM diff for updates. Components produce node structures once, and reactive nodes handle fine-grained updates after mounting.")}
     </p>
     <p>
-      {Node.text("  - ")}
-      <code> {Node.text("Xote.Html")} </code>
-      {Node.text(" - Common HTML element constructors (div, button, p, ...)")}
+      {Node.text("The public node variants cover the main cases: text, elements, fragments, signal-backed text, signal-backed fragments, lazy components, and keyed lists.")}
     </p>
-    <p>
-      {Node.text("  - ")}
-      <code> {Node.text("Xote.XoteJSX")} </code>
-      {Node.text(" - Generic JSX v4 implementation")}
-    </p>
-    <p>
-      {Node.text("  - ")}
-      <code> {Node.text("Xote.Router")} </code>
-      {Node.text(" - Signal-based routing")}
-    </p>
-    <p>
-      {Node.text("  - ")}
-      <code> {Node.text("Xote.Route")} </code>
-      {Node.text(" - Route matching utilities")}
-    </p>
-    <p>
-      {Node.text("Source files in src/ use bare module names (Node.res, Router.res, ...). ReScript's namespacing scopes them under Xote automatically — there is no Xote__ prefix and no central barrel module.")}
-    </p>
-    <h2 id="reactivity-model"> {Node.text("Reactivity Model")} </h2>
-    <p>
-      {Node.text("All reactive behavior is provided by ")}
-      <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {Node.text("rescript-signals")} </a>
-      {Node.text(":")}
-    </p>
-    <ul>
-      <li>
-        <strong> {Node.text("Dependency Tracking:")} </strong>
-      {Node.text(" When an observer (effect or computed) runs, any Signal.get calls register the signal as a dependency")}
-      </li>
-      <li>
-        <strong> {Node.text("Scheduling:")} </strong>
-      {Node.text(" When Signal.set is called, all dependent observers are scheduled and run synchronously")}
-      </li>
-      <li>
-        <strong> {Node.text("Lazy Computeds with Dirty Flagging:")} </strong>
-      {Node.text(" When dependencies change, computeds are marked dirty immediately but only recompute when read")}
-      </li>
-      <li>
-        <strong> {Node.text("Structural Equality:")} </strong>
-      {Node.text(" Signals use structural equality (==) to check if values have changed, preventing unnecessary updates")}
-      </li>
-    </ul>
-    <h2 id="component-system"> {Node.text("Component System")} </h2>
-    <h3 id="virtual-node-types"> {Node.text("Virtual Node Types")} </h3>
-    <p>
-      {Node.text("Xote uses several node types to represent UI elements:")}
-    </p>
-    <ul>
-      <li>
-        <strong> {Node.text("Element:")} </strong>
-      {Node.text(" Standard DOM elements (div, button, input, etc.)")}
-      </li>
-      <li>
-        <strong> {Node.text("Text:")} </strong>
-      {Node.text(" Static text nodes")}
-      </li>
-      <li>
-        <strong> {Node.text("SignalText:")} </strong>
-      {Node.text(" Reactive text that updates when signals change")}
-      </li>
-      <li>
-        <strong> {Node.text("Fragment:")} </strong>
-      {Node.text(" Groups multiple nodes without a wrapper element")}
-      </li>
-      <li>
-        <strong> {Node.text("SignalFragment:")} </strong>
-      {Node.text(" Reactive fragment that re-renders when a signal changes")}
-      </li>
-    </ul>
-    <h3 id="rendering-behavior"> {Node.text("Rendering Behavior")} </h3>
-    <ul>
-      <li>
-        <strong> {Node.text("SignalText:")} </strong>
-      {Node.text(" Creates a DOM text node and sets up an effect that updates textContent when the signal changes")}
-      </li>
-      <li>
-        <strong> {Node.text("SignalFragment:")} </strong>
-      {Node.text(" Uses a container element with display: contents and replaces all children when the signal changes (no diffing)")}
-      </li>
-      <li>
-        <strong> {Node.text("Lists:")} </strong>
-      {Node.text(" Implemented as a computed signal + SignalFragment, so the entire list rerenders on any array change")}
-      </li>
-      <li>
-        <strong> {Node.text("Reactive attributes:")} </strong>
-      {Node.text(" Set up effects that update the DOM attribute when the signal/computed value changes")}
-      </li>
-    </ul>
-    <h2 id="jsx-support"> {Node.text("JSX Support")} </h2>
-    <p>
-      {Node.text("Xote supports ReScript's generic JSX v4 for declarative component syntax:")}
-    </p>
-    <pre>
+    <pre class="docs-code-pre">
       <code>
-        {Node.text(`{
-  "jsx": {
-    "version": 4,
-    "module": "XoteJSX"
-  },
-  "compiler-flags": ["-open Xote"]
-}`)}
+        {SyntaxHighlight.highlight(`Node.text : string => node
+Node.signalText : (unit => string) => node
+Node.fragment : array<node> => node
+Node.signalFragment : Signal.t<array<node>> => node
+Node.list : (Signal.t<array<'a>>, 'a => node) => node
+Node.keyedList : (Signal.t<array<'a>>, 'a => string, 'a => node) => node`)}
       </code>
     </pre>
+
+    <h3 id="router-architecture"> {Node.text("Router Architecture")} </h3>
     <p>
-      <strong> {Node.text("Features:")} </strong>
+      {Node.text("The router stores its state in a global singleton keyed with ")}
+      <code> {Node.text("Symbol.for")} </code>
+      {Node.text(". That keeps routing shared even if more than one Xote bundle ends up on the page.")}
     </p>
+    <p>
+      {Node.text("At the public layer, the router is just a signal-driven location source plus helpers for matching and navigation.")}
+    </p>
+
+    <h3 id="ssr-and-hydration"> {Node.text("SSR and Hydration")} </h3>
+    <p>
+      {Node.text("Server rendering serializes the component tree to HTML and inserts comment markers around reactive boundaries. Hydration walks that DOM, finds the markers, and reattaches reactive behavior instead of rebuilding the tree from scratch.")}
+    </p>
+    <p>
+      {Node.text("SSRState is separate from HTML rendering. That split keeps state transfer explicit and codec-driven instead of hiding it behind a framework convention.")}
+    </p>
+
+    <h3 id="execution-characteristics"> {Node.text("Execution Characteristics")} </h3>
     <ul>
       <li>
-        {Node.text("Lowercase tags for HTML elements")}
+        <strong> {Node.text("Component functions are cheap to reason about:")} </strong>
+        {Node.text(" most of the time they run once")}
       </li>
       <li>
-        {Node.text("Props support for common attributes and events")}
+        <strong> {Node.text("Reactive work is localized:")} </strong>
+        {Node.text(" only consumers of changed signals update")}
       </li>
       <li>
-        {Node.text("Children passed via JSX syntax")}
+        <strong> {Node.text("Owner-based cleanup prevents leaks:")} </strong>
+        {Node.text(" DOM removal disposes associated reactive resources")}
       </li>
       <li>
-        {Node.text("Component functions called with props objects")}
+        <strong> {Node.text("Batching is explicit:")} </strong>
+        {Node.text(" coordinated writes are opt-in, not automatic")}
       </li>
     </ul>
-    <h2 id="router-architecture"> {Node.text("Router Architecture")} </h2>
-    <h3 id="route-matching"> {Node.text("Route Matching")} </h3>
-    <p>
-      {Node.text("Pattern-based string matching with :param syntax:")}
-    </p>
-    <ul>
-      <li>
-        <code> {Node.text("parsePattern(pattern)")} </code>
-      {Node.text(" converts patterns like /users/:id into segment arrays")}
-      </li>
-      <li>
-        <code> {Node.text("matchPath(pattern, pathname)")} </code>
-      {Node.text(" returns Match(params) or NoMatch")}
-      </li>
-      <li>
-        {Node.text("Parameters returned as Dict.t<string>")}
-      </li>
-    </ul>
-    <h3 id="router-state"> {Node.text("Router State")} </h3>
-    <ul>
-      <li>
-        <strong> {Node.text("Location signal:")} </strong>
-      {Node.text(" ")}
-      <code> {Node.text("Router.location")} </code>
-      {Node.text(" contains {pathname, search, hash}")}
-      </li>
-      <li>
-        <strong> {Node.text("History API integration:")} </strong>
-      {Node.text(" Listens to popstate events for back/forward buttons")}
-      </li>
-      <li>
-        <strong> {Node.text("Declarative routing:")} </strong>
-      {Node.text(" Uses SignalFragment + Computed for reactive rendering")}
-      </li>
-      <li>
-        <strong> {Node.text("Navigation links:")} </strong>
-      {Node.text(" Intercepts clicks to prevent page reload")}
-      </li>
-    </ul>
-    <h2 id="execution-characteristics"> {Node.text("Execution Characteristics")} </h2>
-    <ul>
-      <li>
-        <strong> {Node.text("Push-based Dirty Flagging, Lazy Recomputation:")} </strong>
-      {Node.text(" Signals push dirty flags to dependent computeds; actual recomputation is lazy (on read)")}
-      </li>
-      <li>
-        <strong> {Node.text("Auto-tracked:")} </strong>
-      {Node.text(" Observers re-track dependencies on every run")}
-      </li>
-      <li>
-        <strong> {Node.text("Synchronous:")} </strong>
-      {Node.text(" Updates run synchronously by default")}
-      </li>
-      <li>
-        <strong> {Node.text("Exception safe:")} </strong>
-      {Node.text(" Scheduler wrapped in try/catch to ensure tracking state is restored")}
-      </li>
-    </ul>
-    <h2 id="relation-to-tc39-signals-proposal"> {Node.text("Relation to TC39 Signals Proposal")} </h2>
-    <p>
-      {Node.text("Xote's reactive primitives (via rescript-signals) are inspired by the ")}
-      <a href="https://github.com/tc39/proposal-signals" target="_blank"> {Node.text("TC39 Signals proposal")} </a>
-      {Node.text(":")}
-    </p>
-    <ul>
-      <li>
-        <strong> {Node.text("Aligned concepts:")} </strong>
-      </li>
-    </ul>
-    <p>
-      {Node.text("  - Automatic dependency tracking on read")}
-    </p>
-    <p>
-      {Node.text("  - Observer-based recomputation and re-tracking")}
-    </p>
-    <p>
-      {Node.text("  - Structural equality checks")}
-    </p>
-    <ul>
-      <li>
-        <strong> {Node.text("Key differences:")} </strong>
-      </li>
-    </ul>
-    <p>
-      {Node.text("  - Computeds use lazy evaluation with push-based dirty flagging, similar to the proposal's pull-based approach")}
-    </p>
-    <p>
-      {Node.text("  - Synchronous scheduling rather than microtask-based")}
-    </p>
-    <p>
-      {Node.text("  - Effects can return cleanup callbacks (Some/None pattern)")}
-    </p>
-    <h2 id="api-summary"> {Node.text("API Summary")} </h2>
+
+    <h2 id="reference-map"> {Node.text("Reference Map")} </h2>
+    <h3 id="api-summary"> {Node.text("API Summary")} </h3>
     <h3 id="reactive-primitives"> {Node.text("Reactive Primitives")} </h3>
-    <pre>
+    <pre class="docs-code-pre">
       <code>
-        {Node.text(`Signal.make : 'a => t<'a>
-Signal.get : t<'a> => 'a
-Signal.peek : t<'a> => 'a
-Signal.set : (t<'a>, 'a) => unit
-Signal.update : (t<'a>, 'a => 'a) => unit
-
-Computed.make : (unit => 'a) => t<'a>
-Computed.dispose : t<'a> => unit
-
-Effect.run : (unit => option<unit => unit>) => {dispose: unit => unit}`)}
+        {SyntaxHighlight.highlight(`Signal.make : ('a, ~name: option<string>=?, ~equals: option<('a, 'a) => bool>=?) => Signal.t<'a>
+Signal.get : Signal.t<'a> => 'a
+Signal.peek : Signal.t<'a> => 'a
+Signal.set : (Signal.t<'a>, 'a) => unit
+Signal.update : (Signal.t<'a>, 'a => 'a) => unit
+Signal.batch : (unit => 'a) => 'a
+Computed.make : (unit => 'a, ~name: option<string>=?, ~equals: option<('a, 'a) => bool>=?) => Signal.t<'a>
+Effect.run : (unit => option<unit => unit>, ~name: option<string>=?) => unit`)}
       </code>
     </pre>
     <h3 id="component-helpers"> {Node.text("Component Helpers")} </h3>
-    <pre>
+    <pre class="docs-code-pre">
       <code>
-        {Node.text(`Node.text : string => node
-Node.signalText : (unit => string) => node
-Node.list : (t<array<'a>>, 'a => node) => node
-Node.listKeyed : (t<array<'a>>, 'a => string, 'a => node) => node
-Node.mount : (node, Dom.element) => unit
-Node.mountById : (node, string) => unit`)}
+        {SyntaxHighlight.highlight(`Node.attr : (string, string) => (string, Node.attrValue)
+Node.signalAttr : (string, Signal.t<string>) => (string, Node.attrValue)
+Node.computedAttr : (string, unit => string) => (string, Node.attrValue)
+Node.mountById : (Node.node, string) => unit`)}
       </code>
     </pre>
     <h3 id="router-helpers"> {Node.text("Router Helpers")} </h3>
-    <pre>
+    <pre class="docs-code-pre">
       <code>
-        {Node.text(`Router.init : unit => unit
-Router.location : t<{pathname: string, search: string, hash: string}>
+        {SyntaxHighlight.highlight(`Router.init : (~basePath: string=?, unit) => unit
+Router.initSSR : (~basePath: string=?, ~pathname: string, ~search: string=?, ~hash: string=?, unit) => unit
+Router.location : unit => Signal.t<{pathname: string, search: string, hash: string}>
 Router.push : (string, ~search: string=?, ~hash: string=?, unit) => unit
-Router.replace : (string, ~search: string=?, ~hash: string=?, unit) => unit
-Router.routes : array<{pattern: string, render: params => node}> => node
-Router.link : (~to: string, ~attrs: array=?, ~children: array=?, unit) => node`)}
+Router.routes : array<routeConfig> => Node.node`)}
       </code>
     </pre>
-    <h2 id="best-practices"> {Node.text("Best Practices")} </h2>
+
+    <h2 id="working-style"> {Node.text("Working Style")} </h2>
+    <h3 id="best-practices"> {Node.text("Best Practices")} </h3>
     <ul>
       <li>
-        <strong> {Node.text("Trust auto-disposal:")} </strong>
-      {Node.text(" Computeds auto-dispose when subscribers drop to zero")}
+        {Node.text("Model derived values as computeds so write paths stay smaller and easier to trust.")}
       </li>
       <li>
-        <strong> {Node.text("Use structural equality:")} </strong>
-      {Node.text(" Signal.set only notifies if values differ")}
+        {Node.text("Keep the public explanation aligned with the real module boundaries: signals, nodes, router, and SSR each own a distinct concern.")}
       </li>
       <li>
-        <strong> {Node.text("Prefer JSX:")} </strong>
-      {Node.text(" More concise and familiar syntax")}
-      </li>
-      <li>
-        <strong> {Node.text("Keep components small:")} </strong>
-      {Node.text(" Each component should do one thing well")}
-      </li>
-      <li>
-        <strong> {Node.text("Use keyed lists:")} </strong>
-      {Node.text(" For efficient reconciliation of dynamic lists")}
+        {Node.text("Treat ")}
+        <code> {Node.text("SSRState")} </code>
+        {Node.text(" as explicit infrastructure. Hidden state transfer is harder to debug.")}
       </li>
     </ul>
-    <h2 id="next-steps"> {Node.text("Next Steps")} </h2>
+
+    <h3 id="next-steps"> {Node.text("Next Steps")} </h3>
     <ul>
       <li>
-        {Node.text("Explore the ")}
-      {Router.link(~to="/docs/core-concepts/signals", ~children=[Node.text("Core Concepts")], ())}
-      {Node.text(" for reactive primitives")}
+        {Router.link(~to="/docs/core-concepts/signals", ~children=[Node.text("Go back to the Core Modules guides")], ())}
+        {Node.text(" for the day-to-day API surface.")}
       </li>
       <li>
-        {Node.text("Learn about ")}
-      {Router.link(~to="/docs/components/overview", ~children=[Node.text("Components")], ())}
-      {Node.text(" for building UIs")}
-      </li>
-      <li>
-        {Node.text("Check out ")}
-      <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {Node.text("rescript-signals")} </a>
-      {Node.text(" for reactive implementation details")}
+        {Router.link(~to="/docs/api/signals", ~children=[Node.text("Use the Signals API page")], ())}
+        {Node.text(" as the quick reference while reading the architecture back into the code.")}
       </li>
     </ul>
   </div>
