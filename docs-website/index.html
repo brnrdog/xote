@@ -11,9 +11,8 @@
         var decoded = redirect[1].split('&').map(function(s) {
           return s.replace(/~and~/g, '&');
         }).join('?');
-        var basePath = '/xote';
         window.history.replaceState(null, '',
-          basePath + '/' + decoded + window.location.hash
+          '/' + decoded + window.location.hash
         );
       }
     })();
