@@ -552,8 +552,8 @@ td strong {
   position: relative;
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: var(--s-12) var(--s-5);
-  overflow: clip;
+  padding: var(--s-12) var(--s-5) var(--s-6);
+  overflow: visible;
 }
 
 .hero > *:not(.hero-bg) {
@@ -567,13 +567,35 @@ td strong {
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 100%;
+  width: 100vw;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
   opacity: 0.55;
-  mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.9), transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.9), transparent 75%);
+  mask-image: radial-gradient(
+    ellipse 84% 92% at center,
+    #000 0%,
+    #000 24%,
+    rgba(0, 0, 0, 0.72) 38%,
+    rgba(0, 0, 0, 0.24) 52%,
+    transparent 68%,
+    transparent 100%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 84% 92% at center,
+    #000 0%,
+    #000 24%,
+    rgba(0, 0, 0, 0.72) 38%,
+    rgba(0, 0, 0, 0.24) 52%,
+    transparent 68%,
+    transparent 100%
+  );
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
+  mask-position: center;
+  -webkit-mask-position: center;
 }
 
 .hero-bg-svg {
@@ -593,6 +615,10 @@ td strong {
 .hero-tri.active {
   fill: var(--text-faint);
   transition: fill 0.08s ease-in;
+}
+
+.hero-tri.active-accent {
+  fill: var(--syntax-warm);
 }
 
 .hero-head {
@@ -729,7 +755,7 @@ td strong {
 .features-section {
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: var(--s-8) var(--s-5) var(--s-12);
+  padding: var(--s-5) var(--s-5) var(--s-8);
 }
 
 .features-heading {
@@ -819,7 +845,7 @@ td strong {
 .code-example-section {
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: var(--s-10) var(--s-5);
+  padding: var(--s-8) var(--s-5);
 }
 
 .code-example-section h2 {
@@ -834,7 +860,7 @@ td strong {
 .tutorial-section {
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: var(--s-10) var(--s-5);
+  padding: var(--s-8) var(--s-5);
 }
 
 .tutorial-heading {
@@ -915,8 +941,32 @@ td strong {
 }
 
 @media (max-width: 640px) {
+  .header-inner,
+  .hero,
+  .features-section,
+  .code-example-section,
   .tutorial-section {
-    padding: var(--s-8) var(--s-4);
+    padding-left: var(--s-4);
+    padding-right: var(--s-4);
+  }
+  .hero {
+    padding-top: var(--s-8);
+    padding-bottom: var(--s-4);
+  }
+  .hero-display {
+    font-size: 42px;
+    margin: var(--s-6) 0 var(--s-5) 0;
+  }
+  .hero-lead {
+    font-size: var(--fs-base);
+    margin-bottom: var(--s-5);
+  }
+  .hero-ctas {
+    gap: var(--s-3);
+    margin-bottom: var(--s-6);
+  }
+  .tutorial-section {
+    padding: var(--s-8) var(--s-5);
   }
   .tutorial-heading {
     margin-bottom: var(--s-6);
@@ -929,6 +979,12 @@ td strong {
   }
   .tutorial-step {
     padding: var(--s-6) 0;
+  }
+  .tutorial-step-number {
+    position: static;
+    top: auto;
+    right: auto;
+    margin-bottom: var(--s-3);
   }
   .tutorial-step-head {
     margin-bottom: var(--s-4);
@@ -1029,12 +1085,19 @@ td strong {
   padding: var(--s-4) 0;
   margin: 0;
   max-height: 420px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   color: var(--text);
 }
 
 .tutorial-code .tutorial-code-pre .syntax-line {
   padding: 0 var(--s-4);
+  min-width: 0;
+}
+
+.tutorial-code .tutorial-code-pre .syntax-line-content {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .tutorial-code .tutorial-code-pre .syntax-keyword {
