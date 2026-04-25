@@ -157,18 +157,20 @@ module HeroBackground = {
               if (!nearest) return;
               var vb = svg.viewBox && svg.viewBox.baseVal;
               if (!vb) return;
-              function activate(el, delay, ttl) {
+              function activate(el, delay, ttl, accent) {
                 clearTimeout(el.__xoteTimer);
                 clearTimeout(el.__xoteDelay);
                 el.__xoteDelay = setTimeout(function() {
+                  el.classList.toggle('active-accent', !!accent);
                   el.classList.add('active');
                   el.__xoteTimer = setTimeout(function() {
                     el.classList.remove('active');
+                    el.classList.remove('active-accent');
                   }, ttl);
                 }, delay);
               }
               if (throttle && svg.__xoteLastRipple && performance.now() - svg.__xoteLastRipple < 140) {
-                activate(nearest, 0, 600);
+                activate(nearest, 0, 600, Math.random() < 0.18);
                 return;
               }
               svg.__xoteLastRipple = performance.now();
@@ -211,7 +213,9 @@ module HeroBackground = {
                 if (Math.random() > prob) continue;
                 var jitter = (Math.random() - 0.5) * (idle ? 120 : 60);
                 var ttl = ringDuration + ring * (idle ? 110 : 50) + Math.random() * (idle ? 320 : 160);
-                activate(q, ring * ringDelay + jitter, ttl);
+                var accentProb = idle ? 0.12 : 0.18;
+                var accent = ring > 0 && Math.random() < accentProb;
+                activate(q, ring * ringDelay + jitter, ttl, accent);
               }
             };
             (function tick() {
@@ -430,12 +434,12 @@ Effect.run(() => {
         {stepHeader(
           ~n="03",
           ~title="Fetch live data in an effect",
-          ~blurb="An effect tracks the selected capital and fetches the current temperature from the free Open-Meteo API. When the capital changes, the effect re-runs and the dashboard re-renders.",
+          ~blurb="An effect tracks the selected capital and fetches the current temperature from the Open-Meteo API. When the capital changes, the effect re-runs and the dashboard re-renders.",
         )}
         <div class="tutorial-step-body">
           {codeBlock(~filename="CapitalWeather.res", ~code=step3Code)}
           {stage(
-            ~caption="Preview — real weather from a random world capital (Open-Meteo, no API key)",
+            ~caption="Preview — real weather from a random world capital (Open-Meteo)",
             ~children=<TutorialDemos.Step3 />,
           )}
         </div>
