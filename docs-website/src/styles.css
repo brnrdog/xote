@@ -946,8 +946,8 @@ td strong {
   .features-section,
   .code-example-section,
   .tutorial-section {
-    padding-left: var(--s-4);
-    padding-right: var(--s-4);
+    padding-left: var(--s-5);
+    padding-right: var(--s-5);
   }
   .hero {
     padding-top: var(--s-8);
@@ -2044,6 +2044,25 @@ td strong {
 
 .docs-main > * {
   max-width: var(--prose-width);
+}
+
+@media (max-width: 768px) {
+  .docs-layout {
+    padding-left: var(--s-5);
+    padding-right: var(--s-5);
+  }
+  .docs-main {
+    max-width: none;
+    margin: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .docs-main > *,
+  .docs-page-lead,
+  .docs-content,
+  .docs-prev-next {
+    max-width: none;
+  }
 }
 
 .docs-breadcrumb {
