@@ -2,7 +2,7 @@
 module Website = Website
 
 // Initialize client-side router
-Router.init(~basePath="/xote", ())
+Router.init()
 
 // Hydrate the server-rendered HTML
 let _ = Hydration.hydrateById(

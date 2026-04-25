@@ -7,7 +7,7 @@
     // Encodes the current path into a query parameter and redirects to index.html
     // so the client-side router can handle it.
     // Based on https://github.com/rafgraph/spa-github-pages
-    var pathSegmentsToKeep = 1; // Keep '/xote' prefix (1 segment)
+    var pathSegmentsToKeep = 0;
     var l = window.location;
     l.replace(
       l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +

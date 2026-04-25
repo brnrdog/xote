@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  base: '/xote/',
+  base: '/',
   server: {
     port: 3000,
   },

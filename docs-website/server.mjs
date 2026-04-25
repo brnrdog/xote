@@ -7,7 +7,7 @@ import http from 'node:http'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isProduction = process.env.NODE_ENV === 'production'
 const port = process.env.PORT || 4242
-const base = '/xote/'
+const base = '/'
 
 // Handle async errors from SSR-rendered code that defers DOM access
 // (e.g., basefn Icon component uses setTimeout + document.getElementById)
