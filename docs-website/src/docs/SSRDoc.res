@@ -37,7 +37,7 @@ let content = () => {
 
 let app = () => {
   <div>
-    <h1> {Node.text("Hello from the server")} </h1>
+    <h1> {View.text("Hello from the server")} </h1>
   </div>
 }
 
@@ -79,22 +79,22 @@ let html = SSR.renderToStringWithRoot(app, ~rootId="root")`)}
     <h2 id="state-and-hydration"> {Node.text("State and Hydration")} </h2>
     <h3 id="state-transfer"> {Node.text("State Transfer")} </h3>
     <p>
-      {Node.text("If the server and client must start from the same state, register signals with ")}
+      {Node.text("If the server and client must start from the same state, create or register signals with ")}
       <code> {Node.text("SSRState")} </code>
       {Node.text(".")}
     </p>
     <h4 id="creating-synced-state"> {Node.text("Creating Synced State")} </h4>
     <pre class="docs-code-pre">
       <code>
-        {SyntaxHighlight.highlight(`let count = SSRState.make("count", 0, SSRState.Codec.int)
-let name = SSRState.make("name", "Ada", SSRState.Codec.string)`)}
+        {SyntaxHighlight.highlight(`let count = SSRState.signal("count", 0, SSRState.Codec.int)
+let name = SSRState.signal("name", "Ada", SSRState.Codec.string)`)}
       </code>
     </pre>
     <h4 id="syncing-existing-signals"> {Node.text("Syncing Existing Signals")} </h4>
     <pre class="docs-code-pre">
       <code>
         {SyntaxHighlight.highlight(`let draft = Signal.make("")
-SSRState.sync("draft", draft, SSRState.Codec.string)`)}
+SSRState.syncSignal("draft", draft, SSRState.Codec.string)`)}
       </code>
     </pre>
     <h4 id="built-in-codecs"> {Node.text("Built-in Codecs")} </h4>
@@ -141,15 +141,15 @@ SSRState.Codec.tuple2(SSRState.Codec.int, SSRState.Codec.string)`)}
       <code>
         {SyntaxHighlight.highlight(`open Xote
 
-let count = SSRState.make("count", 0, SSRState.Codec.int)
+let count = SSRState.signal("count", 0, SSRState.Codec.int)
 
 let app = () => {
   <div>
     <h1>
-      {Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {View.computedText(() => "Count: " ++ Int.toString(Signal.get(count)))}
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
-      {Node.text("Increment")}
+      {View.text("Increment")}
     </button>
   </div>
 }`)}
@@ -177,7 +177,7 @@ Hydration.hydrateById(app, "root")`)}
 
     <h3 id="hydration-markers"> {Node.text("Hydration Markers")} </h3>
     <p>
-      {Node.text("Xote inserts HTML comments around reactive boundaries during SSR. The client uses those markers to find signal text, fragments, keyed lists, and lazy components while hydrating.")}
+      {Node.text("Xote inserts HTML comments around reactive boundaries during SSR. The client uses those markers to find reactive view text, fragments, keyed lists, and lazy components while hydrating.")}
     </p>
 
     <h2 id="ssr-working-style"> {Node.text("Working Style")} </h2>

@@ -130,7 +130,7 @@ Effect.run(() => {
     </p>
     <p>
       {Node.text("The main ergonomic difference is that SolidJS can embed reactive expressions directly inside JSX, while Xote makes the reactive boundary explicit with helpers such as ")}
-      <code> {Node.text("Node.signalText")} </code>
+      <code> {Node.text("View.computedText")} </code>
       {Node.text(".")}
     </p>
     <pre class="docs-code-pre">
@@ -154,10 +154,10 @@ Effect.run(() => {
 
   <div>
     <h1>
-      {Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {View.computedText(() => "Count: " ++ Int.toString(Signal.get(count)))}
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
-      {Node.text("Increment")}
+      {View.text("Increment")}
     </button>
   </div>
 }`)}
@@ -170,9 +170,9 @@ Effect.run(() => {
       {Node.text(" and ")}
       <code> {Node.text("<Index>")} </code>
       {Node.text(". Xote exposes list handling through ")}
-      <code> {Node.text("Node.list")} </code>
+      <code> {Node.text("View.each")} </code>
       {Node.text(" and ")}
-      <code> {Node.text("Node.keyedList")} </code>
+      <code> {Node.text("View.keyedEach")} </code>
       {Node.text(".")}
     </p>
     <pre class="docs-code-pre">
@@ -196,10 +196,10 @@ function TodoList(props) {
   let todos = Signal.make([{id: "1", text: "Buy milk"}])
 
   <ul>
-    {Node.keyedList(
+    {View.keyedEach(
       todos,
       todo => todo.id,
-      todo => <li> {Node.text(todo.text)} </li>,
+      todo => <li> {View.text(todo.text)} </li>,
     )}
   </ul>
 }`)}
@@ -300,7 +300,7 @@ Hydration.hydrateById(app, "root")`)}
       </li>
       <li>
         {Node.text("reactive JSX expressions often become ")}
-      <code> {Node.text("Node.signalText")} </code>
+      <code> {Node.text("View.computedText")} </code>
       {Node.text(" or other explicit reactive nodes")}
       </li>
       <li>
@@ -316,7 +316,7 @@ Hydration.hydrateById(app, "root")`)}
         {Router.link(~to="/docs/core-concepts/signals", ~children=[Node.text("Signals")], ())}
       </li>
       <li>
-        {Router.link(~to="/docs/components/overview", ~children=[Node.text("Components")], ())}
+        {Router.link(~to="/docs/view/overview", ~children=[Node.text("View")], ())}
       </li>
       <li>
         {Router.link(~to="/docs/router/overview", ~children=[Node.text("Router")], ())}

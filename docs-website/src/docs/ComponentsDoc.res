@@ -9,20 +9,20 @@ let content = () => {
   <div>
     <p>
       {Node.text("A Xote component is a function that returns a ")}
-      <code> {Node.text("Node.node")} </code>
+      <code> {Node.text("View.node")} </code>
       {Node.text(". The component usually runs once, sets up its reactive graph, and then reactive nodes update in place over time.")}
     </p>
     <p>
       {Node.text("The recommended path is JSX plus ")}
       <code> {Node.text("@jsx.component")} </code>
       {Node.text(". The function-based ")}
-      <code> {Node.text("Node")} </code>
+      <code> {Node.text("View")} </code>
       {Node.text(" and ")}
       <code> {Node.text("Html")} </code>
       {Node.text(" APIs stay available when you need lower-level control or are generating UI programmatically.")}
     </p>
 
-    <h2 id="component-model"> {Node.text("Component Model")} </h2>
+    <h2 id="component-model"> {Node.text("View Module")} </h2>
     <p>
       {Node.text("Think in two layers:")}
     </p>
@@ -37,7 +37,7 @@ let content = () => {
       </li>
     </ul>
 
-    <h2 id="building-components"> {Node.text("Building Components")} </h2>
+    <h2 id="building-components"> {Node.text("Using View")} </h2>
     <h3 id="jsx-configuration"> {Node.text("JSX Configuration")} </h3>
     <p>
       {Node.text("To use JSX with Xote, point ReScript at ")}
@@ -74,7 +74,7 @@ module Greeting = {
   @jsx.component
   let make = (~name: string, ~emphasis=false) => {
     <div class={emphasis ? "greeting strong" : "greeting"}>
-      <h1> {Node.text("Hello, " ++ name)} </h1>
+      <h1> {View.text("Hello, " ++ name)} </h1>
     </div>
   }
 }
@@ -95,7 +95,7 @@ let app = () => {
 let greeting = (name: string) => {
   Html.div(
     ~children=[
-      Html.h1(~children=[Node.text("Hello, " ++ name)], ())
+      Html.h1(~children=[View.text("Hello, " ++ name)], ())
     ],
     (),
   )
@@ -106,9 +106,9 @@ let greeting = (name: string) => {
     <h3 id="reactive-output"> {Node.text("Reactive Output")} </h3>
     <p>
       {Node.text("JSX expressions are just nodes. For reactive text, use ")}
-      <code> {Node.text("Node.signalText")} </code>
+      <code> {Node.text("View.computedText")} </code>
       {Node.text(". For arrays of reactive children, use ")}
-      <code> {Node.text("Node.signalFragment")} </code>
+      <code> {Node.text("View.signalFragment")} </code>
       {Node.text(" or one of the list helpers.")}
     </p>
     <pre class="docs-code-pre">
@@ -116,7 +116,7 @@ let greeting = (name: string) => {
         {SyntaxHighlight.highlight(`let count = Signal.make(0)
 
 <div>
-  {Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+  {View.computedText(() => "Count: " ++ Int.toString(Signal.get(count)))}
 </div>`)}
       </code>
     </pre>
@@ -124,11 +124,11 @@ let greeting = (name: string) => {
     <h3 id="attributes-and-events"> {Node.text("Attributes and Events")} </h3>
     <p>
       {Node.text("In JSX, common HTML props are exposed directly. In the function API, use ")}
-      <code> {Node.text("Node.attr")} </code>
+      <code> {Node.text("View.Attr.string")} </code>
       {Node.text(", ")}
-      <code> {Node.text("Node.signalAttr")} </code>
+      <code> {Node.text("View.Attr.signal")} </code>
       {Node.text(", and ")}
-      <code> {Node.text("Node.computedAttr")} </code>
+      <code> {Node.text("View.Attr.compute")} </code>
       {Node.text(".")}
     </p>
     <pre class="docs-code-pre">
@@ -142,7 +142,7 @@ let toggle = (_evt: Dom.event) => {
 <button
   class={Signal.get(isActive) ? "btn active" : "btn"}
   onClick={toggle}>
-  {Node.text("Toggle")}
+  {View.text("Toggle")}
 </button>`)}
       </code>
     </pre>
@@ -150,12 +150,12 @@ let toggle = (_evt: Dom.event) => {
       <code>
         {SyntaxHighlight.highlight(`Html.button(
   ~attrs=[
-    Node.computedAttr("class", () =>
+    View.Attr.compute("class", () =>
       Signal.get(isActive) ? "btn active" : "btn"
     ),
   ],
   ~events=[("click", toggle)],
-  ~children=[Node.text("Toggle")],
+  ~children=[View.text("Toggle")],
   (),
 )`)}
       </code>
@@ -177,9 +177,9 @@ let toggle = (_evt: Dom.event) => {
     <h3 id="lists"> {Node.text("Lists")} </h3>
     <p>
       {Node.text("Use ")}
-      <code> {Node.text("Node.list")} </code>
+      <code> {Node.text("View.each")} </code>
       {Node.text(" for simple arrays that can be fully re-rendered, and ")}
-      <code> {Node.text("Node.keyedList")} </code>
+      <code> {Node.text("View.keyedEach")} </code>
       {Node.text(" when item identity matters.")}
     </p>
     <pre class="docs-code-pre">
@@ -187,7 +187,7 @@ let toggle = (_evt: Dom.event) => {
         {SyntaxHighlight.highlight(`let items = Signal.make(["Apple", "Banana", "Cherry"])
 
 <ul>
-  {Node.list(items, item => <li> {Node.text(item)} </li>)}
+  {View.each(items, item => <li> {View.text(item)} </li>)}
 </ul>`)}
       </code>
     </pre>
@@ -200,10 +200,10 @@ let todos = Signal.make([
 ])
 
 <ul>
-  {Node.keyedList(
+  {View.keyedEach(
     todos,
     todo => todo.id,
-    todo => <li> {Node.text(todo.text)} </li>,
+    todo => <li> {View.text(todo.text)} </li>,
   )}
 </ul>`)}
       </code>
@@ -215,23 +215,23 @@ let todos = Signal.make([
     <h3 id="mounting"> {Node.text("Mounting")} </h3>
     <p>
       {Node.text("Use ")}
-      <code> {Node.text("Node.mount")} </code>
+      <code> {Node.text("View.mount")} </code>
       {Node.text(" when you already have a DOM element, or ")}
-      <code> {Node.text("Node.mountById")} </code>
+      <code> {Node.text("View.mountById")} </code>
       {Node.text(" when you want to look one up by id.")}
     </p>
     <pre class="docs-code-pre">
       <code>
         {SyntaxHighlight.highlight(`let app = () => {
-  <div> {Node.text("Hello, Xote")} </div>
+  <div> {View.text("Hello, Xote")} </div>
 }
 
-Node.mountById(app(), "app")`)}
+View.mountById(app(), "app")`)}
       </code>
     </pre>
 
     <h2 id="components-in-practice"> {Node.text("In Practice")} </h2>
-    <h3 id="example-counter-component"> {Node.text("Example: Counter Component")} </h3>
+    <h3 id="example-counter-component"> {Node.text("Example: Counter View")} </h3>
     <p>
       {Node.text("This example keeps state local to the component and exposes only props.")}
     </p>
@@ -254,10 +254,10 @@ module Counter = {
 
     <div class="counter">
       <h2>
-        {Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+        {View.computedText(() => "Count: " ++ Int.toString(Signal.get(count)))}
       </h2>
-      <button onClick={decrement}> {Node.text("-")} </button>
-      <button onClick={increment}> {Node.text("+")} </button>
+      <button onClick={decrement}> {View.text("-")} </button>
+      <button onClick={increment}> {View.text("+")} </button>
     </div>
   }
 }
@@ -279,7 +279,7 @@ let app = () => {
       </li>
       <li>
         {Node.text("Use ")}
-        <code> {Node.text("Node.keyedList")} </code>
+        <code> {Node.text("View.keyedEach")} </code>
         {Node.text(" for collections that reorder, insert, or preserve local DOM state.")}
       </li>
       <li>

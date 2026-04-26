@@ -44,10 +44,10 @@ let counter = () => {
 
   <div>
     <h1>
-      {Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {View.computedText(() => "Count: " ++ Int.toString(Signal.get(count)))}
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
-      {Node.text("Increment")}
+      {View.text("Increment")}
     </button>
   </div>
 }
@@ -84,7 +84,7 @@ Xote components usually run once. Signals, computeds, and effects are ordinary v
 
 ### List Rendering
 
-React uses keys during virtual DOM reconciliation. Xote uses `Node.keyedList`, which works directly against DOM anchors and explicit keys.
+React uses keys during virtual DOM reconciliation. Xote prefers `View.keyedEach`, which works directly against DOM anchors and explicit keys.
 
 ```jsx
 function TodoList({ todos }) {
@@ -103,10 +103,10 @@ let todoList = () => {
   let todos = Signal.make([{id: "1", text: "Buy milk"}])
 
   <ul>
-    {Node.keyedList(
+    {View.keyedEach(
       todos,
       todo => todo.id,
-      todo => <li> {Node.text(todo.text)} </li>,
+      todo => <li> {View.text(todo.text)} </li>,
     )}
   </ul>
 }
@@ -179,7 +179,7 @@ React developers usually adapt to Xote fastest when they stop looking for hook e
 1. `useState` becomes `Signal.make`
 2. `useMemo` becomes `Computed.make`
 3. `useEffect` becomes `Effect.run`
-4. keyed `.map()` rendering becomes `Node.keyedList` when identity matters
+4. keyed `.map()` rendering becomes `View.keyedEach` when identity matters
 
 The conceptual shift is from re-rendered components to persistent reactive values.
 
@@ -188,4 +188,4 @@ The conceptual shift is from re-rendered components to persistent reactive value
 - [Signals](/docs/core-concepts/signals)
 - [Computeds](/docs/core-concepts/computed)
 - [Effects](/docs/core-concepts/effects)
-- [Components](/docs/components/overview)
+- [View](/docs/view/overview)

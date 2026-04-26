@@ -28,11 +28,11 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
 
 The compiler flag `-open Xote` is optional, it makes the Xote modules available unqualified inside your source files.
 
-This README uses the clearer aliases introduced for application code:
+This README uses the clearer application-facing names introduced for public code:
 
-- `View` is an alias for `Node`.
+- `View` is the official module for building and mounting DOM nodes. `Node` remains available as a compatibility alias.
 - `Prop` is an alias for `ReactiveProp`.
-- `View.computedText`, `View.each`, `View.Attr.*`, and `SSRState.signal` are preferred in examples, while the original `Node.signalText`, `Node.list`, `Node.attr`, and `SSRState.make` names remain supported.
+- `View.computedText`, `View.each`, `View.keyedEach`, `View.Attr.*`, `Router.locationSignal`, `Router.current`, and `SSRState.signal` are preferred in examples, while the original `Node.signalText`, `Node.list`, `Node.keyedList`, `Node.attr`, `Router.location`, and `SSRState.make` names remain supported.
 
 ### Quick Example
 
@@ -107,9 +107,9 @@ Xote uses **[rescript-signals](https://github.com/brnrdog/rescript-signals)** fo
 
 All reactive primitives feature automatic dependency tracking. No manual subscriptions needed.
 
-### Component System
+### View System
 
-On top of the reactive primitives with signals, Xote provides a declarative component system:
+On top of the reactive primitives with signals, Xote provides a declarative view system:
 
 - **JSX Support**: Build user interface using JSX in a declarative and familiar manner
 - **Reactive DOM Nodes**: Fine-grained reactivity that updates DOM nodes directly, no virtual DOM required
@@ -119,7 +119,7 @@ On top of the reactive primitives with signals, Xote provides a declarative comp
 
 ### Views and Attributes
 
-`View` creates UI nodes. It is the clearer application-facing alias for `Node`, and both names are available:
+`View` creates UI nodes. It is the official application-facing module for DOM rendering, while `Node` remains available for compatibility:
 
 ```rescript
 let className = Signal.make("card")

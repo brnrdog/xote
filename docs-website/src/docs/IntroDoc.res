@@ -27,7 +27,7 @@ let content = () => {
         {Node.text("Effects for external side effects")}
       </li>
       <li>
-        {Node.text("Components and JSX for UI composition")}
+        {Node.text("View primitives and JSX for UI composition")}
       </li>
       <li>
         {Node.text("A built-in router, SSR, and hydration")}
@@ -36,7 +36,7 @@ let content = () => {
 
     <h2 id="quick-example"> {Node.text("Start Here")} </h2>
     <p>
-      {Node.text("This counter shows the core model: a signal stores state, an event updates it, and a reactive text node reads it.")}
+      {Node.text("This counter shows the core model: a signal stores state, an event updates it, and a reactive view node reads it.")}
     </p>
     <h3 id="using-jsx-syntax"> {Node.text("Using JSX Syntax")} </h3>
     <pre class="docs-code-pre">
@@ -51,23 +51,23 @@ let increment = (_evt: Dom.event) => {
 
 let app = () => {
   <div>
-    <h1> {Node.text("Counter")} </h1>
+    <h1> {View.text("Counter")} </h1>
     <p>
-      {Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {View.computedText(() => "Count: " ++ Int.toString(Signal.get(count)))}
     </p>
     <button onClick={increment}>
-      {Node.text("Increment")}
+      {View.text("Increment")}
     </button>
   </div>
 }
 
-Node.mountById(app(), "app")`)}
+View.mountById(app(), "app")`)}
       </code>
     </pre>
     <p>
       {Node.text("When ")}
       <code> {Node.text("count")} </code>
-      {Node.text(" changes, only the reactive text node updates. The component does not need a render loop or a dependency array.")}
+      {Node.text(" changes, only the reactive view node updates. The component does not need a render loop or a dependency array.")}
     </p>
 
     <h2 id="core-modules"> {Node.text("How the Docs Are Organized")} </h2>
@@ -88,8 +88,8 @@ Node.mountById(app(), "app")`)}
         {Node.text(" - side effects that react to state changes")}
       </li>
       <li>
-        {Router.link(~to="/docs/components/overview", ~children=[Node.text("Components")], ())}
-        {Node.text(" - component structure, JSX, attributes, events, and lists")}
+        {Router.link(~to="/docs/view/overview", ~children=[Node.text("View")], ())}
+        {Node.text(" - the View module, JSX, attributes, events, and lists")}
       </li>
       <li>
         {Router.link(~to="/docs/router/overview", ~children=[Node.text("Router")], ())}
@@ -136,7 +136,7 @@ pnpm add xote`)}
         {Node.text(" if you want the shortest path into the reactive model.")}
       </li>
       <li>
-        {Router.link(~to="/docs/components/overview", ~children=[Node.text("Move to Components next")], ())}
+        {Router.link(~to="/docs/view/overview", ~children=[Node.text("Move to View next")], ())}
         {Node.text(" once the state model feels clear.")}
       </li>
       <li>

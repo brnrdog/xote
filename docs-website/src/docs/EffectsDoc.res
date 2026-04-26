@@ -221,7 +221,7 @@ Effect.run(() => {
     <h3 id="next-steps"> {Node.text("Next Steps")} </h3>
     <ul>
       <li>
-        {Router.link(~to="/docs/components/overview", ~children=[Node.text("Move to Components")], ())}
+        {Router.link(~to="/docs/view/overview", ~children=[Node.text("Move to View")], ())}
         {Node.text(" to see how effects fit into real UI code.")}
       </li>
       <li>

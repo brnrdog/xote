@@ -23,6 +23,7 @@ const routes = [
   '/docs/core-concepts/effects',
   '/docs/advanced/ssr',
   '/docs/advanced/batching',
+  '/docs/view/overview',
   '/docs/components/overview',
   '/docs/router/overview',
   '/docs/api/signals',

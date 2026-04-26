@@ -187,7 +187,7 @@ let temperature = Computed.make(() =>
     <h2 id="signals-in-practice"> {Node.text("In Practice")} </h2>
     <h3 id="example-counter"> {Node.text("Example: Counter")} </h3>
     <p>
-      {Node.text("This is the same pattern most Xote state starts with: a signal, a few updates, and a reactive read in the UI.")}
+      {Node.text("This is the same pattern most Xote state starts with: a signal, a few updates, and a reactive view read in the UI.")}
     </p>
     <DocsExamplePanel
       filename="Counter.res"
@@ -211,21 +211,21 @@ let reset = (_evt: Dom.event) => {
 let app = () => {
   <div>
     <h1>
-      {Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {View.computedText(() => "Count: " ++ Int.toString(Signal.get(count)))}
     </h1>
     <button onClick={increment}>
-      {Node.text("+")}
+      {View.text("+")}
     </button>
     <button onClick={decrement}>
-      {Node.text("-")}
+      {View.text("-")}
     </button>
     <button onClick={reset}>
-      {Node.text("Reset")}
+      {View.text("Reset")}
     </button>
   </div>
 }
 
-Node.mountById(app(), "app")`}
+View.mountById(app(), "app")`}
     >
       <CounterDemo />
     </DocsExamplePanel>

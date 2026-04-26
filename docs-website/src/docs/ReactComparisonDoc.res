@@ -95,10 +95,10 @@ let counter = () => {
 
   <div>
     <h1>
-      {Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {View.computedText(() => "Count: " ++ Int.toString(Signal.get(count)))}
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
-      {Node.text("Increment")}
+      {View.text("Increment")}
     </button>
   </div>
 }`)}
@@ -148,8 +148,8 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
     </p>
     <h3 id="list-rendering"> {Node.text("List Rendering")} </h3>
     <p>
-      {Node.text("React uses keys during virtual DOM reconciliation. Xote uses ")}
-      <code> {Node.text("Node.keyedList")} </code>
+      {Node.text("React uses keys during virtual DOM reconciliation. Xote prefers ")}
+      <code> {Node.text("View.keyedEach")} </code>
       {Node.text(", which works directly against DOM anchors and explicit keys.")}
     </p>
     <pre class="docs-code-pre">
@@ -171,10 +171,10 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
   let todos = Signal.make([{id: "1", text: "Buy milk"}])
 
   <ul>
-    {Node.keyedList(
+    {View.keyedEach(
       todos,
       todo => todo.id,
-      todo => <li> {Node.text(todo.text)} </li>,
+      todo => <li> {View.text(todo.text)} </li>,
     )}
   </ul>
 }`)}
@@ -295,7 +295,7 @@ Hydration.hydrateById(app, "root")`)}
         {Node.text("keyed ")}
       <code> {Node.text(".map()")} </code>
       {Node.text(" rendering becomes ")}
-      <code> {Node.text("Node.keyedList")} </code>
+      <code> {Node.text("View.keyedEach")} </code>
       {Node.text(" when identity matters")}
       </li>
     </ol>
@@ -314,7 +314,7 @@ Hydration.hydrateById(app, "root")`)}
         {Router.link(~to="/docs/core-concepts/effects", ~children=[Node.text("Effects")], ())}
       </li>
       <li>
-        {Router.link(~to="/docs/components/overview", ~children=[Node.text("Components")], ())}
+        {Router.link(~to="/docs/view/overview", ~children=[Node.text("View")], ())}
       </li>
     </ul>
   </div>

@@ -20,7 +20,7 @@ let docsNav: array<docCategory> = [
       {title: "Signals", path: "/docs/core-concepts/signals"},
       {title: "Computeds", path: "/docs/core-concepts/computed"},
       {title: "Effects", path: "/docs/core-concepts/effects"},
-      {title: "Components", path: "/docs/components/overview"},
+      {title: "View", path: "/docs/view/overview"},
     ],
   },
   {
