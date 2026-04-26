@@ -63,6 +63,11 @@ type searchItem = {
 
 let searchItems: array<searchItem> = [
   {title: "Introduction", path: "/docs", section: "Getting Started"},
+  {
+    title: "ReScript for Newcomers",
+    path: "/docs/getting-started/rescript",
+    section: "Getting Started",
+  },
   {title: "Signals", path: "/docs/core-concepts/signals", section: "Core Modules"},
   {title: "Computeds", path: "/docs/core-concepts/computed", section: "Core Modules"},
   {title: "Effects", path: "/docs/core-concepts/effects", section: "Core Modules"},

@@ -74,7 +74,7 @@ module Greeting = {
   @jsx.component
   let make = (~name: string, ~emphasis=false) => {
     <div class={emphasis ? "greeting strong" : "greeting"}>
-      <h1> {View.text("Hello, " ++ name)} </h1>
+      <h1> {View.text(\`Hello, \${name}\`)} </h1>
     </div>
   }
 }
@@ -95,7 +95,7 @@ let app = () => {
 let greeting = (name: string) => {
   Html.div(
     ~children=[
-      Html.h1(~children=[View.text("Hello, " ++ name)], ())
+      Html.h1(~children=[View.text(\`Hello, \${name}\`)], ())
     ],
     (),
   )
@@ -116,7 +116,7 @@ let greeting = (name: string) => {
         {SyntaxHighlight.highlight(`let count = Signal.make(0)
 
 <div>
-  {View.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+  {View.signalText(() => \`Count: \${Signal.get(count)->Int.toString}\`)}
 </div>`)}
       </code>
     </pre>
@@ -254,7 +254,7 @@ module Counter = {
 
     <div class="counter">
       <h2>
-        {View.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+        {View.signalText(() => \`Count: \${Signal.get(count)->Int.toString}\`)}
       </h2>
       <button onClick={decrement}> {View.text("-")} </button>
       <button onClick={increment}> {View.text("+")} </button>

@@ -65,7 +65,7 @@ let settings = Signal.make({
 let lastName = Signal.make("Lovelace")
 
 let fullName = Computed.make(() =>
-  Signal.get(firstName) ++ " " ++ Signal.get(lastName)
+  \`\${Signal.get(firstName)} \${Signal.get(lastName)}\`
 )`)}
       </code>
     </pre>
@@ -211,7 +211,7 @@ let reset = (_evt: Dom.event) => {
 let app = () => {
   <div>
     <h1>
-      {View.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {View.signalText(() => \`Count: \${Signal.get(count)->Int.toString}\`)}
     </h1>
     <button onClick={increment}>
       {View.text("+")}

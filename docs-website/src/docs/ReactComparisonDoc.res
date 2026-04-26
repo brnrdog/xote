@@ -95,7 +95,7 @@ let counter = () => {
 
   <div>
     <h1>
-      {View.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {View.signalText(() => \`Count: \${Signal.get(count)->Int.toString}\`)}
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
       {View.text("Increment")}
@@ -129,7 +129,7 @@ let counter = () => {
     <pre class="docs-code-pre">
       <code>
         {SyntaxHighlight.highlight(`Effect.run(() => {
-  document.title = "Count: " ++ Int.toString(Signal.get(count))
+  document.title = \`Count: \${Signal.get(count)->Int.toString}\`
   None
 })
 

@@ -1,5 +1,6 @@
 // Import doc content
 module IntroDoc = IntroDoc
+module ReScriptNewcomersDoc = ReScriptNewcomersDoc
 module SignalsDoc = SignalsDoc
 module ComputedDoc = ComputedDoc
 module EffectsDoc = EffectsDoc
@@ -100,6 +101,38 @@ module App = {
                 {text: "Installation", id: "installation", level: 3},
                 {text: "Next Steps", id: "next-steps", level: 3},
                 {text: "Philosophy", id: "philosophy", level: 2},
+              ]
+            />,
+        },
+        {
+          pattern: "/docs/getting-started/rescript",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/getting-started/rescript"
+              pageTitle="ReScript for Newcomers"
+              pageLead="A quick orientation to the language underneath Xote, with syntax, patterns, and the official docs for deeper study."
+              content={ReScriptNewcomersDoc.content()}
+              tocItems=[
+                {text: "What ReScript Is", id: "what-rescript-is", level: 2},
+                {text: "Why It Matters", id: "why-it-matters", level: 2},
+                {text: "The Practical Payoff", id: "the-practical-payoff", level: 3},
+                {
+                  text: "ReScript in Existing JS or TS Projects",
+                  id: "rescript-in-existing-js-or-ts-projects",
+                  level: 2,
+                },
+                {text: "Syntax You Will See Often", id: "syntax-you-will-see-often", level: 2},
+                {text: "let Bindings and Functions", id: "let-bindings-and-functions", level: 3},
+                {text: "Records and Variants", id: "records-and-variants", level: 3},
+                {text: "switch and Pattern Matching", id: "switch-and-pattern-matching", level: 3},
+                {text: "options Instead of null", id: "options-instead-of-null", level: 3},
+                {text: "Modules and Files", id: "modules-and-files", level: 3},
+                {text: "Xote-Flavored ReScript Patterns", id: "xote-flavored-rescript-patterns", level: 2},
+                {text: "Event Handlers", id: "event-handlers", level: 3},
+                {text: "Local State with Signals", id: "local-state-with-signals", level: 3},
+                {text: "JSX Components", id: "jsx-components", level: 3},
+                {text: "Official Docs", id: "official-docs", level: 2},
+                {text: "Recommended Deep Dives", id: "recommended-deep-dives", level: 3},
               ]
             />,
         },

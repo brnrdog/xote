@@ -28,7 +28,7 @@ let content = () => {
 let lastName = Signal.make("Lovelace")
 
 let fullName = Computed.make(() =>
-  Signal.get(firstName) ++ " " ++ Signal.get(lastName)
+  \`\${Signal.get(firstName)} \${Signal.get(lastName)}\`
 )
 
 Effect.run(() => {

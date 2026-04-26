@@ -53,7 +53,7 @@ let app = () => {
   <div>
     <h1> {View.text("Counter")} </h1>
     <p>
-      {View.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {View.signalText(() => \`Count: \${Signal.get(count)->Int.toString}\`)}
     </p>
     <button onClick={increment}>
       {View.text("Increment")}

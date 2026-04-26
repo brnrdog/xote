@@ -18,6 +18,7 @@ const buildDir = path.join(__dirname, '..', 'build', 'client')
 const routes = [
   '/',
   '/docs',
+  '/docs/getting-started/rescript',
   '/docs/core-concepts/signals',
   '/docs/core-concepts/computed',
   '/docs/core-concepts/effects',

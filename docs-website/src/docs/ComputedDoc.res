@@ -146,13 +146,13 @@ let total = Computed.make(() =>
 let app = () => {
   <div>
     <p>
-      {View.signalText(() => "Subtotal: $" ++ Int.toString(Signal.get(subtotal)))}
+      {View.signalText(() => \`Subtotal: $\${Signal.get(subtotal)->Int.toString}\`)}
     </p>
     <p>
-      {View.signalText(() => "Shipping: $" ++ Int.toString(Signal.get(shippingCost)))}
+      {View.signalText(() => \`Shipping: $\${Signal.get(shippingCost)->Int.toString}\`)}
     </p>
     <p>
-      {View.signalText(() => "Total: $" ++ Int.toString(Signal.get(total)))}
+      {View.signalText(() => \`Total: $\${Signal.get(total)->Int.toString}\`)}
     </p>
   </div>
 }`}
