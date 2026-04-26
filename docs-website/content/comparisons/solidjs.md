@@ -65,7 +65,7 @@ Key differences:
 
 Both component models are close: the function runs, the DOM structure is created, and later updates flow through reactive bindings instead of through repeated component renders.
 
-The main ergonomic difference is that SolidJS can embed reactive expressions directly inside JSX, while Xote makes the reactive boundary explicit with helpers such as `Node.signalText`.
+The main ergonomic difference is that SolidJS can embed reactive expressions directly inside JSX, while Xote makes the reactive boundary explicit with helpers such as `View.computedText`.
 
 ```jsx
 function Counter() {
@@ -86,10 +86,10 @@ let counter = () => {
 
   <div>
     <h1>
-      {Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {View.computedText(() => "Count: " ++ Int.toString(Signal.get(count)))}
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
-      {Node.text("Increment")}
+      {View.text("Increment")}
     </button>
   </div>
 }
@@ -97,7 +97,7 @@ let counter = () => {
 
 ### List Rendering
 
-SolidJS uses control-flow helpers like `<For>` and `<Index>`. Xote exposes list handling through `Node.list` and `Node.keyedList`.
+SolidJS uses control-flow helpers like `<For>` and `<Index>`. Xote exposes list handling through `View.each` and `View.keyedEach`.
 
 ```jsx
 import { For } from "solid-js";
@@ -118,10 +118,10 @@ let todoList = () => {
   let todos = Signal.make([{id: "1", text: "Buy milk"}])
 
   <ul>
-    {Node.keyedList(
+    {View.keyedEach(
       todos,
       todo => todo.id,
-      todo => <li> {Node.text(todo.text)} </li>,
+      todo => <li> {View.text(todo.text)} </li>,
     )}
   </ul>
 }
@@ -191,7 +191,7 @@ Xote is intentionally smaller. That means fewer ready-made packages, but also fe
 SolidJS developers typically need to adapt in three places:
 
 1. signal reads move from function calls to `Signal.get`
-2. reactive JSX expressions often become `Node.signalText` or other explicit reactive nodes
+2. reactive JSX expressions often become `View.computedText` or other explicit reactive nodes
 3. routing and SSR move from the Solid ecosystem to Xote's built-in modules
 
 The underlying mental model stays largely the same.
@@ -199,6 +199,6 @@ The underlying mental model stays largely the same.
 ### Further Reading
 
 - [Signals](/docs/core-concepts/signals)
-- [Components](/docs/components/overview)
+- [View](/docs/view/overview)
 - [Router](/docs/router/overview)
 - [Server-Side Rendering](/docs/advanced/ssr)

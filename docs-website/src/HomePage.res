@@ -33,8 +33,8 @@ let features: array<feature> = [
     number: "04",
     title: "JSX support + built-in router",
     description: "Write components in JSX and handle routing with first-party primitives instead of stitching the basics together yourself.",
-    linkText: Some("Components and router"),
-    linkTo: Some("/docs/components/overview"),
+    linkText: Some("View and router"),
+    linkTo: Some("/docs/view/overview"),
   },
 ]
 
@@ -628,8 +628,8 @@ Effect.run(() => {
       <div class="tutorial-step">
         {stepHeader(
           ~n="01",
-          ~title="Build a presentational component",
-          ~blurb="Components are plain functions. TemperatureDisplay takes a value and a unit and renders them in a styled card.",
+          ~title="Build a presentational view",
+          ~blurb="Views are plain functions. TemperatureDisplay takes a value and a unit and renders them in a styled card.",
         )}
         <div class="tutorial-step-body">
           {codeBlock(~filename="TemperatureDisplay.res", ~code=step1Code)}

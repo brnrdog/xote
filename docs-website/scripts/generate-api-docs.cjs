@@ -416,7 +416,6 @@ function main() {
     const outputPath = path.join(OUTPUT_DIR, outputName);
 
     if (!fs.existsSync(markdownPath)) {
-      console.warn(`⚠ Warning: Markdown file not found: ${relativePath}`);
       continue;
     }
 

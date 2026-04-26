@@ -41,13 +41,15 @@ let app = () => {
     <h3 id="reading-the-location"> {Node.text("Reading the Current Location")} </h3>
     <p>
       {Node.text("Use ")}
-      <code> {Node.text("Router.location()")} </code>
-      {Node.text(" to get the location signal, then read it like any other signal.")}
+      <code> {Node.text("Router.locationSignal()")} </code>
+      {Node.text(" to get the location signal, or ")}
+      <code> {Node.text("Router.current()")} </code>
+      {Node.text(" when you only need a snapshot.")}
     </p>
     <pre class="docs-code-pre">
       <code>
         {SyntaxHighlight.highlight(`Effect.run(() => {
-  let current = Signal.get(Router.location())
+  let current = Signal.get(Router.locationSignal())
   Console.log2("Current path:", current.pathname)
   None
 })`)}
@@ -115,10 +117,10 @@ Router.replace("/login", ())`)}
         {SyntaxHighlight.highlight(`let nav = () => {
   <nav>
     <Router.Link to="/" class="nav-link">
-      {Node.text("Home")}
+      {View.text("Home")}
     </Router.Link>
     <Router.Link to="/docs" class="nav-link">
-      {Node.text("Docs")}
+      {View.text("Docs")}
     </Router.Link>
   </nav>
 }`)}
@@ -153,8 +155,8 @@ Router.init()
 
 let nav = () => {
   <nav>
-    <Router.Link to="/"> {Node.text("Home")} </Router.Link>
-    <Router.Link to="/users"> {Node.text("Users")} </Router.Link>
+    <Router.Link to="/"> {View.text("Home")} </Router.Link>
+    <Router.Link to="/users"> {View.text("Users")} </Router.Link>
   </nav>
 }
 
@@ -184,7 +186,7 @@ let app = () => {
       </li>
       <li>
         {Node.text("Treat ")}
-        <code> {Node.text("Router.location()")} </code>
+        <code> {Node.text("Router.locationSignal()")} </code>
         {Node.text(" like shared state. Read it where needed instead of mirroring it elsewhere.")}
       </li>
       <li>
@@ -202,7 +204,7 @@ let app = () => {
     <h3 id="next-steps"> {Node.text("Next Steps")} </h3>
     <ul>
       <li>
-        {Router.link(~to="/docs/components/overview", ~children=[Node.text("Pair this with Components")], ())}
+        {Router.link(~to="/docs/view/overview", ~children=[Node.text("Pair this with View")], ())}
         {Node.text(" when you want to turn routes into real pages and layouts.")}
       </li>
       <li>

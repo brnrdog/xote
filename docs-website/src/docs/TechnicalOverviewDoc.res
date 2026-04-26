@@ -33,10 +33,10 @@ let content = () => {
         {Node.text(" - state, derived state, and side effects")}
       </li>
       <li>
-        <code> {Node.text("Node")} </code>
+        <code> {Node.text("View")} </code>
         {Node.text(" and ")}
         <code> {Node.text("Html")} </code>
-        {Node.text(" - node constructors, attributes, mounting, and HTML helpers")}
+        {Node.text(" - UI node constructors, mounting, and HTML helpers")}
       </li>
       <li>
         <code> {Node.text("XoteJSX")} </code>
@@ -93,21 +93,21 @@ let content = () => {
       </li>
     </ul>
 
-    <h3 id="component-rendering"> {Node.text("Component Rendering")} </h3>
+    <h3 id="component-rendering"> {Node.text("View Rendering")} </h3>
     <p>
-      {Node.text("Xote does not rely on a general virtual DOM diff for updates. Components produce node structures once, and reactive nodes handle fine-grained updates after mounting.")}
+      {Node.text("Xote does not rely on a general virtual DOM diff for updates. View functions and JSX components produce node structures once, and reactive nodes handle fine-grained updates after mounting.")}
     </p>
     <p>
-      {Node.text("The public node variants cover the main cases: text, elements, fragments, signal-backed text, signal-backed fragments, lazy components, and keyed lists.")}
+      {Node.text("The public view variants cover the main cases: text, elements, fragments, signal-backed text, signal-backed fragments, lazy components, and keyed lists.")}
     </p>
     <pre class="docs-code-pre">
       <code>
-        {SyntaxHighlight.highlight(`Node.text : string => node
-Node.signalText : (unit => string) => node
-Node.fragment : array<node> => node
-Node.signalFragment : Signal.t<array<node>> => node
-Node.list : (Signal.t<array<'a>>, 'a => node) => node
-Node.keyedList : (Signal.t<array<'a>>, 'a => string, 'a => node) => node`)}
+        {SyntaxHighlight.highlight(`View.text : string => node
+View.computedText : (unit => string) => node
+View.fragment : array<node> => node
+View.signalFragment : Signal.t<array<node>> => node
+View.each : (Signal.t<array<'a>>, 'a => node) => node
+View.keyedEach : (Signal.t<array<'a>>, 'a => string, 'a => node) => node`)}
       </code>
     </pre>
 
@@ -164,13 +164,13 @@ Computed.make : (unit => 'a, ~name: option<string>=?, ~equals: option<('a, 'a) =
 Effect.run : (unit => option<unit => unit>, ~name: option<string>=?) => unit`)}
       </code>
     </pre>
-    <h3 id="component-helpers"> {Node.text("Component Helpers")} </h3>
+    <h3 id="component-helpers"> {Node.text("View Helpers")} </h3>
     <pre class="docs-code-pre">
       <code>
-        {SyntaxHighlight.highlight(`Node.attr : (string, string) => (string, Node.attrValue)
-Node.signalAttr : (string, Signal.t<string>) => (string, Node.attrValue)
-Node.computedAttr : (string, unit => string) => (string, Node.attrValue)
-Node.mountById : (Node.node, string) => unit`)}
+        {SyntaxHighlight.highlight(`View.Attr.string : (string, string) => (string, View.attrValue)
+View.Attr.signal : (string, Signal.t<string>) => (string, View.attrValue)
+View.Attr.compute : (string, unit => string) => (string, View.attrValue)
+View.mountById : (View.node, string) => unit`)}
       </code>
     </pre>
     <h3 id="router-helpers"> {Node.text("Router Helpers")} </h3>
@@ -178,9 +178,10 @@ Node.mountById : (Node.node, string) => unit`)}
       <code>
         {SyntaxHighlight.highlight(`Router.init : (~basePath: string=?, unit) => unit
 Router.initSSR : (~basePath: string=?, ~pathname: string, ~search: string=?, ~hash: string=?, unit) => unit
-Router.location : unit => Signal.t<{pathname: string, search: string, hash: string}>
+Router.locationSignal : unit => Signal.t<{pathname: string, search: string, hash: string}>
+Router.current : unit => {pathname: string, search: string, hash: string}
 Router.push : (string, ~search: string=?, ~hash: string=?, unit) => unit
-Router.routes : array<routeConfig> => Node.node`)}
+Router.routes : array<routeConfig> => View.node`)}
       </code>
     </pre>
 
@@ -191,7 +192,7 @@ Router.routes : array<routeConfig> => Node.node`)}
         {Node.text("Model derived values as computeds so write paths stay smaller and easier to trust.")}
       </li>
       <li>
-        {Node.text("Keep the public explanation aligned with the real module boundaries: signals, nodes, router, and SSR each own a distinct concern.")}
+        {Node.text("Keep the public explanation aligned with the real module boundaries: signals, views, router, and SSR each own a distinct concern.")}
       </li>
       <li>
         {Node.text("Treat ")}

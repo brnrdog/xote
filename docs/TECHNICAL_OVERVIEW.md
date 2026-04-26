@@ -8,8 +8,8 @@ Xote uses [rescript-signals](https://brnrdog.github.io/rescript-signals) for rea
 
 The ReScript compiler is configured with `"namespace": true`, so every source file in `src/` is namespaced under `Xote`. The public modules are listed in `rescript.json` under `sources.public`:
 
-- **`Xote.Node`**: Core UI node types, constructors, attributes, rendering, and mounting.
-- **`Xote.View`**: Alias for `Node` when view-oriented naming is clearer.
+- **`Xote.View`**: Official UI node API for constructors, attributes, rendering, and mounting.
+- **`Xote.Node`**: Compatibility alias for `View`; the runtime implementation still lives in `Node.res`.
 - **`Xote.Html`**: Convenience constructors for common HTML tags.
 - **`Xote.XoteJSX`**: JSX v4 transform support and lowercase HTML element definitions.
 - **`Xote.ReactiveProp`**: Static-or-reactive prop wrapper for JSX-friendly APIs.
@@ -22,7 +22,7 @@ The ReScript compiler is configured with `"namespace": true`, so every source fi
 - **`Xote.Hydration`**: Client-side hydration for server-rendered DOM.
 - **`Xote.Signal`**, **`Xote.Computed`**, **`Xote.Effect`**: Re-export shims for `rescript-signals`.
 
-There is no central `Xote.res` barrel and no `Xote__` prefixed source module naming. Consumers access modules through the generated namespace, for example `Xote.Node`, `Xote.Router`, or unqualified `Node` after `-open Xote`.
+There is no central `Xote.res` barrel and no `Xote__` prefixed source module naming. Consumers access modules through the generated namespace, for example `Xote.View`, `Xote.Router`, or unqualified `View` after `-open Xote`. `Node` remains available as a compatibility alias.
 
 Some implementation modules are currently nested inside public modules, such as `Node.DOM`, `Node.Reactivity`, `Node.Render`, `SSR.Html`, `SSR.Markers`, and `Hydration.DOMWalker`. These exist to share implementation code inside the package and should be treated as internal details unless they are explicitly documented as public API.
 
@@ -47,11 +47,11 @@ Computed values and effects are also provided by `rescript-signals`:
 - **`Effect.runWithDisposer(~name?, fn)`** returns a disposer with `dispose()`.
 - Effect callbacks return `option<unit => unit>`: `Some(cleanup)` for teardown or `None` when no cleanup is needed.
 
-### Component And Rendering Model
+### View And Rendering Model
 
-Xote components are functions that return `Node.node`.
+Xote components are functions that return `View.node`. `Node.node` remains available as the equivalent compatibility type.
 
-`Node.node` variants:
+`View.node` variants:
 
 - `Text(string)`
 - `SignalText(Signal.t<string>)`
@@ -61,23 +61,24 @@ Xote components are functions that return `Node.node`.
 - `LazyComponent(unit => node)`
 - `KeyedList({signal, keyFn, renderItem})`
 
-Core constructors:
+Preferred public constructors:
 
-- `Node.text("hello")`
-- `Node.int(1)` and `Node.float(1.5)`
-- `Node.signalText(() => ...)`
-- `Node.signalInt(() => ...)` and `Node.signalFloat(() => ...)`
-- `Node.computedText(() => ...)`
-- `Node.computedInt(() => ...)` and `Node.computedFloat(() => ...)`
-- `Node.fragment(children)`
-- `Node.signalFragment(signal)`
-- `Node.list(signal, renderItem)`
-- `Node.keyedList(signal, keyFn, renderItem)`
-- `Node.each(signal, renderItem)` and `Node.keyedEach(signal, keyFn, renderItem)`
-- `Node.element("div", ~attrs?, ~events?, ~children?, ())`
-- `Node.null()` and `Node.empty()`
-- `Node.mount(node, container)`
-- `Node.mountById(node, "root")`
+- `View.text("hello")`
+- `View.int(1)` and `View.float(1.5)`
+- `View.signalText(() => ...)`
+- `View.signalInt(() => ...)` and `View.signalFloat(() => ...)`
+- `View.computedText(() => ...)`
+- `View.computedInt(() => ...)` and `View.computedFloat(() => ...)`
+- `View.fragment(children)`
+- `View.signalFragment(signal)`
+- `View.each(signal, renderItem)`
+- `View.keyedEach(signal, keyFn, renderItem)`
+- `View.element("div", ~attrs?, ~events?, ~children?, ())`
+- `View.null()` and `View.empty()`
+- `View.mount(node, container)`
+- `View.mountById(node, "root")`
+
+The original `Node.*` entry points remain supported, including `Node.list` / `Node.keyedList` as aliases for `View.each` / `View.keyedEach`.
 
 Rendering is fine-grained:
 
@@ -90,12 +91,12 @@ Rendering is fine-grained:
 
 ### Attributes
 
-Attributes are represented as `(string, Node.attrValue)` pairs:
+Attributes are represented as `(string, View.attrValue)` pairs:
 
-- `Node.attr(key, value)` for static string attributes.
-- `Node.signalAttr(key, signal)` for reactive string attributes.
-- `Node.computedAttr(key, fn)` for computed string attributes.
-- `Node.Attr.string`, `Node.Attr.signal`, and `Node.Attr.compute` for grouped attribute helper access.
+- `View.Attr.string(key, value)` for static string attributes.
+- `View.Attr.signal(key, signal)` for reactive string attributes.
+- `View.Attr.compute(key, fn)` for computed string attributes.
+- `View.attr`, `View.signalAttr`, and `View.computedAttr` remain available, as do the equivalent `Node.*` names.
 
 The DOM renderer maps selected names to DOM properties or boolean attribute behavior:
 
@@ -111,7 +112,7 @@ SSR mirrors the same boolean attribute behavior when rendering strings.
 
 - `jsx`, `jsxs`, `jsxKeyed`, and `jsxsKeyed` are entry points for the JSX transform.
 - Lowercase HTML tags are implemented in `XoteJSX.Elements`.
-- JSX components are wrapped in `Node.LazyComponent` so component evaluation happens during render/hydration rather than inside an unrelated computed context.
+- JSX components are wrapped in `View.LazyComponent` so component evaluation happens during render/hydration rather than inside an unrelated computed context.
 - JSX attributes accept raw values, `ReactiveProp.t<'a>`, raw `Signal.t<'a>`, or computed functions for compatibility.
 
 `ReactiveProp.t<'a>` is:
@@ -120,7 +121,7 @@ SSR mirrors the same boolean attribute behavior when rendering strings.
 type t<'a> = Reactive(Signal.t<'a>) | Static('a)
 ```
 
-Use `ReactiveProp.static(value)` or `ReactiveProp.reactive(signal)` when a component prop should support either static or reactive input. `Prop` is an alias for `ReactiveProp`, and `Prop.signal(signal)` is a shorter alias for `ReactiveProp.reactive(signal)`.
+Use `ReactiveProp.static(value)` or `ReactiveProp.reactive(signal)` when a component prop should support either static or reactive input. `Prop` is the preferred short alias for `ReactiveProp`, and `Prop.signal(signal)` is a shorter alias for `ReactiveProp.reactive(signal)`.
 
 ### Router
 
@@ -137,8 +138,8 @@ Use `ReactiveProp.static(value)` or `ReactiveProp.reactive(signal)` when a compo
 
 - `Router.init(~basePath?, ())` initializes browser routing and must be called before routing helpers on the client.
 - `Router.initSSR(~basePath?, ~pathname, ~search?, ~hash?, ())` initializes routing for server-side rendering without browser APIs.
-- `Router.location()` returns the shared `Signal.t<Router.location>`.
-- `Router.locationSignal()` is an alias that makes the signal return type explicit.
+- `Router.locationSignal()` returns the shared `Signal.t<Router.location>`.
+- `Router.location()` remains available as the equivalent alias.
 - `Router.current()` returns the current location snapshot.
 - `Router.push(pathname, ~search?, ~hash?, ())`
 - `Router.replace(pathname, ~search?, ~hash?, ())`
@@ -178,8 +179,8 @@ SSR uses comment markers to identify reactive boundaries for hydration:
 - `SSRState.register(id, signal, codec)` records state on the server.
 - `SSRState.restore(id, signal, codec)` restores state on the client.
 - `SSRState.sync(id, signal, codec)` registers or restores depending on runtime.
-- `SSRState.make(id, initial, codec)` creates a signal and syncs it.
-- `SSRState.signal(id, initial, codec)` is a clearer alias for `make`.
+- `SSRState.signal(id, initial, codec)` creates a signal and syncs it.
+- `SSRState.make(id, initial, codec)` remains available as the equivalent alias.
 - `SSRState.syncSignal(id, signal, codec)` is a clearer alias for `sync`.
 - `SSRState.generateScript(~nonce?)` serializes state into a script tag.
 - `SSRState.clear()` resets the server registry between independent renders.

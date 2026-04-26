@@ -146,13 +146,13 @@ let total = Computed.make(() =>
 let app = () => {
   <div>
     <p>
-      {Node.signalText(() => "Subtotal: $" ++ Int.toString(Signal.get(subtotal)))}
+      {View.computedText(() => "Subtotal: $" ++ Int.toString(Signal.get(subtotal)))}
     </p>
     <p>
-      {Node.signalText(() => "Shipping: $" ++ Int.toString(Signal.get(shippingCost)))}
+      {View.computedText(() => "Shipping: $" ++ Int.toString(Signal.get(shippingCost)))}
     </p>
     <p>
-      {Node.signalText(() => "Total: $" ++ Int.toString(Signal.get(total)))}
+      {View.computedText(() => "Total: $" ++ Int.toString(Signal.get(total)))}
     </p>
   </div>
 }`}
@@ -230,7 +230,7 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
         {Node.text(" to see where reactive side effects fit on top of signals and computeds.")}
       </li>
       <li>
-        {Router.link(~to="/docs/components/overview", ~children=[Node.text("Move to Components")], ())}
+        {Router.link(~to="/docs/view/overview", ~children=[Node.text("Move to View")], ())}
         {Node.text(" when you want to wire derived values into the UI layer.")}
       </li>
     </ul>
