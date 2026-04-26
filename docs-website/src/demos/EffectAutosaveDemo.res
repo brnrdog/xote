@@ -44,15 +44,15 @@ let make = () => {
   <div class="effect-autosave-demo">
     <div class="effect-autosave-demo-section">
       <div class="effect-autosave-demo-heading">
-        <h3> {Node.text("Auto-save Draft")} </h3>
+        <h3> {View.text("Auto-save Draft")} </h3>
         <p>
-          {Node.text("Each input change re-runs the effect, resets the timer, and only saves the latest draft after the pause.")}
+          {View.text("Each input change re-runs the effect, resets the timer, and only saves the latest draft after the pause.")}
         </p>
       </div>
 
       <div class="effect-autosave-demo-editor">
         <label class="effect-autosave-demo-label" for_="effect-autosave-input">
-          {Node.text("Draft")}
+          {View.text("Draft")}
         </label>
         <input
           id="effect-autosave-input"
@@ -65,42 +65,42 @@ let make = () => {
       </div>
 
       <div class="effect-autosave-demo-status-row">
-        <span class="effect-autosave-demo-label"> {Node.text("Status")} </span>
+        <span class="effect-autosave-demo-label"> {View.text("Status")} </span>
         <span class="effect-autosave-demo-status">
-          {Node.signalText(() => Signal.get(saveStatus))}
+          {View.signalText(() => Signal.get(saveStatus))}
         </span>
       </div>
     </div>
 
     <div class="effect-autosave-demo-section">
       <div class="effect-autosave-demo-list-head">
-        <span class="effect-autosave-demo-label"> {Node.text("Recent saves")} </span>
+        <span class="effect-autosave-demo-label"> {View.text("Recent saves")} </span>
         <span class="effect-autosave-demo-hint">
-          {Node.text("Cleanup cancels any pending save before the next run.")}
+          {View.text("Cleanup cancels any pending save before the next run.")}
         </span>
       </div>
 
-      {Node.signalFragment(
+      {View.signalFragment(
         Computed.make(() => {
           let entries = Signal.get(savedDrafts)
           if Array.length(entries) == 0 {
             [
               <div class="effect-autosave-demo-empty">
-                {Node.text("No saves yet. Type, pause, and the latest draft will be recorded here.")}
+                {View.text("No saves yet. Type, pause, and the latest draft will be recorded here.")}
               </div>,
             ]
           } else {
             [
               <ol class="effect-autosave-demo-list">
-                {Node.keyedList(
+                {View.keyedList(
                   savedDrafts,
                   entry => Int.toString(entry.id),
                   entry =>
                     <li class="effect-autosave-demo-item">
                       <span class="effect-autosave-demo-item-label">
-                        {Node.text("Saved draft")}
+                        {View.text("Saved draft")}
                       </span>
-                      <span class="effect-autosave-demo-item-text"> {Node.text(entry.text)} </span>
+                      <span class="effect-autosave-demo-item-text"> {View.text(entry.text)} </span>
                     </li>,
                 )}
               </ol>,

@@ -255,22 +255,22 @@ function parseInlineMarkdown(text) {
 function generateInlineJSX(text) {
   const parts = parseInlineMarkdown(text);
   if (parts.length === 1 && parts[0].type === 'text') {
-    return `{Node.text("${escapeForReScript(parts[0].value)}")}`;
+    return `{View.text("${escapeForReScript(parts[0].value)}")}`;
   }
 
   const elements = parts.map(part => {
     switch (part.type) {
       case 'text':
-        return `{Node.text("${escapeForReScript(part.value)}")}`;
+        return `{View.text("${escapeForReScript(part.value)}")}`;
       case 'strong':
-        return `<strong> {Node.text("${escapeForReScript(part.value)}")} </strong>`;
+        return `<strong> {View.text("${escapeForReScript(part.value)}")} </strong>`;
       case 'code':
-        return `<code> {Node.text("${escapeForReScript(part.value)}")} </code>`;
+        return `<code> {View.text("${escapeForReScript(part.value)}")} </code>`;
       case 'link':
         if (part.url.startsWith('/')) {
-          return `{Router.link(~to="${part.url}", ~children=[Node.text("${escapeForReScript(part.text)}")], ())}`;
+          return `{Router.link(~to="${part.url}", ~children=[View.text("${escapeForReScript(part.text)}")], ())}`;
         } else {
-          return `<a href="${part.url}" target="_blank"> {Node.text("${escapeForReScript(part.text)}")} </a>`;
+          return `<a href="${part.url}" target="_blank"> {View.text("${escapeForReScript(part.text)}")} </a>`;
         }
       default:
         return '';
@@ -316,15 +316,15 @@ function generateJSX(nodes) {
   return nodes.map(node => {
     switch (node.type) {
       case 'h1':
-        return `    <h1> {Node.text("${escapeForReScript(node.text)}")} </h1>`;
+        return `    <h1> {View.text("${escapeForReScript(node.text)}")} </h1>`;
       case 'h2':
         const h2Id = slugify(node.text);
-        return `    <h2 id="${h2Id}"> {Node.text("${escapeForReScript(node.text)}")} </h2>`;
+        return `    <h2 id="${h2Id}"> {View.text("${escapeForReScript(node.text)}")} </h2>`;
       case 'h3':
         const h3Id = slugify(node.text);
         return `    <h3 id="${h3Id}"> ${generateInlineJSX(node.text)} </h3>`;
       case 'h4':
-        return `    <h4> {Node.text("${escapeForReScript(node.text)}")} </h4>`;
+        return `    <h4> {View.text("${escapeForReScript(node.text)}")} </h4>`;
       case 'p':
         return `    <p>\n      ${generateInlineJSX(node.text)}\n    </p>`;
       case 'blockquote':

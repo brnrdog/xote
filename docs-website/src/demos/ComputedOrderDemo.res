@@ -24,30 +24,30 @@ let make = () => {
   <div class="computed-order-demo">
     <div class="computed-order-demo-section">
       <div class="computed-order-demo-heading">
-        <h3> {Node.text("Order Summary")} </h3>
+        <h3> {View.text("Order Summary")} </h3>
         <p>
-          {Node.text("The writable state is unit price, quantity, and shipping mode. Everything else is derived.")}
+          {View.text("The writable state is unit price, quantity, and shipping mode. Everything else is derived.")}
         </p>
       </div>
 
       <div class="computed-order-demo-controls">
         <div class="computed-order-demo-control-group">
-          <div class="computed-order-demo-label"> {Node.text("Quantity")} </div>
+          <div class="computed-order-demo-label"> {View.text("Quantity")} </div>
           <div class="computed-order-demo-stepper">
             <button class="computed-order-demo-stepper-btn" onClick={decreaseQuantity}>
-              {Node.text("-")}
+              {View.text("-")}
             </button>
             <div class="computed-order-demo-stepper-value">
-              {Node.signalText(() => Int.toString(Signal.get(quantity)))}
+              {View.signalText(() => Int.toString(Signal.get(quantity)))}
             </div>
             <button class="computed-order-demo-stepper-btn" onClick={increaseQuantity}>
-              {Node.text("+")}
+              {View.text("+")}
             </button>
           </div>
         </div>
 
         <div class="computed-order-demo-control-group">
-          <div class="computed-order-demo-label"> {Node.text("Plan")} </div>
+          <div class="computed-order-demo-label"> {View.text("Plan")} </div>
           <div class="computed-order-demo-choice-row">
             <button
               class={() =>
@@ -58,7 +58,7 @@ let make = () => {
                 }}
               onClick={setStandard}
             >
-              {Node.text("Standard")}
+              {View.text("Standard")}
             </button>
             <button
               class={() =>
@@ -69,13 +69,13 @@ let make = () => {
                 }}
               onClick={setPremium}
             >
-              {Node.text("Premium")}
+              {View.text("Premium")}
             </button>
           </div>
         </div>
 
         <div class="computed-order-demo-control-group">
-          <div class="computed-order-demo-label"> {Node.text("Shipping")} </div>
+          <div class="computed-order-demo-label"> {View.text("Shipping")} </div>
           <div class="computed-order-demo-choice-row">
             <button
               class={() =>
@@ -86,7 +86,7 @@ let make = () => {
                 }}
               onClick={setStandardShipping}
             >
-              {Node.text("Standard")}
+              {View.text("Standard")}
             </button>
             <button
               class={() =>
@@ -97,7 +97,7 @@ let make = () => {
                 }}
               onClick={setExpressShipping}
             >
-              {Node.text("Express")}
+              {View.text("Express")}
             </button>
           </div>
         </div>
@@ -106,16 +106,16 @@ let make = () => {
 
     <div class="computed-order-demo-summary">
       <div class="computed-order-demo-row">
-        <span> {Node.text("Subtotal")} </span>
-        <strong> {Node.signalText(() => "$" ++ Int.toString(Signal.get(subtotal)))} </strong>
+        <span> {View.text("Subtotal")} </span>
+        <strong> {View.signalText(() => "$" ++ Int.toString(Signal.get(subtotal)))} </strong>
       </div>
       <div class="computed-order-demo-row">
-        <span> {Node.text("Shipping")} </span>
-        <strong> {Node.signalText(() => "$" ++ Int.toString(Signal.get(shippingCost)))} </strong>
+        <span> {View.text("Shipping")} </span>
+        <strong> {View.signalText(() => "$" ++ Int.toString(Signal.get(shippingCost)))} </strong>
       </div>
       <div class="computed-order-demo-row total">
-        <span> {Node.text("Total")} </span>
-        <strong> {Node.signalText(() => "$" ++ Int.toString(Signal.get(total)))} </strong>
+        <span> {View.text("Total")} </span>
+        <strong> {View.signalText(() => "$" ++ Int.toString(Signal.get(total)))} </strong>
       </div>
     </div>
   </div>

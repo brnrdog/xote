@@ -28,11 +28,13 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
 
 The compiler flag `-open Xote` is optional, it makes the Xote modules available unqualified inside your source files.
 
-This README uses the clearer application-facing names introduced for public code:
+This README uses the application-facing names introduced for public code:
 
-- `View` is the official module for building and mounting DOM nodes. `Node` remains available as a compatibility alias.
-- `Prop` is an alias for `ReactiveProp`.
-- `View.computedText`, `View.each`, `View.keyedEach`, `View.Attr.*`, `Router.locationSignal`, `Router.current`, and `SSRState.signal` are preferred in examples, while the original `Node.signalText`, `Node.list`, `Node.keyedList`, `Node.attr`, `Router.location`, and `SSRState.make` names remain supported.
+- `View` is the official module for building and mounting DOM nodes.
+- `Node` is a deprecated compatibility alias for `View` and will be removed in a future release.
+- `Prop` is the official static-or-reactive prop module.
+- `ReactiveProp` is a deprecated compatibility alias for `Prop`.
+- `View.signalText`, `View.each`, `View.eachWithKey`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are preferred in examples, while the deprecated `Node.signalText`, `Node.list`, `Node.keyedList`, `Node.attr`, `ReactiveProp.*`, and `SSRState.make` names remain supported.
 
 ### Quick Example
 
@@ -57,10 +59,10 @@ module App = {
     <div>
       <h1> {View.text("Counter")} </h1>
       <p>
-        {View.computedText(() => "Count: " ++ Signal.get(count)->Int.toString)}
+        {View.signalText(() => "Count: " ++ Signal.get(count)->Int.toString)}
       </p>
       <p>
-        {View.computedText(() => "Doubled: " ++ Signal.get(doubled)->Int.toString)}
+        {View.signalText(() => "Doubled: " ++ Signal.get(doubled)->Int.toString)}
       </p>
       <button onClick={(_evt: Dom.event) => Signal.update(count, n => n + 1)}>
         {View.text("Increment")}
@@ -119,7 +121,7 @@ On top of the reactive primitives with signals, Xote provides a declarative view
 
 ### Views and Attributes
 
-`View` creates UI nodes. It is the official application-facing module for DOM rendering, while `Node` remains available for compatibility:
+`View` creates UI nodes. It is the official application-facing module for DOM rendering:
 
 ```rescript
 let className = Signal.make("card")
@@ -128,13 +130,13 @@ Html.div(
   ~attrs=[View.Attr.signal("class", className)],
   ~children=[
     View.text("Status: "),
-    View.computedText(() => Signal.get(className)),
+    View.signalText(() => Signal.get(className)),
   ],
   (),
 )
 ```
 
-For rendering collections, prefer `View.each` for simple lists and `View.keyedEach` when items have stable identity:
+For rendering collections, prefer `View.each` for simple lists and `View.eachWithKey` when items have stable identity:
 
 ```rescript
 type todo = {id: string, title: string}
@@ -144,7 +146,7 @@ let todos = Signal.make([
   {id: "2", title: "Ship release"},
 ])
 
-View.keyedEach(
+View.eachWithKey(
   todos,
   todo => todo.id,
   todo => <li> {View.text(todo.title)} </li>,
@@ -168,17 +170,17 @@ let tone = Signal.make("badge badge-info")
 </Badge>
 ```
 
-`Prop` is an alias for `ReactiveProp`; `Prop.signal(signal)` is the shorter name for `ReactiveProp.reactive(signal)`.
+`Prop` is the source module for static-or-reactive props. `ReactiveProp` remains available as a deprecated compatibility alias.
 
 ### Router and SSR State
 
-Router state is signal-based. Prefer `Router.locationSignal()` when you want the reactive signal and `Router.current()` when you only need a snapshot:
+Router state is signal-based. Read the shared location signal directly with `Router.location()`:
 
 ```rescript
 Router.init(())
 
-let pathname = View.computedText(() => {
-  let location = Signal.get(Router.locationSignal())
+let pathname = View.signalText(() => {
+  let location = Signal.get(Router.location())
   "Current path: " ++ location.pathname
 })
 ```

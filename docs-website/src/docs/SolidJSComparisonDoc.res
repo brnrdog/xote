@@ -7,78 +7,78 @@
 
 let content = () => {
   <div>
-    <h2 id="at-a-glance"> {Node.text("At a Glance")} </h2>
-    <h3 id="overview"> {Node.text("Overview")} </h3>
+    <h2 id="at-a-glance"> {View.text("At a Glance")} </h2>
+    <h3 id="overview"> {View.text("Overview")} </h3>
     <table>
       <thead>
         <tr>
-          <th> {Node.text("Aspect")} </th>
-          <th> {Node.text("SolidJS")} </th>
-          <th> {Node.text("Xote")} </th>
+          <th> {View.text("Aspect")} </th>
+          <th> {View.text("SolidJS")} </th>
+          <th> {View.text("Xote")} </th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td> <strong> {Node.text("Reactive model")} </strong> </td>
-          <td> {Node.text("Fine-grained signals")} </td>
-          <td> {Node.text("Fine-grained signals")} </td>
+          <td> <strong> {View.text("Reactive model")} </strong> </td>
+          <td> {View.text("Fine-grained signals")} </td>
+          <td> {View.text("Fine-grained signals")} </td>
         </tr>
         <tr>
-          <td> <strong> {Node.text("Component execution")} </strong> </td>
-          <td> {Node.text("Usually once")} </td>
-          <td> {Node.text("Usually once")} </td>
+          <td> <strong> {View.text("Component execution")} </strong> </td>
+          <td> {View.text("Usually once")} </td>
+          <td> {View.text("Usually once")} </td>
         </tr>
         <tr>
-          <td> <strong> {Node.text("Routing")} </strong> </td>
-          <td> {Node.text("Separate package")} </td>
-          <td> {Node.text("Built in")} </td>
+          <td> <strong> {View.text("Routing")} </strong> </td>
+          <td> {View.text("Separate package")} </td>
+          <td> {View.text("Built in")} </td>
         </tr>
         <tr>
-          <td> <strong> {Node.text("SSR")} </strong> </td>
-          <td> {Node.text("Strong framework story via SolidStart")} </td>
-          <td> {Node.text("Built-in primitives")} </td>
+          <td> <strong> {View.text("SSR")} </strong> </td>
+          <td> {View.text("Strong framework story via SolidStart")} </td>
+          <td> {View.text("Built-in primitives")} </td>
         </tr>
         <tr>
-          <td> <strong> {Node.text("Language")} </strong> </td>
-          <td> {Node.text("JavaScript / TypeScript")} </td>
-          <td> {Node.text("ReScript")} </td>
+          <td> <strong> {View.text("Language")} </strong> </td>
+          <td> {View.text("JavaScript / TypeScript")} </td>
+          <td> {View.text("ReScript")} </td>
         </tr>
         <tr>
-          <td> <strong> {Node.text("Scope")} </strong> </td>
-          <td> {Node.text("Framework plus ecosystem")} </td>
-          <td> {Node.text("Smaller integrated UI library")} </td>
+          <td> <strong> {View.text("Scope")} </strong> </td>
+          <td> {View.text("Framework plus ecosystem")} </td>
+          <td> {View.text("Smaller integrated UI library")} </td>
         </tr>
       </tbody>
     </table>
     <p>
-      {Node.text("SolidJS and Xote are conceptually much closer to each other than either is to React. The real differences are language choice, what is included out of the box, and how explicit the UI bindings are.")}
+      {View.text("SolidJS and Xote are conceptually much closer to each other than either is to React. The real differences are language choice, what is included out of the box, and how explicit the UI bindings are.")}
     </p>
-    <h2 id="shared-ground"> {Node.text("Shared Ground")} </h2>
-    <h3 id="shared-philosophy"> {Node.text("Shared Philosophy")} </h3>
+    <h2 id="shared-ground"> {View.text("Shared Ground")} </h2>
+    <h3 id="shared-philosophy"> {View.text("Shared Philosophy")} </h3>
     <p>
-      {Node.text("Both libraries:")}
+      {View.text("Both libraries:")}
     </p>
     <ul>
       <li>
-        {Node.text("use signals as the foundation")}
+        {View.text("use signals as the foundation")}
       </li>
       <li>
-        {Node.text("avoid virtual DOM diffing for ordinary updates")}
+        {View.text("avoid virtual DOM diffing for ordinary updates")}
       </li>
       <li>
-        {Node.text("let components establish reactive structure once")}
+        {View.text("let components establish reactive structure once")}
       </li>
       <li>
-        {Node.text("rely on dependency tracking instead of dependency arrays")}
+        {View.text("rely on dependency tracking instead of dependency arrays")}
       </li>
     </ul>
     <p>
-      {Node.text("If you already understand SolidJS, Xote's mental model will feel familiar quickly.")}
+      {View.text("If you already understand SolidJS, Xote's mental model will feel familiar quickly.")}
     </p>
-    <h2 id="runtime-model"> {Node.text("Runtime Model")} </h2>
-    <h3 id="signals-and-state"> {Node.text("Signals and State")} </h3>
+    <h2 id="runtime-model"> {View.text("Runtime Model")} </h2>
+    <h3 id="signals-and-state"> {View.text("Signals and State")} </h3>
     <p>
-      {Node.text("SolidJS uses getter and setter pairs. Xote uses explicit read and write functions against a signal value.")}
+      {View.text("SolidJS uses getter and setter pairs. Xote uses explicit read and write functions against a signal value.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -106,32 +106,32 @@ Effect.run(() => {
       </code>
     </pre>
     <p>
-      {Node.text("Key differences:")}
+      {View.text("Key differences:")}
     </p>
     <ul>
       <li>
-        {Node.text("SolidJS reads via function calls like ")}
-      <code> {Node.text("count()")} </code>
-      {Node.text(", Xote reads via ")}
-      <code> {Node.text("Signal.get(count)")} </code>
+        {View.text("SolidJS reads via function calls like ")}
+      <code> {View.text("count()")} </code>
+      {View.text(", Xote reads via ")}
+      <code> {View.text("Signal.get(count)")} </code>
       </li>
       <li>
-        {Node.text("Xote effects return cleanup directly; SolidJS uses ")}
-      <code> {Node.text("onCleanup")} </code>
+        {View.text("Xote effects return cleanup directly; SolidJS uses ")}
+      <code> {View.text("onCleanup")} </code>
       </li>
       <li>
-        {Node.text("Xote signals use strict equality by default and let you opt into custom equality with ")}
-      <code> {Node.text("~equals")} </code>
+        {View.text("Xote signals use strict equality by default and let you opt into custom equality with ")}
+      <code> {View.text("~equals")} </code>
       </li>
     </ul>
-    <h3 id="component-model"> {Node.text("Component Model")} </h3>
+    <h3 id="component-model"> {View.text("Component Model")} </h3>
     <p>
-      {Node.text("Both component models are close: the function runs, the DOM structure is created, and later updates flow through reactive bindings instead of through repeated component renders.")}
+      {View.text("Both component models are close: the function runs, the DOM structure is created, and later updates flow through reactive bindings instead of through repeated component renders.")}
     </p>
     <p>
-      {Node.text("The main ergonomic difference is that SolidJS can embed reactive expressions directly inside JSX, while Xote makes the reactive boundary explicit with helpers such as ")}
-      <code> {Node.text("View.computedText")} </code>
-      {Node.text(".")}
+      {View.text("The main ergonomic difference is that SolidJS can embed reactive expressions directly inside JSX, while Xote makes the reactive boundary explicit with helpers such as ")}
+      <code> {View.text("View.signalText")} </code>
+      {View.text(".")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -154,7 +154,7 @@ Effect.run(() => {
 
   <div>
     <h1>
-      {View.computedText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {View.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
       {View.text("Increment")}
@@ -163,17 +163,17 @@ Effect.run(() => {
 }`)}
       </code>
     </pre>
-    <h3 id="list-rendering"> {Node.text("List Rendering")} </h3>
+    <h3 id="list-rendering"> {View.text("List Rendering")} </h3>
     <p>
-      {Node.text("SolidJS uses control-flow helpers like ")}
-      <code> {Node.text("<For>")} </code>
-      {Node.text(" and ")}
-      <code> {Node.text("<Index>")} </code>
-      {Node.text(". Xote exposes list handling through ")}
-      <code> {Node.text("View.each")} </code>
-      {Node.text(" and ")}
-      <code> {Node.text("View.keyedEach")} </code>
-      {Node.text(".")}
+      {View.text("SolidJS uses control-flow helpers like ")}
+      <code> {View.text("<For>")} </code>
+      {View.text(" and ")}
+      <code> {View.text("<Index>")} </code>
+      {View.text(". Xote exposes list handling through ")}
+      <code> {View.text("View.each")} </code>
+      {View.text(" and ")}
+      <code> {View.text("View.eachWithKey")} </code>
+      {View.text(".")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -196,7 +196,7 @@ function TodoList(props) {
   let todos = Signal.make([{id: "1", text: "Buy milk"}])
 
   <ul>
-    {View.keyedEach(
+    {View.eachWithKey(
       todos,
       todo => todo.id,
       todo => <li> {View.text(todo.text)} </li>,
@@ -206,17 +206,17 @@ function TodoList(props) {
       </code>
     </pre>
     <p>
-      {Node.text("Both approaches preserve identity. Xote asks for the key function explicitly, which keeps the reconciliation contract visible in the code.")}
+      {View.text("Both approaches preserve identity. Xote asks for the key function explicitly, which keeps the reconciliation contract visible in the code.")}
     </p>
-    <h2 id="platform-surface"> {Node.text("Platform Surface")} </h2>
-    <h3 id="server-side-rendering"> {Node.text("Server-Side Rendering")} </h3>
+    <h2 id="platform-surface"> {View.text("Platform Surface")} </h2>
+    <h3 id="server-side-rendering"> {View.text("Server-Side Rendering")} </h3>
     <p>
-      {Node.text("SolidJS has the more complete application story through SolidStart. If you want file-based routing, streaming, and framework-level conventions, SolidStart is a major advantage.")}
+      {View.text("SolidJS has the more complete application story through SolidStart. If you want file-based routing, streaming, and framework-level conventions, SolidStart is a major advantage.")}
     </p>
     <p>
-      {Node.text("Xote's SSR primitives are smaller and more manual. You render HTML, optionally serialize state with ")}
-      <code> {Node.text("SSRState")} </code>
-      {Node.text(", and hydrate the result on the client.")}
+      {View.text("Xote's SSR primitives are smaller and more manual. You render HTML, optionally serialize state with ")}
+      <code> {View.text("SSRState")} </code>
+      {View.text(", and hydrate the result on the client.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -229,100 +229,100 @@ function TodoList(props) {
 Hydration.hydrateById(app, "root")`)}
       </code>
     </pre>
-    <h3 id="routing"> {Node.text("Routing")} </h3>
+    <h3 id="routing"> {View.text("Routing")} </h3>
     <p>
-      {Node.text("SolidJS uses ")}
-      <code> {Node.text("@solidjs/router")} </code>
-      {Node.text(" rather than shipping a router in the core package. Xote includes one. That difference matters more for smaller apps than for large framework-driven apps, but it is still an important scope distinction.")}
+      {View.text("SolidJS uses ")}
+      <code> {View.text("@solidjs/router")} </code>
+      {View.text(" rather than shipping a router in the core package. Xote includes one. That difference matters more for smaller apps than for large framework-driven apps, but it is still an important scope distinction.")}
     </p>
-    <h3 id="runtime-footprint-and-compilation"> {Node.text("Runtime Footprint and Compilation")} </h3>
+    <h3 id="runtime-footprint-and-compilation"> {View.text("Runtime Footprint and Compilation")} </h3>
     <p>
-      {Node.text("Both libraries produce small output. The practical difference is in the toolchain:")}
+      {View.text("Both libraries produce small output. The practical difference is in the toolchain:")}
     </p>
     <ul>
       <li>
-        {Node.text("SolidJS uses a JSX compiler that turns reactive expressions into direct DOM operations")}
+        {View.text("SolidJS uses a JSX compiler that turns reactive expressions into direct DOM operations")}
       </li>
       <li>
-        {Node.text("Xote relies on the ReScript compiler and generic JSX transform, then uses explicit reactive nodes where needed")}
+        {View.text("Xote relies on the ReScript compiler and generic JSX transform, then uses explicit reactive nodes where needed")}
       </li>
     </ul>
     <p>
-      {Node.text("SolidJS feels more implicit in JSX. Xote is more explicit about where reactivity lives.")}
+      {View.text("SolidJS feels more implicit in JSX. Xote is more explicit about where reactivity lives.")}
     </p>
-    <h3 id="type-safety"> {Node.text("Type Safety")} </h3>
+    <h3 id="type-safety"> {View.text("Type Safety")} </h3>
     <p>
-      {Node.text("SolidJS with TypeScript is productive and familiar, but still lives in TypeScript's structural and partially unsound model.")}
-    </p>
-    <p>
-      {Node.text("Xote benefits from ReScript's stricter type guarantees. If that matters more to your team than staying in JS/TS syntax, it is a strong reason to prefer Xote.")}
-    </p>
-    <h3 id="ecosystem"> {Node.text("Ecosystem")} </h3>
-    <p>
-      {Node.text("SolidJS has a meaningful and growing ecosystem, especially around SolidStart and headless UI work.")}
+      {View.text("SolidJS with TypeScript is productive and familiar, but still lives in TypeScript's structural and partially unsound model.")}
     </p>
     <p>
-      {Node.text("Xote is intentionally smaller. That means fewer ready-made packages, but also fewer architectural decisions outsourced to third-party dependencies.")}
+      {View.text("Xote benefits from ReScript's stricter type guarantees. If that matters more to your team than staying in JS/TS syntax, it is a strong reason to prefer Xote.")}
     </p>
-    <h2 id="choosing-between-them"> {Node.text("Choosing Between Them")} </h2>
-    <h3 id="when-to-choose-solidjs"> {Node.text("When to Choose SolidJS")} </h3>
+    <h3 id="ecosystem"> {View.text("Ecosystem")} </h3>
+    <p>
+      {View.text("SolidJS has a meaningful and growing ecosystem, especially around SolidStart and headless UI work.")}
+    </p>
+    <p>
+      {View.text("Xote is intentionally smaller. That means fewer ready-made packages, but also fewer architectural decisions outsourced to third-party dependencies.")}
+    </p>
+    <h2 id="choosing-between-them"> {View.text("Choosing Between Them")} </h2>
+    <h3 id="when-to-choose-solidjs"> {View.text("When to Choose SolidJS")} </h3>
     <ul>
       <li>
-        {Node.text("Reach for SolidJS when you want fine-grained reactivity while staying in JavaScript or TypeScript.")}
+        {View.text("Reach for SolidJS when you want fine-grained reactivity while staying in JavaScript or TypeScript.")}
       </li>
       <li>
-        {Node.text("Reach for SolidJS when the stronger ecosystem and framework story matter immediately.")}
+        {View.text("Reach for SolidJS when the stronger ecosystem and framework story matter immediately.")}
       </li>
       <li>
-        {Node.text("Reach for SolidJS when SolidStart and its conventions are part of the expected stack.")}
+        {View.text("Reach for SolidJS when SolidStart and its conventions are part of the expected stack.")}
       </li>
     </ul>
-    <h3 id="when-to-choose-xote"> {Node.text("When to Choose Xote")} </h3>
+    <h3 id="when-to-choose-xote"> {View.text("When to Choose Xote")} </h3>
     <ul>
       <li>
-        {Node.text("Reach for Xote when a smaller integrated API is more valuable than broader ecosystem depth.")}
+        {View.text("Reach for Xote when a smaller integrated API is more valuable than broader ecosystem depth.")}
       </li>
       <li>
-        {Node.text("Reach for Xote when ReScript's type system and compilation model are part of the appeal.")}
+        {View.text("Reach for Xote when ReScript's type system and compilation model are part of the appeal.")}
       </li>
       <li>
-        {Node.text("Reach for Xote when you prefer explicit reactive bindings over more automatic JSX transforms.")}
+        {View.text("Reach for Xote when you prefer explicit reactive bindings over more automatic JSX transforms.")}
       </li>
     </ul>
-    <h3 id="migration-considerations"> {Node.text("Migration Considerations")} </h3>
+    <h3 id="migration-considerations"> {View.text("Migration Considerations")} </h3>
     <p>
-      {Node.text("SolidJS developers typically need to adapt in three places:")}
+      {View.text("SolidJS developers typically need to adapt in three places:")}
     </p>
     <ol>
       <li>
-        {Node.text("signal reads move from function calls to ")}
-      <code> {Node.text("Signal.get")} </code>
+        {View.text("signal reads move from function calls to ")}
+      <code> {View.text("Signal.get")} </code>
       </li>
       <li>
-        {Node.text("reactive JSX expressions often become ")}
-      <code> {Node.text("View.computedText")} </code>
-      {Node.text(" or other explicit reactive nodes")}
+        {View.text("reactive JSX expressions often become ")}
+      <code> {View.text("View.signalText")} </code>
+      {View.text(" or other explicit reactive nodes")}
       </li>
       <li>
-        {Node.text("routing and SSR move from the Solid ecosystem to Xote's built-in modules")}
+        {View.text("routing and SSR move from the Solid ecosystem to Xote's built-in modules")}
       </li>
     </ol>
     <p>
-      {Node.text("The underlying mental model stays largely the same.")}
+      {View.text("The underlying mental model stays largely the same.")}
     </p>
-    <h3 id="further-reading"> {Node.text("Further Reading")} </h3>
+    <h3 id="further-reading"> {View.text("Further Reading")} </h3>
     <ul>
       <li>
-        {Router.link(~to="/docs/core-concepts/signals", ~children=[Node.text("Signals")], ())}
+        {Router.link(~to="/docs/core-concepts/signals", ~children=[View.text("Signals")], ())}
       </li>
       <li>
-        {Router.link(~to="/docs/view/overview", ~children=[Node.text("View")], ())}
+        {Router.link(~to="/docs/view/overview", ~children=[View.text("View")], ())}
       </li>
       <li>
-        {Router.link(~to="/docs/router/overview", ~children=[Node.text("Router")], ())}
+        {Router.link(~to="/docs/router/overview", ~children=[View.text("Router")], ())}
       </li>
       <li>
-        {Router.link(~to="/docs/advanced/ssr", ~children=[Node.text("Server-Side Rendering")], ())}
+        {Router.link(~to="/docs/advanced/ssr", ~children=[View.text("Server-Side Rendering")], ())}
       </li>
     </ul>
   </div>

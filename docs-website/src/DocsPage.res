@@ -91,18 +91,18 @@ module Sidebar = {
   let make = (props: props) => {
     let {currentPath} = props
     <aside class="docs-sidebar">
-      {Node.fragment(
+      {View.fragment(
         docsNav->Array.map(category => {
           <div class="sidebar-section">
-            <div class="sidebar-section-title"> {Node.text(category.label)} </div>
-            {Node.fragment(
+            <div class="sidebar-section-title"> {View.text(category.label)} </div>
+            {View.fragment(
               category.items->Array.map(item => {
                 let isActive = currentPath == item.path
                 let className = "sidebar-link" ++ (isActive ? " active" : "")
                 Router.link(
                   ~to=item.path,
-                  ~attrs=[Node.attr("class", className)],
-                  ~children=[Node.text(item.title)],
+                  ~attrs=[View.attr("class", className)],
+                  ~children=[View.text(item.title)],
                   (),
                 )
               }),
@@ -121,17 +121,17 @@ module DocsBreadcrumb = {
   let make = (props: props) => {
     let (category, title) = getCategoryAndTitle(props.currentPath)
     <nav class="docs-breadcrumb">
-      {Router.link(~to="/docs", ~children=[Node.text("Docs")], ())}
+      {Router.link(~to="/docs", ~children=[View.text("Docs")], ())}
       {if category != "" && category != "Getting Started" {
-        Node.fragment([
-          <span class="docs-breadcrumb-sep"> {Node.text("/")} </span>,
-          <span> {Node.text(category)} </span>,
+        View.fragment([
+          <span class="docs-breadcrumb-sep"> {View.text("/")} </span>,
+          <span> {View.text(category)} </span>,
         ])
       } else {
-        Node.fragment([])
+        View.fragment([])
       }}
-      <span class="docs-breadcrumb-sep"> {Node.text("/")} </span>
-      <span class="docs-breadcrumb-current"> {Node.text(title)} </span>
+      <span class="docs-breadcrumb-sep"> {View.text("/")} </span>
+      <span class="docs-breadcrumb-current"> {View.text(title)} </span>
     </nav>
   }
 }
@@ -145,7 +145,7 @@ module PrevNextNav = {
     <div class="docs-prev-next">
       {switch prev {
       | Some(item) =>
-        Node.element(
+        View.element(
           "span",
           ~events=[
             (
@@ -164,12 +164,12 @@ module PrevNextNav = {
           ~children=[
             Router.link(
               ~to=item.path,
-              ~attrs=[Node.attr("class", "docs-prev-next-link")],
+              ~attrs=[View.attr("class", "docs-prev-next-link")],
               ~children=[
                 <span class="docs-prev-next-label">
-                  {Node.text("\u2190 Previous")}
+                  {View.text("\u2190 Previous")}
                 </span>,
-                <span class="docs-prev-next-title"> {Node.text(item.title)} </span>,
+                <span class="docs-prev-next-title"> {View.text(item.title)} </span>,
               ],
               (),
             ),
@@ -180,7 +180,7 @@ module PrevNextNav = {
       }}
       {switch next {
       | Some(item) =>
-        Node.element(
+        View.element(
           "span",
           ~events=[
             (
@@ -199,12 +199,12 @@ module PrevNextNav = {
           ~children=[
             Router.link(
               ~to=item.path,
-              ~attrs=[Node.attr("class", "docs-prev-next-link next")],
+              ~attrs=[View.attr("class", "docs-prev-next-link next")],
               ~children=[
                 <span class="docs-prev-next-label">
-                  {Node.text("Next \u2192")}
+                  {View.text("Next \u2192")}
                 </span>,
-                <span class="docs-prev-next-title"> {Node.text(item.title)} </span>,
+                <span class="docs-prev-next-title"> {View.text(item.title)} </span>,
               ],
               (),
             ),
@@ -229,15 +229,15 @@ module TableOfContents = {
 
   let make = (props: props) => {
     if Array.length(props.items) == 0 {
-      Node.fragment([])
+      View.fragment([])
     } else {
       <aside class="docs-toc">
-        <div class="toc-title"> {Node.text("Contents")} </div>
-        {Node.fragment(
+        <div class="toc-title"> {View.text("Contents")} </div>
+        {View.fragment(
           props.items->Array.map(item => {
             let className = "toc-link" ++ (item.level == 3 ? " toc-link-h3" : "")
             <a href={"#" ++ item.id} class={className}>
-              {Node.text(item.text)}
+              {View.text(item.text)}
             </a>
           }),
         )}
@@ -249,7 +249,7 @@ module TableOfContents = {
 // ---- Main docs page component ----
 type props = {
   currentPath: string,
-  content: Node.node,
+  content: View.node,
   pageTitle?: string,
   pageLead?: string,
   tocItems?: array<TableOfContents.tocItem>,
@@ -275,10 +275,10 @@ let make = (props: props) => {
         <Sidebar currentPath />
         <div class="docs-main">
           <DocsBreadcrumb currentPath />
-          <h1 class="docs-page-title"> {Node.text(pageTitle)} </h1>
+          <h1 class="docs-page-title"> {View.text(pageTitle)} </h1>
           {switch props.pageLead {
-          | Some(lead) => <p class="docs-page-lead"> {Node.text(lead)} </p>
-          | None => Node.fragment([])
+          | Some(lead) => <p class="docs-page-lead"> {View.text(lead)} </p>
+          | None => View.fragment([])
           }}
           <div class="docs-content"> {content} </div>
           <PrevNextNav currentPath />

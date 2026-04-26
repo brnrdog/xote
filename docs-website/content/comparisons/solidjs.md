@@ -65,7 +65,7 @@ Key differences:
 
 Both component models are close: the function runs, the DOM structure is created, and later updates flow through reactive bindings instead of through repeated component renders.
 
-The main ergonomic difference is that SolidJS can embed reactive expressions directly inside JSX, while Xote makes the reactive boundary explicit with helpers such as `View.computedText`.
+The main ergonomic difference is that SolidJS can embed reactive expressions directly inside JSX, while Xote makes the reactive boundary explicit with helpers such as `View.signalText`.
 
 ```jsx
 function Counter() {
@@ -86,7 +86,7 @@ let counter = () => {
 
   <div>
     <h1>
-      {View.computedText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {View.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
       {View.text("Increment")}
@@ -97,7 +97,7 @@ let counter = () => {
 
 ### List Rendering
 
-SolidJS uses control-flow helpers like `<For>` and `<Index>`. Xote exposes list handling through `View.each` and `View.keyedEach`.
+SolidJS uses control-flow helpers like `<For>` and `<Index>`. Xote exposes list handling through `View.each` and `View.eachWithKey`.
 
 ```jsx
 import { For } from "solid-js";
@@ -118,7 +118,7 @@ let todoList = () => {
   let todos = Signal.make([{id: "1", text: "Buy milk"}])
 
   <ul>
-    {View.keyedEach(
+    {View.eachWithKey(
       todos,
       todo => todo.id,
       todo => <li> {View.text(todo.text)} </li>,
@@ -191,7 +191,7 @@ Xote is intentionally smaller. That means fewer ready-made packages, but also fe
 SolidJS developers typically need to adapt in three places:
 
 1. signal reads move from function calls to `Signal.get`
-2. reactive JSX expressions often become `View.computedText` or other explicit reactive nodes
+2. reactive JSX expressions often become `View.signalText` or other explicit reactive nodes
 3. routing and SSR move from the Solid ecosystem to Xote's built-in modules
 
 The underlying mental model stays largely the same.

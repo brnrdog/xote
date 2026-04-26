@@ -8,27 +8,27 @@
 let content = () => {
   <div>
     <p>
-      {Node.text("Computeds are derived signals. They let you describe state in terms of other state instead of manually keeping multiple signals in sync.")}
+      {View.text("Computeds are derived signals. They let you describe state in terms of other state instead of manually keeping multiple signals in sync.")}
     </p>
     <div class="info-box">
       <p>
-        <strong> {Node.text("Important:")} </strong>
-        {Node.text(" ")}
-        <code> {Node.text("Computed.make")} </code>
-        {Node.text(" returns a ")}
-        <code> {Node.text("Signal.t<'a>")} </code>
-        {Node.text(". You read it with ")}
-        <code> {Node.text("Signal.get")} </code>
-        {Node.text(" or ")}
-        <code> {Node.text("Signal.peek")} </code>
-        {Node.text(", just like any other signal.")}
+        <strong> {View.text("Important:")} </strong>
+        {View.text(" ")}
+        <code> {View.text("Computed.make")} </code>
+        {View.text(" returns a ")}
+        <code> {View.text("Signal.t<'a>")} </code>
+        {View.text(". You read it with ")}
+        <code> {View.text("Signal.get")} </code>
+        {View.text(" or ")}
+        <code> {View.text("Signal.peek")} </code>
+        {View.text(", just like any other signal.")}
       </p>
     </div>
 
-    <h2 id="working-with-computeds"> {Node.text("Working with Computeds")} </h2>
-    <h3 id="creating-computed-values"> {Node.text("Creating Computed Values")} </h3>
+    <h2 id="working-with-computeds"> {View.text("Working with Computeds")} </h2>
+    <h3 id="creating-computed-values"> {View.text("Creating Computed Values")} </h3>
     <p>
-      {Node.text("A computed is a function plus automatic dependency tracking. Every signal read inside the function becomes an input.")}
+      {View.text("A computed is a function plus automatic dependency tracking. Every signal read inside the function becomes an input.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -43,20 +43,20 @@ let subtotal = Computed.make(() =>
       </code>
     </pre>
     <p>
-      {Node.text("If you need to suppress downstream updates for equivalent derived values, ")}
-      <code> {Node.text("Computed.make")} </code>
-      {Node.text(" also accepts ")}
-      <code> {Node.text("~equals")} </code>
-      {Node.text(".")}
+      {View.text("If you need to suppress downstream updates for equivalent derived values, ")}
+      <code> {View.text("Computed.make")} </code>
+      {View.text(" also accepts ")}
+      <code> {View.text("~equals")} </code>
+      {View.text(".")}
     </p>
 
-    <h3 id="reading-computed-values"> {Node.text("Reading Computed Values")} </h3>
+    <h3 id="reading-computed-values"> {View.text("Reading Computed Values")} </h3>
     <p>
-      {Node.text("Read a computed exactly like a signal. Use ")}
-      <code> {Node.text("Signal.get")} </code>
-      {Node.text(" when the current code should subscribe, or ")}
-      <code> {Node.text("Signal.peek")} </code>
-      {Node.text(" for a one-off read.")}
+      {View.text("Read a computed exactly like a signal. Use ")}
+      <code> {View.text("Signal.get")} </code>
+      {View.text(" when the current code should subscribe, or ")}
+      <code> {View.text("Signal.peek")} </code>
+      {View.text(" for a one-off read.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -72,9 +72,9 @@ Console.log(Signal.get(total))`)}
       </code>
     </pre>
 
-    <h3 id="lazy-recomputation"> {Node.text("Lazy Recomputation")} </h3>
+    <h3 id="lazy-recomputation"> {View.text("Lazy Recomputation")} </h3>
     <p>
-      {Node.text("When an upstream signal changes, a computed is marked dirty immediately but does not recompute until someone reads it. This keeps unused derived values cheap.")}
+      {View.text("When an upstream signal changes, a computed is marked dirty immediately but does not recompute until someone reads it. This keeps unused derived values cheap.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -93,9 +93,9 @@ ignore(Signal.get(doubled))
       </code>
     </pre>
 
-    <h3 id="dynamic-dependencies"> {Node.text("Dynamic Dependencies")} </h3>
+    <h3 id="dynamic-dependencies"> {View.text("Dynamic Dependencies")} </h3>
     <p>
-      {Node.text("Computeds re-track their dependencies every time they run. That means conditionals are allowed: the current control flow determines the active inputs.")}
+      {View.text("Computeds re-track their dependencies every time they run. That means conditionals are allowed: the current control flow determines the active inputs.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -113,10 +113,10 @@ let temperature = Computed.make(() =>
       </code>
     </pre>
 
-    <h2 id="computeds-in-practice"> {Node.text("In Practice")} </h2>
-    <h3 id="example-order-summary"> {Node.text("Example: Order Summary")} </h3>
+    <h2 id="computeds-in-practice"> {View.text("In Practice")} </h2>
+    <h3 id="example-order-summary"> {View.text("Example: Order Summary")} </h3>
     <p>
-      {Node.text("This is a common computed pattern: keep the writable state small, then derive display values like subtotal, shipping, and total from it.")}
+      {View.text("This is a common computed pattern: keep the writable state small, then derive display values like subtotal, shipping, and total from it.")}
     </p>
     <DocsExamplePanel
       filename="OrderSummary.res"
@@ -146,13 +146,13 @@ let total = Computed.make(() =>
 let app = () => {
   <div>
     <p>
-      {View.computedText(() => "Subtotal: $" ++ Int.toString(Signal.get(subtotal)))}
+      {View.signalText(() => "Subtotal: $" ++ Int.toString(Signal.get(subtotal)))}
     </p>
     <p>
-      {View.computedText(() => "Shipping: $" ++ Int.toString(Signal.get(shippingCost)))}
+      {View.signalText(() => "Shipping: $" ++ Int.toString(Signal.get(shippingCost)))}
     </p>
     <p>
-      {View.computedText(() => "Total: $" ++ Int.toString(Signal.get(total)))}
+      {View.signalText(() => "Total: $" ++ Int.toString(Signal.get(total)))}
     </p>
   </div>
 }`}
@@ -160,16 +160,16 @@ let app = () => {
       <ComputedOrderDemo />
     </DocsExamplePanel>
 
-    <h2 id="computed-lifecycle"> {Node.text("Lifecycle")} </h2>
-    <h3 id="disposal"> {Node.text("Disposal")} </h3>
+    <h2 id="computed-lifecycle"> {View.text("Lifecycle")} </h2>
+    <h3 id="disposal"> {View.text("Disposal")} </h3>
     <p>
-      {Node.text("Most computeds do not need manual cleanup. They dispose automatically when nothing is subscribed to them anymore. In UI code that usually means they disappear with the DOM that owns them.")}
+      {View.text("Most computeds do not need manual cleanup. They dispose automatically when nothing is subscribed to them anymore. In UI code that usually means they disappear with the DOM that owns them.")}
     </p>
-    <h4 id="manual-disposal"> {Node.text("Manual Disposal")} </h4>
+    <h4 id="manual-disposal"> {View.text("Manual Disposal")} </h4>
     <p>
-      {Node.text("If you create a long-lived computed outside normal component ownership and want to tear it down explicitly, call ")}
-      <code> {Node.text("Computed.dispose")} </code>
-      {Node.text(".")}
+      {View.text("If you create a long-lived computed outside normal component ownership and want to tear it down explicitly, call ")}
+      <code> {View.text("Computed.dispose")} </code>
+      {View.text(".")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -181,9 +181,9 @@ Computed.dispose(doubled)`)}
       </code>
     </pre>
 
-    <h3 id="computed-vs-manual-updates"> {Node.text("Computed vs Manual Updates")} </h3>
+    <h3 id="computed-vs-manual-updates"> {View.text("Computed vs Manual Updates")} </h3>
     <p>
-      {Node.text("If a value can be derived from other reactive values, prefer a computed instead of mirroring it into another signal.")}
+      {View.text("If a value can be derived from other reactive values, prefer a computed instead of mirroring it into another signal.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -202,36 +202,36 @@ let doubled = Computed.make(() => Signal.get(count) * 2)`)}
       </code>
     </pre>
 
-    <h2 id="computed-working-style"> {Node.text("Working Style")} </h2>
-    <h3 id="best-practices"> {Node.text("Best Practices")} </h3>
+    <h2 id="computed-working-style"> {View.text("Working Style")} </h2>
+    <h3 id="best-practices"> {View.text("Best Practices")} </h3>
     <ul>
       <li>
-        {Node.text("Keep computeds pure. If the code talks to the outside world, it probably belongs in an effect instead.")}
+        {View.text("Keep computeds pure. If the code talks to the outside world, it probably belongs in an effect instead.")}
       </li>
       <li>
-        {Node.text("Read computeds with ")}
-        <code> {Node.text("Signal.get")} </code>
-        {Node.text(" or ")}
-        <code> {Node.text("Signal.peek")} </code>
-        {Node.text(", because they are signals at the type level.")}
+        {View.text("Read computeds with ")}
+        <code> {View.text("Signal.get")} </code>
+        {View.text(" or ")}
+        <code> {View.text("Signal.peek")} </code>
+        {View.text(", because they are signals at the type level.")}
       </li>
       <li>
-        {Node.text("Avoid copying derived values into writable signals unless you truly need editable local state.")}
+        {View.text("Avoid copying derived values into writable signals unless you truly need editable local state.")}
       </li>
       <li>
-        {Node.text("Reach for custom equality only when downstream updates are too noisy with the default behavior.")}
+        {View.text("Reach for custom equality only when downstream updates are too noisy with the default behavior.")}
       </li>
     </ul>
 
-    <h3 id="next-steps"> {Node.text("Next Steps")} </h3>
+    <h3 id="next-steps"> {View.text("Next Steps")} </h3>
     <ul>
       <li>
-        {Router.link(~to="/docs/core-concepts/effects", ~children=[Node.text("Read Effects")], ())}
-        {Node.text(" to see where reactive side effects fit on top of signals and computeds.")}
+        {Router.link(~to="/docs/core-concepts/effects", ~children=[View.text("Read Effects")], ())}
+        {View.text(" to see where reactive side effects fit on top of signals and computeds.")}
       </li>
       <li>
-        {Router.link(~to="/docs/view/overview", ~children=[Node.text("Move to View")], ())}
-        {Node.text(" when you want to wire derived values into the UI layer.")}
+        {Router.link(~to="/docs/view/overview", ~children=[View.text("Move to View")], ())}
+        {View.text(" when you want to wire derived values into the UI layer.")}
       </li>
     </ul>
   </div>

@@ -44,11 +44,11 @@ module FeatureCard = {
   let make = (props: props) => {
     let {feature: f} = props
     <div class="feature-card">
-      <h3> {Node.text(f.title)} </h3>
-      <p> {Node.text(f.description)} </p>
+      <h3> {View.text(f.title)} </h3>
+      <p> {View.text(f.description)} </p>
       {switch (f.linkText, f.linkTo) {
       | (Some(text), Some(to)) =>
-        Node.element(
+        View.element(
           "span",
           ~events=[
             (
@@ -63,14 +63,14 @@ module FeatureCard = {
           ~children=[
             Router.link(
               ~to,
-              ~attrs=[Node.attr("class", "feature-card-link")],
-              ~children=[Node.text(text ++ " \u2192")],
+              ~attrs=[View.attr("class", "feature-card-link")],
+              ~children=[View.text(text ++ " \u2192")],
               (),
             ),
           ],
           (),
         )
-      | _ => Node.fragment([])
+      | _ => View.fragment([])
       }}
     </div>
   }
@@ -341,12 +341,12 @@ module HeroBackground = {
 
   let makeTriangles = () =>
     triangleTemplates->Array.map(template =>
-      Node.element(
+      View.element(
         "polygon",
         ~attrs=[
-          Node.attr("points", template.points),
-          Node.attr("class", "hero-tri"),
-          Node.attr("data-tri-id", template.id),
+          View.attr("points", template.points),
+          View.attr("class", "hero-tri"),
+          View.attr("data-tri-id", template.id),
         ],
         (),
       )
@@ -464,17 +464,17 @@ module HeroBackground = {
       })
     }
 
-    Node.element(
+    View.element(
       "div",
-      ~attrs=[Node.attr("class", "hero-bg"), Node.attr("aria-hidden", "true")],
+      ~attrs=[View.attr("class", "hero-bg"), View.attr("aria-hidden", "true")],
       ~children=[
-        Node.element(
+        View.element(
           "svg",
           ~attrs=[
-            Node.attr("id", svgId),
-            Node.attr("viewBox", viewBoxValue),
-            Node.attr("preserveAspectRatio", "xMidYMid slice"),
-            Node.attr("class", "hero-bg-svg"),
+            View.attr("id", svgId),
+            View.attr("viewBox", viewBoxValue),
+            View.attr("preserveAspectRatio", "xMidYMid slice"),
+            View.attr("class", "hero-bg-svg"),
           ],
           ~children=makeTriangles(),
           (),
@@ -492,22 +492,22 @@ module Hero = {
     <section class="hero">
       <HeroBackground />
       <h1 class="hero-display">
-        {Node.text("A ReScript Library for Interactive User Interfaces")}
+        {View.text("A ReScript Library for Interactive User Interfaces")}
       </h1>
       <p class="hero-lead">
-        {Node.text(
+        {View.text(
           "Build components and web applications with fine-grained reactivity in a sound type system world.",
         )}
       </p>
       <div class="hero-ctas">
-        {Node.element(
+        {View.element(
           "span",
           ~events=[("click", _ => PostHog.capture("get_started_clicked"))],
           ~children=[
             Router.link(
               ~to="/docs",
-              ~attrs=[Node.attr("class", "btn btn-primary")],
-              ~children=[Node.text("Get started")],
+              ~attrs=[View.attr("class", "btn btn-primary")],
+              ~children=[View.text("Get started")],
               (),
             ),
           ],
@@ -515,8 +515,8 @@ module Hero = {
         )}
         {Router.link(
           ~to="/docs/core-concepts/signals",
-          ~attrs=[Node.attr("class", "btn-secondary-link")],
-          ~children=[Node.text("Read the docs \u2192")],
+          ~attrs=[View.attr("class", "btn-secondary-link")],
+          ~children=[View.text("Read the docs \u2192")],
           (),
         )}
       </div>
@@ -540,10 +540,10 @@ let symbolFor = u =>
 let make = (~value: float, ~unit: tempUnit) =>
   <div class="temp-display">
     <span class="temp-value">
-      {Node.text(value->Float.toFixed(~digits=1))}
+      {View.text(value->Float.toFixed(~digits=1))}
     </span>
     <span class="temp-unit">
-      {Node.text(symbolFor(unit))}
+      {View.text(symbolFor(unit))}
     </span>
   </div>`
 
@@ -602,16 +602,16 @@ Effect.run(() => {
 
   let stepHeader = (~n, ~title, ~blurb) =>
     <div class="tutorial-step-head">
-      <span class="tutorial-step-number"> {Node.text(n)} </span>
+      <span class="tutorial-step-number"> {View.text(n)} </span>
       <div>
-        <h3 class="tutorial-step-title"> {Node.text(title)} </h3>
-        <p class="tutorial-step-blurb"> {Node.text(blurb)} </p>
+        <h3 class="tutorial-step-title"> {View.text(title)} </h3>
+        <p class="tutorial-step-blurb"> {View.text(blurb)} </p>
       </div>
     </div>
 
   let codeBlock = (~filename, ~code) =>
     <div class="tutorial-code">
-      <div class="tutorial-code-filename"> {Node.text(filename)} </div>
+      <div class="tutorial-code-filename"> {View.text(filename)} </div>
       <pre class="tutorial-code-pre">
         <code> {SyntaxHighlight.highlight(code)} </code>
       </pre>
@@ -620,7 +620,7 @@ Effect.run(() => {
   let stage = (~caption, ~children) =>
     <figure class="tutorial-figure">
       <div class="tutorial-figure-stage"> {children} </div>
-      <figcaption class="tutorial-figure-caption"> {Node.text(caption)} </figcaption>
+      <figcaption class="tutorial-figure-caption"> {View.text(caption)} </figcaption>
     </figure>
 
   let make = (_props: props) => {
@@ -677,7 +677,7 @@ module Features = {
   let make = (_props: props) => {
     <section class="features-section">
       <div class="features-grid">
-        {Node.fragment(features->Array.map(f => <FeatureCard feature={f} />))}
+        {View.fragment(features->Array.map(f => <FeatureCard feature={f} />))}
       </div>
     </section>
   }
@@ -687,7 +687,7 @@ type props = {}
 
 let make = (_props: props) => {
   <Layout
-    children={Node.fragment([
+    children={View.fragment([
       <Hero />,
       <Features />,
       <Tutorial />,

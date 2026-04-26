@@ -8,20 +8,20 @@
 let content = () => {
   <div>
     <p>
-      {Node.text("Effects connect the reactive graph to the outside world. They run immediately, track the signals they read, and re-run when those dependencies change.")}
+      {View.text("Effects connect the reactive graph to the outside world. They run immediately, track the signals they read, and re-run when those dependencies change.")}
     </p>
     <p>
-      {Node.text("Use them for DOM APIs, timers, network coordination, logging, or any other work that should happen because state changed. Do not use them to compute values that could stay inside the reactive graph.")}
+      {View.text("Use them for DOM APIs, timers, network coordination, logging, or any other work that should happen because state changed. Do not use them to compute values that could stay inside the reactive graph.")}
     </p>
 
-    <h2 id="working-with-effects"> {Node.text("Working with Effects")} </h2>
-    <h3 id="creating-effects"> {Node.text("Creating Effects")} </h3>
+    <h2 id="working-with-effects"> {View.text("Working with Effects")} </h2>
+    <h3 id="creating-effects"> {View.text("Creating Effects")} </h3>
     <p>
-      {Node.text("Use ")}
-      <code> {Node.text("Effect.run")} </code>
-      {Node.text(" for fire-and-forget effects and ")}
-      <code> {Node.text("Effect.runWithDisposer")} </code>
-      {Node.text(" when you need to stop the effect manually.")}
+      {View.text("Use ")}
+      <code> {View.text("Effect.run")} </code>
+      {View.text(" for fire-and-forget effects and ")}
+      <code> {View.text("Effect.runWithDisposer")} </code>
+      {View.text(" when you need to stop the effect manually.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -36,11 +36,11 @@ Effect.run(() => {
       </code>
     </pre>
 
-    <h3 id="dependency-tracking"> {Node.text("Dependency Tracking")} </h3>
+    <h3 id="dependency-tracking"> {View.text("Dependency Tracking")} </h3>
     <p>
-      {Node.text("Effects track dependencies automatically. Every ")}
-      <code> {Node.text("Signal.get")} </code>
-      {Node.text(" call inside the effect subscribes the effect to that signal. On each run, dependencies are cleared and tracked again.")}
+      {View.text("Effects track dependencies automatically. Every ")}
+      <code> {View.text("Signal.get")} </code>
+      {View.text(" call inside the effect subscribes the effect to that signal. On each run, dependencies are cleared and tracked again.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -58,13 +58,13 @@ Effect.run(() => {
       </code>
     </pre>
 
-    <h3 id="cleanup-callbacks"> {Node.text("Cleanup Callbacks")} </h3>
+    <h3 id="cleanup-callbacks"> {View.text("Cleanup Callbacks")} </h3>
     <p>
-      {Node.text("An effect can return ")}
-      <code> {Node.text("Some(cleanupFn)")} </code>
-      {Node.text(" or ")}
-      <code> {Node.text("None")} </code>
-      {Node.text(". Cleanup runs before the next execution and when the effect is disposed.")}
+      {View.text("An effect can return ")}
+      <code> {View.text("Some(cleanupFn)")} </code>
+      {View.text(" or ")}
+      <code> {View.text("None")} </code>
+      {View.text(". Cleanup runs before the next execution and when the effect is disposed.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -81,13 +81,13 @@ Effect.run(() => {
       </code>
     </pre>
 
-    <h3 id="disposing-effects"> {Node.text("Disposing Effects")} </h3>
+    <h3 id="disposing-effects"> {View.text("Disposing Effects")} </h3>
     <p>
-      {Node.text("When you need explicit teardown, use ")}
-      <code> {Node.text("Effect.runWithDisposer")} </code>
-      {Node.text(". It returns an object with a ")}
-      <code> {Node.text("dispose()")} </code>
-      {Node.text(" method.")}
+      {View.text("When you need explicit teardown, use ")}
+      <code> {View.text("Effect.runWithDisposer")} </code>
+      {View.text(". It returns an object with a ")}
+      <code> {View.text("dispose()")} </code>
+      {View.text(" method.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -100,13 +100,13 @@ disposer.dispose()`)}
       </code>
     </pre>
 
-    <h3 id="avoiding-dependencies"> {Node.text("Avoiding Dependencies")} </h3>
+    <h3 id="avoiding-dependencies"> {View.text("Avoiding Dependencies")} </h3>
     <p>
-      {Node.text("If you need a value inside an effect without subscribing to it, use ")}
-      <code> {Node.text("Signal.peek")} </code>
-      {Node.text(" for one read or ")}
-      <code> {Node.text("Signal.untrack")} </code>
-      {Node.text(" for a larger block.")}
+      {View.text("If you need a value inside an effect without subscribing to it, use ")}
+      <code> {View.text("Signal.peek")} </code>
+      {View.text(" for one read or ")}
+      <code> {View.text("Signal.untrack")} </code>
+      {View.text(" for a larger block.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -124,30 +124,30 @@ Effect.run(() => {
       </code>
     </pre>
 
-    <h2 id="effects-common-patterns"> {Node.text("Common Patterns")} </h2>
-    <h3 id="common-use-cases"> {Node.text("Common Use Cases")} </h3>
+    <h2 id="effects-common-patterns"> {View.text("Common Patterns")} </h2>
+    <h3 id="common-use-cases"> {View.text("Common Use Cases")} </h3>
     <ul>
       <li>
-        <strong> {Node.text("Browser APIs:")} </strong>
-        {Node.text(" document title, localStorage, media queries, history, and scroll state")}
+        <strong> {View.text("Browser APIs:")} </strong>
+        {View.text(" document title, localStorage, media queries, history, and scroll state")}
       </li>
       <li>
-        <strong> {Node.text("Timers and subscriptions:")} </strong>
-        {Node.text(" intervals, event listeners, sockets, and observers")}
+        <strong> {View.text("Timers and subscriptions:")} </strong>
+        {View.text(" intervals, event listeners, sockets, and observers")}
       </li>
       <li>
-        <strong> {Node.text("Synchronization:")} </strong>
-        {Node.text(" push reactive state into another system")}
+        <strong> {View.text("Synchronization:")} </strong>
+        {View.text(" push reactive state into another system")}
       </li>
       <li>
-        <strong> {Node.text("Diagnostics:")} </strong>
-        {Node.text(" logging, instrumentation, and dev-only inspection")}
+        <strong> {View.text("Diagnostics:")} </strong>
+        {View.text(" logging, instrumentation, and dev-only inspection")}
       </li>
     </ul>
 
-    <h3 id="example-auto-save"> {Node.text("Example: Auto-save")} </h3>
+    <h3 id="example-auto-save"> {View.text("Example: Auto-save")} </h3>
     <p>
-      {Node.text("This pattern is common: track a draft, debounce the work, and clean up old timers when the draft changes again.")}
+      {View.text("This pattern is common: track a draft, debounce the work, and clean up old timers when the draft changes again.")}
     </p>
     <DocsExamplePanel
       filename="DraftAutoSave.res"
@@ -182,51 +182,51 @@ Effect.run(() => {
       <EffectAutosaveDemo />
     </DocsExamplePanel>
 
-    <h3 id="effects-vs-computed"> {Node.text("Effects vs Computed")} </h3>
+    <h3 id="effects-vs-computed"> {View.text("Effects vs Computed")} </h3>
     <p>
-      {Node.text("Ask one question: is the result another value inside the reactive graph, or is it work outside the graph?")}
+      {View.text("Ask one question: is the result another value inside the reactive graph, or is it work outside the graph?")}
     </p>
     <ul>
       <li>
-        <strong> {Node.text("Use a computed")} </strong>
-        {Node.text(" when you are deriving a value from other values")}
+        <strong> {View.text("Use a computed")} </strong>
+        {View.text(" when you are deriving a value from other values")}
       </li>
       <li>
-        <strong> {Node.text("Use an effect")} </strong>
-        {Node.text(" when you need to talk to something external")}
-      </li>
-    </ul>
-
-    <h2 id="effects-working-style"> {Node.text("Working Style")} </h2>
-    <h3 id="best-practices"> {Node.text("Best Practices")} </h3>
-    <ul>
-      <li>
-        {Node.text("Keep one effect focused on one kind of external work so cleanup stays obvious.")}
-      </li>
-      <li>
-        {Node.text("Return cleanup whenever you allocate timers, listeners, requests, or subscriptions.")}
-      </li>
-      <li>
-        {Node.text("Do not use effects to keep derived state in sync. If the output is another value, use a computed.")}
-      </li>
-      <li>
-        {Node.text("Use ")}
-        <code> {Node.text("peek")} </code>
-        {Node.text(" and ")}
-        <code> {Node.text("untrack")} </code>
-        {Node.text(" deliberately, because they opt out of tracking.")}
+        <strong> {View.text("Use an effect")} </strong>
+        {View.text(" when you need to talk to something external")}
       </li>
     </ul>
 
-    <h3 id="next-steps"> {Node.text("Next Steps")} </h3>
+    <h2 id="effects-working-style"> {View.text("Working Style")} </h2>
+    <h3 id="best-practices"> {View.text("Best Practices")} </h3>
     <ul>
       <li>
-        {Router.link(~to="/docs/view/overview", ~children=[Node.text("Move to View")], ())}
-        {Node.text(" to see how effects fit into real UI code.")}
+        {View.text("Keep one effect focused on one kind of external work so cleanup stays obvious.")}
       </li>
       <li>
-        {Router.link(~to="/docs/advanced/batching", ~children=[Node.text("Read Batching")], ())}
-        {Node.text(" when several writes should flush as one coordinated update.")}
+        {View.text("Return cleanup whenever you allocate timers, listeners, requests, or subscriptions.")}
+      </li>
+      <li>
+        {View.text("Do not use effects to keep derived state in sync. If the output is another value, use a computed.")}
+      </li>
+      <li>
+        {View.text("Use ")}
+        <code> {View.text("peek")} </code>
+        {View.text(" and ")}
+        <code> {View.text("untrack")} </code>
+        {View.text(" deliberately, because they opt out of tracking.")}
+      </li>
+    </ul>
+
+    <h3 id="next-steps"> {View.text("Next Steps")} </h3>
+    <ul>
+      <li>
+        {Router.link(~to="/docs/view/overview", ~children=[View.text("Move to View")], ())}
+        {View.text(" to see how effects fit into real UI code.")}
+      </li>
+      <li>
+        {Router.link(~to="/docs/advanced/batching", ~children=[View.text("Read Batching")], ())}
+        {View.text(" when several writes should flush as one coordinated update.")}
       </li>
     </ul>
   </div>

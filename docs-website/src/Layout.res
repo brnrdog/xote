@@ -140,13 +140,13 @@ module SearchModal = {
       }
     }
 
-    Node.signalFragment(
+    View.signalFragment(
       Computed.make(() => {
         if Signal.get(searchOpen) {
           [
-            Node.element(
+            View.element(
               "div",
-              ~attrs=[Node.attr("class", "search-overlay")],
+              ~attrs=[View.attr("class", "search-overlay")],
               ~events=[
                 (
                   "click",
@@ -167,23 +167,23 @@ module SearchModal = {
                   <div class="search-input-wrapper">
                     {Html.input(
                       ~attrs=[
-                        Node.attr("class", "search-input"),
-                        Node.attr("placeholder", "Search the docs..."),
-                        Node.attr("autofocus", "true"),
+                        View.attr("class", "search-input"),
+                        View.attr("placeholder", "Search the docs..."),
+                        View.attr("autofocus", "true"),
                       ],
                       ~events=[("input", handleInput)],
                       (),
                     )}
                   </div>
                   <div class="search-results">
-                    {Node.signalFragment(
+                    {View.signalFragment(
                       Computed.make(() => {
                         let items = Signal.get(filteredItems)
                         let idx = Signal.get(selectedIndex)
                         if Array.length(items) == 0 {
                           [
                             <div class="search-empty">
-                              {Node.text("No results found.")}
+                              {View.text("No results found.")}
                             </div>,
                           ]
                         } else {
@@ -196,7 +196,7 @@ module SearchModal = {
                               nodes
                               ->Array.push(
                                 <div class="search-group-label">
-                                  {Node.text(item.section)}
+                                  {View.text(item.section)}
                                 </div>,
                               )
                               ->ignore
@@ -206,9 +206,9 @@ module SearchModal = {
                             let cn = "search-result-item" ++ (isActive ? " active" : "")
                             nodes
                             ->Array.push(
-                              Node.element(
+                              View.element(
                                 "div",
-                                ~attrs=[Node.attr("class", cn)],
+                                ~attrs=[View.attr("class", cn)],
                                 ~events=[
                                   (
                                     "click",
@@ -228,7 +228,7 @@ module SearchModal = {
                                 ],
                                 ~children=[
                                   <div class="search-result-title">
-                                    {Node.text(item.title)}
+                                    {View.text(item.title)}
                                   </div>,
                                 ],
                                 (),
@@ -243,7 +243,7 @@ module SearchModal = {
                     )}
                   </div>
                   <div class="search-footer">
-                    {Node.text("\u2191\u2193 navigate  \u21B5 select  esc close")}
+                    {View.text("\u2191\u2193 navigate  \u21B5 select  esc close")}
                   </div>
                 </div>,
               ],
@@ -280,21 +280,21 @@ module Header = {
         <div class="header-left">
           {Router.link(
             ~to="/",
-            ~attrs=[Node.attr("class", "header-logo-link")],
-            ~children=[<span class="logo-text"> {Node.text("xote")} </span>],
+            ~attrs=[View.attr("class", "header-logo-link")],
+            ~children=[<span class="logo-text"> {View.text("xote")} </span>],
             (),
           )}
           {Router.link(
             ~to="/docs/changelog",
-            ~attrs=[Node.attr("class", "header-version")],
-            ~children=[Node.text("v" ++ RepoData.latestVersion)],
+            ~attrs=[View.attr("class", "header-version")],
+            ~children=[View.text("v" ++ RepoData.latestVersion)],
             (),
           )}
           <nav class="header-nav">
             {Router.link(
               ~to="/docs",
-              ~attrs=[Node.attr("class", "header-nav-link")],
-              ~children=[Node.text("Docs")],
+              ~attrs=[View.attr("class", "header-nav-link")],
+              ~children=[View.text("Docs")],
               (),
             )}
             <a
@@ -303,45 +303,45 @@ module Header = {
               class="header-nav-link"
               onClick={_ =>
                 PostHog.capture("github_link_clicked", ~properties={"source": "header"})}>
-              {Node.text("GitHub")}
+              {View.text("GitHub")}
             </a>
           </nav>
         </div>
         <div class="header-right">
-          {Node.element(
+          {View.element(
             "button",
-            ~attrs=[Node.attr("class", "search-trigger")],
+            ~attrs=[View.attr("class", "search-trigger")],
             ~events=[("click", _ => openSearch())],
             ~children=[
-              <span> {Node.text("Search")} </span>,
+              <span> {View.text("Search")} </span>,
               <div class="search-trigger-keys">
-                <span class="search-trigger-key"> {Node.text("\u2318K")} </span>
+                <span class="search-trigger-key"> {View.text("\u2318K")} </span>
               </div>,
             ],
             (),
           )}
-          {Node.element(
+          {View.element(
             "button",
             ~attrs=[
-              Node.attr("class", "header-icon-btn"),
-              Node.attr("title", "Toggle theme"),
+              View.attr("class", "header-icon-btn"),
+              View.attr("title", "Toggle theme"),
             ],
             ~events=[("click", _ => toggleTheme())],
             ~children=[
-              Node.signalText(() =>
+              View.signalText(() =>
                 Signal.get(theme) == "dark" ? "\u263E" : "\u2600"
               ),
             ],
             (),
           )}
-          {Node.element(
+          {View.element(
             "button",
             ~attrs=[
-              Node.attr("class", "header-icon-btn mobile-menu-btn"),
-              Node.attr("title", "Menu"),
+              View.attr("class", "header-icon-btn mobile-menu-btn"),
+              View.attr("title", "Menu"),
             ],
             ~events=[("click", _ => openSearch())],
-            ~children=[Node.text("\u2261")],
+            ~children=[View.text("\u2261")],
             (),
           )}
         </div>
@@ -360,57 +360,57 @@ module Footer = {
         <div class="footer-grid">
           <div class="footer-brand">
             <h4 class="footer-brand-name">
-              <span class="logo-text"> {Node.text("xote")} </span>
+              <span class="logo-text"> {View.text("xote")} </span>
             </h4>
             <p>
-              {Node.text(
+              {View.text(
                 "A ReScript Library for Interactive User Interfaces",
               )}
             </p>
           </div>
           <div class="footer-col">
-            <h4> {Node.text("Docs")} </h4>
+            <h4> {View.text("Docs")} </h4>
             <ul>
               <li>
-                {Router.link(~to="/docs", ~children=[Node.text("Introduction")], ())}
+                {Router.link(~to="/docs", ~children=[View.text("Introduction")], ())}
               </li>
               <li>
                 {Router.link(
                   ~to="/docs/core-concepts/signals",
-                  ~children=[Node.text("Core Modules")],
+                  ~children=[View.text("Core Modules")],
                   (),
                 )}
               </li>
               <li>
                 {Router.link(
                   ~to="/docs/api/signals",
-                  ~children=[Node.text("API Reference")],
+                  ~children=[View.text("API Reference")],
                   (),
                 )}
               </li>
               <li>
-                {Router.link(~to="/docs/changelog", ~children=[Node.text("Changelog")], ())}
+                {Router.link(~to="/docs/changelog", ~children=[View.text("Changelog")], ())}
               </li>
             </ul>
           </div>
           <div class="footer-col">
-            <h4> {Node.text("Community")} </h4>
+            <h4> {View.text("Community")} </h4>
             <ul>
               <li>
                 <a href="https://github.com/brnrdog/xote" target="_blank">
-                  {Node.text("GitHub \u2197")}
+                  {View.text("GitHub \u2197")}
                 </a>
               </li>
               <li>
                 <a href="https://www.npmjs.com/package/xote" target="_blank">
-                  {Node.text("npm \u2197")}
+                  {View.text("npm \u2197")}
                 </a>
               </li>
               <li>
                 <a
                   href="https://github.com/brnrdog/xote/issues"
                   target="_blank">
-                  {Node.text("Issues \u2197")}
+                  {View.text("Issues \u2197")}
                 </a>
               </li>
             </ul>
@@ -418,12 +418,12 @@ module Footer = {
         </div>
         <div class="footer-bottom">
           <div>
-            {Node.text("Bernardo Gurgel \u00B7  MIT License \u00B7 Built with ReScript and xote")}
+            {View.text("Bernardo Gurgel \u00B7  MIT License \u00B7 Built with ReScript and xote")}
           </div>
           {Router.link(
             ~to="/docs/changelog",
-            ~attrs=[Node.attr("class", "footer-version")],
-            ~children=[Node.text("v" ++ RepoData.latestVersion)],
+            ~attrs=[View.attr("class", "footer-version")],
+            ~children=[View.text("v" ++ RepoData.latestVersion)],
             (),
           )}
         </div>
@@ -453,7 +453,7 @@ if SSRContext.isClient {
 }
 
 // ---- Main layout wrapper ----
-type props = {children: Node.node}
+type props = {children: View.node}
 
 let make = (props: props) => {
   <div>

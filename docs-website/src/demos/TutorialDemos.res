@@ -31,10 +31,10 @@ module TemperatureDisplay = {
   let make = (~value: unit => float, ~unit: tempUnit) =>
     <div class={unitClass(unit)}>
       <span class="temp-value">
-        {Node.signalText(() => value()->Float.toFixed(~digits=1))}
+        {View.signalText(() => value()->Float.toFixed(~digits=1))}
       </span>
-      <span class="temp-unit"> {Node.text(symbolFor(unit))} </span>
-      <span class="temp-label"> {Node.text(unitLabel(unit))} </span>
+      <span class="temp-unit"> {View.text(symbolFor(unit))} </span>
+      <span class="temp-label"> {View.text(unitLabel(unit))} </span>
     </div>
 }
 
@@ -147,35 +147,35 @@ module DomInspector = {
 
     <aside class="dom-inspector" ariaLabel="DOM mutations">
       <div class="dom-inspector-header">
-        <span class="dom-inspector-title"> {Node.text("DOM mutations")} </span>
+        <span class="dom-inspector-title"> {View.text("DOM mutations")} </span>
         <span class="dom-inspector-hint">
-          {Node.text("live from MutationObserver")}
+          {View.text("live from MutationObserver")}
         </span>
       </div>
       <ol class="dom-inspector-list">
-        {Node.keyedList(
+        {View.keyedList(
           entries,
           e => Int.toString(e.id),
           e =>
             <li class="dom-inspector-row">
-              <span class="dom-inspector-target"> {Node.text(e.label)} </span>
+              <span class="dom-inspector-target"> {View.text(e.label)} </span>
               <span class="dom-inspector-diff">
-                <span class="dom-inspector-old"> {Node.text(e.oldValue)} </span>
-                <span class="dom-inspector-arrow"> {Node.text("\u2192")} </span>
-                <span class="dom-inspector-new"> {Node.text(e.newValue)} </span>
+                <span class="dom-inspector-old"> {View.text(e.oldValue)} </span>
+                <span class="dom-inspector-arrow"> {View.text("\u2192")} </span>
+                <span class="dom-inspector-new"> {View.text(e.newValue)} </span>
               </span>
             </li>,
         )}
       </ol>
       <p
-        class={ReactiveProp.reactive(
+        class={Prop.reactive(
           Computed.make(() =>
             Array.length(Signal.get(entries)) > 0
               ? "dom-inspector-empty is-hidden"
               : "dom-inspector-empty"
           ),
         )}>
-        {Node.text("Drag the slider \u2014 only the changed text nodes will update.")}
+        {View.text("Drag the slider \u2014 only the changed text nodes will update.")}
       </p>
     </aside>
   }
@@ -208,7 +208,7 @@ module Step2 = {
           <TemperatureDisplay value={() => Signal.get(kelvin)} unit=Kelvin />
         </div>
         <label class="tutorial-slider">
-          <span> {Node.text("Drag to change °C")} </span>
+          <span> {View.text("Drag to change °C")} </span>
           <input
             type_="range"
             min="-20"
@@ -299,9 +299,9 @@ module Step3 = {
 
   let card = (~unit, ~text) =>
     <div class={unitClass(unit)}>
-      <span class="temp-value"> {Node.signalText(text)} </span>
-      <span class="temp-unit"> {Node.text(symbolFor(unit))} </span>
-      <span class="temp-label"> {Node.text(unitLabel(unit))} </span>
+      <span class="temp-value"> {View.signalText(text)} </span>
+      <span class="temp-unit"> {View.text(symbolFor(unit))} </span>
+      <span class="temp-label"> {View.text(unitLabel(unit))} </span>
     </div>
 
   let statusText = () =>
@@ -315,9 +315,9 @@ module Step3 = {
   let make = () =>
     <div class="tutorial-stage">
       <div class="tutorial-capital">
-        <span class="tutorial-capital-label"> {Node.text("Now in")} </span>
+        <span class="tutorial-capital-label"> {View.text("Now in")} </span>
         <span class="tutorial-capital-name">
-          {Node.signalText(() => Signal.get(capital).name)}
+          {View.signalText(() => Signal.get(capital).name)}
         </span>
       </div>
       <div class="temp-row">
@@ -325,9 +325,9 @@ module Step3 = {
         {card(~unit=Fahrenheit, ~text=displayFahrenheit)}
         {card(~unit=Kelvin, ~text=displayKelvin)}
       </div>
-      <div class="tutorial-status"> {Node.signalText(statusText)} </div>
+      <div class="tutorial-status"> {View.signalText(statusText)} </div>
       <button class="btn btn-ghost tutorial-shuffle" onClick={shuffle}>
-        {Node.text("Try another capital \u2197")}
+        {View.text("Try another capital \u2197")}
       </button>
     </div>
 }

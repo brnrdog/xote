@@ -195,34 +195,34 @@ let tokenizeLine = (line: string): array<token> => {
 }
 
 let renderToken = (t: token) =>
-  Node.element(
+  View.element(
     "span",
-    ~attrs=[Node.attr("class", t.class_)],
-    ~children=[Node.text(t.text)],
+    ~attrs=[View.attr("class", t.class_)],
+    ~children=[View.text(t.text)],
     (),
   )
 
-let highlight = (code: string): Node.node => {
+let highlight = (code: string): View.node => {
   let lines = code->String.split("\n")
 
-  let highlightLine = (line: string, lineNumber: int): Node.node => {
+  let highlightLine = (line: string, lineNumber: int): View.node => {
     let lineNum = (lineNumber + 1)->Int.toString
     let tokens = tokenizeLine(line)
     let content = tokens->Array.map(renderToken)
 
-    Node.element(
+    View.element(
       "div",
-      ~attrs=[Node.attr("class", "syntax-line")],
+      ~attrs=[View.attr("class", "syntax-line")],
       ~children=[
-        Node.element(
+        View.element(
           "span",
-          ~attrs=[Node.attr("class", "syntax-line-number")],
-          ~children=[Node.text(lineNum)],
+          ~attrs=[View.attr("class", "syntax-line-number")],
+          ~children=[View.text(lineNum)],
           (),
         ),
-        Node.element(
+        View.element(
           "span",
-          ~attrs=[Node.attr("class", "syntax-line-content")],
+          ~attrs=[View.attr("class", "syntax-line-content")],
           ~children=content,
           (),
         ),
@@ -231,5 +231,5 @@ let highlight = (code: string): Node.node => {
     )
   }
 
-  Node.fragment(lines->Array.mapWithIndex((line, idx) => highlightLine(line, idx)))
+  View.fragment(lines->Array.mapWithIndex((line, idx) => highlightLine(line, idx)))
 }
