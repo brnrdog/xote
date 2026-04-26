@@ -3,3 +3,4 @@ build/
 lib/
 static/demos/
 *.res.mjs
+.env

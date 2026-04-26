@@ -29,6 +29,8 @@ let toggleTheme = () => {
     | _ => "dark"
     }
   )
+  let newTheme = Signal.peek(theme)
+  let _ = %raw(`window.posthog && window.posthog.capture('theme_toggled', { theme: newTheme })`)
 }
 
 if SSRContext.isClient {
@@ -44,7 +46,10 @@ if SSRContext.isClient {
 // ---- Search state ----
 let searchOpen = Signal.make(false)
 
-let openSearch = () => Signal.set(searchOpen, true)
+let openSearch = () => {
+  Signal.set(searchOpen, true)
+  let _ = %raw(`window.posthog && window.posthog.capture('search_opened')`)
+}
 let closeSearch = () => Signal.set(searchOpen, false)
 
 // ---- Scroll state ----
@@ -104,6 +109,7 @@ module SearchModal = {
       let idx = Signal.peek(selectedIndex)
       switch items->Array.get(idx) {
       | Some(item) =>
+        let _ = %raw(`window.posthog && window.posthog.capture('search_result_selected', { result_path: item.path, result_title: item.title })`)
         Router.push(item.path, ())
         closeSearch()
         Signal.set(query, "")
@@ -205,6 +211,7 @@ module SearchModal = {
                                   (
                                     "click",
                                     _ => {
+                                      let _ = %raw(`window.posthog && window.posthog.capture('search_result_selected', { result_path: item.path, result_title: item.title })`)
                                       Router.push(item.path, ())
                                       closeSearch()
                                       Signal.set(query, "")
@@ -285,7 +292,10 @@ module Header = {
             <a
               href="https://github.com/brnrdog/xote"
               target="_blank"
-              class="header-nav-link">
+              class="header-nav-link"
+              onClick={_ => {
+                let _ = %raw(`window.posthog && window.posthog.capture('github_link_clicked', { source: 'header' })`)
+              }}>
               {Node.text("GitHub")}
             </a>
           </nav>

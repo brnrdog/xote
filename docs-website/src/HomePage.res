@@ -48,10 +48,24 @@ module FeatureCard = {
       <p> {Node.text(f.description)} </p>
       {switch (f.linkText, f.linkTo) {
       | (Some(text), Some(to)) =>
-        Router.link(
-          ~to,
-          ~attrs=[Node.attr("class", "feature-card-link")],
-          ~children=[Node.text(text ++ " \u2192")],
+        Node.element(
+          "span",
+          ~events=[
+            (
+              "click",
+              _ => {
+                let _ = %raw(`window.posthog && window.posthog.capture('feature_card_link_clicked', { destination: to, link_text: text })`)
+              },
+            ),
+          ],
+          ~children=[
+            Router.link(
+              ~to,
+              ~attrs=[Node.attr("class", "feature-card-link")],
+              ~children=[Node.text(text ++ " \u2192")],
+              (),
+            ),
+          ],
           (),
         )
       | _ => Node.fragment([])
@@ -284,10 +298,24 @@ module Hero = {
         )}
       </p>
       <div class="hero-ctas">
-        {Router.link(
-          ~to="/docs",
-          ~attrs=[Node.attr("class", "btn btn-primary")],
-          ~children=[Node.text("Get started")],
+        {Node.element(
+          "span",
+          ~events=[
+            (
+              "click",
+              _ => {
+                let _ = %raw(`window.posthog && window.posthog.capture('get_started_clicked')`)
+              },
+            ),
+          ],
+          ~children=[
+            Router.link(
+              ~to="/docs",
+              ~attrs=[Node.attr("class", "btn btn-primary")],
+              ~children=[Node.text("Get started")],
+              (),
+            ),
+          ],
           (),
         )}
         {Router.link(
