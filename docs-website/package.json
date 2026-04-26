@@ -4,8 +4,9 @@
   "type": "module",
   "scripts": {
     "postinstall": "node scripts/patch-basefn.cjs",
+    "generate-repo-data": "node scripts/generate-repo-data.cjs",
     "generate-api-docs": "node scripts/generate-api-docs.cjs",
-    "res:build": "npm run generate-api-docs && rescript",
+    "res:build": "npm run generate-repo-data && npm run generate-api-docs && rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript -w",
     "dev": "node server.mjs",

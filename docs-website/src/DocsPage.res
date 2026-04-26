@@ -46,6 +46,10 @@ let docsNav: array<docCategory> = [
       {title: "Technical Overview", path: "/docs/technical-overview"},
     ],
   },
+  {
+    label: "Project",
+    items: [{title: "Changelog", path: "/docs/changelog"}],
+  },
 ]
 
 // Flatten for prev/next

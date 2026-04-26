@@ -70,6 +70,7 @@ let searchItems: array<searchItem> = [
   {title: "Server-Side Rendering", path: "/docs/advanced/ssr", section: "Advanced"},
   {title: "Batching", path: "/docs/advanced/batching", section: "Advanced"},
   {title: "Technical Overview", path: "/docs/technical-overview", section: "Advanced"},
+  {title: "Changelog", path: "/docs/changelog", section: "Project"},
 ]
 
 // ---- Search Modal ----
@@ -268,12 +269,12 @@ module Header = {
             ~children=[<span class="logo-text"> {Node.text("xote")} </span>],
             (),
           )}
-          <a
-            href="https://www.npmjs.com/package/xote"
-            target="_blank"
-            class="header-version">
-            {Node.text("v6.1.1")}
-          </a>
+          {Router.link(
+            ~to="/docs/changelog",
+            ~attrs=[Node.attr("class", "header-version")],
+            ~children=[Node.text("v" ++ RepoData.latestVersion)],
+            (),
+          )}
           <nav class="header-nav">
             {Router.link(
               ~to="/docs",
@@ -370,6 +371,9 @@ module Footer = {
                   (),
                 )}
               </li>
+              <li>
+                {Router.link(~to="/docs/changelog", ~children=[Node.text("Changelog")], ())}
+              </li>
             </ul>
           </div>
           <div class="footer-col">
@@ -399,7 +403,12 @@ module Footer = {
           <div>
             {Node.text("Bernardo Gurgel \u00B7  MIT License \u00B7 Built with ReScript and xote")}
           </div>
-          <div> {Node.text("v6.1.1")} </div>
+          {Router.link(
+            ~to="/docs/changelog",
+            ~attrs=[Node.attr("class", "footer-version")],
+            ~children=[Node.text("v" ++ RepoData.latestVersion)],
+            (),
+          )}
         </div>
       </div>
     </footer>

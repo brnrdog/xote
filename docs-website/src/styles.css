@@ -156,6 +156,19 @@ select {
   color: var(--bg);
 }
 
+:where(
+  a[href],
+  button,
+  input:not([type="hidden"]),
+  select,
+  textarea,
+  summary,
+  [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  outline: 1px solid var(--text);
+  outline-offset: 2px;
+}
+
 /* Skip-to-content link */
 .skip-to-content {
   position: absolute;
@@ -724,10 +737,6 @@ td strong {
   transition:
     opacity 120ms linear,
     background-color 120ms linear;
-}
-.btn:focus-visible {
-  outline: 1px solid var(--text);
-  outline-offset: 2px;
 }
 
 .btn-primary {
@@ -1965,6 +1974,13 @@ td strong {
   color: var(--text-faint);
 }
 
+.footer-version {
+  color: inherit;
+}
+.footer-version:hover {
+  color: var(--text);
+}
+
 @media (max-width: 768px) {
   .footer-grid {
     grid-template-columns: 1fr;
@@ -1976,11 +1992,10 @@ td strong {
 .docs-sidebar {
   width: var(--sidebar-width);
   flex-shrink: 0;
-  padding: var(--s-8) var(--s-5) var(--s-10) 0;
+  padding: var(--s-8) var(--s-5) var(--s-10) var(--s-1);
   position: sticky;
   top: var(--header-height);
-  max-height: calc(100vh - var(--header-height));
-  overflow-y: auto;
+  align-self: flex-start;
 }
 
 .sidebar-section {
@@ -2166,6 +2181,101 @@ td strong {
 
 .docs-content .tutorial-code + .tutorial-figure {
   margin-top: var(--s-4);
+}
+
+.changelog-doc {
+  display: grid;
+  gap: var(--s-8);
+}
+
+.changelog-meta {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.changelog-meta a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+.changelog-more {
+  margin: 0;
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-sm);
+}
+
+.changelog-more a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+.changelog-release {
+  padding-top: var(--s-6);
+  border-top: 1px solid var(--border);
+}
+
+.changelog-release:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.changelog-release-head {
+  margin-bottom: var(--s-5);
+}
+
+.changelog-release-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-style: normal;
+}
+
+.changelog-release-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+.changelog-release-date {
+  margin: var(--s-2) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.changelog-section + .changelog-section {
+  margin-top: var(--s-5);
+}
+
+.changelog-section-title {
+  margin-bottom: var(--s-3);
+}
+
+.changelog-list {
+  margin: 0;
+}
+
+.changelog-item {
+  color: var(--text-muted);
+}
+
+.changelog-item strong,
+.changelog-item code,
+.changelog-item a {
+  color: var(--text);
+}
+
+.changelog-item a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
 }
 
 .docs-prev-next {
