@@ -78,12 +78,111 @@ module FeatureCard = {
 
 module HeroBackground = {
   type props = {}
+  type rect
+  type svgViewBox
+  type svgViewBoxBase
+  type classList
+  type triangleTemplate = {
+    id: string,
+    points: string,
+    cx: float,
+    cy: float,
+  }
+  type triangleState = {
+    element: Dom.element,
+    cx: float,
+    cy: float,
+    mutable delayTimeout: option<int>,
+    mutable activeTimeout: option<int>,
+  }
 
   let cols = 56
   let rows = 20
   let size = 24
+  let svgId = "hero-bg-svg"
+  let hoverIdleMs = 600.
+  let throttleMs = 140.
+  let tau = 6.283185307179586
 
-  let makeTriangles = () => {
+  @val external getById: string => Nullable.t<Dom.element> = "document.getElementById"
+  @val external queueMicrotask: (unit => unit) => unit = "queueMicrotask"
+  @val external setTimeout: (unit => unit, float) => int = "setTimeout"
+  @val external clearTimeout: int => unit = "clearTimeout"
+  @val @scope("performance") external performanceNow: unit => float = "now"
+  @val @scope("document.body") external bodyContains: Dom.element => bool = "contains"
+
+  @send
+  external addEventListener: (Dom.element, string, Dom.event => unit) => unit = "addEventListener"
+  @send
+  external removeEventListener: (Dom.element, string, Dom.event => unit) => unit =
+    "removeEventListener"
+  @send external getBoundingClientRect: Dom.element => rect = "getBoundingClientRect"
+  @send external queryWithin: (Dom.element, string) => Nullable.t<Dom.element> = "querySelector"
+  @get external rectLeft: rect => float = "left"
+  @get external rectTop: rect => float = "top"
+  @get external rectWidth: rect => float = "width"
+  @get external rectHeight: rect => float = "height"
+  @get external clientX: Dom.event => float = "clientX"
+  @get external clientY: Dom.event => float = "clientY"
+  @get external viewBox: Dom.element => svgViewBox = "viewBox"
+  @get external baseVal: svgViewBox => svgViewBoxBase = "baseVal"
+  @get external viewBoxWidth: svgViewBoxBase => float = "width"
+  @get external viewBoxHeight: svgViewBoxBase => float = "height"
+  @get external classList: Dom.element => classList = "classList"
+  @send external addClass: (classList, string) => unit = "add"
+  @send external removeClass: (classList, string) => unit = "remove"
+  @send external toggleClass: (classList, string, bool) => unit = "toggle"
+
+  let clearTimer = (timerRef: ref<option<int>>) => {
+    switch timerRef.contents {
+    | Some(id) =>
+      clearTimeout(id)
+      timerRef := None
+    | None => ()
+    }
+  }
+
+  let clearTriangleTimers = (triangle: triangleState) => {
+    switch triangle.delayTimeout {
+    | Some(id) =>
+      clearTimeout(id)
+      triangle.delayTimeout = None
+    | None => ()
+    }
+    switch triangle.activeTimeout {
+    | Some(id) =>
+      clearTimeout(id)
+      triangle.activeTimeout = None
+    | None => ()
+    }
+  }
+
+  let resetTriangle = (triangle: triangleState) => {
+    clearTriangleTimers(triangle)
+    let classes = triangle.element->classList
+    classes->removeClass("active")
+    classes->removeClass("active-accent")
+  }
+
+  let activateTriangle = (~triangle, ~delayMs, ~ttlMs, ~accent) => {
+    clearTriangleTimers(triangle)
+    let safeDelay = Math.max(0., delayMs)
+    let delayId = setTimeout(() => {
+      triangle.delayTimeout = None
+      let classes = triangle.element->classList
+      classes->toggleClass("active-accent", accent)
+      classes->addClass("active")
+      let activeId = setTimeout(() => {
+        triangle.activeTimeout = None
+        classes->removeClass("active")
+        classes->removeClass("active-accent")
+      }, ttlMs)
+      triangle.activeTimeout = Some(activeId)
+    }, safeDelay)
+    triangle.delayTimeout = Some(delayId)
+  }
+
+  let makeTriangleTemplates = (): array<triangleTemplate> => {
     let out = []
     for r in 0 to rows - 1 {
       for c in 0 to cols - 1 {
@@ -91,176 +190,277 @@ module HeroBackground = {
         let y = r * size
         let x2 = x + size
         let y2 = y + size
+        let fx = Int.toFloat(x)
+        let fy = Int.toFloat(y)
+        let fx2 = Int.toFloat(x2)
+        let fy2 = Int.toFloat(y2)
         let sx = Int.toString(x)
         let sy = Int.toString(y)
         let sx2 = Int.toString(x2)
         let sy2 = Int.toString(y2)
-        let upper = `${sx},${sy} ${sx2},${sy} ${sx},${sy2}`
-        let lower = `${sx2},${sy} ${sx2},${sy2} ${sx},${sy2}`
-        out
-        ->Array.push(
-          Node.element(
-            "polygon",
-            ~attrs=[Node.attr("points", upper), Node.attr("class", "hero-tri")],
-            (),
-          ),
-        )
+        let cellId = `${Int.toString(r)}-${Int.toString(c)}`
+        out->Array.push({
+          id: `${cellId}-upper`,
+          points: `${sx},${sy} ${sx2},${sy} ${sx},${sy2}`,
+          cx: (fx +. fx2 +. fx) /. 3.,
+          cy: (fy +. fy +. fy2) /. 3.,
+        })
         ->ignore
-        out
-        ->Array.push(
-          Node.element(
-            "polygon",
-            ~attrs=[Node.attr("points", lower), Node.attr("class", "hero-tri")],
-            (),
-          ),
-        )
+        out->Array.push({
+          id: `${cellId}-lower`,
+          points: `${sx2},${sy} ${sx2},${sy2} ${sx},${sy2}`,
+          cx: (fx2 +. fx2 +. fx) /. 3.,
+          cy: (fy +. fy2 +. fy2) /. 3.,
+        })
         ->ignore
       }
     }
     out
   }
 
-  let make = (_props: props) => {
-    let width = cols * size
-    let height = rows * size
-    let viewBox = `0 0 ${Int.toString(width)} ${Int.toString(height)}`
+  let triangleTemplates = makeTriangleTemplates()
+  let width = cols * size
+  let height = rows * size
+  let viewBoxValue = `0 0 ${Int.toString(width)} ${Int.toString(height)}`
 
-    let handleOver = (_evt: Dom.event) => {
-      let _ = %raw(`(function(evt) {
-        var svg = evt.currentTarget;
-        if (!svg.__xoteFire) return;
-        svg.__xoteHover = true;
-        clearTimeout(svg.__xoteHoverEnd);
-        svg.__xoteHoverEnd = setTimeout(function() { svg.__xoteHover = false; }, 600);
-        var rect = svg.getBoundingClientRect();
-        var vb = svg.viewBox && svg.viewBox.baseVal;
-        if (!vb || !rect.width || !rect.height) return;
-        var sx = vb.width / rect.width;
-        var sy = vb.height / rect.height;
-        var cx = (evt.clientX - rect.left) * sx;
-        var cy = (evt.clientY - rect.top) * sy;
-        var polys = svg.querySelectorAll('polygon.hero-tri');
-        var nearest = null, nearestD2 = Infinity;
-        for (var i = 0; i < polys.length; i++) {
-          var p = polys[i];
-          if (p.__xoteCx === undefined) {
-            var pts = p.points, ax = 0, ay = 0, n = pts.numberOfItems;
-            for (var j = 0; j < n; j++) {
-              var pt = pts.getItem(j);
-              ax += pt.x; ay += pt.y;
-            }
-            p.__xoteCx = ax / n;
-            p.__xoteCy = ay / n;
-          }
-          var dx = p.__xoteCx - cx;
-          var dy = p.__xoteCy - cy;
-          var d2 = dx * dx + dy * dy;
-          if (d2 < nearestD2) { nearestD2 = d2; nearest = p; }
+  let hydrateTriangles = (svg: Dom.element): array<triangleState> =>
+    triangleTemplates
+    ->Array.filterMap(template => {
+      let selector = `[data-tri-id="${template.id}"]`
+      switch svg->queryWithin(selector)->Nullable.toOption {
+      | Some(element) =>
+        Some({
+          element,
+          cx: template.cx,
+          cy: template.cy,
+          delayTimeout: None,
+          activeTimeout: None,
+        })
+      | None => None
+      }
+    })
+
+  let findNearestTriangle = (~triangles, ~cx, ~cy) => {
+    let nearest: ref<option<triangleState>> = ref(None)
+    let nearestD2 = ref(0.)
+    triangles->Array.forEach(triangle => {
+      let dx = triangle.cx -. cx
+      let dy = triangle.cy -. cy
+      let d2 = dx *. dx +. dy *. dy
+      switch nearest.contents {
+      | Some(_) =>
+        if d2 < nearestD2.contents {
+          nearest := Some(triangle)
+          nearestD2 := d2
         }
-        svg.__xoteFire(nearest, true);
-      })(_evt)`)
-    }
+      | None =>
+        nearest := Some(triangle)
+        nearestD2 := d2
+      }
+    })
+    nearest.contents
+  }
 
+  let triggerRipple = (~triangles, ~seed, ~vbWidth, ~vbHeight, ~throttle, ~idle, ~lastRippleAt) => {
+    let now = performanceNow()
+    let shouldPropagate =
+      if throttle {
+        switch lastRippleAt.contents {
+        | Some(last) if now -. last < throttleMs =>
+          activateTriangle(
+            ~triangle=seed,
+            ~delayMs=0.,
+            ~ttlMs=600.,
+            ~accent=Math.random() < 0.18,
+          )
+          false
+        | _ =>
+          lastRippleAt := Some(now)
+          true
+        }
+      } else {
+        lastRippleAt := Some(now)
+        true
+      }
+
+    if shouldPropagate {
+      let cellVb = (vbWidth /. 42. +. vbHeight /. 15.) /. 2.
+      let maxRings = idle ? 5 : 3
+      let ringStep = cellVb *. (idle ? 1.4 : 1.2)
+      let ringDelay = idle ? 140. : 70.
+      let ringDuration = idle ? 520. : 360.
+      let biasAngle = idle ? Math.random() *. tau : 0.
+      let biasStrength = idle ? 0.55 : 0.
+
+      triangles->Array.forEach(triangle => {
+        let dx = triangle.cx -. seed.cx
+        let dy = triangle.cy -. seed.cy
+        let dist = Math.sqrt(dx *. dx +. dy *. dy)
+        let ring = Int.fromFloat(Math.round(dist /. ringStep))
+        if ring <= maxRings {
+          let probability =
+            if idle {
+              let directionWeight =
+                if dist > 0. {
+                  let angle = Math.atan2(~y=dy, ~x=dx)
+                  let alignment = Math.cos(angle -. biasAngle)
+                  1. +. biasStrength *. alignment
+                } else {
+                  1.
+                }
+              if ring == 0 {
+                1.
+              } else {
+                Math.max(0., (0.55 -. Int.toFloat(ring) *. 0.09) *. directionWeight)
+              }
+            } else if ring == 0 {
+              1.
+            } else {
+              0.35 -. Int.toFloat(ring) *. 0.08
+            }
+
+          if Math.random() <= probability {
+            let jitter = (Math.random() -. 0.5) *. (idle ? 120. : 60.)
+            let ttl =
+              ringDuration +.
+              Int.toFloat(ring) *. (idle ? 110. : 50.) +.
+              Math.random() *. (idle ? 320. : 160.)
+            let accentProbability = idle ? 0.12 : 0.18
+            let accent = ring > 0 && Math.random() < accentProbability
+            activateTriangle(
+              ~triangle,
+              ~delayMs=Int.toFloat(ring) *. ringDelay +. jitter,
+              ~ttlMs=ttl,
+              ~accent,
+            )
+          }
+        }
+      })
+    }
+  }
+
+  let makeTriangles = () =>
+    triangleTemplates->Array.map(template =>
+      Node.element(
+        "polygon",
+        ~attrs=[
+          Node.attr("points", template.points),
+          Node.attr("class", "hero-tri"),
+          Node.attr("data-tri-id", template.id),
+        ],
+        (),
+      )
+    )
+
+  let make = (_props: props) => {
     if SSRContext.isClient {
       Effect.run(() => {
-        let _ = %raw(`(function(){
-          var tries = 0;
-          function init() {
-            var svg = document.querySelector('.hero-bg-svg');
-            if (!svg) { if (tries++ < 50) setTimeout(init, 100); return; }
-            if (svg.__xoteFire) return;
-            svg.__xoteFire = function(nearest, throttle, idle) {
-              if (!nearest) return;
-              var vb = svg.viewBox && svg.viewBox.baseVal;
-              if (!vb) return;
-              function activate(el, delay, ttl, accent) {
-                clearTimeout(el.__xoteTimer);
-                clearTimeout(el.__xoteDelay);
-                el.__xoteDelay = setTimeout(function() {
-                  el.classList.toggle('active-accent', !!accent);
-                  el.classList.add('active');
-                  el.__xoteTimer = setTimeout(function() {
-                    el.classList.remove('active');
-                    el.classList.remove('active-accent');
-                  }, ttl);
-                }, delay);
-              }
-              if (throttle && svg.__xoteLastRipple && performance.now() - svg.__xoteLastRipple < 140) {
-                activate(nearest, 0, 600, Math.random() < 0.18);
-                return;
-              }
-              svg.__xoteLastRipple = performance.now();
-              var polys = svg.querySelectorAll('polygon.hero-tri');
-              var cellVb = (vb.width / 42 + vb.height / 15) / 2;
-              var maxRings = idle ? 5 : 3;
-              var ringStep = cellVb * (idle ? 1.4 : 1.2);
-              var ringDelay = idle ? 140 : 70;
-              var ringDuration = idle ? 520 : 360;
-              var biasAngle = idle ? Math.random() * Math.PI * 2 : 0;
-              var biasStrength = idle ? 0.55 : 0;
-              for (var k = 0; k < polys.length; k++) {
-                var q = polys[k];
-                if (q.__xoteCx === undefined) {
-                  var pts = q.points, ax = 0, ay = 0, n = pts.numberOfItems;
-                  for (var j = 0; j < n; j++) {
-                    var pt = pts.getItem(j);
-                    ax += pt.x; ay += pt.y;
-                  }
-                  q.__xoteCx = ax / n;
-                  q.__xoteCy = ay / n;
-                }
-                var ddx = q.__xoteCx - nearest.__xoteCx;
-                var ddy = q.__xoteCy - nearest.__xoteCy;
-                var dist = Math.sqrt(ddx * ddx + ddy * ddy);
-                var ring = Math.round(dist / ringStep);
-                if (ring > maxRings) continue;
-                var prob;
-                if (idle) {
-                  var dirWeight = 1;
-                  if (dist > 0) {
-                    var ang = Math.atan2(ddy, ddx);
-                    var align = Math.cos(ang - biasAngle);
-                    dirWeight = 1 + biasStrength * align;
-                  }
-                  prob = ring === 0 ? 1 : Math.max(0, (0.55 - ring * 0.09) * dirWeight);
-                } else {
-                  prob = ring === 0 ? 1 : 0.35 - ring * 0.08;
-                }
-                if (Math.random() > prob) continue;
-                var jitter = (Math.random() - 0.5) * (idle ? 120 : 60);
-                var ttl = ringDuration + ring * (idle ? 110 : 50) + Math.random() * (idle ? 320 : 160);
-                var accentProb = idle ? 0.12 : 0.18;
-                var accent = ring > 0 && Math.random() < accentProb;
-                activate(q, ring * ringDelay + jitter, ttl, accent);
-              }
-            };
-            (function tick() {
-              var delay = 900 + Math.random() * 1600;
-              setTimeout(function() {
-                if (!document.body.contains(svg)) return;
-                if (!svg.__xoteHover) {
-                  var polys = svg.querySelectorAll('polygon.hero-tri');
-                  if (polys.length) {
-                    var seed = polys[Math.floor(Math.random() * polys.length)];
-                    if (seed.__xoteCx === undefined) {
-                      var pts = seed.points, ax = 0, ay = 0, n = pts.numberOfItems;
-                      for (var j = 0; j < n; j++) {
-                        var pt = pts.getItem(j);
-                        ax += pt.x; ay += pt.y;
-                      }
-                      seed.__xoteCx = ax / n;
-                      seed.__xoteCy = ay / n;
-                    }
-                    svg.__xoteFire(seed, false, true);
-                  }
-                }
-                tick();
-              }, delay);
-            })();
+        let disposed = ref(false)
+        let hoverActive = ref(false)
+        let hoverEndTimer: ref<option<int>> = ref(None)
+        let idleTimer: ref<option<int>> = ref(None)
+        let lastRippleAt: ref<option<float>> = ref(None)
+        let mouseMoveHandler: ref<option<Dom.event => unit>> = ref(None)
+        let boundSvg: ref<option<Dom.element>> = ref(None)
+        let triangles: ref<array<triangleState>> = ref([])
+
+        let scheduleIdle = ref(() => ())
+        let cleanup = () => {
+          disposed := true
+          clearTimer(hoverEndTimer)
+          clearTimer(idleTimer)
+          triangles.contents->Array.forEach(resetTriangle)
+          switch (boundSvg.contents, mouseMoveHandler.contents) {
+          | (Some(svg), Some(handler)) => svg->removeEventListener("mousemove", handler)
+          | _ => ()
           }
-          init();
-        })()`)
-        None
+          hoverActive := false
+          boundSvg := None
+          mouseMoveHandler := None
+          triangles := []
+        }
+
+        scheduleIdle := () => {
+          clearTimer(idleTimer)
+          let delay = 900. +. Math.random() *. 1600.
+          idleTimer := Some(setTimeout(() => {
+            idleTimer := None
+            switch boundSvg.contents {
+            | Some(svg) if !disposed.contents && bodyContains(svg) =>
+              if !hoverActive.contents {
+                let readyTriangles = triangles.contents
+                let triangleCount = Array.length(readyTriangles)
+                if triangleCount > 0 {
+                  let index = Int.fromFloat(Math.floor(Math.random() *. Int.toFloat(triangleCount)))
+                  switch readyTriangles->Array.get(index) {
+                  | Some(seed) =>
+                    triggerRipple(
+                      ~triangles=readyTriangles,
+                      ~seed,
+                      ~vbWidth=svg->viewBox->baseVal->viewBoxWidth,
+                      ~vbHeight=svg->viewBox->baseVal->viewBoxHeight,
+                      ~throttle=false,
+                      ~idle=true,
+                      ~lastRippleAt,
+                    )
+                  | None => ()
+                  }
+                }
+              }
+              scheduleIdle.contents()
+            | _ => ()
+            }
+          }, delay))
+        }
+
+        queueMicrotask(() => {
+          if !disposed.contents {
+            switch getById(svgId)->Nullable.toOption {
+            | Some(svg) =>
+              let readyTriangles = hydrateTriangles(svg)
+              triangles := readyTriangles
+              boundSvg := Some(svg)
+
+              let handler = (evt: Dom.event) => {
+                hoverActive := true
+                clearTimer(hoverEndTimer)
+                hoverEndTimer := Some(setTimeout(() => {
+                  hoverEndTimer := None
+                  hoverActive := false
+                }, hoverIdleMs))
+
+                let rect = svg->getBoundingClientRect
+                let width = rect->rectWidth
+                let height = rect->rectHeight
+                if width > 0. && height > 0. {
+                  let vb = svg->viewBox->baseVal
+                  let cx = (evt->clientX -. rect->rectLeft) *. (vb->viewBoxWidth /. width)
+                  let cy = (evt->clientY -. rect->rectTop) *. (vb->viewBoxHeight /. height)
+                  switch findNearestTriangle(~triangles=readyTriangles, ~cx, ~cy) {
+                  | Some(seed) =>
+                    triggerRipple(
+                      ~triangles=readyTriangles,
+                      ~seed,
+                      ~vbWidth=vb->viewBoxWidth,
+                      ~vbHeight=vb->viewBoxHeight,
+                      ~throttle=true,
+                      ~idle=false,
+                      ~lastRippleAt,
+                    )
+                  | None => ()
+                  }
+                }
+              }
+
+              mouseMoveHandler := Some(handler)
+              svg->addEventListener("mousemove", handler)
+              scheduleIdle.contents()
+            | None => ()
+            }
+          }
+        })
+
+        Some(cleanup)
       })
     }
 
@@ -271,11 +471,11 @@ module HeroBackground = {
         Node.element(
           "svg",
           ~attrs=[
-            Node.attr("viewBox", viewBox),
+            Node.attr("id", svgId),
+            Node.attr("viewBox", viewBoxValue),
             Node.attr("preserveAspectRatio", "xMidYMid slice"),
             Node.attr("class", "hero-bg-svg"),
           ],
-          ~events=[("mousemove", handleOver)],
           ~children=makeTriangles(),
           (),
         ),
