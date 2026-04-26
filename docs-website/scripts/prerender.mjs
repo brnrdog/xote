@@ -29,6 +29,7 @@ const routes = [
   '/docs/comparisons/react',
   '/docs/comparisons/solidjs',
   '/docs/technical-overview',
+  '/docs/changelog',
 ]
 
 // Suppress expected SSR errors from client-only code (e.g., basefn Icon

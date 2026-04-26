@@ -11,6 +11,7 @@ module ReactComparisonDoc = ReactComparisonDoc
 module SolidJSComparisonDoc = SolidJSComparisonDoc
 module TechnicalOverviewDoc = TechnicalOverviewDoc
 module SSRDoc = SSRDoc
+module ChangelogDoc = ChangelogDoc
 
 // Demo modules are still on disk under `src/demos/*.res` for reuse as
 // inline figures, but no longer routed as standalone pages.
@@ -40,6 +41,22 @@ module NotFoundPage = {
 // Main app
 module App = {
   type props = {}
+
+  let visibleChangelogReleases =
+    RepoData.releases->Array.slice(
+      ~start=0,
+      ~end=min(10, Array.length(RepoData.releases)),
+    )
+
+  let changelogTocItems: array<DocsPage.TableOfContents.tocItem> =
+    visibleChangelogReleases->Array.map(release => {
+      let item: DocsPage.TableOfContents.tocItem = {
+        text: "v" ++ release.version ++ " (" ++ release.date ++ ")",
+        id: release.id,
+        level: 2,
+      }
+      item
+    })
 
   let make = (_props: props) => {
     Router.routes(
@@ -372,6 +389,17 @@ module App = {
                 {text: "Best Practices", id: "best-practices", level: 3},
                 {text: "Next Steps", id: "next-steps", level: 3},
               ]
+            />,
+        },
+        {
+          pattern: "/docs/changelog",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/changelog"
+              pageTitle="Changelog"
+              pageLead="Release history generated from the repository changelog."
+              content={ChangelogDoc.content()}
+              tocItems=changelogTocItems
             />,
         },
         {
