@@ -47,7 +47,7 @@ let content = () => {
     <pre class="docs-code-pre">
       <code>
         {SyntaxHighlight.highlight(`{
-  "bs-dependencies": ["xote"],
+  "dependencies": ["xote"],
   "jsx": {
     "version": 4,
     "module": "XoteJSX"
