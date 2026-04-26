@@ -9,7 +9,7 @@ let content = () => {
 
   <div class="changelog-doc">
     <p class="changelog-meta">
-      {Node.text("Version " ++ RepoData.latestVersion ++ " is the latest entry in the repository changelog. Source: ")}
+      {Node.text("See the full history on GitHub: ")}
       <a href={RepoData.sourceUrl} target="_blank"> {Node.text("docs/CHANGELOG.md")} </a>
     </p>
     {Node.fragment(

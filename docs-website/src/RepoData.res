@@ -21,10 +21,43 @@ type release = {
 }
 
 let sourceUrl = "https://github.com/brnrdog/xote/blob/main/docs/CHANGELOG.md"
-let latestVersion = "6.1.2"
-let latestReleaseDate = "2026-04-25"
+let latestVersion = "6.2.0"
+let latestReleaseDate = "2026-04-26"
 
 let releases: array<release> = [
+  {
+    version: "6.2.0",
+    url: "https://github.com/brnrdog/xote/compare/v6.1.2...v6.2.0",
+    date: "2026-04-26",
+    id: "release-6-2-0-2026-04-26",
+    sections: [
+      {
+        title: "Bug Fixes",
+        items: [
+          [
+            Node.text("connect keyed JSX to reconciliation ("),
+            <a href="https://github.com/brnrdog/xote/commit/6839f90c8ff0838ce65427715ba65af57a76cce3" target="_blank"> {Node.text("6839f90")} </a>,
+            Node.text(")")
+          ]
+        ],
+      },
+      {
+        title: "Features",
+        items: [
+          [
+            Node.text("add clearer api aliases ("),
+            <a href="https://github.com/brnrdog/xote/commit/1bc01da9f3a871b38fae7f243fa2b99a2ce37690" target="_blank"> {Node.text("1bc01da")} </a>,
+            Node.text(")")
+          ],
+          [
+            Node.text("promote View and Prop as primary modules ("),
+            <a href="https://github.com/brnrdog/xote/commit/5a1566fd13d1bd4af09dbce0b8e40bdf2a4cc948" target="_blank"> {Node.text("5a1566f")} </a>,
+            Node.text(")")
+          ]
+        ],
+      }
+    ],
+  },
   {
     version: "6.1.2",
     url: "https://github.com/brnrdog/xote/compare/v6.1.1...v6.1.2",
