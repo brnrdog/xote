@@ -23,8 +23,10 @@ let jsxKeyed = (
   ~key: option<string>=?,
   _: unit,
 ): element => {
-  let _ = key /* TODO: Implement key support for list reconciliation */
-  jsx(component, props)
+  switch key {
+  | Some(key) => View.Keyed({key, identity: Obj.magic(props), child: jsx(component, props)})
+  | None => jsx(component, props)
+  }
 }
 
 let jsxsKeyed = jsxKeyed
@@ -322,8 +324,10 @@ module Elements = {
   let jsxs = jsx
 
   let jsxKeyed = (tag: string, props, ~key: option<string>=?, _: unit): element => {
-    let _ = key
-    jsx(tag, props)
+    switch key {
+    | Some(key) => View.Keyed({key, identity: Obj.magic(props), child: jsx(tag, props)})
+    | None => jsx(tag, props)
+    }
   }
 
   let jsxsKeyed = jsxKeyed

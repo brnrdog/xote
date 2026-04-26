@@ -73,6 +73,8 @@ let rec renderNodeToString = (node: View.node): string => {
       Markers.signalFragmentStart ++ content ++ Markers.signalFragmentEnd
     }
 
+  | View.Keyed({child, key: _, identity: _}) => renderNodeToString(child)
+
   | View.Element({tag, attrs, children, events: _}) => {
       let attrsStr = Attributes.renderAttrs(attrs)
 

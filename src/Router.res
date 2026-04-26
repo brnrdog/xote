@@ -456,8 +456,10 @@ module Link = {
   let jsx = make
   let jsxs = make
   let jsxKeyed = (props, ~key: option<string>=?, _: unit) => {
-    let _ = key
-    make(props)
+    switch key {
+    | Some(key) => View.Keyed({key, identity: Obj.magic(props), child: make(props)})
+    | None => make(props)
+    }
   }
   let jsxsKeyed = jsxKeyed
 }

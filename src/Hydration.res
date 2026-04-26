@@ -194,35 +194,61 @@ let rec hydrateNode = (node: View.node, domNode: Dom.element): unit => {
        */
       let owner = Reactivity.createOwner()
       Reactivity.setOwner(domNode, owner)
+      let keyedItems: Dict.t<View.Render.keyedItem<Obj.t>> = Dict.make()
+      let initialized = ref(false)
 
       Reactivity.runWithOwner(owner, () => {
         let disposer = Effect.runWithDisposer(() => {
           let children = Signal.get(signal)
 
-          /* Clear existing children */
-          let childNodes: array<Dom.element> = %raw(`Array.from(domNode.childNodes || [])`)
-          childNodes->Array.forEach(
-            child => {
-              Reactivity.disposeOwner(
-                Reactivity.getOwner(child)->Option.getOr(Reactivity.createOwner()),
-              )
-            },
-          )
-          let _ = (%raw(`domNode.innerHTML = ''`): unit)
+          switch View.Render.getKeyedChildren(children) {
+          | Some(keyedChildren) if initialized.contents =>
+            View.Render.reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=domNode)
+          | keyedChildrenOpt => {
+              View.Render.clearKeyedItems(keyedItems)
 
-          /* Render and append new children */
-          children->Array.forEach(
-            child => {
-              let childEl = View.Render.render(child)
-              domNode->DOM.appendChild(childEl)
-            },
-          )
+              /* Clear existing children */
+              let childNodes: array<Dom.element> = %raw(`Array.from(domNode.childNodes || [])`)
+              childNodes->Array.forEach(
+                child => {
+                  Reactivity.disposeOwner(
+                    Reactivity.getOwner(child)->Option.getOr(Reactivity.createOwner()),
+                  )
+                },
+              )
+              DOM.setInnerHTML(domNode, "")
+
+              switch keyedChildrenOpt {
+              | Some(keyedChildren) =>
+                keyedChildren->Array.forEach(keyedChild => {
+                  let childEl = View.Render.render(keyedChild.child)
+                  keyedItems->Dict.set(keyedChild.key, {
+                    key: keyedChild.key,
+                    item: keyedChild.identity,
+                    element: childEl,
+                  })
+                  domNode->DOM.appendChild(childEl)
+                })
+              | None =>
+                children->Array.forEach(
+                  child => {
+                    let childEl = View.Render.render(child)
+                    domNode->DOM.appendChild(childEl)
+                  },
+                )
+              }
+
+              initialized := true
+            }
+          }
 
           None
         })
         Reactivity.addDisposer(owner, disposer)
       })
     }
+
+  | View.Keyed({child, key: _, identity: _}) => hydrateNode(child, domNode)
 
   | View.Element({attrs, events, children}) => {
       let owner = Reactivity.createOwner()
@@ -356,7 +382,7 @@ let rec hydrateNode = (node: View.node, domNode: Dom.element): unit => {
             switch keyedItems->Dict.get(key) {
             | Some(keyedItem) => {
                 View.Render.disposeElement(keyedItem.element)
-                let _ = (%raw(`keyedItem.element.remove()`): unit)
+              keyedItem.element->DOM.remove
                 keyedItems->Dict.delete(key)->ignore
               }
             | None => ()
@@ -504,28 +530,55 @@ and hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => {
       /* Set up reactivity */
       let owner = Reactivity.createOwner()
       Reactivity.setOwner(container, owner)
+      let keyedItems: Dict.t<View.Render.keyedItem<Obj.t>> = Dict.make()
+      let initialized = ref(false)
 
       Reactivity.runWithOwner(owner, () => {
         let disposer = Effect.runWithDisposer(() => {
           let children = Signal.get(signal)
 
-          /* Clear and re-render */
-          let childNodes: array<Dom.element> = %raw(`Array.from(container.childNodes || [])`)
-          childNodes->Array.forEach(View.Render.disposeElement)
-          let _ = (%raw(`container.innerHTML = ''`): unit)
+          switch View.Render.getKeyedChildren(children) {
+          | Some(keyedChildren) if initialized.contents =>
+            View.Render.reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
+          | keyedChildrenOpt => {
+              View.Render.clearKeyedItems(keyedItems)
 
-          children->Array.forEach(
-            child => {
-              let childEl = View.Render.render(child)
-              container->DOM.appendChild(childEl)
-            },
-          )
+              /* Clear and re-render */
+              let childNodes: array<Dom.element> = %raw(`Array.from(container.childNodes || [])`)
+              childNodes->Array.forEach(View.Render.disposeElement)
+              DOM.setInnerHTML(container, "")
+
+              switch keyedChildrenOpt {
+              | Some(keyedChildren) =>
+                keyedChildren->Array.forEach(keyedChild => {
+                  let childEl = View.Render.render(keyedChild.child)
+                  keyedItems->Dict.set(keyedChild.key, {
+                    key: keyedChild.key,
+                    item: keyedChild.identity,
+                    element: childEl,
+                  })
+                  container->DOM.appendChild(childEl)
+                })
+              | None =>
+                children->Array.forEach(
+                  child => {
+                    let childEl = View.Render.render(child)
+                    container->DOM.appendChild(childEl)
+                  },
+                )
+              }
+
+              initialized := true
+            }
+          }
 
           None
         })
         Reactivity.addDisposer(owner, disposer)
       })
     }
+
+  | View.Keyed({child, key: _, identity: _}) => hydrateNodeWithWalker(child, walker)
 
   | View.Element({attrs, events, children}) =>
     switch DOMWalker.next(walker) {
