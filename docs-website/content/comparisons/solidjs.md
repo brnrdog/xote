@@ -86,7 +86,7 @@ let counter = () => {
 
   <div>
     <h1>
-      {View.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))}
+      {View.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)}
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
       {View.text("Increment")}

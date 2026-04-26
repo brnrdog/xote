@@ -16,6 +16,7 @@ const OUTPUT_DIR = path.join(__dirname, '../src/docs');
 // Mapping from markdown file paths to output component names
 const FILE_MAPPING = {
   'getting-started/introduction.md': 'IntroDoc.res',
+  'getting-started/rescript-for-newcomers.md': 'ReScriptNewcomersDoc.res',
   'core-concepts/signals.md': 'SignalsDoc.res',
   'core-concepts/computed.md': 'ComputedDoc.res',
   'core-concepts/effects.md': 'EffectsDoc.res',

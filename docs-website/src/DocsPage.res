@@ -12,7 +12,13 @@ type docCategory = {
 let docsNav: array<docCategory> = [
   {
     label: "Getting Started",
-    items: [{title: "Introduction", path: "/docs"}],
+    items: [
+      {title: "Introduction", path: "/docs"},
+      {
+        title: "ReScript for Newcomers",
+        path: "/docs/getting-started/rescript",
+      },
+    ],
   },
   {
     label: "Core Modules",
