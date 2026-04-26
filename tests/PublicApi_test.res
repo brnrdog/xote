@@ -13,18 +13,17 @@ let suite = Zekr.suite(
       })
 
       let prop = Prop.signal(name)
-      let node: Node.node = Html.div(
-        ~attrs=[Node.Attr.string("class", "app")],
-        ~children=[Node.text(ReactiveProp.get(prop))],
+      let node: View.node = Html.div(
+        ~attrs=[View.Attr.string("class", "app")],
+        ~children=[View.text(Prop.get(prop))],
         (),
       )
       let emptyView: View.node = View.empty()
 
       let _jsxElement: XoteJSX.element = XoteJSX.null()
       let _routeResult = Route.matchPathname("/users/:id", "/users/1")
-      let _routeConfig: Router.routeConfig = {pattern: "/", render: _params => Node.null()}
-      let _locationSignal: unit => Signal.t<Router.location> = Router.locationSignal
-      let _current: unit => Router.location = Router.current
+      let _routeConfig: Router.routeConfig = {pattern: "/", render: _params => View.null()}
+      let _location: unit => Signal.t<Router.location> = Router.location
       let _renderOptions: SSR.renderOptions = {}
       let _hydrateOptions: Hydration.hydrateOptions = {}
       let _codec: SSRState.Codec.t<string> = SSRState.Codec.string

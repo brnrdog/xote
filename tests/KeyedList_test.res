@@ -3,7 +3,7 @@ open! Zekr
 type item = {id: string, label: string}
 
 let mountTo = (node, container) => {
-  Node.mount(node, container)
+  View.mount(node, container)
   container
 }
 
@@ -27,10 +27,10 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                Node.keyedList(
+                View.keyedList(
                   items,
                   item => item.id,
-                  item => Html.li(~children=[Node.text(item.label)], ()),
+                  item => Html.li(~children=[View.text(item.label)], ()),
                 ),
               ],
               (),
@@ -50,10 +50,10 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                Node.keyedList(
+                View.keyedList(
                   items,
                   item => item.id,
-                  item => Html.li(~children=[Node.text(item.label)], ()),
+                  item => Html.li(~children=[View.text(item.label)], ()),
                 ),
               ],
               (),
@@ -77,10 +77,10 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                Node.keyedList(
+                View.keyedList(
                   items,
                   item => item.id,
-                  item => Html.li(~children=[Node.text(item.label)], ()),
+                  item => Html.li(~children=[View.text(item.label)], ()),
                 ),
               ],
               (),
@@ -108,10 +108,10 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                Node.keyedList(
+                View.keyedList(
                   items,
                   item => item.id,
-                  item => Html.li(~children=[Node.text(item.label)], ()),
+                  item => Html.li(~children=[View.text(item.label)], ()),
                 ),
               ],
               (),
@@ -139,10 +139,10 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                Node.keyedList(
+                View.keyedList(
                   items,
                   item => item.id,
-                  item => Html.li(~children=[Node.text(item.label)], ()),
+                  item => Html.li(~children=[View.text(item.label)], ()),
                 ),
               ],
               (),
@@ -166,10 +166,10 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                Node.keyedList(
+                View.keyedList(
                   items,
                   item => item.id,
-                  item => Html.li(~children=[Node.text(item.label)], ()),
+                  item => Html.li(~children=[View.text(item.label)], ()),
                 ),
               ],
               (),
@@ -190,10 +190,10 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                Node.keyedList(
+                View.keyedList(
                   items,
                   item => item.id,
-                  item => Html.li(~children=[Node.text(item.label)], ()),
+                  item => Html.li(~children=[View.text(item.label)], ()),
                 ),
               ],
               (),

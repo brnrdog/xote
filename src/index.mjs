@@ -4,12 +4,12 @@
 // `open Xote`) so bundlers can tree-shake at module granularity. This file
 // only exists to give Vite a single entry for the legacy library bundle.
 
-export * as Node from "./Node.res.mjs";
 export * as View from "./View.res.mjs";
+export * as Node from "./Node.res.mjs";
 export * as Html from "./Html.res.mjs";
 export * as XoteJSX from "./XoteJSX.res.mjs";
-export * as ReactiveProp from "./ReactiveProp.res.mjs";
 export * as Prop from "./Prop.res.mjs";
+export * as ReactiveProp from "./ReactiveProp.res.mjs";
 export * as Route from "./Route.res.mjs";
 export * as Router from "./Router.res.mjs";
 export * as SSR from "./SSR.res.mjs";
