@@ -2185,7 +2185,7 @@ td strong {
 
 .changelog-doc {
   display: grid;
-  gap: var(--s-8);
+  gap: var(--s-5);
 }
 
 .changelog-meta {
@@ -2214,18 +2214,8 @@ td strong {
   text-decoration-thickness: 1px;
 }
 
-.changelog-release {
-  padding-top: var(--s-6);
-  border-top: 1px solid var(--border);
-}
-
-.changelog-release:first-of-type {
-  padding-top: 0;
-  border-top: 0;
-}
-
 .changelog-release-head {
-  margin-bottom: var(--s-5);
+  margin-bottom: var(--s-3);
 }
 
 .changelog-release-title {
@@ -2251,11 +2241,11 @@ td strong {
 }
 
 .changelog-section + .changelog-section {
-  margin-top: var(--s-5);
+  margin-top: var(--s-3);
 }
 
 .changelog-section-title {
-  margin-bottom: var(--s-3);
+  margin-bottom: var(--s-2);
 }
 
 .changelog-list {

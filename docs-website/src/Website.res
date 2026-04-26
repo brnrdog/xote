@@ -424,7 +424,6 @@ module App = {
             <DocsPage
               currentPath="/docs/changelog"
               pageTitle="Changelog"
-              pageLead="Release history generated from the repository changelog."
               content={ChangelogDoc.content()}
               tocItems=changelogTocItems
             />,
