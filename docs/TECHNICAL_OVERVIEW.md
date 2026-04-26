@@ -194,6 +194,6 @@ The package exposes a bundled root entry through `dist/` and currently also expo
 ### Known Limitations And Future Work
 
 - The renderer still has some implementation details nested inside public modules; interface files should narrow that surface over time.
-- `XoteJSX.jsxKeyed` accepts keys but does not yet wire them into component-level keyed reconciliation.
+- keyed JSX children now preserve identity inside reactive fragments when all siblings are keyed, but `View.eachWithKey` remains the clearest explicit list API.
 - JSX prop conversion currently uses dynamic checks to support several prop styles.
 - Renderer extraction can continue by moving keyed reconciliation behind an internal render module while preserving `View.Render` as a compatibility alias.

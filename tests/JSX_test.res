@@ -8,6 +8,7 @@ let mountTo = (node, container) => {
 @get external valueOf: 'a => string = "value"
 @get external selectedIndexOf: 'a => int = "selectedIndex"
 @send external querySelector: ('a, string) => Nullable.t<'b> = "querySelector"
+@val external objectIs: ('a, 'a) => bool = "Object.is"
 
 let suite = Zekr.suite(
   "JSX",
@@ -174,6 +175,64 @@ let suite = Zekr.suite(
       let r3 = Dom.Assert.toHaveTextContent(container, "2Inc")
 
       combineResults([r1, r2, r3])
+    }),
+    test("jsx keyed components reconcile by key inside signal fragments", () => {
+      module Row = {
+        type item = {id: string, label: string}
+        type props = {item: item}
+
+        let make = (props: props) => {
+          <li> {View.text(props.item.label)} </li>
+        }
+      }
+
+      let {container} = Dom.render("")
+      let apple: Row.item = {id: "1", label: "Apple"}
+      let banana: Row.item = {id: "2", label: "Banana"}
+      let items = Signal.make([apple, banana])
+
+      let _ = mountTo(
+        <ul>
+          {View.signalFragment(
+            Computed.make(() =>
+              Signal.get(items)->Array.map(item => <Row key={item.id} item={item} />)
+            ),
+          )}
+        </ul>,
+        container,
+      )
+
+      let initialNodes = Dom.Query.getAllByRole(container, "listitem")
+      let appleNode = initialNodes->Array.get(0)->Option.getUnsafe
+      let bananaNode = initialNodes->Array.get(1)->Option.getUnsafe
+
+      Signal.set(items, [banana, apple])
+
+      let reorderedNodes = Dom.Query.getAllByRole(container, "listitem")
+      let reorderedBanana = reorderedNodes->Array.get(0)->Option.getUnsafe
+      let reorderedApple = reorderedNodes->Array.get(1)->Option.getUnsafe
+
+      let updatedBanana: Row.item = {id: "2", label: "Blueberry"}
+      Signal.set(items, [updatedBanana, apple])
+
+      let updatedNodes = Dom.Query.getAllByRole(container, "listitem")
+      let updatedFirst = updatedNodes->Array.get(0)->Option.getUnsafe
+      let updatedSecond = updatedNodes->Array.get(1)->Option.getUnsafe
+
+      combineResults([
+        assertEqual(
+          reorderedNodes->Array.map(Zekr__DomBindings.textContent),
+          ["Banana", "Apple"],
+        ),
+        assertTrue(objectIs(reorderedBanana, bananaNode)),
+        assertTrue(objectIs(reorderedApple, appleNode)),
+        assertEqual(
+          updatedNodes->Array.map(Zekr__DomBindings.textContent),
+          ["Blueberry", "Apple"],
+        ),
+        assertFalse(objectIs(updatedFirst, bananaNode)),
+        assertTrue(objectIs(updatedSecond, appleNode)),
+      ])
     }),
   ],
   ~afterEach=() => Dom.cleanup(),

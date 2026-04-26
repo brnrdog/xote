@@ -23,6 +23,7 @@ type rec node =
   | SignalText(Signal.t<string>)
   | Fragment(array<node>)
   | SignalFragment(Signal.t<array<node>>)
+  | Keyed({key: string, identity: Obj.t, child: node})
   | LazyComponent(unit => node)
   | KeyedList({signal: Signal.t<array<Obj.t>>, keyFn: Obj.t => string, renderItem: Obj.t => node})
 
@@ -69,6 +70,12 @@ module Render = {
     element: Dom.element,
   }
 
+  type keyedChild = {
+    key: string,
+    identity: Obj.t,
+    child: node,
+  }
+
   /* Dispose an element and its reactive state */
   let rec disposeElement = (el: Dom.element): unit => {
     /* Dispose the owner if it exists */
@@ -82,8 +89,155 @@ module Render = {
     childNodes->Array.forEach(disposeElement)
   }
 
+  let shallowEqualIdentity = (a: Obj.t, b: Obj.t): bool =>
+    if a === b {
+      true
+    } else if typeof(a) != #object || typeof(b) != #object {
+      false
+    } else {
+      let dictA: Dict.t<Obj.t> = Obj.magic(a)
+      let dictB: Dict.t<Obj.t> = Obj.magic(b)
+      let keysA = dictA->Dict.keysToArray
+      let keysB = dictB->Dict.keysToArray
+
+      if keysA->Array.length !== keysB->Array.length {
+        false
+      } else {
+        keysA->Array.every(key =>
+          switch (dictA->Dict.get(key), dictB->Dict.get(key)) {
+          | (Some(valueA), Some(valueB)) => valueA === valueB
+          | _ => false
+          }
+        )
+      }
+    }
+
+  let clearKeyedItems = (keyedItems: Dict.t<keyedItem<Obj.t>>): unit => {
+    keyedItems->Dict.keysToArray->Array.forEach(key => keyedItems->Dict.delete(key)->ignore)
+  }
+
+  let getKeyedChildren = (children: array<node>): option<array<keyedChild>> => {
+    let keyedChildren = []
+    let allKeyed = ref(true)
+
+    children->Array.forEach(child => {
+      switch child {
+      | Keyed({key, identity, child}) =>
+        keyedChildren->Array.push({key, identity, child})->ignore
+      | _ => allKeyed := false
+      }
+    })
+
+    if allKeyed.contents {
+      Some(keyedChildren)
+    } else {
+      None
+    }
+  }
+
+  let rec reconcileKeyedChildren = (
+    ~keyedChildren: array<keyedChild>,
+    ~keyedItems: Dict.t<keyedItem<Obj.t>>,
+    ~parent: Dom.element,
+  ): unit => {
+    let newKeyMap: Dict.t<keyedChild> = Dict.make()
+    keyedChildren->Array.forEach(child => newKeyMap->Dict.set(child.key, child))
+
+    let keysToRemove = []
+    keyedItems
+    ->Dict.keysToArray
+    ->Array.forEach(key => {
+      switch newKeyMap->Dict.get(key) {
+      | None => keysToRemove->Array.push(key)->ignore
+      | Some(_) => ()
+      }
+    })
+
+    keysToRemove->Array.forEach(key => {
+      switch keyedItems->Dict.get(key) {
+      | Some(keyedItem) => {
+          disposeElement(keyedItem.element)
+          keyedItem.element->DOM.remove
+          keyedItems->Dict.delete(key)->ignore
+        }
+      | None => ()
+      }
+    })
+
+    let newOrder: array<keyedItem<Obj.t>> = []
+    let elementsToReplace: Dict.t<Dom.element> = Dict.make()
+
+    keyedChildren->Array.forEach(keyedChild => {
+      switch keyedItems->Dict.get(keyedChild.key) {
+      | Some(existing) =>
+        if shallowEqualIdentity(existing.item, keyedChild.identity) {
+          newOrder->Array.push(existing)->ignore
+        } else {
+          let element = render(keyedChild.child)
+          let keyedItem: keyedItem<Obj.t> = {
+            key: keyedChild.key,
+            item: keyedChild.identity,
+            element,
+          }
+          elementsToReplace->Dict.set(keyedChild.key, existing.element)
+          newOrder->Array.push(keyedItem)->ignore
+          keyedItems->Dict.set(keyedChild.key, keyedItem)
+        }
+      | None => {
+          let element = render(keyedChild.child)
+          let keyedItem: keyedItem<Obj.t> = {
+            key: keyedChild.key,
+            item: keyedChild.identity,
+            element,
+          }
+          newOrder->Array.push(keyedItem)->ignore
+          keyedItems->Dict.set(keyedChild.key, keyedItem)
+        }
+      }
+    })
+
+    let marker = ref(
+      switch DOM.getFirstChild(parent)->Nullable.toOption {
+      | Some(node) => Some(node)
+      | None => None
+      },
+    )
+
+    newOrder->Array.forEach(keyedItem => {
+      let currentElement = marker.contents
+
+      switch currentElement {
+      | Some(elem) if elem === keyedItem.element =>
+        marker := DOM.getNextSibling(elem)->Nullable.toOption
+      | Some(elem) => {
+          switch elementsToReplace->Dict.get(keyedItem.key) {
+          | Some(previousElement) if elem === previousElement => {
+              disposeElement(previousElement)
+              DOM.replaceChild(parent, keyedItem.element, previousElement)
+              marker := DOM.getNextSibling(keyedItem.element)->Nullable.toOption
+            }
+          | _ => {
+              DOM.insertBefore(parent, keyedItem.element, elem)
+              marker := DOM.getNextSibling(keyedItem.element)->Nullable.toOption
+            }
+          }
+        }
+      | None => {
+          switch elementsToReplace->Dict.get(keyedItem.key) {
+          | Some(previousElement) => {
+              disposeElement(previousElement)
+              previousElement->DOM.remove
+              parent->DOM.appendChild(keyedItem.element)
+            }
+          | None => parent->DOM.appendChild(keyedItem.element)
+          }
+        }
+      }
+    })
+  }
+
   /* Render a virtual node to a DOM element */
-  let rec render = (node: node): Dom.element => {
+  and render = (node: node): Dom.element => {
     switch node {
     | Text(content) => DOM.createTextNode(content)
 
@@ -117,25 +271,34 @@ module Render = {
         let container = DOM.createElement("div")
         DOM.setAttribute(container, "style", "display: contents")
         setOwner(container, owner)
+        let keyedItems: Dict.t<keyedItem<Obj.t>> = Dict.make()
 
         runWithOwner(owner, () => {
           let disposer = Effect.runWithDisposer(() => {
             let children = Signal.get(signal)
 
-            /* Dispose existing children */
-            let childNodes: array<Dom.element> = %raw(`Array.from(container.childNodes || [])`)
-            childNodes->Array.forEach(disposeElement)
+            switch getKeyedChildren(children) {
+            | Some(keyedChildren) =>
+              reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
+            | None => {
+                clearKeyedItems(keyedItems)
 
-            /* Clear existing children */
-            let _ = (%raw(`container.innerHTML = ''`): unit)
+                /* Dispose existing children */
+                let childNodes: array<Dom.element> = %raw(`Array.from(container.childNodes || [])`)
+                childNodes->Array.forEach(disposeElement)
 
-            /* Render and append new children */
-            children->Array.forEach(
-              child => {
-                let childEl = render(child)
-                container->DOM.appendChild(childEl)
-              },
-            )
+                /* Clear existing children */
+                DOM.setInnerHTML(container, "")
+
+                /* Render and append new children */
+                children->Array.forEach(
+                  child => {
+                    let childEl = render(child)
+                    container->DOM.appendChild(childEl)
+                  },
+                )
+              }
+            }
 
             None
           })
@@ -209,6 +372,8 @@ module Render = {
         el
       }
 
+    | Keyed({child, key: _, identity: _}) => render(child)
+
     | LazyComponent(fn) => {
         let owner = createOwner()
         let childNode = runWithOwner(owner, fn)
@@ -255,7 +420,7 @@ module Render = {
                 switch keyedItems->Dict.get(key) {
                 | Some(keyedItem) => {
                     disposeElement(keyedItem.element)
-                    let _ = (%raw(`keyedItem.element.remove()`): unit)
+                    keyedItem.element->DOM.remove
                     keyedItems->Dict.delete(key)->ignore
                   }
                 | None => ()
