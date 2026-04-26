@@ -14,7 +14,7 @@
   dependencies:
     "@opentelemetry/api" "^1.3.0"
 
-"@opentelemetry/api@^1.3.0", "@opentelemetry/api@^1.9.0", "@opentelemetry/api@>=1.0.0 <1.10.0", "@opentelemetry/api@>=1.3.0 <1.10.0", "@opentelemetry/api@>=1.4.0 <1.10.0", "@opentelemetry/api@>=1.9.0 <1.10.0":
+"@opentelemetry/api@^1.3.0", "@opentelemetry/api@^1.9.0":
   version "1.9.1"
   resolved "https://registry.npmjs.org/@opentelemetry/api/-/api-1.9.1.tgz"
   integrity sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==
@@ -202,7 +202,7 @@
   resolved "https://registry.npmjs.org/@types/estree/-/estree-1.0.8.tgz"
   integrity sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==
 
-"@types/node@^20.19.0 || >=22.12.0", "@types/node@>=13.7.0":
+"@types/node@>=13.7.0":
   version "25.6.0"
   resolved "https://registry.npmjs.org/@types/node/-/node-25.6.0.tgz"
   integrity sha512-+qIYRKdNYJwY3vRCZMdJbPLJAtGjQBudzZzdzwQYkEPQd+PJGixUL5QfvCLDaULoLv+RhT3LDkwEfKaAkgSmNQ==
@@ -307,7 +307,7 @@ picocolors@^1.1.1:
   resolved "https://registry.npmjs.org/picocolors/-/picocolors-1.1.1.tgz"
   integrity sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==
 
-"picomatch@^3 || ^4", picomatch@^4.0.3:
+picomatch@^4.0.3:
   version "4.0.4"
   resolved "https://registry.npmjs.org/picomatch/-/picomatch-4.0.4.tgz"
   integrity sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==
@@ -373,7 +373,7 @@ rescript-signals@^2.1.0:
   resolved "https://registry.npmjs.org/rescript-signals/-/rescript-signals-2.1.0.tgz"
   integrity sha512-2zdr6lINd4TmXmjhmb2KdmlAb9/Yf5zDTCoYA9XNs6NrRqAIwhIE7T9Hd6usDqqH0bo2tJjSaaYzFDFVSNYcxQ==
 
-rescript@^12.2.0, rescript@>=11.1.0:
+rescript@^12.2.0:
   version "12.2.0"
   resolved "https://registry.npmjs.org/rescript/-/rescript-12.2.0.tgz"
   integrity sha512-1Jf2cmNhyx5Mj2vwZ4XXPcXvNSjGj9D1jPBUcoqIOqRpLPo1ch2Ta/7eWh23xAHWHK5ow7BCDyYFjvZSjyjLzg==
@@ -457,9 +457,8 @@ web-vitals@^5.1.0:
   resolved "https://registry.npmjs.org/web-vitals/-/web-vitals-5.2.0.tgz"
   integrity sha512-i2z98bEmaCqSDiHEDu+gHl/dmR4Q+TxFmG3/13KkMO+o8UxQzCqWaDRCiLgEa41nlO4VpXSI0ASa1xWmO9sBlA==
 
-xote@^6.0.0:
-  version "6.0.0"
-  resolved "https://registry.npmjs.org/xote/-/xote-6.0.0.tgz"
-  integrity sha512-cksuEAiAlb9po/kDD609wuMNrr/IQLRGDCWTdW501Z0XH2IevbJJTHq9OHzWnXXPS4ogrgV3OQO9EFg9ujKggg==
+"xote@file:..":
+  version "0.0.0"
+  resolved "file:.."
   dependencies:
-    rescript-signals "^2.1.0"
+    rescript-signals "^3.1.0"

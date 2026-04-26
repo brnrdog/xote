@@ -23,7 +23,7 @@
     "highlight.js": "^11.11.1",
     "posthog-js": "^1.372.1",
     "rescript-signals": "^2.1.0",
-    "xote": "^6.0.0"
+    "xote": "file:.."
   },
   "devDependencies": {
     "rescript": "^12.2.0",
