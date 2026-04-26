@@ -1,3 +1,16 @@
+# [6.2.0](https://github.com/brnrdog/xote/compare/v6.1.2...v6.2.0) (2026-04-26)
+
+
+### Bug Fixes
+
+* connect keyed JSX to reconciliation ([6839f90](https://github.com/brnrdog/xote/commit/6839f90c8ff0838ce65427715ba65af57a76cce3))
+
+
+### Features
+
+* add clearer api aliases ([1bc01da](https://github.com/brnrdog/xote/commit/1bc01da9f3a871b38fae7f243fa2b99a2ce37690))
+* promote View and Prop as primary modules ([5a1566f](https://github.com/brnrdog/xote/commit/5a1566fd13d1bd4af09dbce0b8e40bdf2a4cc948))
+
 ## [6.1.2](https://github.com/brnrdog/xote/compare/v6.1.1...v6.1.2) (2026-04-25)
 
 
