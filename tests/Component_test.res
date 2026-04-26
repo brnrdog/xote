@@ -1,7 +1,7 @@
 open! Zekr
 
 let mountTo = (node, container) => {
-  Node.mount(node, container)
+  View.mount(node, container)
   container
 }
 
@@ -10,13 +10,13 @@ let suite = Zekr.suite(
   [
     test("renders static text", () => {
       let {container} = Dom.render("")
-      let _ = mountTo(Node.text("hello world"), container)
+      let _ = mountTo(View.text("hello world"), container)
       Dom.Assert.toHaveTextContent(container, "hello world")
     }),
     test("renders reactive text that updates when signal changes", () => {
       let {container} = Dom.render("")
       let name = Signal.make("Alice")
-      let _ = mountTo(Node.signalText(() => "Hello, " ++ Signal.get(name)), container)
+      let _ = mountTo(View.signalText(() => "Hello, " ++ Signal.get(name)), container)
       let r1 = Dom.Assert.toHaveTextContent(container, "Hello, Alice")
       Signal.set(name, "Bob")
       let r2 = Dom.Assert.toHaveTextContent(container, "Hello, Bob")
@@ -25,7 +25,7 @@ let suite = Zekr.suite(
     test("renders signalInt", () => {
       let {container} = Dom.render("")
       let count = Signal.make(42)
-      let _ = mountTo(Node.signalInt(() => Signal.get(count)), container)
+      let _ = mountTo(View.signalInt(() => Signal.get(count)), container)
       let r1 = Dom.Assert.toHaveTextContent(container, "42")
       Signal.set(count, 99)
       let r2 = Dom.Assert.toHaveTextContent(container, "99")
@@ -34,18 +34,18 @@ let suite = Zekr.suite(
     test("renders signalFloat", () => {
       let {container} = Dom.render("")
       let price = Signal.make(3.14)
-      let _ = mountTo(Node.signalFloat(() => Signal.get(price)), container)
+      let _ = mountTo(View.signalFloat(() => Signal.get(price)), container)
       Dom.Assert.toHaveTextContent(container, "3.14")
     }),
     test("renders static int and float helpers", () => {
       let {container} = Dom.render("")
-      let _ = mountTo(Node.fragment([Node.int(42), Node.text(" "), Node.float(2.5)]), container)
+      let _ = mountTo(View.fragment([View.int(42), View.text(" "), View.float(2.5)]), container)
       Dom.Assert.toHaveTextContent(container, "42 2.5")
     }),
     test("renders element with static class attribute", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
-        Html.div(~attrs=[Node.attr("class", "box primary")], ~children=[Node.text("content")], ()),
+        Html.div(~attrs=[View.attr("class", "box primary")], ~children=[View.text("content")], ()),
         container,
       )
       let el = Dom.Query.getByText(container, "content")
@@ -55,7 +55,7 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let cls = Signal.make("inactive")
       let _ = mountTo(
-        Html.div(~attrs=[Node.signalAttr("class", cls)], ~children=[Node.text("item")], ()),
+        Html.div(~attrs=[View.signalAttr("class", cls)], ~children=[View.text("item")], ()),
         container,
       )
       let el = Dom.Query.getByText(container, "item")
@@ -69,8 +69,8 @@ let suite = Zekr.suite(
       let isActive = Signal.make(false)
       let _ = mountTo(
         Html.div(
-          ~attrs=[Node.computedAttr("class", () => Signal.get(isActive) ? "active" : "inactive")],
-          ~children=[Node.text("toggle")],
+          ~attrs=[View.computedAttr("class", () => Signal.get(isActive) ? "active" : "inactive")],
+          ~children=[View.text("toggle")],
           (),
         ),
         container,
@@ -89,10 +89,10 @@ let suite = Zekr.suite(
           ~children=[
             Html.button(
               ~events=[("click", _evt => Signal.update(count, n => n + 1))],
-              ~children=[Node.text("Click me")],
+              ~children=[View.text("Click me")],
               (),
             ),
-            Node.signalInt(() => Signal.get(count)),
+            View.signalInt(() => Signal.get(count)),
           ],
           (),
         ),
@@ -109,24 +109,24 @@ let suite = Zekr.suite(
     test("renders fragment with multiple children", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
-        Node.fragment([Node.text("first"), Node.text(" "), Node.text("second")]),
+        View.fragment([View.text("first"), View.text(" "), View.text("second")]),
         container,
       )
       Dom.Assert.toHaveTextContent(container, "first second")
     }),
     test("signal fragment replaces children when signal changes", () => {
       let {container} = Dom.render("")
-      let items = Signal.make([Node.text("original")])
-      let frag = Node.signalFragment(items)
+      let items = Signal.make([View.text("original")])
+      let frag = View.signalFragment(items)
       let _ = mountTo(frag, container)
       let r1 = Dom.Assert.toHaveTextContent(container, "original")
-      Signal.set(items, [Node.text("replaced")])
+      Signal.set(items, [View.text("replaced")])
       let r2 = Dom.Assert.toHaveTextContent(container, "replaced")
       combineResults([r1, r2])
     }),
     test("null node renders empty content", () => {
       let {container} = Dom.render("")
-      let _ = mountTo(Html.div(~children=[Node.null(), Node.text("visible")], ()), container)
+      let _ = mountTo(Html.div(~children=[View.null(), View.text("visible")], ()), container)
       Dom.Assert.toHaveTextContent(container, "visible")
     }),
     test("renders nested element hierarchy", () => {
@@ -136,8 +136,8 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                Html.li(~children=[Node.text("Item 1")], ()),
-                Html.li(~children=[Node.text("Item 2")], ()),
+                Html.li(~children=[View.text("Item 1")], ()),
+                Html.li(~children=[View.text("Item 2")], ()),
               ],
               (),
             ),
@@ -157,7 +157,7 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let items = Signal.make(["Apple", "Banana"])
       let _ = mountTo(
-        Html.div(~children=[Node.list(items, item => Html.p(~children=[Node.text(item)], ()))], ()),
+        Html.div(~children=[View.list(items, item => Html.p(~children=[View.text(item)], ()))], ()),
         container,
       )
       let r1 = Dom.Assert.toHaveTextContent(container, "AppleBanana")
@@ -172,7 +172,7 @@ let suite = Zekr.suite(
         LazyComponent(
           () => {
             evaluated := true
-            Node.text("lazy content")
+            View.text("lazy content")
           },
         ),
         container,

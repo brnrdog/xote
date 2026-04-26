@@ -1,7 +1,7 @@
-module ReactiveProp = ReactiveProp
+module Prop = Prop
 
 /* ReScript JSX transform type aliases */
-type element = Node.node
+type element = View.node
 
 type component<'props> = 'props => element
 
@@ -11,7 +11,7 @@ type componentLike<'props, 'return> = 'props => 'return
  * This ensures component functions (which may create effects/computeds) are not
  * evaluated during a Computed context, which would incorrectly track their
  * dependencies as belonging to the outer computed. */
-let jsx = (component: component<'props>, props: 'props): element => Node.LazyComponent(
+let jsx = (component: component<'props>, props: 'props): element => View.LazyComponent(
   () => component(props),
 )
 
@@ -35,19 +35,19 @@ type fragmentProps = {children?: element}
 let jsxFragment = (props: fragmentProps): element => {
   switch props.children {
   | Some(child) => child
-  | None => Node.fragment([])
+  | None => View.fragment([])
   }
 }
 
 /* Element converters for JSX expressions */
-let array = (children: array<element>): element => Node.fragment(children)
+let array = (children: array<element>): element => View.fragment(children)
 
-let null = (): element => Node.text("")
+let null = (): element => View.text("")
 
 /* Elements module for lowercase HTML tags */
 module Elements = {
-  /* Props type for HTML elements - accepts both raw values and ReactiveProp.t for flexibility
-   * This allows ergonomic JSX like class="foo" while also supporting class={ReactiveProp.reactive(signal)}
+  /* Props type for HTML elements - accepts both raw values and Prop.t for flexibility
+   * This allows ergonomic JSX like class="foo" while also supporting class={Prop.reactive(signal)}
    */
   type props<
     'id,
@@ -89,7 +89,7 @@ module Elements = {
     'action,
     'method,
   > = {
-    /* Standard attributes - accept raw strings or ReactiveProp.t<string> */
+    /* Standard attributes - accept raw strings or Prop.t<string> */
     id?: 'id,
     class?: 'class,
     style?: 'style,
@@ -179,13 +179,13 @@ module Elements = {
   /* Helper to add optional int attribute */
   let addIntAttr = (attrs, opt, key) => {
     switch opt {
-    | Some(v) => attrs->Array.push(Node.attr(key, Int.toString(v)))
+    | Some(v) => attrs->Array.push(View.attr(key, Int.toString(v)))
     | None => ()
     }
   }
 
   /* Convert props to attrs array */
-  let propsToAttrs = (props): array<(string, Node.attrValue)> => {
+  let propsToAttrs = (props): array<(string, View.attrValue)> => {
     let attrs = []
 
     /* Standard attributes */
@@ -308,7 +308,7 @@ module Elements = {
 
   /* Create an element from a tag string and props */
   let createElement = (tag: string, props): element => {
-    Node.Element({
+    View.Element({
       tag,
       attrs: propsToAttrs(props),
       events: propsToEvents(props),

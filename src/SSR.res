@@ -16,11 +16,11 @@ type renderOptions = {
 
 module Attributes = {
   /* Render a single attribute to string */
-  let renderAttr = ((key, value): (string, Node.attrValue)): string => {
+  let renderAttr = ((key, value): (string, View.attrValue)): string => {
     let attrValue = switch value {
-    | Node.Static(v) => v
-    | Node.SignalValue(signal) => Signal.peek(signal)
-    | Node.Compute(fn) => fn()
+    | View.Static(v) => v
+    | View.SignalValue(signal) => Signal.peek(signal)
+    | View.Compute(fn) => fn()
     }
 
     if RuntimeAttr.isBoolean(key) {
@@ -35,7 +35,7 @@ module Attributes = {
   }
 
   /* Render all attributes to string */
-  let renderAttrs = (attrs: array<(string, Node.attrValue)>): string => {
+  let renderAttrs = (attrs: array<(string, View.attrValue)>): string => {
     let rendered =
       attrs
       ->Array.map(renderAttr)
@@ -50,30 +50,30 @@ module Attributes = {
 }
 
 /* ============================================================================
- * Node Rendering
+ * View Rendering
  * ============================================================================ */
 
 /* Render a virtual node to an HTML string */
-let rec renderNodeToString = (node: Node.node): string => {
+let rec renderNodeToString = (node: View.node): string => {
   switch node {
-  | Node.Text(content) => Html.escape(content)
+  | View.Text(content) => Html.escape(content)
 
-  | Node.SignalText(signal) => {
+  | View.SignalText(signal) => {
       /* Read current signal value and wrap with hydration markers */
       let value = Signal.peek(signal)
       Markers.signalTextStart ++ Html.escape(value) ++ Markers.signalTextEnd
     }
 
-  | Node.Fragment(children) => children->Array.map(renderNodeToString)->Array.join("")
+  | View.Fragment(children) => children->Array.map(renderNodeToString)->Array.join("")
 
-  | Node.SignalFragment(signal) => {
+  | View.SignalFragment(signal) => {
       /* Read current signal value and wrap with hydration markers */
       let children = Signal.peek(signal)
       let content = children->Array.map(renderNodeToString)->Array.join("")
       Markers.signalFragmentStart ++ content ++ Markers.signalFragmentEnd
     }
 
-  | Node.Element({tag, attrs, children, events: _}) => {
+  | View.Element({tag, attrs, children, events: _}) => {
       let attrsStr = Attributes.renderAttrs(attrs)
 
       if Html.isVoidElement(tag) {
@@ -84,13 +84,13 @@ let rec renderNodeToString = (node: Node.node): string => {
       }
     }
 
-  | Node.LazyComponent(fn) => {
+  | View.LazyComponent(fn) => {
       /* Execute the lazy component and render its result */
       let childNode = fn()
       Markers.lazyComponentStart ++ renderNodeToString(childNode) ++ Markers.lazyComponentEnd
     }
 
-  | Node.KeyedList({signal, keyFn, renderItem}) => {
+  | View.KeyedList({signal, keyFn, renderItem}) => {
       let items = Signal.peek(signal)
       let content =
         items
@@ -111,7 +111,7 @@ let rec renderNodeToString = (node: Node.node): string => {
  * ============================================================================ */
 
 /* Render a component to an HTML string synchronously */
-let renderToString = (component: unit => Node.node, ~options: renderOptions={}): string => {
+let renderToString = (component: unit => View.node, ~options: renderOptions={}): string => {
   let _ = options /* Will be used for nonce/renderId in future phases */
   let node = component()
   renderNodeToString(node)
@@ -119,7 +119,7 @@ let renderToString = (component: unit => Node.node, ~options: renderOptions={}):
 
 /* Render a component and wrap with a hydration root marker */
 let renderToStringWithRoot = (
-  component: unit => Node.node,
+  component: unit => View.node,
   ~rootId: string="root",
   ~options: renderOptions={},
 ): string => {
@@ -149,7 +149,7 @@ let renderDocument = (
   ~styles: array<string>=[],
   ~stateScript: string="",
   ~nonce: option<string>=?,
-  component: unit => Node.node,
+  component: unit => View.node,
 ): string => {
   let content = renderToString(component)
   let hydrationScript = generateHydrationScript(~nonce?)

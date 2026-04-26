@@ -1,7 +1,7 @@
 open! Zekr
 
 let mountTo = (node, container) => {
-  Node.mount(node, container)
+  View.mount(node, container)
   container
 }
 
@@ -14,7 +14,7 @@ let suite = Zekr.suite(
   [
     test("renders basic JSX element with class", () => {
       let {container} = Dom.render("")
-      let _ = mountTo(<div class="container"> {Node.text("Hello JSX")} </div>, container)
+      let _ = mountTo(<div class="container"> {View.text("Hello JSX")} </div>, container)
       let el = Dom.Query.getByText(container, "Hello JSX")
       combineResults([Dom.Assert.toBeInTheDocument(el), Dom.Assert.toHaveClass(el, "container")])
     }),
@@ -22,7 +22,7 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let clicked = ref(false)
       let _ = mountTo(
-        <button onClick={_evt => clicked := true}> {Node.text("Press")} </button>,
+        <button onClick={_evt => clicked := true}> {View.text("Press")} </button>,
         container,
       )
       let btn = Dom.Query.getByRole(container, "button")
@@ -39,20 +39,20 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let _ = mountTo(
         <ul>
-          <li> {Node.text("One")} </li>
-          <li> {Node.text("Two")} </li>
-          <li> {Node.text("Three")} </li>
+          <li> {View.text("One")} </li>
+          <li> {View.text("Two")} </li>
+          <li> {View.text("Three")} </li>
         </ul>,
         container,
       )
       let items = Dom.Query.getAllByRole(container, "listitem")
       assertEqual(Array.length(items), 3)
     }),
-    test("renders JSX with reactive class via ReactiveProp", () => {
+    test("renders JSX with reactive class via Prop", () => {
       let {container} = Dom.render("")
       let cls = Signal.make("initial")
       let _ = mountTo(
-        <div class={ReactiveProp.reactive(cls)}> {Node.text("reactive")} </div>,
+        <div class={Prop.reactive(cls)}> {View.text("reactive")} </div>,
         container,
       )
       let el = Dom.Query.getByText(container, "reactive")
@@ -66,9 +66,9 @@ let suite = Zekr.suite(
       let selected = Signal.make("green")
 
       let _ = mountTo(
-        <select value={ReactiveProp.reactive(selected)}>
-          <option value="red"> {Node.text("Red")} </option>
-          <option value="green"> {Node.text("Green")} </option>
+        <select value={Prop.reactive(selected)}>
+          <option value="red"> {View.text("Red")} </option>
+          <option value="green"> {View.text("Green")} </option>
         </select>,
         container,
       )
@@ -95,8 +95,8 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let _ = mountTo(
         <div>
-          <h1> {Node.text("Title")} </h1>
-          <h2> {Node.text("Subtitle")} </h2>
+          <h1> {View.text("Title")} </h1>
+          <h2> {View.text("Subtitle")} </h2>
         </div>,
         container,
       )
@@ -107,7 +107,7 @@ let suite = Zekr.suite(
     }),
     test("renders link with href", () => {
       let {container} = Dom.render("")
-      let _ = mountTo(<a href="/about"> {Node.text("About")} </a>, container)
+      let _ = mountTo(<a href="/about"> {View.text("About")} </a>, container)
       let link = Dom.Query.getByRole(container, "link")
       Dom.Assert.toHaveAttribute(link, "href", ~value="/about")
     }),
@@ -137,9 +137,9 @@ let suite = Zekr.suite(
           )
 
           <div>
-            <span> {Node.signalInt(() => Signal.get(counter))} </span>
+            <span> {View.signalInt(() => Signal.get(counter))} </span>
             <button onClick={_evt => Signal.update(counter, n => n + 1)}>
-              {Node.text("Inc")}
+              {View.text("Inc")}
             </button>
           </div>
         }
@@ -148,12 +148,12 @@ let suite = Zekr.suite(
       let tab = Signal.make("other")
 
       let _ = mountTo(
-        Node.signalFragment(
+        View.signalFragment(
           Computed.make(
             () =>
               switch Signal.get(tab) {
               | "effect" => [<EffectComponent />]
-              | _ => [Node.text("other tab")]
+              | _ => [View.text("other tab")]
               },
           ),
         ),

@@ -41,35 +41,35 @@ let app = (count, items, inputValue) =>
     }
 
     Html.div(
-      ~attrs=[Node.attr("class", "app")],
+      ~attrs=[View.attr("class", "app")],
       ~children=[
         /* Header */
-        Html.h1(~children=[Node.text("Xote SSR Demo")], ()),
+        Html.h1(~children=[View.text("Xote SSR Demo")], ()),
         /* Counter section */
         Html.div(
-          ~attrs=[Node.attr("class", "counter-section")],
+          ~attrs=[View.attr("class", "counter-section")],
           ~children=[
-            Html.h2(~children=[Node.text("Counter")], ()),
+            Html.h2(~children=[View.text("Counter")], ()),
             Html.p(
               ~children=[
-                Node.text("Count: "),
-                Node.signalText(() => Signal.get(count)->Int.toString),
+                View.text("Count: "),
+                View.signalText(() => Signal.get(count)->Int.toString),
               ],
               (),
             ),
             Html.div(
-              ~attrs=[Node.attr("class", "button-group")],
+              ~attrs=[View.attr("class", "button-group")],
               ~children=[
                 Html.button(
-                  ~attrs=[Node.attr("class", "btn")],
+                  ~attrs=[View.attr("class", "btn")],
                   ~events=[("click", decrement)],
-                  ~children=[Node.text("-")],
+                  ~children=[View.text("-")],
                   (),
                 ),
                 Html.button(
-                  ~attrs=[Node.attr("class", "btn")],
+                  ~attrs=[View.attr("class", "btn")],
                   ~events=[("click", increment)],
-                  ~children=[Node.text("+")],
+                  ~children=[View.text("+")],
                   (),
                 ),
               ],
@@ -80,33 +80,33 @@ let app = (count, items, inputValue) =>
         ),
         /* Dynamic list section */
         Html.div(
-          ~attrs=[Node.attr("class", "list-section")],
+          ~attrs=[View.attr("class", "list-section")],
           ~children=[
-            Html.h2(~children=[Node.text("Dynamic List")], ()),
+            Html.h2(~children=[View.text("Dynamic List")], ()),
             Html.div(
-              ~attrs=[Node.attr("class", "input-group")],
+              ~attrs=[View.attr("class", "input-group")],
               ~children=[
                 Html.input(
                   ~attrs=[
-                    Node.attr("type", "text"),
-                    Node.attr("placeholder", "Add item..."),
-                    Node.signalAttr("value", inputValue),
+                    View.attr("type", "text"),
+                    View.attr("placeholder", "Add item..."),
+                    View.signalAttr("value", inputValue),
                   ],
                   ~events=[("input", handleInput)],
                   (),
                 ),
                 Html.button(
-                  ~attrs=[Node.attr("class", "btn")],
+                  ~attrs=[View.attr("class", "btn")],
                   ~events=[("click", addItem)],
-                  ~children=[Node.text("Add")],
+                  ~children=[View.text("Add")],
                   (),
                 ),
               ],
               (),
             ),
             Html.ul(
-              ~attrs=[Node.attr("class", "item-list")],
-              ~children=[Node.list(items, item => Html.li(~children=[Node.text(item)], ()))],
+              ~attrs=[View.attr("class", "item-list")],
+              ~children=[View.list(items, item => Html.li(~children=[View.text(item)], ()))],
               (),
             ),
           ],
@@ -114,12 +114,12 @@ let app = (count, items, inputValue) =>
         ),
         /* Reactive attribute demo */
         Html.div(
-          ~attrs=[Node.attr("class", "status-section")],
+          ~attrs=[View.attr("class", "status-section")],
           ~children=[
-            Html.h2(~children=[Node.text("Reactive Attributes")], ()),
+            Html.h2(~children=[View.text("Reactive Attributes")], ()),
             Html.div(
               ~attrs=[
-                Node.computedAttr("class", () => {
+                View.computedAttr("class", () => {
                   let c = Signal.get(count)
                   if c > 5 {
                     "status high"
@@ -131,7 +131,7 @@ let app = (count, items, inputValue) =>
                 }),
               ],
               ~children=[
-                Node.signalText(() => {
+                View.signalText(() => {
                   let c = Signal.get(count)
                   if c > 5 {
                     "Count is HIGH!"

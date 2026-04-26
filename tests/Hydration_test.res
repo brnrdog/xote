@@ -5,7 +5,7 @@ let suite = Zekr.suite(
   [
     test("static content is preserved after hydration", () => {
       let component = () =>
-        Html.div(~children=[Html.p(~children=[Node.text("Server rendered")], ())], ())
+        Html.div(~children=[Html.p(~children=[View.text("Server rendered")], ())], ())
       let ssrHtml = SSR.renderToString(component)
       let {container} = Dom.render(ssrHtml)
       Hydration.hydrate(component, container)
@@ -15,7 +15,7 @@ let suite = Zekr.suite(
       let count = Signal.make(0)
       let component = () =>
         Html.div(
-          ~children=[Node.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))],
+          ~children=[View.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))],
           (),
         )
       let ssrHtml = SSR.renderToString(component)
@@ -31,7 +31,7 @@ let suite = Zekr.suite(
       let component = () =>
         Html.button(
           ~events=[("click", _evt => clicked := true)],
-          ~children=[Node.text("Click")],
+          ~children=[View.text("Click")],
           (),
         )
       let ssrHtml = SSR.renderToString(component)
@@ -44,7 +44,7 @@ let suite = Zekr.suite(
     test("reactive attributes update after hydration", () => {
       let cls = Signal.make("initial")
       let component = () =>
-        Html.div(~attrs=[Node.signalAttr("class", cls)], ~children=[Node.text("box")], ())
+        Html.div(~attrs=[View.signalAttr("class", cls)], ~children=[View.text("box")], ())
       let ssrHtml = SSR.renderToString(component)
       let {container} = Dom.render(ssrHtml)
       Hydration.hydrate(component, container)
@@ -59,10 +59,10 @@ let suite = Zekr.suite(
       let component = () =>
         Html.div(
           ~children=[
-            Html.h1(~children=[Node.text("Title")], ()),
+            Html.h1(~children=[View.text("Title")], ()),
             Html.p(
-              ~attrs=[Node.computedAttr("class", () => Signal.get(visible) ? "shown" : "hidden")],
-              ~children=[Node.text("Content")],
+              ~attrs=[View.computedAttr("class", () => Signal.get(visible) ? "shown" : "hidden")],
+              ~children=[View.text("Content")],
               (),
             ),
           ],

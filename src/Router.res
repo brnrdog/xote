@@ -65,8 +65,6 @@ let getGlobalState = (): globalRouterState => {
 // Convenience accessors for global state
 // These replace the old module-level state variables
 let location = (): Signal.t<location> => getGlobalState().location
-let locationSignal = location
-let current = (): location => Signal.get(location())
 let basePath = (): ref<string> => getGlobalState().basePath
 
 // Warn if Router is used before initialization
@@ -311,11 +309,11 @@ let replace = (pathname: string, ~search: string="", ~hash: string="", ()): unit
 // Route definition for routes() component
 type routeConfig = {
   pattern: string,
-  render: Route.params => Node.node,
+  render: Route.params => View.node,
 }
 
 // Single route component - renders if pattern matches
-let route = (pattern: string, render: Route.params => Node.node): Node.node => {
+let route = (pattern: string, render: Route.params => View.node): View.node => {
   warnIfNotInitialized("Router.route()")
 
   let signal = Computed.make(() => {
@@ -325,11 +323,11 @@ let route = (pattern: string, render: Route.params => Node.node): Node.node => {
     | NoMatch => []
     }
   })
-  Node.signalFragment(signal)
+  View.signalFragment(signal)
 }
 
 // Routes component - renders first matching route
-let routes = (configs: array<routeConfig>): Node.node => {
+let routes = (configs: array<routeConfig>): View.node => {
   warnIfNotInitialized("Router.routes()")
 
   let signal = Computed.make(() => {
@@ -346,16 +344,16 @@ let routes = (configs: array<routeConfig>): Node.node => {
     | None => [] // No matching route - render nothing
     }
   })
-  Node.signalFragment(signal)
+  View.signalFragment(signal)
 }
 
 // Link component - handles navigation without page reload
 let link = (
   ~to: string,
-  ~attrs: array<(string, Node.attrValue)>=[],
-  ~children: array<Node.node>=[],
+  ~attrs: array<(string, View.attrValue)>=[],
+  ~children: array<View.node>=[],
   (),
-): Node.node => {
+): View.node => {
   warnIfNotInitialized("Router.link()")
 
   let handleClick = (_evt: Dom.event) => {
@@ -364,7 +362,7 @@ let link = (
   }
 
   Html.a(
-    ~attrs=Array.concat(attrs, [Node.attr("href", addBasePath(to))]),
+    ~attrs=Array.concat(attrs, [View.attr("href", addBasePath(to))]),
     ~events=[("click", handleClick)],
     ~children,
     (),
@@ -373,7 +371,7 @@ let link = (
 
 // JSX Link component
 module Link = {
-  module ReactiveProp = ReactiveProp
+  module Prop = Prop
 
   type props<'class, 'id, 'style, 'target, 'ariaLabel> = {
     /* Required navigation prop */
@@ -387,11 +385,11 @@ module Link = {
     /* Event handlers */
     onClick?: Dom.event => unit,
     /* Children */
-    children?: Node.node,
+    children?: View.node,
   }
 
   /* Convert props to attrs array */
-  let propsToAttrs = (props): array<(string, Node.attrValue)> => {
+  let propsToAttrs = (props): array<(string, View.attrValue)> => {
     let attrs = []
 
     switch props.class {
@@ -423,16 +421,16 @@ module Link = {
   }
 
   /* Extract children from props */
-  let getChildren = (props): array<Node.node> => {
+  let getChildren = (props): array<View.node> => {
     switch props.children {
-    | Some(Node.Fragment(children)) => children
+    | Some(View.Fragment(children)) => children
     | Some(child) => [child]
     | None => []
     }
   }
 
   /* JSX component function */
-  let make = (props): Node.node => {
+  let make = (props): View.node => {
     warnIfNotInitialized("Router.Link")
 
     let handleClick = (evt: Dom.event) => {
@@ -447,7 +445,7 @@ module Link = {
     }
 
     Html.a(
-      ~attrs=Array.concat(propsToAttrs(props), [Node.attr("href", addBasePath(props.to))]),
+      ~attrs=Array.concat(propsToAttrs(props), [View.attr("href", addBasePath(props.to))]),
       ~events=[("click", handleClick)],
       ~children=getChildren(props),
       (),
