@@ -145,14 +145,34 @@ module PrevNextNav = {
     <div class="docs-prev-next">
       {switch prev {
       | Some(item) =>
-        Router.link(
-          ~to=item.path,
-          ~attrs=[Node.attr("class", "docs-prev-next-link")],
+        Node.element(
+          "span",
+          ~events=[
+            (
+              "click",
+              _ =>
+                PostHog.capture(
+                  "docs_page_navigated",
+                  ~properties={
+                    "direction": "previous",
+                    "target_path": item.path,
+                    "target_title": item.title,
+                  },
+                ),
+            ),
+          ],
           ~children=[
-            <span class="docs-prev-next-label">
-              {Node.text("\u2190 Previous")}
-            </span>,
-            <span class="docs-prev-next-title"> {Node.text(item.title)} </span>,
+            Router.link(
+              ~to=item.path,
+              ~attrs=[Node.attr("class", "docs-prev-next-link")],
+              ~children=[
+                <span class="docs-prev-next-label">
+                  {Node.text("\u2190 Previous")}
+                </span>,
+                <span class="docs-prev-next-title"> {Node.text(item.title)} </span>,
+              ],
+              (),
+            ),
           ],
           (),
         )
@@ -160,14 +180,34 @@ module PrevNextNav = {
       }}
       {switch next {
       | Some(item) =>
-        Router.link(
-          ~to=item.path,
-          ~attrs=[Node.attr("class", "docs-prev-next-link next")],
+        Node.element(
+          "span",
+          ~events=[
+            (
+              "click",
+              _ =>
+                PostHog.capture(
+                  "docs_page_navigated",
+                  ~properties={
+                    "direction": "next",
+                    "target_path": item.path,
+                    "target_title": item.title,
+                  },
+                ),
+            ),
+          ],
           ~children=[
-            <span class="docs-prev-next-label">
-              {Node.text("Next \u2192")}
-            </span>,
-            <span class="docs-prev-next-title"> {Node.text(item.title)} </span>,
+            Router.link(
+              ~to=item.path,
+              ~attrs=[Node.attr("class", "docs-prev-next-link next")],
+              ~children=[
+                <span class="docs-prev-next-label">
+                  {Node.text("Next \u2192")}
+                </span>,
+                <span class="docs-prev-next-title"> {Node.text(item.title)} </span>,
+              ],
+              (),
+            ),
           ],
           (),
         )

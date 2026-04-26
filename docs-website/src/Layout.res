@@ -29,6 +29,7 @@ let toggleTheme = () => {
     | _ => "dark"
     }
   )
+  PostHog.capture("theme_toggled", ~properties={"theme": Signal.peek(theme)})
 }
 
 if SSRContext.isClient {
@@ -44,7 +45,10 @@ if SSRContext.isClient {
 // ---- Search state ----
 let searchOpen = Signal.make(false)
 
-let openSearch = () => Signal.set(searchOpen, true)
+let openSearch = () => {
+  Signal.set(searchOpen, true)
+  PostHog.capture("search_opened")
+}
 let closeSearch = () => Signal.set(searchOpen, false)
 
 // ---- Scroll state ----
@@ -104,6 +108,10 @@ module SearchModal = {
       let idx = Signal.peek(selectedIndex)
       switch items->Array.get(idx) {
       | Some(item) =>
+        PostHog.capture(
+          "search_result_selected",
+          ~properties={"result_path": item.path, "result_title": item.title},
+        )
         Router.push(item.path, ())
         closeSearch()
         Signal.set(query, "")
@@ -205,6 +213,13 @@ module SearchModal = {
                                   (
                                     "click",
                                     _ => {
+                                      PostHog.capture(
+                                        "search_result_selected",
+                                        ~properties={
+                                          "result_path": item.path,
+                                          "result_title": item.title,
+                                        },
+                                      )
                                       Router.push(item.path, ())
                                       closeSearch()
                                       Signal.set(query, "")
@@ -285,7 +300,9 @@ module Header = {
             <a
               href="https://github.com/brnrdog/xote"
               target="_blank"
-              class="header-nav-link">
+              class="header-nav-link"
+              onClick={_ =>
+                PostHog.capture("github_link_clicked", ~properties={"source": "header"})}>
               {Node.text("GitHub")}
             </a>
           </nav>
