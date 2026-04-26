@@ -8,19 +8,19 @@
 let content = () => {
   <div>
     <p>
-      {Node.text("Batching lets you group several signal writes so dependent computeds and effects flush once after the batch finishes.")}
+      {View.text("Batching lets you group several signal writes so dependent computeds and effects flush once after the batch finishes.")}
     </p>
     <div class="info-box">
       <p>
-        <strong> {Node.text("Info:")} </strong>
-        {Node.text(" Updates still happen synchronously. Batching changes how many times dependents flush, not whether they flush immediately.")}
+        <strong> {View.text("Info:")} </strong>
+        {View.text(" Updates still happen synchronously. Batching changes how many times dependents flush, not whether they flush immediately.")}
       </p>
     </div>
 
-    <h2 id="why-and-when-to-batch"> {Node.text("Why and When to Batch")} </h2>
-    <h3 id="why-batch"> {Node.text("Why Batch?")} </h3>
+    <h2 id="why-and-when-to-batch"> {View.text("Why and When to Batch")} </h2>
+    <h3 id="why-batch"> {View.text("Why Batch?")} </h3>
     <p>
-      {Node.text("Without batching, each write can trigger a new round of downstream work. That is fine for isolated updates, but noisy for coordinated state changes.")}
+      {View.text("Without batching, each write can trigger a new round of downstream work. That is fine for isolated updates, but noisy for coordinated state changes.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -41,15 +41,15 @@ Signal.set(lastName, "Hopper")`)}
       </code>
     </pre>
     <p>
-      {Node.text("That effect can run twice. If both writes belong to the same logical update, batch them.")}
+      {View.text("That effect can run twice. If both writes belong to the same logical update, batch them.")}
     </p>
 
-    <h2 id="using-batching"> {Node.text("Using Batching")} </h2>
-    <h3 id="using-signal-batch"> {Node.text("Using Signal.batch()")} </h3>
+    <h2 id="using-batching"> {View.text("Using Batching")} </h2>
+    <h3 id="using-signal-batch"> {View.text("Using Signal.batch()")} </h3>
     <p>
-      {Node.text("Wrap related writes in ")}
-      <code> {Node.text("Signal.batch")} </code>
-      {Node.text(".")}
+      {View.text("Wrap related writes in ")}
+      <code> {View.text("Signal.batch")} </code>
+      {View.text(".")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -60,9 +60,9 @@ Signal.set(lastName, "Hopper")`)}
       </code>
     </pre>
 
-    <h3 id="how-batching-works"> {Node.text("How Batching Works")} </h3>
+    <h3 id="how-batching-works"> {View.text("How Batching Works")} </h3>
     <p>
-      {Node.text("Inside a batch, signals update immediately, but scheduler flushing is deferred until the outermost batch completes. Readers inside the batch still see the latest values.")}
+      {View.text("Inside a batch, signals update immediately, but scheduler flushing is deferred until the outermost batch completes. Readers inside the batch still see the latest values.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -76,9 +76,9 @@ Signal.set(lastName, "Hopper")`)}
       </code>
     </pre>
 
-    <h3 id="common-cases"> {Node.text("Common Cases")} </h3>
+    <h3 id="common-cases"> {View.text("Common Cases")} </h3>
     <p>
-      {Node.text("Batching is most useful when one user action updates several related signals.")}
+      {View.text("Batching is most useful when one user action updates several related signals.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -100,9 +100,9 @@ let submit = () => {
       </code>
     </pre>
 
-    <h3 id="nested-batches"> {Node.text("Nested Batches")} </h3>
+    <h3 id="nested-batches"> {View.text("Nested Batches")} </h3>
     <p>
-      {Node.text("Batches can be nested. Flushing happens when the outermost batch ends.")}
+      {View.text("Batches can be nested. Flushing happens when the outermost batch ends.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -117,9 +117,9 @@ let submit = () => {
       </code>
     </pre>
 
-    <h3 id="returning-values-from-batches"> {Node.text("Returning Values from Batches")} </h3>
+    <h3 id="returning-values-from-batches"> {View.text("Returning Values from Batches")} </h3>
     <p>
-      {Node.text("A batch returns whatever the callback returns, so you can compute and write in one block.")}
+      {View.text("A batch returns whatever the callback returns, so you can compute and write in one block.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -131,34 +131,34 @@ let submit = () => {
       </code>
     </pre>
 
-    <h3 id="when-not-to-batch"> {Node.text("When Not to Batch")} </h3>
+    <h3 id="when-not-to-batch"> {View.text("When Not to Batch")} </h3>
     <p>
-      {Node.text("Do not batch by default. If one signal changes and the rest of the graph can react naturally, batching adds no clarity. Use it when several writes are one semantic update.")}
+      {View.text("Do not batch by default. If one signal changes and the rest of the graph can react naturally, batching adds no clarity. Use it when several writes are one semantic update.")}
     </p>
 
-    <h2 id="batching-working-style"> {Node.text("Working Style")} </h2>
-    <h3 id="best-practices"> {Node.text("Best Practices")} </h3>
+    <h2 id="batching-working-style"> {View.text("Working Style")} </h2>
+    <h3 id="best-practices"> {View.text("Best Practices")} </h3>
     <ul>
       <li>
-        {Node.text("Batch one logical unit of work, such as a submit action, a reset, or a reducer-style update.")}
+        {View.text("Batch one logical unit of work, such as a submit action, a reset, or a reducer-style update.")}
       </li>
       <li>
-        {Node.text("Keep batches short so the write order stays easy to reason about.")}
+        {View.text("Keep batches short so the write order stays easy to reason about.")}
       </li>
       <li>
-        {Node.text("Do not use batching to hide duplicated or awkward state. Fix the model first.")}
+        {View.text("Do not use batching to hide duplicated or awkward state. Fix the model first.")}
       </li>
     </ul>
 
-    <h3 id="next-steps"> {Node.text("Next Steps")} </h3>
+    <h3 id="next-steps"> {View.text("Next Steps")} </h3>
     <ul>
       <li>
-        {Router.link(~to="/docs/core-concepts/signals", ~children=[Node.text("Go back to Signals")], ())}
-        {Node.text(" if you want the update model before the scheduling details.")}
+        {Router.link(~to="/docs/core-concepts/signals", ~children=[View.text("Go back to Signals")], ())}
+        {View.text(" if you want the update model before the scheduling details.")}
       </li>
       <li>
-        {Router.link(~to="/docs/core-concepts/effects", ~children=[Node.text("Read Effects")], ())}
-        {Node.text(" to see the downstream work that batching reduces.")}
+        {Router.link(~to="/docs/core-concepts/effects", ~children=[View.text("Read Effects")], ())}
+        {View.text(" to see the downstream work that batching reduces.")}
       </li>
     </ul>
   </div>

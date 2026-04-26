@@ -32,32 +32,32 @@ let make = () => {
     <div class="counter-demo-panel">
       <div class="counter-demo-head">
         <div>
-          <div class="counter-demo-kicker"> {Node.text("Signal state")} </div>
-          <h3 class="counter-demo-title"> {Node.text("Counter")} </h3>
+          <div class="counter-demo-kicker"> {View.text("Signal state")} </div>
+          <h3 class="counter-demo-title"> {View.text("Counter")} </h3>
         </div>
         <div class={() => "counter-demo-status " ++ String.toLowerCase(countStatus())}>
-          {Node.signalText(countStatus)}
+          {View.signalText(countStatus)}
         </div>
       </div>
 
       <div class="counter-demo-readout">
-        <div class={() => countTone()}>{Node.signalText(() => Signal.get(count)->Int.toString)}</div>
-        <div class="counter-demo-label"> {Node.text("Current Count")} </div>
+        <div class={() => countTone()}>{View.signalText(() => Signal.get(count)->Int.toString)}</div>
+        <div class="counter-demo-label"> {View.text("Current Count")} </div>
       </div>
 
       <div class="counter-demo-note">
-        {Node.text("One writable signal updates the UI immediately when the value changes.")}
+        {View.text("One writable signal updates the UI immediately when the value changes.")}
       </div>
 
       <div class="counter-demo-actions">
         <button class="counter-demo-btn" onClick={decrement}>
-          {Node.text("Decrease")}
+          {View.text("Decrease")}
         </button>
         <button class="counter-demo-btn subtle" onClick={reset}>
-          {Node.text("Reset")}
+          {View.text("Reset")}
         </button>
         <button class="counter-demo-btn" onClick={increment}>
-          {Node.text("Increase")}
+          {View.text("Increase")}
         </button>
       </div>
     </div>

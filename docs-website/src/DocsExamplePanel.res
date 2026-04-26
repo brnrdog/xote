@@ -26,7 +26,7 @@ let make = (~filename, ~code, ~caption=?, ~children) => {
           type_="button"
           ariaSelected={() => Signal.get(activeTab) == "code"}
         >
-          {Node.text("Code")}
+          {View.text("Code")}
         </button>
         <button
           class={() => tabClass("demo")}
@@ -35,10 +35,10 @@ let make = (~filename, ~code, ~caption=?, ~children) => {
           type_="button"
           ariaSelected={() => Signal.get(activeTab) == "demo"}
         >
-          {Node.text("Demo")}
+          {View.text("Demo")}
         </button>
       </div>
-      <div class="docs-example-filename"> {Node.text(filename)} </div>
+      <div class="docs-example-filename"> {View.text(filename)} </div>
     </div>
 
     <div class="docs-example-body">
@@ -52,8 +52,8 @@ let make = (~filename, ~code, ~caption=?, ~children) => {
         <div class="docs-example-demo">
           <div class="docs-example-demo-stage"> {children} </div>
           {switch caption {
-          | Some(text) => <div class="docs-example-caption"> {Node.text(text)} </div>
-          | None => Node.fragment([])
+          | Some(text) => <div class="docs-example-caption"> {View.text(text)} </div>
+          | None => View.fragment([])
           }}
         </div>
       </div>

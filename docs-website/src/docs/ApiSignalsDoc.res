@@ -8,31 +8,31 @@
 let content = () => {
   <div>
     <p>
-      {Node.text("This page covers the ")}
-      <code> {Node.text("Signal")} </code>
-      {Node.text(" module directly and links out to ")}
-      <code> {Node.text("Computed")} </code>
-      {Node.text(" and ")}
-      <code> {Node.text("Effect")} </code>
-      {Node.text(" where their behavior intersects with signals.")}
+      {View.text("This page covers the ")}
+      <code> {View.text("Signal")} </code>
+      {View.text(" module directly and links out to ")}
+      <code> {View.text("Computed")} </code>
+      {View.text(" and ")}
+      <code> {View.text("Effect")} </code>
+      {View.text(" where their behavior intersects with signals.")}
     </p>
 
-    <h2 id="signal-api"> {Node.text("Signal")} </h2>
-    <h3 id="type"> {Node.text("Type")} </h3>
+    <h2 id="signal-api"> {View.text("Signal")} </h2>
+    <h3 id="type"> {View.text("Type")} </h3>
     <pre class="docs-code-pre">
       <code>
         {SyntaxHighlight.highlight(`type t<'a>`)}
       </code>
     </pre>
     <p>
-      {Node.text("A signal stores a value of type ")}
-      <code> {Node.text("'a")} </code>
-      {Node.text(", plus the bookkeeping needed for dependency tracking and scheduling.")}
+      {View.text("A signal stores a value of type ")}
+      <code> {View.text("'a")} </code>
+      {View.text(", plus the bookkeeping needed for dependency tracking and scheduling.")}
     </p>
 
-    <h3 id="functions"> {Node.text("Functions")} </h3>
+    <h3 id="functions"> {View.text("Functions")} </h3>
 
-    <h4 id="make"> <code> {Node.text("make")} </code> </h4>
+    <h4 id="make"> <code> {View.text("make")} </code> </h4>
     <pre class="docs-code-pre">
       <code>
         {SyntaxHighlight.highlight(`let make: (
@@ -43,105 +43,105 @@ let content = () => {
       </code>
     </pre>
     <p>
-      {Node.text("Create a signal with an initial value. ")}
-      <code> {Node.text("~name")} </code>
-      {Node.text(" is only for debugging. ")}
-      <code> {Node.text("~equals")} </code>
-      {Node.text(" overrides the default strict equality check.")}
+      {View.text("Create a signal with an initial value. ")}
+      <code> {View.text("~name")} </code>
+      {View.text(" is only for debugging. ")}
+      <code> {View.text("~equals")} </code>
+      {View.text(" overrides the default strict equality check.")}
     </p>
 
-    <h4 id="get"> <code> {Node.text("get")} </code> </h4>
+    <h4 id="get"> <code> {View.text("get")} </code> </h4>
     <pre class="docs-code-pre">
       <code>
         {SyntaxHighlight.highlight(`let get: t<'a> => 'a`)}
       </code>
     </pre>
     <p>
-      {Node.text("Read the current value and subscribe the active computed or effect, if one exists.")}
+      {View.text("Read the current value and subscribe the active computed or effect, if one exists.")}
     </p>
 
-    <h4 id="peek"> <code> {Node.text("peek")} </code> </h4>
+    <h4 id="peek"> <code> {View.text("peek")} </code> </h4>
     <pre class="docs-code-pre">
       <code>
         {SyntaxHighlight.highlight(`let peek: t<'a> => 'a`)}
       </code>
     </pre>
     <p>
-      {Node.text("Read the current value without creating a dependency.")}
+      {View.text("Read the current value without creating a dependency.")}
     </p>
 
-    <h4 id="set"> <code> {Node.text("set")} </code> </h4>
+    <h4 id="set"> <code> {View.text("set")} </code> </h4>
     <pre class="docs-code-pre">
       <code>
         {SyntaxHighlight.highlight(`let set: (t<'a>, 'a) => unit`)}
       </code>
     </pre>
     <p>
-      {Node.text("Replace the signal value. Dependents are notified only if the equality check says the value changed.")}
+      {View.text("Replace the signal value. Dependents are notified only if the equality check says the value changed.")}
     </p>
 
-    <h4 id="update"> <code> {Node.text("update")} </code> </h4>
+    <h4 id="update"> <code> {View.text("update")} </code> </h4>
     <pre class="docs-code-pre">
       <code>
         {SyntaxHighlight.highlight(`let update: (t<'a>, 'a => 'a) => unit`)}
       </code>
     </pre>
     <p>
-      {Node.text("Compute the next value from the current one. Prefer this when the write depends on the existing state.")}
+      {View.text("Compute the next value from the current one. Prefer this when the write depends on the existing state.")}
     </p>
 
-    <h4 id="batch"> <code> {Node.text("batch")} </code> </h4>
+    <h4 id="batch"> <code> {View.text("batch")} </code> </h4>
     <pre class="docs-code-pre">
       <code>
         {SyntaxHighlight.highlight(`let batch: (unit => 'a) => 'a`)}
       </code>
     </pre>
     <p>
-      {Node.text("Defer scheduler flushing until the batch completes, then return the callback result.")}
+      {View.text("Defer scheduler flushing until the batch completes, then return the callback result.")}
     </p>
 
-    <h4 id="untrack"> <code> {Node.text("untrack")} </code> </h4>
+    <h4 id="untrack"> <code> {View.text("untrack")} </code> </h4>
     <pre class="docs-code-pre">
       <code>
         {SyntaxHighlight.highlight(`let untrack: (unit => 'a) => 'a`)}
       </code>
     </pre>
     <p>
-      {Node.text("Run a block without dependency capture. Use this when ")}
-      <code> {Node.text("peek")} </code>
-      {Node.text(" is too narrow and a full untracked region is clearer.")}
+      {View.text("Run a block without dependency capture. Use this when ")}
+      <code> {View.text("peek")} </code>
+      {View.text(" is too narrow and a full untracked region is clearer.")}
     </p>
 
-    <h2 id="related-signal-apis"> {Node.text("Related APIs")} </h2>
-    <h3 id="behavior-notes"> {Node.text("Behavior Notes")} </h3>
+    <h2 id="related-signal-apis"> {View.text("Related APIs")} </h2>
+    <h3 id="behavior-notes"> {View.text("Behavior Notes")} </h3>
     <ul>
       <li>
-        <strong> {Node.text("Default equality is strict equality:")} </strong>
-        <code> {Node.text("===")} </code>
-        {Node.text(" is used unless you pass ")}
-        <code> {Node.text("~equals")} </code>
+        <strong> {View.text("Default equality is strict equality:")} </strong>
+        <code> {View.text("===")} </code>
+        {View.text(" is used unless you pass ")}
+        <code> {View.text("~equals")} </code>
       </li>
       <li>
-        <strong> {Node.text("Reads can be tracked or untracked:")} </strong>
-        {Node.text(" use get for subscriptions, peek or untrack for snapshots")}
+        <strong> {View.text("Reads can be tracked or untracked:")} </strong>
+        {View.text(" use get for subscriptions, peek or untrack for snapshots")}
       </li>
       <li>
-        <strong> {Node.text("Updates are synchronous:")} </strong>
-        {Node.text(" dependents flush immediately unless wrapped in batch")}
+        <strong> {View.text("Updates are synchronous:")} </strong>
+        {View.text(" dependents flush immediately unless wrapped in batch")}
       </li>
       <li>
-        <strong> {Node.text("Computeds are just signal values at the type level:")} </strong>
-        {Node.text(" read them with get or peek")}
+        <strong> {View.text("Computeds are just signal values at the type level:")} </strong>
+        {View.text(" read them with get or peek")}
       </li>
     </ul>
 
-    <h3 id="companion-modules"> {Node.text("Companion Modules")} </h3>
+    <h3 id="companion-modules"> {View.text("Companion Modules")} </h3>
     <p>
-      {Node.text("Most signal-heavy code also uses ")}
-      <code> {Node.text("Computed")} </code>
-      {Node.text(" and ")}
-      <code> {Node.text("Effect")} </code>
-      {Node.text(". Their key entry points are:")}
+      {View.text("Most signal-heavy code also uses ")}
+      <code> {View.text("Computed")} </code>
+      {View.text(" and ")}
+      <code> {View.text("Effect")} </code>
+      {View.text(". Their key entry points are:")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -165,8 +165,8 @@ Effect.runWithDisposer : (
       </code>
     </pre>
 
-    <h2 id="signals-in-practice"> {Node.text("In Practice")} </h2>
-    <h3 id="examples"> {Node.text("Examples")} </h3>
+    <h2 id="signals-in-practice"> {View.text("In Practice")} </h2>
+    <h3 id="examples"> {View.text("Examples")} </h3>
     <pre class="docs-code-pre">
       <code>
         {SyntaxHighlight.highlight(`open Xote
@@ -194,20 +194,20 @@ let filters = Signal.make(
       </code>
     </pre>
 
-    <h2 id="where-to-go-next"> {Node.text("Where to Go Next")} </h2>
-    <h3 id="see-also"> {Node.text("See Also")} </h3>
+    <h2 id="where-to-go-next"> {View.text("Where to Go Next")} </h2>
+    <h3 id="see-also"> {View.text("See Also")} </h3>
     <ul>
       <li>
-        {Router.link(~to="/docs/core-concepts/signals", ~children=[Node.text("Signals guide")], ())}
+        {Router.link(~to="/docs/core-concepts/signals", ~children=[View.text("Signals guide")], ())}
       </li>
       <li>
-        {Router.link(~to="/docs/core-concepts/computed", ~children=[Node.text("Computeds guide")], ())}
+        {Router.link(~to="/docs/core-concepts/computed", ~children=[View.text("Computeds guide")], ())}
       </li>
       <li>
-        {Router.link(~to="/docs/core-concepts/effects", ~children=[Node.text("Effects guide")], ())}
+        {Router.link(~to="/docs/core-concepts/effects", ~children=[View.text("Effects guide")], ())}
       </li>
       <li>
-        {Router.link(~to="/docs/advanced/batching", ~children=[Node.text("Batching")], ())}
+        {Router.link(~to="/docs/advanced/batching", ~children=[View.text("Batching")], ())}
       </li>
     </ul>
   </div>

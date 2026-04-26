@@ -9,11 +9,11 @@ Xote uses [rescript-signals](https://brnrdog.github.io/rescript-signals) for rea
 The ReScript compiler is configured with `"namespace": true`, so every source file in `src/` is namespaced under `Xote`. The public modules are listed in `rescript.json` under `sources.public`:
 
 - **`Xote.View`**: Official UI node API for constructors, attributes, rendering, and mounting.
-- **`Xote.Node`**: Compatibility alias for `View`; the runtime implementation still lives in `Node.res`.
+- **`Xote.Node`**: Deprecated compatibility alias for `View`.
 - **`Xote.Html`**: Convenience constructors for common HTML tags.
 - **`Xote.XoteJSX`**: JSX v4 transform support and lowercase HTML element definitions.
-- **`Xote.ReactiveProp`**: Static-or-reactive prop wrapper for JSX-friendly APIs.
-- **`Xote.Prop`**: Alias for `ReactiveProp` with shorter prop helper names.
+- **`Xote.Prop`**: Official static-or-reactive prop wrapper for JSX-friendly APIs.
+- **`Xote.ReactiveProp`**: Deprecated compatibility alias for `Prop`.
 - **`Xote.Route`**: Pure route pattern parsing and matching.
 - **`Xote.Router`**: Signal-based client and SSR routing helpers.
 - **`Xote.SSR`**: Server-side rendering to HTML strings.
@@ -22,9 +22,9 @@ The ReScript compiler is configured with `"namespace": true`, so every source fi
 - **`Xote.Hydration`**: Client-side hydration for server-rendered DOM.
 - **`Xote.Signal`**, **`Xote.Computed`**, **`Xote.Effect`**: Re-export shims for `rescript-signals`.
 
-There is no central `Xote.res` barrel and no `Xote__` prefixed source module naming. Consumers access modules through the generated namespace, for example `Xote.View`, `Xote.Router`, or unqualified `View` after `-open Xote`. `Node` remains available as a compatibility alias.
+There is no central `Xote.res` barrel and no `Xote__` prefixed source module naming. Consumers access modules through the generated namespace, for example `Xote.View`, `Xote.Router`, or unqualified `View` after `-open Xote`. `Node` remains available as a deprecated compatibility alias.
 
-Some implementation modules are currently nested inside public modules, such as `Node.DOM`, `Node.Reactivity`, `Node.Render`, `SSR.Html`, `SSR.Markers`, and `Hydration.DOMWalker`. These exist to share implementation code inside the package and should be treated as internal details unless they are explicitly documented as public API.
+Some implementation modules are currently nested inside public modules, such as `View.DOM`, `View.Reactivity`, `View.Render`, `SSR.Html`, `SSR.Markers`, and `Hydration.DOMWalker`. These exist to share implementation code inside the package and should be treated as internal details unless they are explicitly documented as public API.
 
 ### Reactive Primitives
 
@@ -49,7 +49,7 @@ Computed values and effects are also provided by `rescript-signals`:
 
 ### View And Rendering Model
 
-Xote components are functions that return `View.node`. `Node.node` remains available as the equivalent compatibility type.
+Xote components are functions that return `View.node`. `Node.node` remains available as the deprecated equivalent alias.
 
 `View.node` variants:
 
@@ -67,18 +67,16 @@ Preferred public constructors:
 - `View.int(1)` and `View.float(1.5)`
 - `View.signalText(() => ...)`
 - `View.signalInt(() => ...)` and `View.signalFloat(() => ...)`
-- `View.computedText(() => ...)`
-- `View.computedInt(() => ...)` and `View.computedFloat(() => ...)`
 - `View.fragment(children)`
 - `View.signalFragment(signal)`
 - `View.each(signal, renderItem)`
-- `View.keyedEach(signal, keyFn, renderItem)`
+- `View.eachWithKey(signal, keyFn, renderItem)`
 - `View.element("div", ~attrs?, ~events?, ~children?, ())`
 - `View.null()` and `View.empty()`
 - `View.mount(node, container)`
 - `View.mountById(node, "root")`
 
-The original `Node.*` entry points remain supported, including `Node.list` / `Node.keyedList` as aliases for `View.each` / `View.keyedEach`.
+Deprecated `Node.*` entry points remain supported as aliases, including `Node.list` / `Node.keyedList` alongside `View.each` / `View.eachWithKey`.
 
 Rendering is fine-grained:
 
@@ -96,7 +94,7 @@ Attributes are represented as `(string, View.attrValue)` pairs:
 - `View.Attr.string(key, value)` for static string attributes.
 - `View.Attr.signal(key, signal)` for reactive string attributes.
 - `View.Attr.compute(key, fn)` for computed string attributes.
-- `View.attr`, `View.signalAttr`, and `View.computedAttr` remain available, as do the equivalent `Node.*` names.
+- `View.attr`, `View.signalAttr`, and `View.computedAttr` remain available, and the equivalent deprecated `Node.*` names still forward to `View`.
 
 The DOM renderer maps selected names to DOM properties or boolean attribute behavior:
 
@@ -113,15 +111,15 @@ SSR mirrors the same boolean attribute behavior when rendering strings.
 - `jsx`, `jsxs`, `jsxKeyed`, and `jsxsKeyed` are entry points for the JSX transform.
 - Lowercase HTML tags are implemented in `XoteJSX.Elements`.
 - JSX components are wrapped in `View.LazyComponent` so component evaluation happens during render/hydration rather than inside an unrelated computed context.
-- JSX attributes accept raw values, `ReactiveProp.t<'a>`, raw `Signal.t<'a>`, or computed functions for compatibility.
+- JSX attributes accept raw values, `Prop.t<'a>`, raw `Signal.t<'a>`, or computed functions for compatibility.
 
-`ReactiveProp.t<'a>` is:
+`Prop.t<'a>` is:
 
 ```rescript
 type t<'a> = Reactive(Signal.t<'a>) | Static('a)
 ```
 
-Use `ReactiveProp.static(value)` or `ReactiveProp.reactive(signal)` when a component prop should support either static or reactive input. `Prop` is the preferred short alias for `ReactiveProp`, and `Prop.signal(signal)` is a shorter alias for `ReactiveProp.reactive(signal)`.
+Use `Prop.static(value)` or `Prop.reactive(signal)` when a component prop should support either static or reactive input. `ReactiveProp` remains available as a deprecated compatibility alias.
 
 ### Router
 
@@ -138,9 +136,7 @@ Use `ReactiveProp.static(value)` or `ReactiveProp.reactive(signal)` when a compo
 
 - `Router.init(~basePath?, ())` initializes browser routing and must be called before routing helpers on the client.
 - `Router.initSSR(~basePath?, ~pathname, ~search?, ~hash?, ())` initializes routing for server-side rendering without browser APIs.
-- `Router.locationSignal()` returns the shared `Signal.t<Router.location>`.
-- `Router.location()` remains available as the equivalent alias.
-- `Router.current()` returns the current location snapshot.
+- `Router.location()` returns the shared `Signal.t<Router.location>`.
 - `Router.push(pathname, ~search?, ~hash?, ())`
 - `Router.replace(pathname, ~search?, ~hash?, ())`
 - `Router.route(pattern, params => node)`
@@ -200,4 +196,4 @@ The package exposes a bundled root entry through `dist/` and currently also expo
 - The renderer still has some implementation details nested inside public modules; interface files should narrow that surface over time.
 - `XoteJSX.jsxKeyed` accepts keys but does not yet wire them into component-level keyed reconciliation.
 - JSX prop conversion currently uses dynamic checks to support several prop styles.
-- Renderer extraction can continue by moving keyed reconciliation behind an internal render module while preserving `Node.Render` as a compatibility alias.
+- Renderer extraction can continue by moving keyed reconciliation behind an internal render module while preserving `View.Render` as a compatibility alias.

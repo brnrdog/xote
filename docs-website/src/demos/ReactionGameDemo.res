@@ -114,7 +114,7 @@ module GameArea = {
     >
       <div style="text-align: center; padding: 1.5rem;">
         <p style="font-size: 1.5rem; font-weight: bold; color: white;">
-          {Node.signalText(() => {
+          {View.signalText(() => {
             switch Signal.get(state) {
             | Idle => "Click to Start"
             | Waiting => "Wait for green..."
@@ -129,18 +129,18 @@ module GameArea = {
             switch Signal.get(state) {
             | Result(_) => [
                 <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7); margin-top: 0.5rem;">
-                  {Node.text("Your reaction time")}
+                  {View.text("Your reaction time")}
                 </p>,
               ]
             | TooEarly => [
                 <p style="font-size: 0.875rem; color: white; margin-top: 0.5rem;">
-                  {Node.text("Wait for the green screen!")}
+                  {View.text("Wait for the green screen!")}
                 </p>,
               ]
             | _ => []
             }
           })
-          Node.signalFragment(gameAreaSignal)
+          View.signalFragment(gameAreaSignal)
         }
       </div>
     </div>
@@ -151,12 +151,12 @@ module Instructions = {
   @jsx.component
   let make = () => {
     <div class="demo-info-box">
-      <h3> {Node.text("How to Play")} </h3>
+      <h3> {View.text("How to Play")} </h3>
       <ul>
-        <li> {Node.text("Click the blue box to start")} </li>
-        <li> {Node.text("Wait for the box to turn green (red = wait)")} </li>
-        <li> {Node.text("Click as fast as you can when it turns green!")} </li>
-        <li> {Node.text("Try to beat your best time")} </li>
+        <li> {View.text("Click the blue box to start")} </li>
+        <li> {View.text("Wait for the box to turn green (red = wait)")} </li>
+        <li> {View.text("Click as fast as you can when it turns green!")} </li>
+        <li> {View.text("Try to beat your best time")} </li>
       </ul>
     </div>
   }
@@ -166,38 +166,38 @@ module Statistics = {
   @jsx.component
   let make = () => {
     <div class="demo-section">
-      <h3> {Node.text("Your Statistics")} </h3>
+      <h3> {View.text("Your Statistics")} </h3>
       <div class="demo-grid-3">
         // Attempts count
         <div class="demo-stat">
           <div class="demo-stat-value">
-            {Node.signalText(() => Signal.get(attemptsCount)->Int.toString)}
+            {View.signalText(() => Signal.get(attemptsCount)->Int.toString)}
           </div>
-          <div class="demo-stat-label"> {Node.text("Attempts")} </div>
+          <div class="demo-stat-label"> {View.text("Attempts")} </div>
         </div>
         // Best time
         <div class="demo-stat">
           <div class="demo-stat-value">
-            {Node.signalText(() => {
+            {View.signalText(() => {
               switch Signal.get(bestTime) {
               | Some(time) => `${Int.toString(time)} ms`
               | None => "-"
               }
             })}
           </div>
-          <div class="demo-stat-label"> {Node.text("Best")} </div>
+          <div class="demo-stat-label"> {View.text("Best")} </div>
         </div>
         // Average time
         <div class="demo-stat">
           <div class="demo-stat-value">
-            {Node.signalText(() => {
+            {View.signalText(() => {
               switch Signal.get(averageTime) {
               | Some(time) => `${Int.toString(time)} ms`
               | None => "-"
               }
             })}
           </div>
-          <div class="demo-stat-label"> {Node.text("Average")} </div>
+          <div class="demo-stat-label"> {View.text("Average")} </div>
         </div>
       </div>
     </div>
@@ -209,7 +209,7 @@ module AttemptHistory = {
   let make = () => {
     <div class="demo-section">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-        <h3> {Node.text("Recent Attempts")} </h3>
+        <h3> {View.text("Recent Attempts")} </h3>
         {
           let clearButtonSignal = Computed.make(() => {
             if Signal.get(attemptsCount) > 0 {
@@ -218,14 +218,14 @@ module AttemptHistory = {
                   class="demo-btn demo-btn-secondary"
                   onClick={_evt => Signal.set(attempts, [])}
                 >
-                  {Node.text("Clear")}
+                  {View.text("Clear")}
                 </button>,
               ]
             } else {
               []
             }
           })
-          Node.signalFragment(clearButtonSignal)
+          View.signalFragment(clearButtonSignal)
         }
       </div>
       {
@@ -234,13 +234,13 @@ module AttemptHistory = {
           if Array.length(list) == 0 {
             [
               <p style="text-align: center; padding: 2rem 0; opacity: 0.6;">
-                {Node.text("No attempts yet. Click the box to start!")}
+                {View.text("No attempts yet. Click the box to start!")}
               </p>,
             ]
           } else {
             [
               <div>
-                {Node.list(attempts, time => {
+                {View.list(attempts, time => {
                   let best = Signal.get(bestTime)
                   let isBest = switch best {
                   | Some(b) => b == time
@@ -255,7 +255,7 @@ module AttemptHistory = {
 
                   <div class={className}>
                     <span style="font-family: monospace; font-weight: 600;">
-                      {Node.text(`${Int.toString(time)} ms`)}
+                      {View.text(`${Int.toString(time)} ms`)}
                     </span>
                     {
                       let bestBadgeSignal = Computed.make(
@@ -263,7 +263,7 @@ module AttemptHistory = {
                           if isBest {
                             [
                               <span class="demo-badge">
-                                {Node.text("Best!")}
+                                {View.text("Best!")}
                               </span>,
                             ]
                           } else {
@@ -271,7 +271,7 @@ module AttemptHistory = {
                           }
                         },
                       )
-                      Node.signalFragment(bestBadgeSignal)
+                      View.signalFragment(bestBadgeSignal)
                     }
                   </div>
                 })}
@@ -279,7 +279,7 @@ module AttemptHistory = {
             ]
           }
         })
-        Node.signalFragment(attemptsListSignal)
+        View.signalFragment(attemptsListSignal)
       }
     </div>
   }
@@ -294,16 +294,16 @@ module Controls = {
           switch Signal.get(state) {
           | Result(_) | TooEarly => [
               <button class="demo-btn demo-btn-primary" onClick={startGame}>
-                {Node.text("Try Again")}
+                {View.text("Try Again")}
               </button>,
               <button class="demo-btn demo-btn-secondary" onClick={resetGame}>
-                {Node.text("Back to Start")}
+                {View.text("Back to Start")}
               </button>,
             ]
           | _ => []
           }
         })
-        Node.signalFragment(controlsSignal)
+        View.signalFragment(controlsSignal)
       }
     </div>
   }

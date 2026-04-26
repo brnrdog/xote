@@ -377,7 +377,7 @@ module Card = {
         class="solitaire-card face-down"
         onClick={onClick}
       >
-        <div class="solitaire-card-back-symbol"> {Node.text(`\u2726`)} </div>
+        <div class="solitaire-card-back-symbol"> {View.text(`\u2726`)} </div>
       </div>
     } else {
       // Card face
@@ -389,15 +389,15 @@ module Card = {
         onClick={onClick}
       >
         <div class={`solitaire-card-top ${colorClass}`}>
-          {Node.text(rankToString(card.rank))}
-          <span class="solitaire-card-suit"> {Node.text(suitToString(card.suit))} </span>
+          {View.text(rankToString(card.rank))}
+          <span class="solitaire-card-suit"> {View.text(suitToString(card.suit))} </span>
         </div>
         <div class={`solitaire-card-center ${colorClass}`}>
-          {Node.text(suitToString(card.suit))}
+          {View.text(suitToString(card.suit))}
         </div>
         <div class={`solitaire-card-bottom ${colorClass}`}>
-          {Node.text(rankToString(card.rank))}
-          <span class="solitaire-card-suit"> {Node.text(suitToString(card.suit))} </span>
+          {View.text(rankToString(card.rank))}
+          <span class="solitaire-card-suit"> {View.text(suitToString(card.suit))} </span>
         </div>
       </div>
     }
@@ -411,7 +411,7 @@ module EmptySlot = {
       class="solitaire-empty-slot"
       onClick={onClick}
     >
-      <span class="solitaire-empty-slot-label"> {Node.text(label)} </span>
+      <span class="solitaire-empty-slot-label"> {View.text(label)} </span>
     </div>
   }
 }
@@ -429,7 +429,7 @@ module StockAndWaste = {
                 class="solitaire-card face-down"
                 onClick={drawCard}
               >
-                <div class="solitaire-card-back-symbol"> {Node.text(`\u2726`)} </div>
+                <div class="solitaire-card-back-symbol"> {View.text(`\u2726`)} </div>
               </div>,
             ]
           } else {
@@ -438,12 +438,12 @@ module StockAndWaste = {
                 class="solitaire-empty-slot"
                 onClick={drawCard}
               >
-                <span class="solitaire-empty-slot-label"> {Node.text(`\u21BB`)} </span>
+                <span class="solitaire-empty-slot-label"> {View.text(`\u21BB`)} </span>
               </div>,
             ]
           }
         })
-        Node.signalFragment(stockSignal)
+        View.signalFragment(stockSignal)
       }
       {
         let wasteSignal = Computed.make(() => {
@@ -460,7 +460,7 @@ module StockAndWaste = {
             [<EmptySlot label="" onClick={_ => ()} />]
           }
         })
-        Node.signalFragment(wasteSignal)
+        View.signalFragment(wasteSignal)
       }
     </div>
   }
@@ -492,7 +492,7 @@ module Foundations = {
             }
           })
         })
-        Node.signalFragment(foundationsSignal)
+        View.signalFragment(foundationsSignal)
       }
     </div>
   }
@@ -533,7 +533,7 @@ module TableauColumn = {
             })
           }
         })
-        Node.signalFragment(tableauSignal)
+        View.signalFragment(tableauSignal)
       }
     </div>
   }
@@ -554,18 +554,18 @@ let make = () => {
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
       <div>
         <h2 style="margin: 0 0 0.25rem 0;">
-          {Node.text("Solitaire")}
+          {View.text("Solitaire")}
         </h2>
         <p style="margin: 0; font-size: 0.875rem; opacity: 0.7;">
-          {Node.text("Moves: ")}
-          {Node.signalText(() => Signal.get(moves)->Int.toString)}
+          {View.text("Moves: ")}
+          {View.signalText(() => Signal.get(moves)->Int.toString)}
         </p>
       </div>
       <button
         class="demo-btn demo-btn-primary"
         onClick={newGame}
       >
-        {Node.text("New Game")}
+        {View.text("New Game")}
       </button>
     </div>
     {
@@ -574,8 +574,8 @@ let make = () => {
           [
             <div class="solitaire-win">
               <p style="font-size: 1.25rem; font-weight: bold; margin: 0;">
-                {Node.text("You Won! ")}
-                {Node.signalText(() =>
+                {View.text("You Won! ")}
+                {View.signalText(() =>
                   `Completed in ${Signal.get(moves)->Int.toString} moves`
                 )}
               </p>
@@ -585,7 +585,7 @@ let make = () => {
           []
         }
       })
-      Node.signalFragment(gameWonSignal)
+      View.signalFragment(gameWonSignal)
     }
     <div class="solitaire-board">
       <div class="solitaire-top-row">
@@ -604,14 +604,14 @@ let make = () => {
     </div>
     <div class="demo-info-box">
       <h3 style="margin: 0 0 0.5rem 0;">
-        {Node.text("How to Play")}
+        {View.text("How to Play")}
       </h3>
       <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.875rem; opacity: 0.8;">
-        <li> {Node.text("Click cards to select, then click destination")} </li>
-        <li> {Node.text("Build tableau columns in descending order, alternating colors")} </li>
-        <li> {Node.text("Build foundations from Ace to King by suit")} </li>
-        <li> {Node.text("Only Kings can be placed on empty columns")} </li>
-        <li> {Node.text("Click stock to draw cards")} </li>
+        <li> {View.text("Click cards to select, then click destination")} </li>
+        <li> {View.text("Build tableau columns in descending order, alternating colors")} </li>
+        <li> {View.text("Build foundations from Ace to King by suit")} </li>
+        <li> {View.text("Only Kings can be placed on empty columns")} </li>
+        <li> {View.text("Click stock to draw cards")} </li>
       </ul>
     </div>
   </div>

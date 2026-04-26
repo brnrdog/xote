@@ -140,9 +140,9 @@ module ColorSlider = {
   let make = (~label: string, ~value: Signal.t<int>, ~onChange: Dom.event => unit) => {
     <div class="color-demo-slider-group">
       <div class="color-demo-slider-label">
-        <span> {Node.text(label)} </span>
+        <span> {View.text(label)} </span>
         <span class="color-demo-slider-value">
-          {Node.signalText(() => Signal.get(value)->Int.toString)}
+          {View.signalText(() => Signal.get(value)->Int.toString)}
         </span>
       </div>
       <input
@@ -166,7 +166,7 @@ module ColorPreview = {
           `background-color: ${Signal.get(rgbColor)}; transition: background-color 0.2s ease; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;`}
       >
         <div class="color-demo-hex-overlay">
-          {Node.signalText(() => Signal.get(hexColor))}
+          {View.signalText(() => Signal.get(hexColor))}
         </div>
       </div>
     </div>
@@ -178,14 +178,14 @@ module ColorInfo = {
     @jsx.component
     let make = (~label: string, ~value: Signal.t<string>) => {
       <div class="color-demo-value-row">
-        <span> {Node.text(label)} </span>
+        <span> {View.text(label)} </span>
         <div>
-          <span> {Node.signalText(() => Signal.get(value))} </span>
+          <span> {View.signalText(() => Signal.get(value))} </span>
           <button
             class="demo-btn demo-btn-secondary"
             onClick={_evt => copyToClipboard(Signal.get(value))}
           >
-            {Node.text("Copy")}
+            {View.text("Copy")}
           </button>
         </div>
       </div>
@@ -195,7 +195,7 @@ module ColorInfo = {
   @jsx.component
   let make = () => {
     <div>
-      <h3> {Node.text("Color Values")} </h3>
+      <h3> {View.text("Color Values")} </h3>
       <ColorValueRow label="HEX" value={hexColor} />
       <ColorValueRow label="RGB" value={rgbColor} />
       <ColorValueRow label="HSL" value={hslColor} />
@@ -213,7 +213,7 @@ module ColorPalette = {
           style={() => `background-color: ${Signal.get(color)}`}
           onClick={_evt => copyToClipboard(Signal.get(color))}
         />
-        <p class="color-demo-palette-label"> {Node.text(label)} </p>
+        <p class="color-demo-palette-label"> {View.text(label)} </p>
       </div>
     }
   }
@@ -221,7 +221,7 @@ module ColorPalette = {
   @jsx.component
   let make = () => {
     <div>
-      <h3> {Node.text("Color Variations")} </h3>
+      <h3> {View.text("Color Variations")} </h3>
       <div class="demo-grid-3">
         <PaletteItem label="Lighter" color={lighterColor} />
         <PaletteItem label="Current" color={rgbColor} />
@@ -239,9 +239,9 @@ module SavedColors = {
   let make = () => {
     <div>
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
-        <h3> {Node.text("Saved Colors")} </h3>
+        <h3> {View.text("Saved Colors")} </h3>
         <button class="demo-btn demo-btn-primary" onClick={saveColor}>
-          {Node.text("+ Save Current")}
+          {View.text("+ Save Current")}
         </button>
       </div>
       {
@@ -250,13 +250,13 @@ module SavedColors = {
           if Array.length(colors) == 0 {
             [
               <p style="text-align: center; padding: 1rem 0; opacity: 0.6;">
-                {Node.text("No saved colors yet")}
+                {View.text("No saved colors yet")}
               </p>,
             ]
           } else {
             [
               <div class="color-demo-saved-grid">
-                {Node.list(savedColors, color => {
+                {View.list(savedColors, color => {
                   <div
                     class="color-demo-palette-item"
                     style={`background-color: ${color}`}
@@ -267,7 +267,7 @@ module SavedColors = {
             ]
           }
         })
-        Node.signalFragment(savedColorsSignal)
+        View.signalFragment(savedColorsSignal)
       }
     </div>
   }
@@ -282,9 +282,9 @@ let make = () => {
     // RGB Sliders
     <div class="demo-section">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-        <h2> {Node.text("RGB Mixer")} </h2>
+        <h2> {View.text("RGB Mixer")} </h2>
         <button class="demo-btn demo-btn-secondary" onClick={randomColor}>
-          {Node.text("Random")}
+          {View.text("Random")}
         </button>
       </div>
       <ColorSlider label="Red" value={red} onChange={updateRed} />

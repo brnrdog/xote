@@ -24,12 +24,12 @@ module NotFoundPage = {
     <Layout
       children={
         <div class="not-found">
-          <h1> {Node.text("404")} </h1>
-          <p> {Node.text("The page you're looking for doesn't exist.")} </p>
+          <h1> {View.text("404")} </h1>
+          <p> {View.text("The page you're looking for doesn't exist.")} </p>
           {Router.link(
             ~to="/",
-            ~attrs=[Node.attr("class", "btn btn-primary")],
-            ~children=[Node.text("Go Home")],
+            ~attrs=[View.attr("class", "btn btn-primary")],
+            ~children=[View.text("Go Home")],
             (),
           )}
         </div>
