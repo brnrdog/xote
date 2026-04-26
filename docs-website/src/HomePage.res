@@ -53,9 +53,11 @@ module FeatureCard = {
           ~events=[
             (
               "click",
-              _ => {
-                let _ = %raw(`window.posthog && window.posthog.capture('feature_card_link_clicked', { destination: to, link_text: text })`)
-              },
+              _ =>
+                PostHog.capture(
+                  "feature_card_link_clicked",
+                  ~properties={"destination": to, "link_text": text},
+                ),
             ),
           ],
           ~children=[
@@ -300,14 +302,7 @@ module Hero = {
       <div class="hero-ctas">
         {Node.element(
           "span",
-          ~events=[
-            (
-              "click",
-              _ => {
-                let _ = %raw(`window.posthog && window.posthog.capture('get_started_clicked')`)
-              },
-            ),
-          ],
+          ~events=[("click", _ => PostHog.capture("get_started_clicked"))],
           ~children=[
             Router.link(
               ~to="/docs",

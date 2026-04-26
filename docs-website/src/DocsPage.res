@@ -150,9 +150,15 @@ module PrevNextNav = {
           ~events=[
             (
               "click",
-              _ => {
-                let _ = %raw(`window.posthog && window.posthog.capture('docs_page_navigated', { direction: 'previous', target_path: item.path, target_title: item.title })`)
-              },
+              _ =>
+                PostHog.capture(
+                  "docs_page_navigated",
+                  ~properties={
+                    "direction": "previous",
+                    "target_path": item.path,
+                    "target_title": item.title,
+                  },
+                ),
             ),
           ],
           ~children=[
@@ -179,9 +185,15 @@ module PrevNextNav = {
           ~events=[
             (
               "click",
-              _ => {
-                let _ = %raw(`window.posthog && window.posthog.capture('docs_page_navigated', { direction: 'next', target_path: item.path, target_title: item.title })`)
-              },
+              _ =>
+                PostHog.capture(
+                  "docs_page_navigated",
+                  ~properties={
+                    "direction": "next",
+                    "target_path": item.path,
+                    "target_title": item.title,
+                  },
+                ),
             ),
           ],
           ~children=[

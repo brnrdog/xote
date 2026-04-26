@@ -29,8 +29,7 @@ let toggleTheme = () => {
     | _ => "dark"
     }
   )
-  let newTheme = Signal.peek(theme)
-  let _ = %raw(`window.posthog && window.posthog.capture('theme_toggled', { theme: newTheme })`)
+  PostHog.capture("theme_toggled", ~properties={"theme": Signal.peek(theme)})
 }
 
 if SSRContext.isClient {
@@ -48,7 +47,7 @@ let searchOpen = Signal.make(false)
 
 let openSearch = () => {
   Signal.set(searchOpen, true)
-  let _ = %raw(`window.posthog && window.posthog.capture('search_opened')`)
+  PostHog.capture("search_opened")
 }
 let closeSearch = () => Signal.set(searchOpen, false)
 
@@ -109,7 +108,10 @@ module SearchModal = {
       let idx = Signal.peek(selectedIndex)
       switch items->Array.get(idx) {
       | Some(item) =>
-        let _ = %raw(`window.posthog && window.posthog.capture('search_result_selected', { result_path: item.path, result_title: item.title })`)
+        PostHog.capture(
+          "search_result_selected",
+          ~properties={"result_path": item.path, "result_title": item.title},
+        )
         Router.push(item.path, ())
         closeSearch()
         Signal.set(query, "")
@@ -211,7 +213,13 @@ module SearchModal = {
                                   (
                                     "click",
                                     _ => {
-                                      let _ = %raw(`window.posthog && window.posthog.capture('search_result_selected', { result_path: item.path, result_title: item.title })`)
+                                      PostHog.capture(
+                                        "search_result_selected",
+                                        ~properties={
+                                          "result_path": item.path,
+                                          "result_title": item.title,
+                                        },
+                                      )
                                       Router.push(item.path, ())
                                       closeSearch()
                                       Signal.set(query, "")
@@ -293,9 +301,8 @@ module Header = {
               href="https://github.com/brnrdog/xote"
               target="_blank"
               class="header-nav-link"
-              onClick={_ => {
-                let _ = %raw(`window.posthog && window.posthog.capture('github_link_clicked', { source: 'header' })`)
-              }}>
+              onClick={_ =>
+                PostHog.capture("github_link_clicked", ~properties={"source": "header"})}>
               {Node.text("GitHub")}
             </a>
           </nav>
