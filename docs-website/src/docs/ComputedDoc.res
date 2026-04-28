@@ -120,7 +120,6 @@ let temperature = Computed.make(() =>
     </p>
     <DocsExamplePanel
       filename="OrderSummary.res"
-      caption="fig. 1 - an order summary driven by computeds"
       code={`open Xote
 
 let unitPrice = Signal.make(24)

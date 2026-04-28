@@ -15,7 +15,7 @@ let docsNav: array<docCategory> = [
     items: [
       {title: "Introduction", path: "/docs"},
       {
-        title: "ReScript for Newcomers",
+        title: "Learning ReScript",
         path: "/docs/getting-started/rescript",
       },
     ],

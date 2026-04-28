@@ -1626,6 +1626,161 @@ td strong {
   color: var(--text);
 }
 
+.todo-list-demo {
+  width: 100%;
+  display: grid;
+  gap: var(--s-4);
+}
+
+.todo-list-demo-hero,
+.todo-list-demo-section {
+  border: 1px solid var(--border);
+  background: var(--elevated);
+}
+
+.todo-list-demo-hero,
+.todo-list-demo-section {
+  padding: var(--s-4);
+}
+
+.todo-list-demo-title {
+  margin: var(--s-1) 0 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+
+.todo-list-demo-copy {
+  margin: var(--s-2) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.todo-demo-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.todo-demo-input {
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+}
+
+.todo-demo-input::placeholder {
+  color: var(--text-faint);
+}
+
+.todo-list-demo-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.todo-demo-summary,
+.todo-list-demo-count {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.todo-demo-summary {
+  color: var(--text);
+}
+
+.todo-list-demo-count {
+  color: var(--text-muted);
+}
+
+.todo-demo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.todo-demo-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--border);
+}
+
+.todo-demo-item:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.todo-demo-item:last-child {
+  padding-bottom: 0;
+}
+
+.todo-demo-item-completed .todo-demo-item-text {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--text-faint);
+}
+
+.todo-demo-checkbox {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--text);
+}
+
+.todo-demo-item-text {
+  min-width: 0;
+  color: var(--text);
+  font-size: var(--fs-sm);
+}
+
+.todo-demo-delete-btn {
+  min-height: 34px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+}
+
+.todo-demo-delete-btn:hover {
+  color: var(--text);
+  border-color: var(--text-faint);
+}
+
+@media (max-width: 640px) {
+  .todo-demo-form {
+    grid-template-columns: 1fr;
+  }
+
+  .todo-list-demo-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .todo-demo-item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .todo-demo-delete-btn {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: var(--s-1);
+  }
+}
+
 .tutorial-stage {
   width: 100%;
   display: flex;

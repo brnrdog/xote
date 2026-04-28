@@ -151,7 +151,6 @@ Effect.run(() => {
     </p>
     <DocsExamplePanel
       filename="DraftAutoSave.res"
-      caption="fig. 1 - an effect debounces auto-save work"
       code={`open Xote
 
 let draft = Signal.make("")

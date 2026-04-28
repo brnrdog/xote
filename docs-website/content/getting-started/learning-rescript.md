@@ -1,0 +1,175 @@
+ReScript compiles to readable JavaScript and fits into the same runtime, npm packages, and tooling you already use. What it changes is how precisely you can model data and program behavior before the code ships.
+
+## A First Look
+
+The point of ReScript is not just that types are nice. It gives you a way to model real program states so the compiler can enforce rules you would otherwise keep in your head.
+
+In many codebases, a value like this ends up spread across string values, nullable fields, and defensive checks. It works until one branch is forgotten during a refactor. ReScript pushes that information into the type itself:
+
+```rescript
+type user =
+  | Guest
+  | SignedIn(string)
+  | Banned(string)
+
+let greeting = user =>
+  switch user {
+  | Guest => "Welcome, stranger"
+  | SignedIn(name) => `Hello, ${name}`
+  | Banned(reason) => `Access denied: ${reason}`
+  }
+```
+
+A few things matter here:
+
+- `type user` declares a *variant* — a closed set of cases. The compiler knows every value `user` can hold.
+- `switch` matches each case directly. Add a new case to `user` later (say, `Suspended`), and the compiler points out every `switch` that no longer covers the type.
+- The function reads like straightforward application code, but the guarantees are stronger: there is no ambiguity about what shape can arrive at runtime.
+- Types are inferred, so `greeting` does not need an annotation. You get compiler help without turning the example into a wall of type syntax.
+- Template strings use backticks and `${...}` for interpolation, like in modern JavaScript.
+
+This is the practical case for ReScript: instead of relying on conventions, comments, or discipline to keep state handling correct, you encode the valid cases once and let the compiler enforce them everywhere.
+
+Exhaustiveness checking is on by default. You cannot ship a `switch` with a missing case, which removes a whole class of forgotten-state bugs before the code runs.
+
+## Let Bindings and Functions
+
+Most values are declared with `let`. Functions take their arguments in parentheses.
+
+```rescript
+let count = 1
+let add = (a, b) => a + b
+
+let total = add(count, 41)
+```
+
+Bindings are immutable by default. That usually makes code easier to follow because values do not quietly change underneath you.
+
+## Records and Variants
+
+Records are object-like data with known fields. Variants are a fixed set of cases.
+
+```rescript
+type user = {
+  name: string,
+  admin: bool,
+}
+
+type status =
+  | Idle
+  | Saving
+  | Failed(string)
+
+let currentUser = {name: "Ada", admin: true}
+let currentStatus = Saving
+```
+
+Variants are especially useful anywhere a value can be in one of several known states. You model the allowed cases once, then the compiler checks every place that consumes them.
+
+## Pattern Matching with switch
+
+`switch` is the main branching construct. It handles destructuring and case coverage in one place.
+
+```rescript
+let statusLabel = status =>
+  switch status {
+  | Idle => "Ready"
+  | Saving => "Saving..."
+  | Failed(message) => `Failed: ${message}`
+  }
+```
+
+If you add a new variant case later, the compiler points out every `switch` that needs updating. The same applies when you match on records, tuples, or nested data:
+
+```rescript
+type role =
+  | Guest
+  | Member
+  | Admin
+
+type page =
+  | Home
+  | Settings
+
+let canView = (role, page) =>
+  switch (role, page) {
+  | (Guest, Home) => true
+  | (Guest, Settings) => false
+  | (Member, _) => true
+  | (Admin, _) => true
+  }
+```
+
+`switch` here matches a tuple of two variants. That is useful whenever behavior depends on more than one piece of state at once.
+
+## Options Instead of null
+
+Missing values use `option<'a>`, with two cases: `Some(value)` and `None`.
+
+```rescript
+let maybeName: option<string> = Some("Ada")
+let missingName: option<string> = None
+
+let displayName = name =>
+  switch name {
+  | Some(value) => value
+  | None => "Anonymous"
+  }
+```
+
+This changes day-to-day code in a few practical ways:
+
+- Missing values are explicit in the type, so you can see right away which values need handling.
+- You cannot accidentally read through `undefined` at runtime. The compiler makes you handle `None` first.
+- There is one absence model instead of juggling `null`, `undefined`, and missing keys.
+
+You will see this often in optional arguments, lookups, and decoded data.
+
+## Modules and Files
+
+Each file becomes a module. A file named `Counter.res` exposes its values under `Counter`.
+
+```rescript
+/* Counter.res */
+let initial = 0
+let increment = count => count + 1
+
+/* App.res */
+let next = Counter.increment(Counter.initial)
+```
+
+You get namespacing by default, which keeps larger codebases from turning into import and naming sprawl.
+
+## Why It's Worth It
+
+Once the syntax clicks, the benefits are mostly about reducing ambiguity in the code:
+
+- You model state directly instead of spreading it across booleans, strings, and nullable fields.
+- Refactors are safer because the compiler shows you every affected branch.
+- `option` removes a large class of `null` and `undefined` bugs.
+- Types are inferred, so the code stays compact.
+- The output still fits naturally into existing JavaScript tooling.
+
+The payoff gets bigger as the codebase grows. The more branches, edge cases, and moving parts you have, the more valuable those guarantees become.
+
+## Adding ReScript Incrementally
+
+You do not need a rewrite to try it:
+
+- A JS or TS app can import modules compiled from ReScript.
+- ReScript targets the same runtime, bundler, and npm packages as the rest of your app.
+- You can adopt it one module, feature, or library at a time.
+
+That makes it easy to start with one bounded part of a codebase and expand only if it proves useful.
+
+## Keep Learning
+
+The official ReScript site covers the full language and toolchain:
+
+- [Introduction](https://rescript-lang.org/docs/manual/v12.0.0/introduction)
+- [Overview](https://rescript-lang.org/docs/manual/overview)
+- [Pattern Matching / Destructuring](https://rescript-lang.org/docs/manual/pattern-matching-destructuring/)
+- [Modules](https://rescript-lang.org/docs/manual/module/)
+- [API Reference](https://rescript-lang.org/docs/manual/api/)
+
+Once this page feels familiar, the next step inside Xote's docs is [Signals](/docs/core-concepts/signals), then [View](/docs/view/overview).

@@ -191,7 +191,6 @@ let temperature = Computed.make(() =>
     </p>
     <DocsExamplePanel
       filename="Counter.res"
-      caption="fig. 1 - a counter driven by one signal"
       code={`open Xote
 
 let count = Signal.make(0)

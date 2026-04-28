@@ -1,11 +1,11 @@
 // Import doc content
 module IntroDoc = IntroDoc
-module ReScriptNewcomersDoc = ReScriptNewcomersDoc
+module LearningReScriptDoc = LearningReScriptDoc
 module SignalsDoc = SignalsDoc
 module ComputedDoc = ComputedDoc
 module EffectsDoc = EffectsDoc
 module BatchingDoc = BatchingDoc
-module ComponentsDoc = ComponentsDoc
+module ViewsDoc = ViewsDoc
 module RouterDoc = RouterDoc
 module ApiSignalsDoc = ApiSignalsDoc
 module ReactComparisonDoc = ReactComparisonDoc
@@ -109,30 +109,27 @@ module App = {
           render: _params =>
             <DocsPage
               currentPath="/docs/getting-started/rescript"
-              pageTitle="ReScript for Newcomers"
-              pageLead="A quick orientation to the language underneath Xote, with syntax, patterns, and the official docs for deeper study."
-              content={ReScriptNewcomersDoc.content()}
+              pageTitle="Learning ReScript"
+              pageLead="A quick tour of ReScript syntax, with examples and links to the official docs for deeper study."
+              content={LearningReScriptDoc.content()}
               tocItems=[
-                {text: "What ReScript Is", id: "what-rescript-is", level: 2},
-                {text: "Why It Matters", id: "why-it-matters", level: 2},
-                {text: "The Practical Payoff", id: "the-practical-payoff", level: 3},
+                {text: "A First Look", id: "a-first-look", level: 2},
+                {text: "Let Bindings and Functions", id: "let-bindings-and-functions", level: 2},
+                {text: "Records and Variants", id: "records-and-variants", level: 2},
                 {
-                  text: "ReScript in Existing JS or TS Projects",
-                  id: "rescript-in-existing-js-or-ts-projects",
+                  text: "Pattern Matching with switch",
+                  id: "pattern-matching-with-switch",
                   level: 2,
                 },
-                {text: "Syntax You Will See Often", id: "syntax-you-will-see-often", level: 2},
-                {text: "let Bindings and Functions", id: "let-bindings-and-functions", level: 3},
-                {text: "Records and Variants", id: "records-and-variants", level: 3},
-                {text: "switch and Pattern Matching", id: "switch-and-pattern-matching", level: 3},
-                {text: "options Instead of null", id: "options-instead-of-null", level: 3},
-                {text: "Modules and Files", id: "modules-and-files", level: 3},
-                {text: "Xote-Flavored ReScript Patterns", id: "xote-flavored-rescript-patterns", level: 2},
-                {text: "Event Handlers", id: "event-handlers", level: 3},
-                {text: "Local State with Signals", id: "local-state-with-signals", level: 3},
-                {text: "JSX Components", id: "jsx-components", level: 3},
-                {text: "Official Docs", id: "official-docs", level: 2},
-                {text: "Recommended Deep Dives", id: "recommended-deep-dives", level: 3},
+                {text: "Options Instead of null", id: "options-instead-of-null", level: 2},
+                {text: "Modules and Files", id: "modules-and-files", level: 2},
+                {text: "Why It's Worth It", id: "why-its-worth-it", level: 2},
+                {
+                  text: "Adding ReScript Incrementally",
+                  id: "adding-rescript-incrementally",
+                  level: 2,
+                },
+                {text: "Keep Learning", id: "keep-learning", level: 2},
               ]
             />,
         },
@@ -268,7 +265,7 @@ module App = {
               currentPath="/docs/view/overview"
               pageTitle="View"
               pageLead="How the View module and JSX components render once and stay reactive over time."
-              content={ComponentsDoc.content()}
+              content={ViewsDoc.content()}
               tocItems=[
                 {text: "View Module", id: "component-model", level: 2},
                 {text: "Using View", id: "building-components", level: 2},
@@ -281,7 +278,7 @@ module App = {
                 {text: "Lists", id: "lists", level: 3},
                 {text: "Mounting", id: "mounting", level: 3},
                 {text: "In Practice", id: "components-in-practice", level: 2},
-                {text: "Example: Counter View", id: "example-counter-component", level: 3},
+                {text: "Example: Todo List", id: "example-todo-list", level: 3},
                 {text: "Working Style", id: "components-working-style", level: 2},
                 {text: "Best Practices", id: "best-practices", level: 3},
                 {text: "Next Steps", id: "next-steps", level: 3},
@@ -295,7 +292,7 @@ module App = {
               currentPath="/docs/view/overview"
               pageTitle="View"
               pageLead="How the View module and JSX components render once and stay reactive over time."
-              content={ComponentsDoc.content()}
+              content={ViewsDoc.content()}
               tocItems=[
                 {text: "View Module", id: "component-model", level: 2},
                 {text: "Using View", id: "building-components", level: 2},
@@ -308,7 +305,7 @@ module App = {
                 {text: "Lists", id: "lists", level: 3},
                 {text: "Mounting", id: "mounting", level: 3},
                 {text: "In Practice", id: "components-in-practice", level: 2},
-                {text: "Example: Counter View", id: "example-counter-component", level: 3},
+                {text: "Example: Todo List", id: "example-todo-list", level: 3},
                 {text: "Working Style", id: "components-working-style", level: 2},
                 {text: "Best Practices", id: "best-practices", level: 3},
                 {text: "Next Steps", id: "next-steps", level: 3},

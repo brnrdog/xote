@@ -107,9 +107,9 @@ let greeting = (name: string) => {
     <p>
       {View.text("JSX expressions are just nodes. For reactive text, use ")}
       <code> {View.text("View.signalText")} </code>
-      {View.text(". For arrays of reactive children, use ")}
-      <code> {View.text("View.signalFragment")} </code>
-      {View.text(" or one of the list helpers.")}
+      {View.text(". For arrays and lists, prefer ")}
+      <code> {View.text("View.eachWithKey")} </code>
+      {View.text(" when item identity matters.")}
     </p>
     <pre class="docs-code-pre">
       <code>
@@ -231,42 +231,59 @@ View.mountById(app(), "app")`)}
     </pre>
 
     <h2 id="components-in-practice"> {View.text("In Practice")} </h2>
-    <h3 id="example-counter-component"> {View.text("Example: Counter View")} </h3>
+    <h3 id="example-todo-list"> {View.text("Example: Todo List")} </h3>
     <p>
-      {View.text("This example keeps state local to the component and exposes only props.")}
+      {View.text("This example keeps the shape simple while still showing composition: an input form, a summary, and a keyed list of items all built from small components.")}
     </p>
-    <pre class="docs-code-pre">
-      <code>
-        {SyntaxHighlight.highlight(`open Xote
+    <DocsExamplePanel
+      filename="TodoList.res"
+      code={`open Xote
 
-module Counter = {
+type todo = {
+  id: string,
+  title: string,
+  done: bool,
+}
+
+let todos = Signal.make([
+  {id: "1", title: "Write the View guide", done: true},
+  {id: "2", title: "Add a runnable example", done: false},
+])
+
+let draft = Signal.make("")
+
+module TodoComposer = {
   @jsx.component
-  let make = (~initialValue: int) => {
-    let count = Signal.make(initialValue)
-
-    let increment = (_evt: Dom.event) => {
-      Signal.update(count, n => n + 1)
-    }
-
-    let decrement = (_evt: Dom.event) => {
-      Signal.update(count, n => n - 1)
-    }
-
-    <div class="counter">
-      <h2>
-        {View.signalText(() => \`Count: \${Signal.get(count)->Int.toString}\`)}
-      </h2>
-      <button onClick={decrement}> {View.text("-")} </button>
-      <button onClick={increment}> {View.text("+")} </button>
+  let make = () => {
+    <div>
+      <input onInput={handleInput} value={() => Signal.get(draft)} />
+      <button onClick={addTodo}> {View.text("Add")} </button>
     </div>
   }
 }
 
-let app = () => {
-  <Counter initialValue={10} />
-}`)}
-      </code>
-    </pre>
+module TodoRow = {
+  @jsx.component
+  let make = (~todo: todo) => {
+    <li>
+      <span> {View.text(todo.title)} </span>
+      <input type_="checkbox" checked={todo.done} />
+    </li>
+  }
+}
+
+@jsx.component
+let make = () => {
+  <div>
+    <TodoComposer />
+    <ul>
+      {View.eachWithKey(todos, todo => todo.id, todo => <TodoRow todo />)}
+    </ul>
+  </div>
+}`}
+    >
+      <TodoListDemo />
+    </DocsExamplePanel>
 
     <h2 id="components-working-style"> {View.text("Working Style")} </h2>
     <h3 id="best-practices"> {View.text("Best Practices")} </h3>
