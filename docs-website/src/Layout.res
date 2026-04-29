@@ -5,6 +5,11 @@ external setHtmlAttribute: (string, string) => unit = "setAttribute"
 @val @scope("localStorage") external setItem: (string, string) => unit = "setItem"
 @val @scope("window") external addEventListener: (string, 'a) => unit = "addEventListener"
 @val @scope("window") external removeEventListener: (string, 'a) => unit = "removeEventListener"
+@val @scope("window")
+external addEventListenerCapture: (string, 'a, {"capture": bool}) => unit = "addEventListener"
+@val @scope("window")
+external removeEventListenerCapture: (string, 'a, {"capture": bool}) => unit = "removeEventListener"
+@val external queueMicrotask: (unit => unit) => unit = "queueMicrotask"
 
 // ---- Theme management ----
 let initialTheme = if SSRContext.isClient {
@@ -86,6 +91,22 @@ let searchItems: array<searchItem> = [
 module SearchModal = {
   type props = {}
 
+  let focusSearchInput = () => {
+    let _ = %raw(`(() => {
+      const el = document.querySelector('.search-input');
+      if (el && typeof el.focus === 'function') el.focus();
+    })()`)
+  }
+
+  let scrollActiveIntoView = () => {
+    let _ = %raw(`(() => {
+      const el = document.querySelector('.search-result-item.active');
+      if (el && typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({block: 'nearest'});
+      }
+    })()`)
+  }
+
   let make = (_props: props) => {
     let query = Signal.make("")
     let selectedIndex = Signal.make(0)
@@ -101,6 +122,27 @@ module SearchModal = {
         )
       }
     })
+
+    if SSRContext.isClient {
+      Effect.run(() => {
+        if Signal.get(searchOpen) {
+          queueMicrotask(focusSearchInput)
+        } else {
+          Signal.set(query, "")
+          Signal.set(selectedIndex, 0)
+        }
+        None
+      })
+
+      Effect.run(() => {
+        let _ = Signal.get(selectedIndex)
+        let _ = Signal.get(filteredItems)
+        if Signal.peek(searchOpen) {
+          queueMicrotask(scrollActiveIntoView)
+        }
+        None
+      })
+    }
 
     let handleInput = (_evt: Dom.event) => {
       let value: string = %raw(`_evt.target.value`)
@@ -450,10 +492,12 @@ if SSRContext.isClient {
         } else {
           openSearch()
         }
+      } else if key == "Escape" && Signal.peek(searchOpen) {
+        closeSearch()
       }
     }
-    addEventListener("keydown", handler)
-    Some(() => removeEventListener("keydown", handler))
+    addEventListenerCapture("keydown", handler, {"capture": true})
+    Some(() => removeEventListenerCapture("keydown", handler, {"capture": true}))
   })
 }
 
