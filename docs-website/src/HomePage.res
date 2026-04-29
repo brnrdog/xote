@@ -485,6 +485,103 @@ module HeroBackground = {
   }
 }
 
+module InstallPanel = {
+  type props = {}
+
+  type pkgManager = {
+    id: string,
+    label: string,
+    command: string,
+  }
+
+  let managers: array<pkgManager> = [
+    {id: "npm", label: "npm", command: "npm install rescript xote"},
+    {id: "yarn", label: "yarn", command: "yarn add rescript xote"},
+    {id: "pnpm", label: "pnpm", command: "pnpm add rescript xote"},
+    {id: "bun", label: "bun", command: "bun add rescript xote"},
+  ]
+
+  @val external setTimeout: (unit => unit, float) => int = "setTimeout"
+  @val external clearTimeout: int => unit = "clearTimeout"
+
+  let copyToClipboard = (_text: string) => {
+    let _ = %raw(`navigator.clipboard && navigator.clipboard.writeText(_text)`)
+  }
+
+  let lookup = id =>
+    switch managers->Array.find(m => m.id == id) {
+    | Some(m) => m
+    | None => managers->Array.getUnsafe(0)
+    }
+
+  let make = (_props: props) => {
+    let active = Signal.make("npm")
+    let copied = Signal.make(false)
+    let copyTimer: ref<option<int>> = ref(None)
+
+    let handleCopy = _ => {
+      let m = lookup(Signal.peek(active))
+      copyToClipboard(m.command)
+      Signal.set(copied, true)
+      switch copyTimer.contents {
+      | Some(id) => clearTimeout(id)
+      | None => ()
+      }
+      copyTimer :=
+        Some(
+          setTimeout(() => {
+            copyTimer := None
+            Signal.set(copied, false)
+          }, 1500.),
+        )
+      PostHog.capture(
+        "install_command_copied",
+        ~properties={"manager": m.id},
+      )
+    }
+
+    <div class="install-panel">
+      <div class="install-tabs" role="tablist">
+        {View.fragment(
+          managers->Array.map(m => {
+            let cls = Computed.make(() =>
+              Signal.get(active) == m.id ? "install-tab is-active" : "install-tab"
+            )
+            <button
+              type_="button"
+              role="tab"
+              class={cls}
+              onClick={_ => {
+                Signal.set(active, m.id)
+                PostHog.capture(
+                  "install_manager_selected",
+                  ~properties={"manager": m.id},
+                )
+              }}>
+              {View.text(m.label)}
+            </button>
+          }),
+        )}
+      </div>
+      <div class="install-body">
+        <code class="install-cmd">
+          <span class="install-prompt"> {View.text("$")} </span>
+          <span class="install-text">
+            {View.signalText(() => lookup(Signal.get(active)).command)}
+          </span>
+        </code>
+        <button
+          type_="button"
+          class="install-copy"
+          ariaLabel="Copy install command"
+          onClick={handleCopy}>
+          {View.signalText(() => Signal.get(copied) ? "Copied" : "Copy")}
+        </button>
+      </div>
+    </div>
+  }
+}
+
 module Hero = {
   type props = {}
 
@@ -520,6 +617,7 @@ module Hero = {
           (),
         )}
       </div>
+      <InstallPanel />
     </section>
   }
 }
