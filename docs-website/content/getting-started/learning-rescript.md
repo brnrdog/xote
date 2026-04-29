@@ -1,4 +1,14 @@
-ReScript compiles to readable JavaScript and fits into the same runtime, npm packages, and tooling you already use. What it changes is how precisely you can model data and program behavior before the code ships.
+ReScript is a strongly-typed language with full type inference, derived from OCaml, that compiles to readable JavaScript. It runs in any JavaScript host — browser, Node, Bun, edge runtimes — consumes npm packages directly, and slots into the bundlers and test runners you already use. The compiler is fast, typically sub-second on incremental builds, and refuses to emit programs whose types do not line up. A successful build is a real guarantee rather than a hint. What it changes is how precisely you can model data and program behavior before the code ships.
+
+## Why It Matters Now
+
+The case for a strongly-typed language is no longer only about catching bugs while you type. Code is increasingly read and written by AI agents alongside humans, and both work better when a codebase's rules are mechanical instead of implicit.
+
+- For humans, types act as compressed documentation. A signature tells you which shapes a function accepts, what it returns, and which cases the caller has to handle — without scrolling through the implementation.
+- For AI, types are a tight feedback loop. An agent that proposes a change can run the compiler, get a precise error pointing at the mismatched value, and correct itself before the code ever runs. Inference grounded in types is far more reliable than guesses pulled from naming conventions.
+- For both, exhaustive `switch` and explicit `option` types collapse the surface area of unwritten assumptions. Less context has to live in someone's head — or someone's prompt — for the program to stay correct.
+
+The compiler ends up doing the boring parts of code review: did you cover every variant, did you handle the missing value, did the field you renamed get updated everywhere it was used.
 
 ## A First Look
 
@@ -26,7 +36,6 @@ A few things matter here:
 - `switch` matches each case directly. Add a new case to `user` later (say, `Suspended`), and the compiler points out every `switch` that no longer covers the type.
 - The function reads like straightforward application code, but the guarantees are stronger: there is no ambiguity about what shape can arrive at runtime.
 - Types are inferred, so `greeting` does not need an annotation. You get compiler help without turning the example into a wall of type syntax.
-- Template strings use backticks and `${...}` for interpolation, like in modern JavaScript.
 
 This is the practical case for ReScript: instead of relying on conventions, comments, or discipline to keep state handling correct, you encode the valid cases once and let the compiler enforce them everywhere.
 
@@ -45,9 +54,9 @@ let total = add(count, 41)
 
 Bindings are immutable by default. That usually makes code easier to follow because values do not quietly change underneath you.
 
-## Records and Variants
+## Records
 
-Records are object-like data with known fields. Variants are a fixed set of cases.
+Records are object-like data with known fields:
 
 ```rescript
 type user = {
@@ -55,31 +64,14 @@ type user = {
   admin: bool,
 }
 
-type status =
-  | Idle
-  | Saving
-  | Failed(string)
-
 let currentUser = {name: "Ada", admin: true}
-let currentStatus = Saving
 ```
 
-Variants are especially useful anywhere a value can be in one of several known states. You model the allowed cases once, then the compiler checks every place that consumes them.
+Records pattern-match the same way variants do, with the same exhaustiveness guarantees.
 
-## Pattern Matching with switch
+## Matching on Multiple Values
 
-`switch` is the main branching construct. It handles destructuring and case coverage in one place.
-
-```rescript
-let statusLabel = status =>
-  switch status {
-  | Idle => "Ready"
-  | Saving => "Saving..."
-  | Failed(message) => `Failed: ${message}`
-  }
-```
-
-If you add a new variant case later, the compiler points out every `switch` that needs updating. The same applies when you match on records, tuples, or nested data:
+[A First Look](#a-first-look) covered the basic variant + `switch` pair. The same construct also matches tuples, so you can branch on combinations of state in one place:
 
 ```rescript
 type role =
@@ -100,7 +92,7 @@ let canView = (role, page) =>
   }
 ```
 
-`switch` here matches a tuple of two variants. That is useful whenever behavior depends on more than one piece of state at once.
+The `_` wildcard ignores cases you do not need to spell out, while the compiler still checks that every meaningful combination is covered.
 
 ## Options Instead of null
 
