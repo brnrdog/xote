@@ -1,5 +1,11 @@
 open! Zekr
 
+%%raw(`
+function __xoteTestDispatchEventByName(node, eventName) {
+  node.dispatchEvent(new Event(eventName, {bubbles: true}));
+}
+`)
+
 let mountTo = (node, container) => {
   View.mount(node, container)
   container
@@ -9,6 +15,7 @@ let mountTo = (node, container) => {
 @get external selectedIndexOf: 'a => int = "selectedIndex"
 @send external querySelector: ('a, string) => Nullable.t<'b> = "querySelector"
 @val external objectIs: ('a, 'a) => bool = "Object.is"
+@val external dispatchEventByName: ('a, string) => unit = "__xoteTestDispatchEventByName"
 
 let suite = Zekr.suite(
   "JSX",
@@ -29,6 +36,28 @@ let suite = Zekr.suite(
       let btn = Dom.Query.getByRole(container, "button")
       Dom.Event.click(btn)
       assertTrue(clicked.contents)
+    }),
+    test("handles pointer events in JSX", () => {
+      let {container} = Dom.render("")
+      let pointerDown = ref(false)
+      let pointerUp = ref(false)
+      let _ = mountTo(
+        <button
+          onPointerDown={_evt => pointerDown := true}
+          onPointerUp={_evt => pointerUp := true}>
+          {View.text("Drag handle")}
+        </button>,
+        container,
+      )
+      let btn = Dom.Query.getByRole(container, "button")
+
+      dispatchEventByName(btn, "pointerdown")
+      dispatchEventByName(btn, "pointerup")
+
+      combineResults([
+        assertTrue(pointerDown.contents),
+        assertTrue(pointerUp.contents),
+      ])
     }),
     test("renders input with type and placeholder", () => {
       let {container} = Dom.render("")
