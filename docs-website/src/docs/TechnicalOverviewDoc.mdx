@@ -1,98 +1,40 @@
-<div>
-    <p>
-      {"This page explains how Xote is put together at a module and runtime level. It is meant for readers who already know the public API and want the internal model behind it."}
-    </p>
-    <div className="info-box">
-      <p>
-        <strong> {"Scope:"} </strong>
-        {" This is architecture-level guidance, not a substitute for the API docs."}
-      </p>
-    </div>
+This page explains how Xote is put together at a module and runtime level. It is meant for readers who already know the public API and want the internal model behind it.
 
-    <h2 id="system-shape"> {"System Shape"} </h2>
-    <h3 id="architecture-overview"> {"Architecture Overview"} </h3>
-    <h3 id="module-structure"> {"Module Structure"} </h3>
-    <p>
-      {"The public surface is intentionally small. Xote re-exports reactive primitives and layers UI-focused modules on top."}
-    </p>
-    <ul>
-      <li>
-        <code> {"Signal"} </code>
-        {", "}
-        <code> {"Computed"} </code>
-        {", "}
-        <code> {"Effect"} </code>
-        {" - state, derived state, and side effects"}
-      </li>
-      <li>
-        <code> {"View"} </code>
-        {" and "}
-        <code> {"Html"} </code>
-        {" - UI node constructors, mounting, and HTML helpers"}
-      </li>
-      <li>
-        <code> {"XoteJSX"} </code>
-        {" - generic JSX v4 integration"}
-      </li>
-      <li>
-        <code> {"Router"} </code>
-        {" and "}
-        <code> {"Route"} </code>
-        {" - navigation and route matching"}
-      </li>
-      <li>
-        <code> {"SSR"} </code>
-        {", "}
-        <code> {"SSRState"} </code>
-        {", "}
-        <code> {"Hydration"} </code>
-        {", and "}
-        <code> {"SSRContext"} </code>
-        {" - server rendering and client resume"}
-      </li>
-    </ul>
-    <p>
-      {"Source files stay as bare module names in "}
-      <code> {"src/"} </code>
-      {". ReScript's "}
-      <code> {"namespace: true"} </code>
-      {" setting scopes them under "}
-      <code> {"Xote"} </code>
-      {" for consumers."}
-    </p>
+> **Scope:** This is architecture-level guidance, not a substitute for the API docs.
 
-    <h2 id="runtime-model"> {"Runtime Model"} </h2>
-    <h3 id="reactivity-model"> {"Reactivity Model"} </h3>
-    <p>
-      {"Xote delegates reactivity to rescript-signals. The important runtime properties are:"}
-    </p>
-    <ul>
-      <li>
-        <strong> {"Tracked reads:"} </strong>
-        {" Signal.get subscribes the active observer"}
-      </li>
-      <li>
-        <strong> {"Synchronous scheduling:"} </strong>
-        {" updates flush immediately unless wrapped in Signal.batch"}
-      </li>
-      <li>
-        <strong> {"Lazy computeds:"} </strong>
-        {" upstream changes mark them dirty, but recomputation happens on read"}
-      </li>
-      <li>
-        <strong> {"Equality checks on write:"} </strong>
-        {" signals notify only when the new value is considered different"}
-      </li>
-    </ul>
+## System Shape
 
-    <h3 id="component-rendering"> {"View Rendering"} </h3>
-    <p>
-      {"Xote does not rely on a general virtual DOM diff for updates. View functions and JSX components produce node structures once, and reactive nodes handle fine-grained updates after mounting."}
-    </p>
-    <p>
-      {"The public view variants cover the main cases: text, elements, fragments, signal-backed text, signal-backed fragments, lazy components, and keyed lists."}
-    </p>
-    
+### Architecture Overview
+
+### Module Structure
+
+The public surface is intentionally small. Xote re-exports reactive primitives and layers UI-focused modules on top.
+
+- `Signal`, `Computed`, `Effect` - state, derived state, and side effects
+- `View` and `Html` - UI node constructors, mounting, and HTML helpers
+- `XoteJSX` - generic JSX v4 integration
+- `Router` and `Route` - navigation and route matching
+- `SSR`, `SSRState`, `Hydration`, and `SSRContext` - server rendering and client resume
+
+Source files stay as bare module names in `src/`. ReScript's `namespace: true` setting scopes them under `Xote` for consumers.
+
+## Runtime Model
+
+### Reactivity Model
+
+Xote delegates reactivity to rescript-signals. The important runtime properties are:
+
+- **Tracked reads:** Signal.get subscribes the active observer
+- **Synchronous scheduling:** updates flush immediately unless wrapped in Signal.batch
+- **Lazy computeds:** upstream changes mark them dirty, but recomputation happens on read
+- **Equality checks on write:** signals notify only when the new value is considered different
+
+### View Rendering
+
+Xote does not rely on a general virtual DOM diff for updates. View functions and JSX components produce node structures once, and reactive nodes handle fine-grained updates after mounting.
+
+The public view variants cover the main cases: text, elements, fragments, signal-backed text, signal-backed fragments, lazy components, and keyed lists.
+
 ```rescript
 View.text : string => node
 View.signalText : (unit => string) => node
@@ -102,48 +44,31 @@ View.each : (Signal.t<array<'a>>, 'a => node) => node
 View.eachWithKey : (Signal.t<array<'a>>, 'a => string, 'a => node) => node
 ```
 
-    <h3 id="router-architecture"> {"Router Architecture"} </h3>
-    <p>
-      {"The router stores its state in a global singleton keyed with "}
-      <code> {"Symbol.for"} </code>
-      {". That keeps routing shared even if more than one Xote bundle ends up on the page."}
-    </p>
-    <p>
-      {"At the public layer, the router is just a signal-driven location source plus helpers for matching and navigation."}
-    </p>
+### Router Architecture
 
-    <h3 id="ssr-and-hydration"> {"SSR and Hydration"} </h3>
-    <p>
-      {"Server rendering serializes the component tree to HTML and inserts comment markers around reactive boundaries. Hydration walks that DOM, finds the markers, and reattaches reactive behavior instead of rebuilding the tree from scratch."}
-    </p>
-    <p>
-      {"SSRState is separate from HTML rendering. That split keeps state transfer explicit and codec-driven instead of hiding it behind a framework convention."}
-    </p>
+The router stores its state in a global singleton keyed with `Symbol.for`. That keeps routing shared even if more than one Xote bundle ends up on the page.
 
-    <h3 id="execution-characteristics"> {"Execution Characteristics"} </h3>
-    <ul>
-      <li>
-        <strong> {"Component functions are cheap to reason about:"} </strong>
-        {" most of the time they run once"}
-      </li>
-      <li>
-        <strong> {"Reactive work is localized:"} </strong>
-        {" only consumers of changed signals update"}
-      </li>
-      <li>
-        <strong> {"Owner-based cleanup prevents leaks:"} </strong>
-        {" DOM removal disposes associated reactive resources"}
-      </li>
-      <li>
-        <strong> {"Batching is explicit:"} </strong>
-        {" coordinated writes are opt-in, not automatic"}
-      </li>
-    </ul>
+At the public layer, the router is just a signal-driven location source plus helpers for matching and navigation.
 
-    <h2 id="reference-map"> {"Reference Map"} </h2>
-    <h3 id="api-summary"> {"API Summary"} </h3>
-    <h3 id="reactive-primitives"> {"Reactive Primitives"} </h3>
-    
+### SSR and Hydration
+
+Server rendering serializes the component tree to HTML and inserts comment markers around reactive boundaries. Hydration walks that DOM, finds the markers, and reattaches reactive behavior instead of rebuilding the tree from scratch.
+
+SSRState is separate from HTML rendering. That split keeps state transfer explicit and codec-driven instead of hiding it behind a framework convention.
+
+### Execution Characteristics
+
+- **Component functions are cheap to reason about:** most of the time they run once
+- **Reactive work is localized:** only consumers of changed signals update
+- **Owner-based cleanup prevents leaks:** DOM removal disposes associated reactive resources
+- **Batching is explicit:** coordinated writes are opt-in, not automatic
+
+## Reference Map
+
+### API Summary
+
+### Reactive Primitives
+
 ```rescript
 Signal.make : ('a, ~name: option<string>=?, ~equals: option<('a, 'a) => bool>=?) => Signal.t<'a>
 Signal.get : Signal.t<'a> => 'a
@@ -155,8 +80,8 @@ Computed.make : (unit => 'a, ~name: option<string>=?, ~equals: option<('a, 'a) =
 Effect.run : (unit => option<unit => unit>, ~name: option<string>=?) => unit
 ```
 
-    <h3 id="component-helpers"> {"View Helpers"} </h3>
-    
+### View Helpers
+
 ```rescript
 View.Attr.string : (string, string) => (string, View.attrValue)
 View.Attr.signal : (string, Signal.t<string>) => (string, View.attrValue)
@@ -164,8 +89,8 @@ View.Attr.compute : (string, unit => string) => (string, View.attrValue)
 View.mountById : (View.node, string) => unit
 ```
 
-    <h3 id="router-helpers"> {"Router Helpers"} </h3>
-    
+### Router Helpers
+
 ```rescript
 Router.init : (~basePath: string=?, unit) => unit
 Router.initSSR : (~basePath: string=?, ~pathname: string, ~search: string=?, ~hash: string=?, unit) => unit
@@ -174,31 +99,15 @@ Router.push : (string, ~search: string=?, ~hash: string=?, unit) => unit
 Router.routes : array<routeConfig> => View.node
 ```
 
-    <h2 id="working-style"> {"Working Style"} </h2>
-    <h3 id="best-practices"> {"Best Practices"} </h3>
-    <ul>
-      <li>
-        {"Model derived values as computeds so write paths stay smaller and easier to trust."}
-      </li>
-      <li>
-        {"Keep the public explanation aligned with the real module boundaries: signals, views, router, and SSR each own a distinct concern."}
-      </li>
-      <li>
-        {"Treat "}
-        <code> {"SSRState"} </code>
-        {" as explicit infrastructure. Hidden state transfer is harder to debug."}
-      </li>
-    </ul>
+## Working Style
 
-    <h3 id="next-steps"> {"Next Steps"} </h3>
-    <ul>
-      <li>
-        <a href="/docs/core-concepts/signals">{"Go back to the Core Modules guides"}</a>
-        {" for the day-to-day API surface."}
-      </li>
-      <li>
-        <a href="/docs/api/signals">{"Use the Signals API page"}</a>
-        {" as the quick reference while reading the architecture back into the code."}
-      </li>
-    </ul>
-  </div>
+### Best Practices
+
+- Model derived values as computeds so write paths stay smaller and easier to trust.
+- Keep the public explanation aligned with the real module boundaries: signals, views, router, and SSR each own a distinct concern.
+- Treat `SSRState` as explicit infrastructure. Hidden state transfer is harder to debug.
+
+### Next Steps
+
+- [Go back to the Core Modules guides](/docs/core-concepts/signals) for the day-to-day API surface.
+- [Use the Signals API page](/docs/api/signals) as the quick reference while reading the architecture back into the code.

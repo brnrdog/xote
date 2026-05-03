@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import mdx from '@mdx-js/rollup'
+import rehypeSlug from 'rehype-slug'
 
 export default defineConfig({
   base: '/',
@@ -7,6 +8,7 @@ export default defineConfig({
     mdx({
       jsxImportSource: 'xote',
       jsxRuntime: 'automatic',
+      rehypePlugins: [rehypeSlug],
     }),
   ],
   server: {

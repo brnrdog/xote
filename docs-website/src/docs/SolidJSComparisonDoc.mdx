@@ -1,78 +1,37 @@
-<div>
-    <h2 id="at-a-glance"> {"At a Glance"} </h2>
-    <h3 id="overview"> {"Overview"} </h3>
-    <table>
-      <thead>
-        <tr>
-          <th> {"Aspect"} </th>
-          <th> {"SolidJS"} </th>
-          <th> {"Xote"} </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td> <strong> {"Reactive model"} </strong> </td>
-          <td> {"Fine-grained signals"} </td>
-          <td> {"Fine-grained signals"} </td>
-        </tr>
-        <tr>
-          <td> <strong> {"Component execution"} </strong> </td>
-          <td> {"Usually once"} </td>
-          <td> {"Usually once"} </td>
-        </tr>
-        <tr>
-          <td> <strong> {"Routing"} </strong> </td>
-          <td> {"Separate package"} </td>
-          <td> {"Built in"} </td>
-        </tr>
-        <tr>
-          <td> <strong> {"SSR"} </strong> </td>
-          <td> {"Strong framework story via SolidStart"} </td>
-          <td> {"Built-in primitives"} </td>
-        </tr>
-        <tr>
-          <td> <strong> {"Language"} </strong> </td>
-          <td> {"JavaScript / TypeScript"} </td>
-          <td> {"ReScript"} </td>
-        </tr>
-        <tr>
-          <td> <strong> {"Scope"} </strong> </td>
-          <td> {"Framework plus ecosystem"} </td>
-          <td> {"Smaller integrated UI library"} </td>
-        </tr>
-      </tbody>
-    </table>
-    <p>
-      {"SolidJS and Xote are conceptually much closer to each other than either is to React. The real differences are language choice, what is included out of the box, and how explicit the UI bindings are."}
-    </p>
-    <h2 id="shared-ground"> {"Shared Ground"} </h2>
-    <h3 id="shared-philosophy"> {"Shared Philosophy"} </h3>
-    <p>
-      {"Both libraries:"}
-    </p>
-    <ul>
-      <li>
-        {"use signals as the foundation"}
-      </li>
-      <li>
-        {"avoid virtual DOM diffing for ordinary updates"}
-      </li>
-      <li>
-        {"let components establish reactive structure once"}
-      </li>
-      <li>
-        {"rely on dependency tracking instead of dependency arrays"}
-      </li>
-    </ul>
-    <p>
-      {"If you already understand SolidJS, Xote's mental model will feel familiar quickly."}
-    </p>
-    <h2 id="runtime-model"> {"Runtime Model"} </h2>
-    <h3 id="signals-and-state"> {"Signals and State"} </h3>
-    <p>
-      {"SolidJS uses getter and setter pairs. Xote uses explicit read and write functions against a signal value."}
-    </p>
-    
+## At a Glance
+
+### Overview
+
+| Aspect | SolidJS | Xote |
+| --- | --- | --- |
+| **Reactive model** | Fine-grained signals | Fine-grained signals |
+| **Component execution** | Usually once | Usually once |
+| **Routing** | Separate package | Built in |
+| **SSR** | Strong framework story via SolidStart | Built-in primitives |
+| **Language** | JavaScript / TypeScript | ReScript |
+| **Scope** | Framework plus ecosystem | Smaller integrated UI library |
+
+SolidJS and Xote are conceptually much closer to each other than either is to React. The real differences are language choice, what is included out of the box, and how explicit the UI bindings are.
+
+## Shared Ground
+
+### Shared Philosophy
+
+Both libraries:
+
+- use signals as the foundation
+- avoid virtual DOM diffing for ordinary updates
+- let components establish reactive structure once
+- rely on dependency tracking instead of dependency arrays
+
+If you already understand SolidJS, Xote's mental model will feel familiar quickly.
+
+## Runtime Model
+
+### Signals and State
+
+SolidJS uses getter and setter pairs. Xote uses explicit read and write functions against a signal value.
+
 ```rescript
 import { createSignal, createMemo, createEffect } from "solid-js";
 
@@ -84,7 +43,6 @@ createEffect(() => {
 });
 ```
 
-    
 ```rescript
 open Xote
 
@@ -97,35 +55,18 @@ Effect.run(() => {
 })
 ```
 
-    <p>
-      {"Key differences:"}
-    </p>
-    <ul>
-      <li>
-        {"SolidJS reads via function calls like "}
-      <code> {"count()"} </code>
-      {", Xote reads via "}
-      <code> {"Signal.get(count)"} </code>
-      </li>
-      <li>
-        {"Xote effects return cleanup directly; SolidJS uses "}
-      <code> {"onCleanup"} </code>
-      </li>
-      <li>
-        {"Xote signals use strict equality by default and let you opt into custom equality with "}
-      <code> {"~equals"} </code>
-      </li>
-    </ul>
-    <h3 id="component-model"> {"Component Model"} </h3>
-    <p>
-      {"Both component models are close: the function runs, the DOM structure is created, and later updates flow through reactive bindings instead of through repeated component renders."}
-    </p>
-    <p>
-      {"The main ergonomic difference is that SolidJS can embed reactive expressions directly inside JSX, while Xote makes the reactive boundary explicit with helpers such as "}
-      <code> {"View.signalText"} </code>
-      {"."}
-    </p>
-    
+Key differences:
+
+- SolidJS reads via function calls like `count()`, Xote reads via `Signal.get(count)`
+- Xote effects return cleanup directly; SolidJS uses `onCleanup`
+- Xote signals use strict equality by default and let you opt into custom equality with `~equals`
+
+### Component Model
+
+Both component models are close: the function runs, the DOM structure is created, and later updates flow through reactive bindings instead of through repeated component renders.
+
+The main ergonomic difference is that SolidJS can embed reactive expressions directly inside JSX, while Xote makes the reactive boundary explicit with helpers such as `View.signalText`.
+
 ```rescript
 function Counter() {
   const [count, setCount] = createSignal(0);
@@ -139,7 +80,6 @@ function Counter() {
 }
 ```
 
-    
 ```rescript
 let counter = () => {
   let count = Signal.make(0)
@@ -155,19 +95,10 @@ let counter = () => {
 }
 ```
 
-    <h3 id="list-rendering"> {"List Rendering"} </h3>
-    <p>
-      {"SolidJS uses control-flow helpers like "}
-      <code> {"<For>"} </code>
-      {" and "}
-      <code> {"<Index>"} </code>
-      {". Xote exposes list handling through "}
-      <code> {"View.each"} </code>
-      {" and "}
-      <code> {"View.eachWithKey"} </code>
-      {"."}
-    </p>
-    
+### List Rendering
+
+SolidJS uses control-flow helpers like `<For>` and `<Index>`. Xote exposes list handling through `View.each` and `View.eachWithKey`.
+
 ```rescript
 import { For } from "solid-js";
 
@@ -182,7 +113,6 @@ function TodoList(props) {
 }
 ```
 
-    
 ```rescript
 let todoList = () => {
   let todos = Signal.make([{id: "1", text: "Buy milk"}])
@@ -197,20 +127,16 @@ let todoList = () => {
 }
 ```
 
-    <p>
-      {"Both approaches preserve identity. Xote asks for the key function explicitly, which keeps the reconciliation contract visible in the code."}
-    </p>
-    <h2 id="platform-surface"> {"Platform Surface"} </h2>
-    <h3 id="server-side-rendering"> {"Server-Side Rendering"} </h3>
-    <p>
-      {"SolidJS has the more complete application story through SolidStart. If you want file-based routing, streaming, and framework-level conventions, SolidStart is a major advantage."}
-    </p>
-    <p>
-      {"Xote's SSR primitives are smaller and more manual. You render HTML, optionally serialize state with "}
-      <code> {"SSRState"} </code>
-      {", and hydrate the result on the client."}
-    </p>
-    
+Both approaches preserve identity. Xote asks for the key function explicitly, which keeps the reconciliation contract visible in the code.
+
+## Platform Surface
+
+### Server-Side Rendering
+
+SolidJS has the more complete application story through SolidStart. If you want file-based routing, streaming, and framework-level conventions, SolidStart is a major advantage.
+
+Xote's SSR primitives are smaller and more manual. You render HTML, optionally serialize state with `SSRState`, and hydrate the result on the client.
+
 ```rescript
 let html = SSR.renderDocument(
   ~scripts=["/client.js"],
@@ -221,100 +147,58 @@ let html = SSR.renderDocument(
 Hydration.hydrateById(app, "root")
 ```
 
-    <h3 id="routing"> {"Routing"} </h3>
-    <p>
-      {"SolidJS uses "}
-      <code> {"@solidjs/router"} </code>
-      {" rather than shipping a router in the core package. Xote includes one. That difference matters more for smaller apps than for large framework-driven apps, but it is still an important scope distinction."}
-    </p>
-    <h3 id="runtime-footprint-and-compilation"> {"Runtime Footprint and Compilation"} </h3>
-    <p>
-      {"Both libraries produce small output. The practical difference is in the toolchain:"}
-    </p>
-    <ul>
-      <li>
-        {"SolidJS uses a JSX compiler that turns reactive expressions into direct DOM operations"}
-      </li>
-      <li>
-        {"Xote relies on the ReScript compiler and generic JSX transform, then uses explicit reactive nodes where needed"}
-      </li>
-    </ul>
-    <p>
-      {"SolidJS feels more implicit in JSX. Xote is more explicit about where reactivity lives."}
-    </p>
-    <h3 id="type-safety"> {"Type Safety"} </h3>
-    <p>
-      {"SolidJS with TypeScript is productive and familiar, but still lives in TypeScript's structural and partially unsound model."}
-    </p>
-    <p>
-      {"Xote benefits from ReScript's stricter type guarantees. If that matters more to your team than staying in JS/TS syntax, it is a strong reason to prefer Xote."}
-    </p>
-    <h3 id="ecosystem"> {"Ecosystem"} </h3>
-    <p>
-      {"SolidJS has a meaningful and growing ecosystem, especially around SolidStart and headless UI work."}
-    </p>
-    <p>
-      {"Xote is intentionally smaller. That means fewer ready-made packages, but also fewer architectural decisions outsourced to third-party dependencies."}
-    </p>
-    <h2 id="choosing-between-them"> {"Choosing Between Them"} </h2>
-    <h3 id="when-to-choose-solidjs"> {"When to Choose SolidJS"} </h3>
-    <ul>
-      <li>
-        {"Reach for SolidJS when you want fine-grained reactivity while staying in JavaScript or TypeScript."}
-      </li>
-      <li>
-        {"Reach for SolidJS when the stronger ecosystem and framework story matter immediately."}
-      </li>
-      <li>
-        {"Reach for SolidJS when SolidStart and its conventions are part of the expected stack."}
-      </li>
-    </ul>
-    <h3 id="when-to-choose-xote"> {"When to Choose Xote"} </h3>
-    <ul>
-      <li>
-        {"Reach for Xote when a smaller integrated API is more valuable than broader ecosystem depth."}
-      </li>
-      <li>
-        {"Reach for Xote when ReScript's type system and compilation model are part of the appeal."}
-      </li>
-      <li>
-        {"Reach for Xote when you prefer explicit reactive bindings over more automatic JSX transforms."}
-      </li>
-    </ul>
-    <h3 id="migration-considerations"> {"Migration Considerations"} </h3>
-    <p>
-      {"SolidJS developers typically need to adapt in three places:"}
-    </p>
-    <ol>
-      <li>
-        {"signal reads move from function calls to "}
-      <code> {"Signal.get"} </code>
-      </li>
-      <li>
-        {"reactive JSX expressions often become "}
-      <code> {"View.signalText"} </code>
-      {" or other explicit reactive nodes"}
-      </li>
-      <li>
-        {"routing and SSR move from the Solid ecosystem to Xote's built-in modules"}
-      </li>
-    </ol>
-    <p>
-      {"The underlying mental model stays largely the same."}
-    </p>
-    <h3 id="further-reading"> {"Further Reading"} </h3>
-    <ul>
-      <li>
-        <a href="/docs/core-concepts/signals">{"Signals"}</a>
-      </li>
-      <li>
-        <a href="/docs/view/overview">{"View"}</a>
-      </li>
-      <li>
-        <a href="/docs/router/overview">{"Router"}</a>
-      </li>
-      <li>
-        <a href="/docs/advanced/ssr">{"Server-Side Rendering"}</a>
-      </li>
-    </ul>
-  </div>
+### Routing
+
+SolidJS uses `@solidjs/router` rather than shipping a router in the core package. Xote includes one. That difference matters more for smaller apps than for large framework-driven apps, but it is still an important scope distinction.
+
+### Runtime Footprint and Compilation
+
+Both libraries produce small output. The practical difference is in the toolchain:
+
+- SolidJS uses a JSX compiler that turns reactive expressions into direct DOM operations
+- Xote relies on the ReScript compiler and generic JSX transform, then uses explicit reactive nodes where needed
+
+SolidJS feels more implicit in JSX. Xote is more explicit about where reactivity lives.
+
+### Type Safety
+
+SolidJS with TypeScript is productive and familiar, but still lives in TypeScript's structural and partially unsound model.
+
+Xote benefits from ReScript's stricter type guarantees. If that matters more to your team than staying in JS/TS syntax, it is a strong reason to prefer Xote.
+
+### Ecosystem
+
+SolidJS has a meaningful and growing ecosystem, especially around SolidStart and headless UI work.
+
+Xote is intentionally smaller. That means fewer ready-made packages, but also fewer architectural decisions outsourced to third-party dependencies.
+
+## Choosing Between Them
+
+### When to Choose SolidJS
+
+- Reach for SolidJS when you want fine-grained reactivity while staying in JavaScript or TypeScript.
+- Reach for SolidJS when the stronger ecosystem and framework story matter immediately.
+- Reach for SolidJS when SolidStart and its conventions are part of the expected stack.
+
+### When to Choose Xote
+
+- Reach for Xote when a smaller integrated API is more valuable than broader ecosystem depth.
+- Reach for Xote when ReScript's type system and compilation model are part of the appeal.
+- Reach for Xote when you prefer explicit reactive bindings over more automatic JSX transforms.
+
+### Migration Considerations
+
+SolidJS developers typically need to adapt in three places:
+
+1. signal reads move from function calls to `Signal.get`
+2. reactive JSX expressions often become `View.signalText` or other explicit reactive nodes
+3. routing and SSR move from the Solid ecosystem to Xote's built-in modules
+
+The underlying mental model stays largely the same.
+
+### Further Reading
+
+- [Signals](/docs/core-concepts/signals)
+- [View](/docs/view/overview)
+- [Router](/docs/router/overview)
+- [Server-Side Rendering](/docs/advanced/ssr)
