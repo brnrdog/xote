@@ -24,6 +24,7 @@
     "./ssr-context": "./src/SSRContext.res.mjs",
     "./ssr-state": "./src/SSRState.res.mjs",
     "./hydration": "./src/Hydration.res.mjs",
+    "./mdx": "./src/Mdx.res.mjs",
     "./signal": "./src/Signal.res.mjs",
     "./computed": "./src/Computed.res.mjs",
     "./effect": "./src/Effect.res.mjs",
