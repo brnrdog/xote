@@ -1,0 +1,201 @@
+<div>
+    <p>
+      {"Xote includes a client-side router built on signals. Route changes become regular reactive updates, so route matching and UI rendering fit the same model as the rest of the library."}
+    </p>
+
+    <h2 id="getting-started-with-routing"> {"Getting Started"} </h2>
+    <h3 id="quick-start"> {"Quick Start"} </h3>
+    <p>
+      {"Initialize the router once, then render routes inside your app."}
+    </p>
+    
+```rescript
+open Xote
+
+Router.init()
+
+let app = () => {
+  <div>
+    {Router.routes([
+      {pattern: "/", render: _ => <HomePage />},
+      {pattern: "/users/:id", render: params =>
+        switch params->Dict.get("id") {
+        | Some(id) => <UserPage id />
+        | None => <NotFoundPage />
+        }
+      },
+    ])}
+  </div>
+}
+```
+
+    <h3 id="reading-the-location"> {"Reading the Current Location"} </h3>
+    <p>
+      {"Use "}
+      <code> {"Router.location()"} </code>
+      {" to access the shared location signal. Read it with "}
+      <code> {"Signal.get"} </code>
+      {" wherever you need the current snapshot."}
+    </p>
+    
+```rescript
+Effect.run(() => {
+  let current = Signal.get(Router.location())
+  Console.log2("Current path:", current.pathname)
+  None
+})
+```
+
+    <p>
+      {"The location record contains "}
+      <code> {"pathname"} </code>
+      {", "}
+      <code> {"search"} </code>
+      {", and "}
+      <code> {"hash"} </code>
+      {"."}
+    </p>
+
+    <h3 id="route-patterns"> {"Route Patterns"} </h3>
+    <p>
+      {"Patterns can be static or dynamic. Dynamic segments use "}
+      <code> {":name"} </code>
+      {" and are exposed through the params dictionary."}
+    </p>
+    
+```rescript
+{pattern: "/", render: _ => <HomePage />}
+{pattern: "/about", render: _ => <AboutPage />}
+{pattern: "/users/:id", render: params =>
+  switch params->Dict.get("id") {
+  | Some(id) => <UserPage id />
+  | None => <NotFoundPage />
+  }
+}
+```
+
+    <h3 id="navigation-methods"> {"Navigation Methods"} </h3>
+    <p>
+      {"Use "}
+      <code> {"Router.push"} </code>
+      {" to create a new history entry and "}
+      <code> {"Router.replace"} </code>
+      {" to replace the current one. Both support optional "}
+      <code> {"~search"} </code>
+      {" and "}
+      <code> {"~hash"} </code>
+      {"."}
+    </p>
+    
+```rescript
+Router.push("/users/123", ())
+Router.push("/search", ~search="?q=xote", ())
+Router.replace("/login", ())
+```
+
+    <h3 id="navigation-links"> {"Navigation Links"} </h3>
+    <p>
+      {"Use "}
+      <code> {"Router.link"} </code>
+      {" in the function API or "}
+      <code> {"Router.Link"} </code>
+      {" in JSX. Both intercept navigation without reloading the page."}
+    </p>
+    
+```rescript
+let nav = () => {
+  <nav>
+    <Router.Link to="/" class="nav-link">
+      {View.text("Home")}
+    </Router.Link>
+    <Router.Link to="/docs" class="nav-link">
+      {View.text("Docs")}
+    </Router.Link>
+  </nav>
+}
+```
+
+    <h3 id="server-rendering"> {"Server Rendering"} </h3>
+    <p>
+      {"On the server, initialize router state with "}
+      <code> {"Router.initSSR"} </code>
+      {" instead of "}
+      <code> {"Router.init"} </code>
+      {". That sets the initial location without touching browser APIs."}
+    </p>
+    
+```rescript
+Router.initSSR(
+  ~pathname="/docs",
+  ~search="?tab=signals",
+  (),
+)
+```
+
+    <h2 id="routing-in-practice"> {"In Practice"} </h2>
+    <h3 id="complete-example"> {"Complete Example"} </h3>
+    
+```rescript
+open Xote
+
+Router.init()
+
+let nav = () => {
+  <nav>
+    <Router.Link to="/"> {View.text("Home")} </Router.Link>
+    <Router.Link to="/users"> {View.text("Users")} </Router.Link>
+  </nav>
+}
+
+let app = () => {
+  <div>
+    <nav />
+    {Router.routes([
+      {pattern: "/", render: _ => <HomePage />},
+      {pattern: "/users", render: _ => <UsersPage />},
+      {pattern: "/users/:id", render: params =>
+        switch params->Dict.get("id") {
+        | Some(id) => <UserPage id />
+        | None => <NotFoundPage />
+        }
+      },
+    ])}
+  </div>
+}
+```
+
+    <h2 id="router-working-style"> {"Working Style"} </h2>
+    <h3 id="best-practices"> {"Best Practices"} </h3>
+    <ul>
+      <li>
+        {"Initialize the router once at the app boundary, not from leaf components."}
+      </li>
+      <li>
+        {"Treat "}
+        <code> {"Router.location()"} </code>
+        {" like shared state. Read it where needed instead of mirroring it elsewhere."}
+      </li>
+      <li>
+        {"Prefer "}
+        <code> {"Router.Link"} </code>
+        {" for ordinary UI navigation so the intent stays obvious in markup."}
+      </li>
+      <li>
+        {"Use "}
+        <code> {"Router.initSSR"} </code>
+        {" on the server so routing stays consistent across SSR and hydration."}
+      </li>
+    </ul>
+
+    <h3 id="next-steps"> {"Next Steps"} </h3>
+    <ul>
+      <li>
+        <a href="/docs/view/overview">{"Pair this with View"}</a>
+        {" when you want to turn routes into real pages and layouts."}
+      </li>
+      <li>
+        <a href="/docs/advanced/ssr">{"Read Server-Side Rendering"}</a>
+        {" if the same routes also need SSR and hydration."}
+      </li>
+    </ul>
+  </div>

@@ -1,0 +1,312 @@
+<div>
+    <h2 id="at-a-glance"> {"At a Glance"} </h2>
+    <h3 id="overview"> {"Overview"} </h3>
+    <table>
+      <thead>
+        <tr>
+          <th> {"Aspect"} </th>
+          <th> {"React"} </th>
+          <th> {"Xote"} </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td> <strong> {"Update model"} </strong> </td>
+          <td> {"Re-render component trees, then diff"} </td>
+          <td> {"Update the specific reactive consumers directly"} </td>
+        </tr>
+        <tr>
+          <td> <strong> {"State"} </strong> </td>
+          <td> <code> {"useState"} </code>
+      {", "}
+      <code> {"useReducer"} </code>
+      {", external stores"} </td>
+          <td> <code> {"Signal"} </code>
+      {", "}
+      <code> {"Computed"} </code>
+      {", "}
+      <code> {"Effect"} </code> </td>
+        </tr>
+        <tr>
+          <td> <strong> {"Effects"} </strong> </td>
+          <td> <code> {"useEffect"} </code>
+      {" with explicit dependency arrays"} </td>
+          <td> <code> {"Effect.run"} </code>
+      {" with tracked dependencies"} </td>
+        </tr>
+        <tr>
+          <td> <strong> {"Routing"} </strong> </td>
+          <td> {"Third-party packages"} </td>
+          <td> {"Built in"} </td>
+        </tr>
+        <tr>
+          <td> <strong> {"SSR"} </strong> </td>
+          <td> {"Mature ecosystem and frameworks"} </td>
+          <td> {"Built-in primitives for SSR, hydration, and state transfer"} </td>
+        </tr>
+        <tr>
+          <td> <strong> {"Language"} </strong> </td>
+          <td> {"JavaScript / TypeScript"} </td>
+          <td> {"ReScript"} </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      {"React and Xote solve many of the same problems, but they optimize for different tradeoffs. React optimizes for ecosystem reach and framework maturity. Xote optimizes for a smaller runtime, explicit fine-grained reactivity, and a tighter built-in surface."}
+    </p>
+    <h2 id="runtime-model"> {"Runtime Model"} </h2>
+    <h3 id="reactivity-model"> {"Reactivity Model"} </h3>
+    <p>
+      {"React updates by re-running component functions and diffing the next virtual tree against the previous one. That model is flexible and well understood, but it means the render pass is the default unit of work."}
+    </p>
+    <p>
+      {"Xote updates at the signal consumer level. When a signal changes, only the effects, computeds, or reactive DOM bindings that read that signal need to run again. The component function itself usually does not."}
+    </p>
+    
+```rescript
+import { useState } from "react";
+
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <div>
+      <h1>Count: {count}</h1>
+      <button onClick={() => setCount(c => c + 1)}>Increment</button>
+    </div>
+  );
+}
+```
+
+    
+```rescript
+open Xote
+
+let counter = () => {
+  let count = Signal.make(0)
+
+  <div>
+    <h1>
+      {View.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)}
+    </h1>
+    <button onClick={_ => Signal.update(count, n => n + 1)}>
+      {View.text("Increment")}
+    </button>
+  </div>
+}
+```
+
+    <h3 id="effects-and-derived-state"> {"Effects and Derived State"} </h3>
+    <p>
+      {"React's "}
+      <code> {"useEffect"} </code>
+      {" and "}
+      <code> {"useMemo"} </code>
+      {" depend on manually maintained dependency arrays. That is workable, but stale or over-broad dependency lists are a common source of bugs and noise."}
+    </p>
+    <p>
+      {"Xote tracks dependencies automatically. "}
+      <code> {"Effect.run"} </code>
+      {" subscribes to the signals it reads, and "}
+      <code> {"Computed.make"} </code>
+      {" derives values from the signals it reads."}
+    </p>
+    
+```rescript
+useEffect(() => {
+  document.title = `Count: ${count}`;
+}, [count]);
+```
+
+    
+```rescript
+Effect.run(() => {
+  document.title = `Count: ${Signal.get(count)->Int.toString}`
+  None
+})
+
+let doubled = Computed.make(() => Signal.get(count) * 2)
+```
+
+    <p>
+      {"The tradeoff is that React's hook model is familiar to more teams and supported by more tooling, while Xote's model is smaller and more explicit once you adopt signals."}
+    </p>
+    <h3 id="component-lifecycle"> {"Component Lifecycle"} </h3>
+    <p>
+      {"React components re-run whenever their state or props change. That is why hooks exist: they preserve values across renders and enforce ordering rules."}
+    </p>
+    <p>
+      {"Xote components usually run once. Signals, computeds, and effects are ordinary values created during that initial execution. Cleanup is handled by effect cleanups and the owner system that disposes reactive resources when DOM nodes are removed."}
+    </p>
+    <h3 id="list-rendering"> {"List Rendering"} </h3>
+    <p>
+      {"React uses keys during virtual DOM reconciliation. Xote prefers "}
+      <code> {"View.eachWithKey"} </code>
+      {", which works directly against DOM anchors and explicit keys."}
+    </p>
+    
+```rescript
+function TodoList({ todos }) {
+  return (
+    <ul>
+      {todos.map(todo => (
+        <li key={todo.id}>{todo.text}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+    
+```rescript
+let todoList = () => {
+  let todos = Signal.make([{id: "1", text: "Buy milk"}])
+
+  <ul>
+    {View.eachWithKey(
+      todos,
+      todo => todo.id,
+      todo => <li> {View.text(todo.text)} </li>,
+    )}
+  </ul>
+}
+```
+
+    <p>
+      {"In practice, both can preserve item identity. The difference is mostly where the work happens: inside a general-purpose renderer in React, or through a dedicated keyed-list primitive in Xote."}
+    </p>
+    <h2 id="platform-surface"> {"Platform Surface"} </h2>
+    <h3 id="server-side-rendering"> {"Server-Side Rendering"} </h3>
+    <p>
+      {"React has the stronger SSR ecosystem. Frameworks like Next.js and Remix add routing, data loading, streaming, server actions, and deployment integrations on top of the core renderer."}
+    </p>
+    <p>
+      {"Xote gives you lower-level primitives directly: "}
+      <code> {"SSR.renderToString"} </code>
+      {", "}
+      <code> {"SSR.renderDocument"} </code>
+      {", "}
+      <code> {"SSRState"} </code>
+      {", and "}
+      <code> {"Hydration"} </code>
+      {". That is enough for custom SSR pipelines, but it is intentionally not a batteries-included application framework."}
+    </p>
+    
+```rescript
+let html = SSR.renderDocument(
+  ~scripts=["/client.js"],
+  ~stateScript=SSRState.generateScript(),
+  app,
+)
+
+Hydration.hydrateById(app, "root")
+```
+
+    <h3 id="routing"> {"Routing"} </h3>
+    <p>
+      {"React relies on external routers such as React Router or TanStack Router. That is not a weakness by itself, but it does mean routing decisions also become ecosystem decisions."}
+    </p>
+    <p>
+      {"Xote includes a router in the main library. If you want pattern matching, links, imperative navigation, and SSR-aware initialization without another dependency, that is a meaningful simplification."}
+    </p>
+    <h3 id="runtime-footprint"> {"Runtime Footprint"} </h3>
+    <p>
+      {"React's runtime is larger because it carries a general rendering engine and is often paired with more packages. Xote stays smaller because the reactive graph and direct DOM updates remove the need for a general virtual DOM reconciliation path during normal updates."}
+    </p>
+    <p>
+      {"Bundle size should not be the only decision criterion, but it matters for widgets, embedded apps, and performance-sensitive pages."}
+    </p>
+    <h3 id="type-safety"> {"Type Safety"} </h3>
+    <p>
+      {"React with TypeScript gives strong ergonomics and wide adoption, but the type system is still optional and structurally typed."}
+    </p>
+    <p>
+      {"Xote inherits ReScript's sounder model. Pattern matching, "}
+      <code> {"option"} </code>
+      {", and exhaustiveness checks reduce a class of runtime mistakes that TypeScript projects still need discipline to avoid."}
+    </p>
+    <h3 id="ecosystem"> {"Ecosystem"} </h3>
+    <p>
+      {"React is the safer choice if your project depends on third-party UI kits, data tooling, or hiring from a very large pool."}
+    </p>
+    <p>
+      {"Xote is the better fit when you want to own the stack, keep runtime dependencies minimal, and work from a smaller but more integrated API."}
+    </p>
+    <h2 id="choosing-between-them"> {"Choosing Between Them"} </h2>
+    <h3 id="when-to-choose-react"> {"When to Choose React"} </h3>
+    <ul>
+      <li>
+        {"Reach for React when ecosystem depth is a hard requirement."}
+      </li>
+      <li>
+        {"Reach for React when the team is already fluent in React and TypeScript."}
+      </li>
+      <li>
+        {"Reach for React when third-party UI kits or integrations are central to the product."}
+      </li>
+      <li>
+        {"Reach for React when React Native is part of the broader platform story."}
+      </li>
+    </ul>
+    <h3 id="when-to-choose-xote"> {"When to Choose Xote"} </h3>
+    <ul>
+      <li>
+        {"Reach for Xote when you want fine-grained updates without a virtual DOM render cycle."}
+      </li>
+      <li>
+        {"Reach for Xote when built-in routing and SSR primitives reduce project overhead."}
+      </li>
+      <li>
+        {"Reach for Xote when ReScript's type model is part of the value proposition."}
+      </li>
+      <li>
+        {"Reach for Xote when the UI is focused enough that a smaller ecosystem is a benefit, not a cost."}
+      </li>
+    </ul>
+    <h3 id="migration-considerations"> {"Migration Considerations"} </h3>
+    <p>
+      {"React developers usually adapt to Xote fastest when they stop looking for hook equivalents and instead map responsibilities directly:"}
+    </p>
+    <ol>
+      <li>
+        <code> {"useState"} </code>
+      {" becomes "}
+      <code> {"Signal.make"} </code>
+      </li>
+      <li>
+        <code> {"useMemo"} </code>
+      {" becomes "}
+      <code> {"Computed.make"} </code>
+      </li>
+      <li>
+        <code> {"useEffect"} </code>
+      {" becomes "}
+      <code> {"Effect.run"} </code>
+      </li>
+      <li>
+        {"keyed "}
+      <code> {".map()"} </code>
+      {" rendering becomes "}
+      <code> {"View.eachWithKey"} </code>
+      {" when identity matters"}
+      </li>
+    </ol>
+    <p>
+      {"The conceptual shift is from re-rendered components to persistent reactive values."}
+    </p>
+    <h3 id="further-reading"> {"Further Reading"} </h3>
+    <ul>
+      <li>
+        <a href="/docs/core-concepts/signals">{"Signals"}</a>
+      </li>
+      <li>
+        <a href="/docs/core-concepts/computed">{"Computeds"}</a>
+      </li>
+      <li>
+        <a href="/docs/core-concepts/effects">{"Effects"}</a>
+      </li>
+      <li>
+        <a href="/docs/view/overview">{"View"}</a>
+      </li>
+    </ul>
+  </div>

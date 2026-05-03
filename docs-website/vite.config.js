@@ -1,7 +1,14 @@
 import { defineConfig } from 'vite'
+import mdx from '@mdx-js/rollup'
 
 export default defineConfig({
   base: '/',
+  plugins: [
+    mdx({
+      jsxImportSource: 'xote',
+      jsxRuntime: 'automatic',
+    }),
+  ],
   server: {
     port: 3000,
   },
