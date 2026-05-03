@@ -1,14 +1,11 @@
-<div>
-    <p>
-      {"Xote includes a client-side router built on signals. Route changes become regular reactive updates, so route matching and UI rendering fit the same model as the rest of the library."}
-    </p>
+Xote includes a client-side router built on signals. Route changes become regular reactive updates, so route matching and UI rendering fit the same model as the rest of the library.
 
-    <h2 id="getting-started-with-routing"> {"Getting Started"} </h2>
-    <h3 id="quick-start"> {"Quick Start"} </h3>
-    <p>
-      {"Initialize the router once, then render routes inside your app."}
-    </p>
-    
+## Getting Started
+
+### Quick Start
+
+Initialize the router once, then render routes inside your app.
+
 ```rescript
 open Xote
 
@@ -29,15 +26,10 @@ let app = () => {
 }
 ```
 
-    <h3 id="reading-the-location"> {"Reading the Current Location"} </h3>
-    <p>
-      {"Use "}
-      <code> {"Router.location()"} </code>
-      {" to access the shared location signal. Read it with "}
-      <code> {"Signal.get"} </code>
-      {" wherever you need the current snapshot."}
-    </p>
-    
+### Reading the Current Location
+
+Use `Router.location()` to access the shared location signal. Read it with `Signal.get` wherever you need the current snapshot.
+
 ```rescript
 Effect.run(() => {
   let current = Signal.get(Router.location())
@@ -46,23 +38,12 @@ Effect.run(() => {
 })
 ```
 
-    <p>
-      {"The location record contains "}
-      <code> {"pathname"} </code>
-      {", "}
-      <code> {"search"} </code>
-      {", and "}
-      <code> {"hash"} </code>
-      {"."}
-    </p>
+The location record contains `pathname`, `search`, and `hash`.
 
-    <h3 id="route-patterns"> {"Route Patterns"} </h3>
-    <p>
-      {"Patterns can be static or dynamic. Dynamic segments use "}
-      <code> {":name"} </code>
-      {" and are exposed through the params dictionary."}
-    </p>
-    
+### Route Patterns
+
+Patterns can be static or dynamic. Dynamic segments use `:name` and are exposed through the params dictionary.
+
 ```rescript
 {pattern: "/", render: _ => <HomePage />}
 {pattern: "/about", render: _ => <AboutPage />}
@@ -74,34 +55,20 @@ Effect.run(() => {
 }
 ```
 
-    <h3 id="navigation-methods"> {"Navigation Methods"} </h3>
-    <p>
-      {"Use "}
-      <code> {"Router.push"} </code>
-      {" to create a new history entry and "}
-      <code> {"Router.replace"} </code>
-      {" to replace the current one. Both support optional "}
-      <code> {"~search"} </code>
-      {" and "}
-      <code> {"~hash"} </code>
-      {"."}
-    </p>
-    
+### Navigation Methods
+
+Use `Router.push` to create a new history entry and `Router.replace` to replace the current one. Both support optional `~search` and `~hash`.
+
 ```rescript
 Router.push("/users/123", ())
 Router.push("/search", ~search="?q=xote", ())
 Router.replace("/login", ())
 ```
 
-    <h3 id="navigation-links"> {"Navigation Links"} </h3>
-    <p>
-      {"Use "}
-      <code> {"Router.link"} </code>
-      {" in the function API or "}
-      <code> {"Router.Link"} </code>
-      {" in JSX. Both intercept navigation without reloading the page."}
-    </p>
-    
+### Navigation Links
+
+Use `Router.link` in the function API or `Router.Link` in JSX. Both intercept navigation without reloading the page.
+
 ```rescript
 let nav = () => {
   <nav>
@@ -115,15 +82,10 @@ let nav = () => {
 }
 ```
 
-    <h3 id="server-rendering"> {"Server Rendering"} </h3>
-    <p>
-      {"On the server, initialize router state with "}
-      <code> {"Router.initSSR"} </code>
-      {" instead of "}
-      <code> {"Router.init"} </code>
-      {". That sets the initial location without touching browser APIs."}
-    </p>
-    
+### Server Rendering
+
+On the server, initialize router state with `Router.initSSR` instead of `Router.init`. That sets the initial location without touching browser APIs.
+
 ```rescript
 Router.initSSR(
   ~pathname="/docs",
@@ -132,9 +94,10 @@ Router.initSSR(
 )
 ```
 
-    <h2 id="routing-in-practice"> {"In Practice"} </h2>
-    <h3 id="complete-example"> {"Complete Example"} </h3>
-    
+## In Practice
+
+### Complete Example
+
 ```rescript
 open Xote
 
@@ -164,38 +127,16 @@ let app = () => {
 }
 ```
 
-    <h2 id="router-working-style"> {"Working Style"} </h2>
-    <h3 id="best-practices"> {"Best Practices"} </h3>
-    <ul>
-      <li>
-        {"Initialize the router once at the app boundary, not from leaf components."}
-      </li>
-      <li>
-        {"Treat "}
-        <code> {"Router.location()"} </code>
-        {" like shared state. Read it where needed instead of mirroring it elsewhere."}
-      </li>
-      <li>
-        {"Prefer "}
-        <code> {"Router.Link"} </code>
-        {" for ordinary UI navigation so the intent stays obvious in markup."}
-      </li>
-      <li>
-        {"Use "}
-        <code> {"Router.initSSR"} </code>
-        {" on the server so routing stays consistent across SSR and hydration."}
-      </li>
-    </ul>
+## Working Style
 
-    <h3 id="next-steps"> {"Next Steps"} </h3>
-    <ul>
-      <li>
-        <a href="/docs/view/overview">{"Pair this with View"}</a>
-        {" when you want to turn routes into real pages and layouts."}
-      </li>
-      <li>
-        <a href="/docs/advanced/ssr">{"Read Server-Side Rendering"}</a>
-        {" if the same routes also need SSR and hydration."}
-      </li>
-    </ul>
-  </div>
+### Best Practices
+
+- Initialize the router once at the app boundary, not from leaf components.
+- Treat `Router.location()` like shared state. Read it where needed instead of mirroring it elsewhere.
+- Prefer `Router.Link` for ordinary UI navigation so the intent stays obvious in markup.
+- Use `Router.initSSR` on the server so routing stays consistent across SSR and hydration.
+
+### Next Steps
+
+- [Pair this with View](/docs/view/overview) when you want to turn routes into real pages and layouts.
+- [Read Server-Side Rendering](/docs/advanced/ssr) if the same routes also need SSR and hydration.

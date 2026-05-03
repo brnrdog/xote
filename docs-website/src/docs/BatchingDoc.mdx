@@ -1,20 +1,13 @@
-<div>
-    <p>
-      {"Batching lets you group several signal writes so dependent computeds and effects flush once after the batch finishes."}
-    </p>
-    <div className="info-box">
-      <p>
-        <strong> {"Info:"} </strong>
-        {" Updates still happen synchronously. Batching changes how many times dependents flush, not whether they flush immediately."}
-      </p>
-    </div>
+Batching lets you group several signal writes so dependent computeds and effects flush once after the batch finishes.
 
-    <h2 id="why-and-when-to-batch"> {"Why and When to Batch"} </h2>
-    <h3 id="why-batch"> {"Why Batch?"} </h3>
-    <p>
-      {"Without batching, each write can trigger a new round of downstream work. That is fine for isolated updates, but noisy for coordinated state changes."}
-    </p>
-    
+> **Info:** Updates still happen synchronously. Batching changes how many times dependents flush, not whether they flush immediately.
+
+## Why and When to Batch
+
+### Why Batch?
+
+Without batching, each write can trigger a new round of downstream work. That is fine for isolated updates, but noisy for coordinated state changes.
+
 ```rescript
 let firstName = Signal.make("Ada")
 let lastName = Signal.make("Lovelace")
@@ -32,18 +25,14 @@ Signal.set(firstName, "Grace")
 Signal.set(lastName, "Hopper")
 ```
 
-    <p>
-      {"That effect can run twice. If both writes belong to the same logical update, batch them."}
-    </p>
+That effect can run twice. If both writes belong to the same logical update, batch them.
 
-    <h2 id="using-batching"> {"Using Batching"} </h2>
-    <h3 id="using-signal-batch"> {"Using Signal.batch()"} </h3>
-    <p>
-      {"Wrap related writes in "}
-      <code> {"Signal.batch"} </code>
-      {"."}
-    </p>
-    
+## Using Batching
+
+### Using Signal.batch()
+
+Wrap related writes in `Signal.batch`.
+
 ```rescript
 Signal.batch(() => {
   Signal.set(firstName, "Grace")
@@ -51,11 +40,10 @@ Signal.batch(() => {
 })
 ```
 
-    <h3 id="how-batching-works"> {"How Batching Works"} </h3>
-    <p>
-      {"Inside a batch, signals update immediately, but scheduler flushing is deferred until the outermost batch completes. Readers inside the batch still see the latest values."}
-    </p>
-    
+### How Batching Works
+
+Inside a batch, signals update immediately, but scheduler flushing is deferred until the outermost batch completes. Readers inside the batch still see the latest values.
+
 ```rescript
 Signal.batch(() => {
   Signal.set(firstName, "Grace")
@@ -66,11 +54,10 @@ Signal.batch(() => {
 })
 ```
 
-    <h3 id="common-cases"> {"Common Cases"} </h3>
-    <p>
-      {"Batching is most useful when one user action updates several related signals."}
-    </p>
-    
+### Common Cases
+
+Batching is most useful when one user action updates several related signals.
+
 ```rescript
 type formState = {
   name: string,
@@ -89,11 +76,10 @@ let submit = () => {
 }
 ```
 
-    <h3 id="nested-batches"> {"Nested Batches"} </h3>
-    <p>
-      {"Batches can be nested. Flushing happens when the outermost batch ends."}
-    </p>
-    
+### Nested Batches
+
+Batches can be nested. Flushing happens when the outermost batch ends.
+
 ```rescript
 Signal.batch(() => {
   Signal.set(count, 1)
@@ -105,11 +91,10 @@ Signal.batch(() => {
 })
 ```
 
-    <h3 id="returning-values-from-batches"> {"Returning Values from Batches"} </h3>
-    <p>
-      {"A batch returns whatever the callback returns, so you can compute and write in one block."}
-    </p>
-    
+### Returning Values from Batches
+
+A batch returns whatever the callback returns, so you can compute and write in one block.
+
 ```rescript
 let result = Signal.batch(() => {
   Signal.set(count, 10)
@@ -118,34 +103,19 @@ let result = Signal.batch(() => {
 })
 ```
 
-    <h3 id="when-not-to-batch"> {"When Not to Batch"} </h3>
-    <p>
-      {"Do not batch by default. If one signal changes and the rest of the graph can react naturally, batching adds no clarity. Use it when several writes are one semantic update."}
-    </p>
+### When Not to Batch
 
-    <h2 id="batching-working-style"> {"Working Style"} </h2>
-    <h3 id="best-practices"> {"Best Practices"} </h3>
-    <ul>
-      <li>
-        {"Batch one logical unit of work, such as a submit action, a reset, or a reducer-style update."}
-      </li>
-      <li>
-        {"Keep batches short so the write order stays easy to reason about."}
-      </li>
-      <li>
-        {"Do not use batching to hide duplicated or awkward state. Fix the model first."}
-      </li>
-    </ul>
+Do not batch by default. If one signal changes and the rest of the graph can react naturally, batching adds no clarity. Use it when several writes are one semantic update.
 
-    <h3 id="next-steps"> {"Next Steps"} </h3>
-    <ul>
-      <li>
-        <a href="/docs/core-concepts/signals">{"Go back to Signals"}</a>
-        {" if you want the update model before the scheduling details."}
-      </li>
-      <li>
-        <a href="/docs/core-concepts/effects">{"Read Effects"}</a>
-        {" to see the downstream work that batching reduces."}
-      </li>
-    </ul>
-  </div>
+## Working Style
+
+### Best Practices
+
+- Batch one logical unit of work, such as a submit action, a reset, or a reducer-style update.
+- Keep batches short so the write order stays easy to reason about.
+- Do not use batching to hide duplicated or awkward state. Fix the model first.
+
+### Next Steps
+
+- [Go back to Signals](/docs/core-concepts/signals) if you want the update model before the scheduling details.
+- [Read Effects](/docs/core-concepts/effects) to see the downstream work that batching reduces.

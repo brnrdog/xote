@@ -1,21 +1,13 @@
-<div>
-    <p>
-      {"Effects connect the reactive graph to the outside world. They run immediately, track the signals they read, and re-run when those dependencies change."}
-    </p>
-    <p>
-      {"Use them for DOM APIs, timers, network coordination, logging, or any other work that should happen because state changed. Do not use them to compute values that could stay inside the reactive graph."}
-    </p>
+Effects connect the reactive graph to the outside world. They run immediately, track the signals they read, and re-run when those dependencies change.
 
-    <h2 id="working-with-effects"> {"Working with Effects"} </h2>
-    <h3 id="creating-effects"> {"Creating Effects"} </h3>
-    <p>
-      {"Use "}
-      <code> {"Effect.run"} </code>
-      {" for fire-and-forget effects and "}
-      <code> {"Effect.runWithDisposer"} </code>
-      {" when you need to stop the effect manually."}
-    </p>
-    
+Use them for DOM APIs, timers, network coordination, logging, or any other work that should happen because state changed. Do not use them to compute values that could stay inside the reactive graph.
+
+## Working with Effects
+
+### Creating Effects
+
+Use `Effect.run` for fire-and-forget effects and `Effect.runWithDisposer` when you need to stop the effect manually.
+
 ```rescript
 open Xote
 
@@ -27,13 +19,10 @@ Effect.run(() => {
 })
 ```
 
-    <h3 id="dependency-tracking"> {"Dependency Tracking"} </h3>
-    <p>
-      {"Effects track dependencies automatically. Every "}
-      <code> {"Signal.get"} </code>
-      {" call inside the effect subscribes the effect to that signal. On each run, dependencies are cleared and tracked again."}
-    </p>
-    
+### Dependency Tracking
+
+Effects track dependencies automatically. Every `Signal.get` call inside the effect subscribes the effect to that signal. On each run, dependencies are cleared and tracked again.
+
 ```rescript
 let showDetails = Signal.make(false)
 let name = Signal.make("Ada")
@@ -48,15 +37,10 @@ Effect.run(() => {
 })
 ```
 
-    <h3 id="cleanup-callbacks"> {"Cleanup Callbacks"} </h3>
-    <p>
-      {"An effect can return "}
-      <code> {"Some(cleanupFn)"} </code>
-      {" or "}
-      <code> {"None"} </code>
-      {". Cleanup runs before the next execution and when the effect is disposed."}
-    </p>
-    
+### Cleanup Callbacks
+
+An effect can return `Some(cleanupFn)` or `None`. Cleanup runs before the next execution and when the effect is disposed.
+
 ```rescript
 let url = Signal.make("/api/users")
 
@@ -70,15 +54,10 @@ Effect.run(() => {
 })
 ```
 
-    <h3 id="disposing-effects"> {"Disposing Effects"} </h3>
-    <p>
-      {"When you need explicit teardown, use "}
-      <code> {"Effect.runWithDisposer"} </code>
-      {". It returns an object with a "}
-      <code> {"dispose()"} </code>
-      {" method."}
-    </p>
-    
+### Disposing Effects
+
+When you need explicit teardown, use `Effect.runWithDisposer`. It returns an object with a `dispose()` method.
+
 ```rescript
 let disposer = Effect.runWithDisposer(() => {
   Console.log(Signal.get(count))
@@ -88,15 +67,10 @@ let disposer = Effect.runWithDisposer(() => {
 disposer.dispose()
 ```
 
-    <h3 id="avoiding-dependencies"> {"Avoiding Dependencies"} </h3>
-    <p>
-      {"If you need a value inside an effect without subscribing to it, use "}
-      <code> {"Signal.peek"} </code>
-      {" for one read or "}
-      <code> {"Signal.untrack"} </code>
-      {" for a larger block."}
-    </p>
-    
+### Avoiding Dependencies
+
+If you need a value inside an effect without subscribing to it, use `Signal.peek` for one read or `Signal.untrack` for a larger block.
+
 ```rescript
 let debug = Signal.make(true)
 
@@ -111,32 +85,20 @@ Effect.run(() => {
 })
 ```
 
-    <h2 id="effects-common-patterns"> {"Common Patterns"} </h2>
-    <h3 id="common-use-cases"> {"Common Use Cases"} </h3>
-    <ul>
-      <li>
-        <strong> {"Browser APIs:"} </strong>
-        {" document title, localStorage, media queries, history, and scroll state"}
-      </li>
-      <li>
-        <strong> {"Timers and subscriptions:"} </strong>
-        {" intervals, event listeners, sockets, and observers"}
-      </li>
-      <li>
-        <strong> {"Synchronization:"} </strong>
-        {" push reactive state into another system"}
-      </li>
-      <li>
-        <strong> {"Diagnostics:"} </strong>
-        {" logging, instrumentation, and dev-only inspection"}
-      </li>
-    </ul>
+## Common Patterns
 
-    <h3 id="example-auto-save"> {"Example: Auto-save"} </h3>
-    <p>
-      {"This pattern is common: track a draft, debounce the work, and clean up old timers when the draft changes again."}
-    </p>
-    <DocsExamplePanel
+### Common Use Cases
+
+- **Browser APIs:** document title, localStorage, media queries, history, and scroll state
+- **Timers and subscriptions:** intervals, event listeners, sockets, and observers
+- **Synchronization:** push reactive state into another system
+- **Diagnostics:** logging, instrumentation, and dev-only inspection
+
+### Example: Auto-save
+
+This pattern is common: track a draft, debounce the work, and clean up old timers when the draft changes again.
+
+<DocsExamplePanel
       filename="DraftAutoSave.res"
       code={`open Xote
 
@@ -168,51 +130,23 @@ Effect.run(() => {
       <EffectAutosaveDemo />
     </DocsExamplePanel>
 
-    <h3 id="effects-vs-computed"> {"Effects vs Computed"} </h3>
-    <p>
-      {"Ask one question: is the result another value inside the reactive graph, or is it work outside the graph?"}
-    </p>
-    <ul>
-      <li>
-        <strong> {"Use a computed"} </strong>
-        {" when you are deriving a value from other values"}
-      </li>
-      <li>
-        <strong> {"Use an effect"} </strong>
-        {" when you need to talk to something external"}
-      </li>
-    </ul>
+### Effects vs Computed
 
-    <h2 id="effects-working-style"> {"Working Style"} </h2>
-    <h3 id="best-practices"> {"Best Practices"} </h3>
-    <ul>
-      <li>
-        {"Keep one effect focused on one kind of external work so cleanup stays obvious."}
-      </li>
-      <li>
-        {"Return cleanup whenever you allocate timers, listeners, requests, or subscriptions."}
-      </li>
-      <li>
-        {"Do not use effects to keep derived state in sync. If the output is another value, use a computed."}
-      </li>
-      <li>
-        {"Use "}
-        <code> {"peek"} </code>
-        {" and "}
-        <code> {"untrack"} </code>
-        {" deliberately, because they opt out of tracking."}
-      </li>
-    </ul>
+Ask one question: is the result another value inside the reactive graph, or is it work outside the graph?
 
-    <h3 id="next-steps"> {"Next Steps"} </h3>
-    <ul>
-      <li>
-        <a href="/docs/view/overview">{"Move to View"}</a>
-        {" to see how effects fit into real UI code."}
-      </li>
-      <li>
-        <a href="/docs/advanced/batching">{"Read Batching"}</a>
-        {" when several writes should flush as one coordinated update."}
-      </li>
-    </ul>
-  </div>
+- **Use a computed** when you are deriving a value from other values
+- **Use an effect** when you need to talk to something external
+
+## Working Style
+
+### Best Practices
+
+- Keep one effect focused on one kind of external work so cleanup stays obvious.
+- Return cleanup whenever you allocate timers, listeners, requests, or subscriptions.
+- Do not use effects to keep derived state in sync. If the output is another value, use a computed.
+- Use `peek` and `untrack` deliberately, because they opt out of tracking.
+
+### Next Steps
+
+- [Move to View](/docs/view/overview) to see how effects fit into real UI code.
+- [Read Batching](/docs/advanced/batching) when several writes should flush as one coordinated update.

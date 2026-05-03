@@ -1,28 +1,13 @@
-<div>
-    <p>
-      {"Computeds are derived signals. They let you describe state in terms of other state instead of manually keeping multiple signals in sync."}
-    </p>
-    <div className="info-box">
-      <p>
-        <strong> {"Important:"} </strong>
-        {" "}
-        <code> {"Computed.make"} </code>
-        {" returns a "}
-        <code> {"Signal.t<'a>"} </code>
-        {". You read it with "}
-        <code> {"Signal.get"} </code>
-        {" or "}
-        <code> {"Signal.peek"} </code>
-        {", just like any other signal."}
-      </p>
-    </div>
+Computeds are derived signals. They let you describe state in terms of other state instead of manually keeping multiple signals in sync.
 
-    <h2 id="working-with-computeds"> {"Working with Computeds"} </h2>
-    <h3 id="creating-computed-values"> {"Creating Computed Values"} </h3>
-    <p>
-      {"A computed is a function plus automatic dependency tracking. Every signal read inside the function becomes an input."}
-    </p>
-    
+> **Important:** `Computed.make` returns a `Signal.t<'a>`. You read it with `Signal.get` or `Signal.peek`, just like any other signal.
+
+## Working with Computeds
+
+### Creating Computed Values
+
+A computed is a function plus automatic dependency tracking. Every signal read inside the function becomes an input.
+
 ```rescript
 open Xote
 
@@ -34,23 +19,12 @@ let subtotal = Computed.make(() =>
 )
 ```
 
-    <p>
-      {"If you need to suppress downstream updates for equivalent derived values, "}
-      <code> {"Computed.make"} </code>
-      {" also accepts "}
-      <code> {"~equals"} </code>
-      {"."}
-    </p>
+If you need to suppress downstream updates for equivalent derived values, `Computed.make` also accepts `~equals`.
 
-    <h3 id="reading-computed-values"> {"Reading Computed Values"} </h3>
-    <p>
-      {"Read a computed exactly like a signal. Use "}
-      <code> {"Signal.get"} </code>
-      {" when the current code should subscribe, or "}
-      <code> {"Signal.peek"} </code>
-      {" for a one-off read."}
-    </p>
-    
+### Reading Computed Values
+
+Read a computed exactly like a signal. Use `Signal.get` when the current code should subscribe, or `Signal.peek` for a one-off read.
+
 ```rescript
 let subtotal = Computed.make(() =>
   Signal.get(price) * Signal.get(quantity)
@@ -63,11 +37,10 @@ let total = Computed.make(() =>
 Console.log(Signal.get(total))
 ```
 
-    <h3 id="lazy-recomputation"> {"Lazy Recomputation"} </h3>
-    <p>
-      {"When an upstream signal changes, a computed is marked dirty immediately but does not recompute until someone reads it. This keeps unused derived values cheap."}
-    </p>
-    
+### Lazy Recomputation
+
+When an upstream signal changes, a computed is marked dirty immediately but does not recompute until someone reads it. This keeps unused derived values cheap.
+
 ```rescript
 let count = Signal.make(0)
 
@@ -83,11 +56,10 @@ ignore(Signal.get(doubled))
 // Logs "recomputing"
 ```
 
-    <h3 id="dynamic-dependencies"> {"Dynamic Dependencies"} </h3>
-    <p>
-      {"Computeds re-track their dependencies every time they run. That means conditionals are allowed: the current control flow determines the active inputs."}
-    </p>
-    
+### Dynamic Dependencies
+
+Computeds re-track their dependencies every time they run. That means conditionals are allowed: the current control flow determines the active inputs.
+
 ```rescript
 let useMetric = Signal.make(true)
 let celsius = Signal.make(20)
@@ -102,12 +74,13 @@ let temperature = Computed.make(() =>
 )
 ```
 
-    <h2 id="computeds-in-practice"> {"In Practice"} </h2>
-    <h3 id="example-order-summary"> {"Example: Order Summary"} </h3>
-    <p>
-      {"This is a common computed pattern: keep the writable state small, then derive display values like subtotal, shipping, and total from it."}
-    </p>
-    <DocsExamplePanel
+## In Practice
+
+### Example: Order Summary
+
+This is a common computed pattern: keep the writable state small, then derive display values like subtotal, shipping, and total from it.
+
+<DocsExamplePanel
       filename="OrderSummary.res"
       code={`open Xote
 
@@ -148,18 +121,16 @@ let app = () => {
       <ComputedOrderDemo />
     </DocsExamplePanel>
 
-    <h2 id="computed-lifecycle"> {"Lifecycle"} </h2>
-    <h3 id="disposal"> {"Disposal"} </h3>
-    <p>
-      {"Most computeds do not need manual cleanup. They dispose automatically when nothing is subscribed to them anymore. In UI code that usually means they disappear with the DOM that owns them."}
-    </p>
-    <h4 id="manual-disposal"> {"Manual Disposal"} </h4>
-    <p>
-      {"If you create a long-lived computed outside normal component ownership and want to tear it down explicitly, call "}
-      <code> {"Computed.dispose"} </code>
-      {"."}
-    </p>
-    
+## Lifecycle
+
+### Disposal
+
+Most computeds do not need manual cleanup. They dispose automatically when nothing is subscribed to them anymore. In UI code that usually means they disappear with the DOM that owns them.
+
+#### Manual Disposal
+
+If you create a long-lived computed outside normal component ownership and want to tear it down explicitly, call `Computed.dispose`.
+
 ```rescript
 let doubled = Computed.make(() => Signal.get(count) * 2)
 
@@ -168,11 +139,10 @@ let doubled = Computed.make(() => Signal.get(count) * 2)
 Computed.dispose(doubled)
 ```
 
-    <h3 id="computed-vs-manual-updates"> {"Computed vs Manual Updates"} </h3>
-    <p>
-      {"If a value can be derived from other reactive values, prefer a computed instead of mirroring it into another signal."}
-    </p>
-    
+### Computed vs Manual Updates
+
+If a value can be derived from other reactive values, prefer a computed instead of mirroring it into another signal.
+
 ```rescript
 // Avoid this
 let count = Signal.make(0)
@@ -188,36 +158,16 @@ let count = Signal.make(0)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 ```
 
-    <h2 id="computed-working-style"> {"Working Style"} </h2>
-    <h3 id="best-practices"> {"Best Practices"} </h3>
-    <ul>
-      <li>
-        {"Keep computeds pure. If the code talks to the outside world, it probably belongs in an effect instead."}
-      </li>
-      <li>
-        {"Read computeds with "}
-        <code> {"Signal.get"} </code>
-        {" or "}
-        <code> {"Signal.peek"} </code>
-        {", because they are signals at the type level."}
-      </li>
-      <li>
-        {"Avoid copying derived values into writable signals unless you truly need editable local state."}
-      </li>
-      <li>
-        {"Reach for custom equality only when downstream updates are too noisy with the default behavior."}
-      </li>
-    </ul>
+## Working Style
 
-    <h3 id="next-steps"> {"Next Steps"} </h3>
-    <ul>
-      <li>
-        <a href="/docs/core-concepts/effects">{"Read Effects"}</a>
-        {" to see where reactive side effects fit on top of signals and computeds."}
-      </li>
-      <li>
-        <a href="/docs/view/overview">{"Move to View"}</a>
-        {" when you want to wire derived values into the UI layer."}
-      </li>
-    </ul>
-  </div>
+### Best Practices
+
+- Keep computeds pure. If the code talks to the outside world, it probably belongs in an effect instead.
+- Read computeds with `Signal.get` or `Signal.peek`, because they are signals at the type level.
+- Avoid copying derived values into writable signals unless you truly need editable local state.
+- Reach for custom equality only when downstream updates are too noisy with the default behavior.
+
+### Next Steps
+
+- [Read Effects](/docs/core-concepts/effects) to see where reactive side effects fit on top of signals and computeds.
+- [Move to View](/docs/view/overview) when you want to wire derived values into the UI layer.

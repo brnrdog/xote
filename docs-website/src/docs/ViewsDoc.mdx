@@ -1,42 +1,20 @@
-<div>
-    <p>
-      {"A Xote component is a function that returns a "}
-      <code> {"View.node"} </code>
-      {". The component usually runs once, sets up its reactive graph, and then reactive nodes update in place over time."}
-    </p>
-    <p>
-      {"The recommended path is JSX plus "}
-      <code> {"@jsx.component"} </code>
-      {". The function-based "}
-      <code> {"View"} </code>
-      {" and "}
-      <code> {"Html"} </code>
-      {" APIs stay available when you need lower-level control or are generating UI programmatically."}
-    </p>
+A Xote component is a function that returns a `View.node`. The component usually runs once, sets up its reactive graph, and then reactive nodes update in place over time.
 
-    <h2 id="component-model"> {"View Module"} </h2>
-    <p>
-      {"Think in two layers:"}
-    </p>
-    <ul>
-      <li>
-        <strong> {"Static structure:"} </strong>
-        {" the component function builds the node tree"}
-      </li>
-      <li>
-        <strong> {"Reactive bindings:"} </strong>
-        {" signal reads inside reactive nodes, computeds, and effects keep specific parts up to date"}
-      </li>
-    </ul>
+The recommended path is JSX plus `@jsx.component`. The function-based `View` and `Html` APIs stay available when you need lower-level control or are generating UI programmatically.
 
-    <h2 id="building-components"> {"Using View"} </h2>
-    <h3 id="jsx-configuration"> {"JSX Configuration"} </h3>
-    <p>
-      {"To use JSX with Xote, point ReScript at "}
-      <code> {"XoteJSX"} </code>
-      {"."}
-    </p>
-    
+## View Module
+
+Think in two layers:
+
+- **Static structure:** the component function builds the node tree
+- **Reactive bindings:** signal reads inside reactive nodes, computeds, and effects keep specific parts up to date
+
+## Using View
+
+### JSX Configuration
+
+To use JSX with Xote, point ReScript at `XoteJSX`.
+
 ```rescript
 {
   "dependencies": ["xote"],
@@ -48,16 +26,12 @@
 }
 ```
 
-    <h3 id="writing-components"> {"Writing Components"} </h3>
-    <h4 id="component-module-pattern"> {"Recommended Pattern"} </h4>
-    <p>
-      {"Use a module with a "}
-      <code> {"make"} </code>
-      {" function and annotate it with "}
-      <code> {"@jsx.component"} </code>
-      {". ReScript derives the props shape from labeled arguments."}
-    </p>
-    
+### Writing Components
+
+#### Recommended Pattern
+
+Use a module with a `make` function and annotate it with `@jsx.component`. ReScript derives the props shape from labeled arguments.
+
 ```rescript
 open Xote
 
@@ -75,11 +49,10 @@ let app = () => {
 }
 ```
 
-    <h4 id="function-api"> {"Function API"} </h4>
-    <p>
-      {"The lower-level API is still useful when JSX is not a good fit."}
-    </p>
-    
+#### Function API
+
+The lower-level API is still useful when JSX is not a good fit.
+
 ```rescript
 open Xote
 
@@ -93,15 +66,10 @@ let greeting = (name: string) => {
 }
 ```
 
-    <h3 id="reactive-output"> {"Reactive Output"} </h3>
-    <p>
-      {"JSX expressions are just nodes. For reactive text, use "}
-      <code> {"View.signalText"} </code>
-      {". For arrays and lists, prefer "}
-      <code> {"View.eachWithKey"} </code>
-      {" when item identity matters."}
-    </p>
-    
+### Reactive Output
+
+JSX expressions are just nodes. For reactive text, use `View.signalText`. For arrays and lists, prefer `View.eachWithKey` when item identity matters.
+
 ```rescript
 let count = Signal.make(0)
 
@@ -110,17 +78,10 @@ let count = Signal.make(0)
 </div>
 ```
 
-    <h3 id="attributes-and-events"> {"Attributes and Events"} </h3>
-    <p>
-      {"In JSX, common HTML props are exposed directly. In the function API, use "}
-      <code> {"View.Attr.string"} </code>
-      {", "}
-      <code> {"View.Attr.signal"} </code>
-      {", and "}
-      <code> {"View.Attr.compute"} </code>
-      {"."}
-    </p>
-    
+### Attributes and Events
+
+In JSX, common HTML props are exposed directly. In the function API, use `View.Attr.string`, `View.Attr.signal`, and `View.Attr.compute`.
+
 ```rescript
 let isActive = Signal.make(false)
 
@@ -135,7 +96,6 @@ let toggle = (_evt: Dom.event) => {
 </button>
 ```
 
-    
 ```rescript
 Html.button(
   ~attrs=[
@@ -149,29 +109,12 @@ Html.button(
 )
 ```
 
-    <p>
-      {"In JSX, use "}
-      <code> {"class"} </code>
-      {", not "}
-      <code> {"className"} </code>
-      {". Use "}
-      <code> {"type_"} </code>
-      {" for the HTML "}
-      <code> {"type"} </code>
-      {" attribute because "}
-      <code> {"type"} </code>
-      {" is reserved in ReScript."}
-    </p>
+In JSX, use `class`, not `className`. Use `type_` for the HTML `type` attribute because `type` is reserved in ReScript.
 
-    <h3 id="lists"> {"Lists"} </h3>
-    <p>
-      {"Use "}
-      <code> {"View.each"} </code>
-      {" for simple arrays that can be fully re-rendered, and "}
-      <code> {"View.eachWithKey"} </code>
-      {" when item identity matters."}
-    </p>
-    
+### Lists
+
+Use `View.each` for simple arrays that can be fully re-rendered, and `View.eachWithKey` when item identity matters.
+
 ```rescript
 let items = Signal.make(["Apple", "Banana", "Cherry"])
 
@@ -180,7 +123,6 @@ let items = Signal.make(["Apple", "Banana", "Cherry"])
 </ul>
 ```
 
-    
 ```rescript
 type todo = {id: string, text: string}
 let todos = Signal.make([
@@ -197,19 +139,12 @@ let todos = Signal.make([
 </ul>
 ```
 
-    <p>
-      {"Choose stable keys. Database IDs and route slugs are good. Array indexes are not."}
-    </p>
+Choose stable keys. Database IDs and route slugs are good. Array indexes are not.
 
-    <h3 id="mounting"> {"Mounting"} </h3>
-    <p>
-      {"Use "}
-      <code> {"View.mount"} </code>
-      {" when you already have a DOM element, or "}
-      <code> {"View.mountById"} </code>
-      {" when you want to look one up by id."}
-    </p>
-    
+### Mounting
+
+Use `View.mount` when you already have a DOM element, or `View.mountById` when you want to look one up by id.
+
 ```rescript
 let app = () => {
   <div> {View.text("Hello, Xote")} </div>
@@ -218,12 +153,13 @@ let app = () => {
 View.mountById(app(), "app")
 ```
 
-    <h2 id="components-in-practice"> {"In Practice"} </h2>
-    <h3 id="example-todo-list"> {"Example: Todo List"} </h3>
-    <p>
-      {"This example keeps the shape simple while still showing composition: an input form, a summary, and a keyed list of items all built from small components."}
-    </p>
-    <DocsExamplePanel
+## In Practice
+
+### Example: Todo List
+
+This example keeps the shape simple while still showing composition: an input form, a summary, and a keyed list of items all built from small components.
+
+<DocsExamplePanel
       filename="TodoList.res"
       code={`open Xote
 
@@ -273,34 +209,16 @@ let make = () => {
       <TodoListDemo />
     </DocsExamplePanel>
 
-    <h2 id="components-working-style"> {"Working Style"} </h2>
-    <h3 id="best-practices"> {"Best Practices"} </h3>
-    <ul>
-      <li>
-        {"Default to the JSX module pattern when there is no reason to drop lower."}
-      </li>
-      <li>
-        {"Keep state close to where it is used. Local signals are cheap and usually easier to follow."}
-      </li>
-      <li>
-        {"Use "}
-        <code> {"View.eachWithKey"} </code>
-        {" for collections that reorder, insert, or preserve local DOM state."}
-      </li>
-      <li>
-        {"Be explicit about reactive output so the update boundaries stay readable in the component."}
-      </li>
-    </ul>
+## Working Style
 
-    <h3 id="next-steps"> {"Next Steps"} </h3>
-    <ul>
-      <li>
-        <a href="/docs/router/overview">{"Read Router"}</a>
-        {" when these components need client-side navigation."}
-      </li>
-      <li>
-        <a href="/docs/advanced/ssr">{"Read Server-Side Rendering"}</a>
-        {" if the same components need to render on the server."}
-      </li>
-    </ul>
-  </div>
+### Best Practices
+
+- Default to the JSX module pattern when there is no reason to drop lower.
+- Keep state close to where it is used. Local signals are cheap and usually easier to follow.
+- Use `View.eachWithKey` for collections that reorder, insert, or preserve local DOM state.
+- Be explicit about reactive output so the update boundaries stay readable in the component.
+
+### Next Steps
+
+- [Read Router](/docs/router/overview) when these components need client-side navigation.
+- [Read Server-Side Rendering](/docs/advanced/ssr) if the same components need to render on the server.

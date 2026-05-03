@@ -1,37 +1,21 @@
-<div>
-    <h2 id="what-is-xote"> {"What is Xote?"} </h2>
-    <p>
-      {"Xote is a UI library for ReScript built around fine-grained reactivity. It re-exports "}
-      <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {"rescript-signals"} </a>
-      {" for state, derived values, and effects, then adds the pieces you need to build applications: components, JSX support, routing, SSR, and hydration."}
-    </p>
-    <p>
-      {"The design goal is simple: keep the reactive model small and explicit, then let updates flow directly to the DOM instead of re-running whole component trees."}
-    </p>
-    <ul>
-      <li>
-        {"Signals for local and shared state"}
-      </li>
-      <li>
-        {"Computed values for derived state"}
-      </li>
-      <li>
-        {"Effects for external side effects"}
-      </li>
-      <li>
-        {"View primitives and JSX for UI composition"}
-      </li>
-      <li>
-        {"A built-in router, SSR, and hydration"}
-      </li>
-    </ul>
+## What is Xote?
 
-    <h2 id="quick-example"> {"Start Here"} </h2>
-    <p>
-      {"This counter shows the core model: a signal stores state, an event updates it, and a reactive view node reads it."}
-    </p>
-    <h3 id="using-jsx-syntax"> {"Using JSX Syntax"} </h3>
-    
+Xote is a UI library for ReScript built around fine-grained reactivity. It re-exports [rescript-signals](https://brnrdog.github.io/rescript-signals) for state, derived values, and effects, then adds the pieces you need to build applications: components, JSX support, routing, SSR, and hydration.
+
+The design goal is simple: keep the reactive model small and explicit, then let updates flow directly to the DOM instead of re-running whole component trees.
+
+- Signals for local and shared state
+- Computed values for derived state
+- Effects for external side effects
+- View primitives and JSX for UI composition
+- A built-in router, SSR, and hydration
+
+## Start Here
+
+This counter shows the core model: a signal stores state, an event updates it, and a reactive view node reads it.
+
+### Using JSX Syntax
+
 ```rescript
 open Xote
 
@@ -56,50 +40,23 @@ let app = () => {
 View.mountById(app(), "app")
 ```
 
-    <p>
-      {"When "}
-      <code> {"count"} </code>
-      {" changes, only the reactive view node updates. The component does not need a render loop or a dependency array."}
-    </p>
+When `count` changes, only the reactive view node updates. The component does not need a render loop or a dependency array.
 
-    <h2 id="core-modules"> {"How the Docs Are Organized"} </h2>
-    <p>
-      {"The docs make more sense if you move from the reactive core outward into UI, routing, and server rendering."}
-    </p>
-    <ul>
-      <li>
-        <a href="/docs/core-concepts/signals">{"Signals"}</a>
-        {" - state containers you can read and update"}
-      </li>
-      <li>
-        <a href="/docs/core-concepts/computed">{"Computeds"}</a>
-        {" - derived values that stay in sync"}
-      </li>
-      <li>
-        <a href="/docs/core-concepts/effects">{"Effects"}</a>
-        {" - side effects that react to state changes"}
-      </li>
-      <li>
-        <a href="/docs/view/overview">{"View"}</a>
-        {" - the View module, JSX, attributes, events, and lists"}
-      </li>
-      <li>
-        <a href="/docs/router/overview">{"Router"}</a>
-        {" - client-side navigation and route matching"}
-      </li>
-      <li>
-        <a href="/docs/advanced/ssr">{"Server-Side Rendering"}</a>
-        {" - rendering on the server and hydrating on the client"}
-      </li>
-    </ul>
+## How the Docs Are Organized
 
-    <h3 id="installation"> {"Installation"} </h3>
-    <p>
-      {"Install the package, then point ReScript's JSX transform at "}
-      <code> {"XoteJSX"} </code>
-      {"."}
-    </p>
-    
+The docs make more sense if you move from the reactive core outward into UI, routing, and server rendering.
+
+- [Signals](/docs/core-concepts/signals) - state containers you can read and update
+- [Computeds](/docs/core-concepts/computed) - derived values that stay in sync
+- [Effects](/docs/core-concepts/effects) - side effects that react to state changes
+- [View](/docs/view/overview) - the View module, JSX, attributes, events, and lists
+- [Router](/docs/router/overview) - client-side navigation and route matching
+- [Server-Side Rendering](/docs/advanced/ssr) - rendering on the server and hydrating on the client
+
+### Installation
+
+Install the package, then point ReScript's JSX transform at `XoteJSX`.
+
 ```rescript
 npm install xote
 # or
@@ -108,7 +65,6 @@ yarn add xote
 pnpm add xote
 ```
 
-    
 ```rescript
 {
   "dependencies": ["xote"],
@@ -120,29 +76,14 @@ pnpm add xote
 }
 ```
 
-    <h3 id="next-steps"> {"Next Steps"} </h3>
-    <ul>
-      <li>
-        <a href="/docs/core-concepts/signals">{"Read Signals first"}</a>
-        {" if you want the shortest path into the reactive model."}
-      </li>
-      <li>
-        <a href="/docs/view/overview">{"Move to View next"}</a>
-        {" once the state model feels clear."}
-      </li>
-      <li>
-        <a href="/docs/api/signals">{"Keep the Signals API nearby"}</a>
-        {" while you are writing real code."}
-      </li>
-    </ul>
+### Next Steps
 
-    <h2 id="philosophy"> {"Philosophy"} </h2>
-    <p>
-      {"Xote keeps the runtime surface small and explicit. State lives in signals, derived state lives in computeds, and external work lives in effects. That separation makes update paths easier to follow and easier to debug."}
-    </p>
-    <p>
-      {"Because Xote builds on "}
-      <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {"rescript-signals"} </a>
-      {", the reactive core stays close to the broader signals direction in JavaScript while exposing a UI API that feels natural in ReScript."}
-    </p>
-  </div>
+- [Read Signals first](/docs/core-concepts/signals) if you want the shortest path into the reactive model.
+- [Move to View next](/docs/view/overview) once the state model feels clear.
+- [Keep the Signals API nearby](/docs/api/signals) while you are writing real code.
+
+## Philosophy
+
+Xote keeps the runtime surface small and explicit. State lives in signals, derived state lives in computeds, and external work lives in effects. That separation makes update paths easier to follow and easier to debug.
+
+Because Xote builds on [rescript-signals](https://brnrdog.github.io/rescript-signals), the reactive core stays close to the broader signals direction in JavaScript while exposing a UI API that feels natural in ReScript.

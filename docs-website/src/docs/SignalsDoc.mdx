@@ -1,34 +1,13 @@
-<div>
-    <p>
-      {"Signals are the state primitive in Xote. A signal stores a value, tracks who reads it, and notifies dependents when the value actually changes."}
-    </p>
-    <div className="info-box">
-      <p>
-        <strong> {"Info:"} </strong>
-        {" Xote re-exports "}
-        <code> {"Signal"} </code>
-        {", "}
-        <code> {"Computed"} </code>
-        {", and "}
-        <code> {"Effect"} </code>
-        {" from "}
-        <a href="https://brnrdog.github.io/rescript-signals" target="_blank"> {"rescript-signals"} </a>
-        {"."}
-      </p>
-    </div>
+Signals are the state primitive in Xote. A signal stores a value, tracks who reads it, and notifies dependents when the value actually changes.
 
-    <h2 id="working-with-signals"> {"Working with Signals"} </h2>
-    <h3 id="creating-signals"> {"Creating Signals"} </h3>
-    <p>
-      {"Use "}
-      <code> {"Signal.make"} </code>
-      {" to create a signal. You can optionally pass "}
-      <code> {"~name"} </code>
-      {" for debugging and "}
-      <code> {"~equals"} </code>
-      {" when the default equality is not enough."}
-    </p>
-    
+> **Info:** Xote re-exports `Signal`, `Computed`, and `Effect` from [rescript-signals](https://brnrdog.github.io/rescript-signals).
+
+## Working with Signals
+
+### Creating Signals
+
+Use `Signal.make` to create a signal. You can optionally pass `~name` for debugging and `~equals` when the default equality is not enough.
+
 ```rescript
 open Xote
 
@@ -40,17 +19,14 @@ let settings = Signal.make({
 })
 ```
 
-    <h3 id="reading-signal-values"> {"Reading Signal Values"} </h3>
-    <p>
-      {"There are two read modes. Choose based on whether the current code should subscribe to future updates."}
-    </p>
-    <h4 id="signal-get"> <code> {"Signal.get()"} </code> </h4>
-    <p>
-      {"Use "}
-      <code> {"Signal.get"} </code>
-      {" inside a computed, effect, or reactive node when the current code should re-run if the signal changes."}
-    </p>
-    
+### Reading Signal Values
+
+There are two read modes. Choose based on whether the current code should subscribe to future updates.
+
+#### `Signal.get()`
+
+Use `Signal.get` inside a computed, effect, or reactive node when the current code should re-run if the signal changes.
+
 ```rescript
 let firstName = Signal.make("Ada")
 let lastName = Signal.make("Lovelace")
@@ -60,13 +36,10 @@ let fullName = Computed.make(() =>
 )
 ```
 
-    <h4 id="signal-peek"> <code> {"Signal.peek()"} </code> </h4>
-    <p>
-      {"Use "}
-      <code> {"Signal.peek"} </code>
-      {" when you need the current value without subscribing. This is useful for logging, snapshots, and one-off reads inside effects."}
-    </p>
-    
+#### `Signal.peek()`
+
+Use `Signal.peek` when you need the current value without subscribing. This is useful for logging, snapshots, and one-off reads inside effects.
+
 ```rescript
 Effect.run(() => {
   let tracked = Signal.get(count)
@@ -78,47 +51,39 @@ Effect.run(() => {
 })
 ```
 
-    <h3 id="updating-signals"> {"Updating Signals"} </h3>
-    <h4 id="signal-set"> <code> {"Signal.set()"} </code> </h4>
-    <p>
-      {"Use "}
-      <code> {"Signal.set"} </code>
-      {" when you already know the next value."}
-    </p>
-    
+### Updating Signals
+
+#### `Signal.set()`
+
+Use `Signal.set` when you already know the next value.
+
 ```rescript
 Signal.set(count, 10)
 Signal.set(userName, "Grace")
 ```
 
-    <h4 id="signal-update"> <code> {"Signal.update()"} </code> </h4>
-    <p>
-      {"Use "}
-      <code> {"Signal.update"} </code>
-      {" when the next value depends on the current one. This keeps the intent obvious and avoids an extra read."}
-    </p>
-    
+#### `Signal.update()`
+
+Use `Signal.update` when the next value depends on the current one. This keeps the intent obvious and avoids an extra read.
+
 ```rescript
 Signal.update(count, n => n + 1)
 
-Signal.update(settings, current => {
-  ...current,
+Signal.update(settings, current => {...current,
   compact: !current.compact,
 })
 ```
 
-    <h2 id="how-signals-decide-to-update"> {"How Signals Decide to Update"} </h2>
-    <h3 id="equality-and-change-detection"> {"Equality and Change Detection"} </h3>
-    <p>
-      {"Signals only notify dependents when the new value is considered different from the current value. By default that check uses JavaScript strict equality, "}
-      <code> {"==="} </code>
-      {"."}
-    </p>
-    <h4 id="default-equality"> {"Default Equality"} </h4>
-    <p>
-      {"For primitives, setting the same value is a no-op. For arrays, records, and objects, a new reference counts as a change even when the fields look the same."}
-    </p>
-    
+## How Signals Decide to Update
+
+### Equality and Change Detection
+
+Signals only notify dependents when the new value is considered different from the current value. By default that check uses JavaScript strict equality, `===`.
+
+#### Default Equality
+
+For primitives, setting the same value is a no-op. For arrays, records, and objects, a new reference counts as a change even when the fields look the same.
+
 ```rescript
 let count = Signal.make(5)
 
@@ -129,15 +94,10 @@ let items = Signal.make([1, 2, 3])
 Signal.set(items, [1, 2, 3]) // New array reference, so this updates
 ```
 
-    <h4 id="custom-equality"> {"Custom Equality"} </h4>
-    <p>
-      {"When you want value-based comparison for compound data, pass "}
-      <code> {"~equals"} </code>
-      {" to "}
-      <code> {"Signal.make"} </code>
-      {"."}
-    </p>
-    
+#### Custom Equality
+
+When you want value-based comparison for compound data, pass `~equals` to `Signal.make`.
+
 ```rescript
 type position = {x: int, y: int}
 
@@ -150,13 +110,10 @@ Signal.set(position, {x: 0, y: 0}) // No update
 Signal.set(position, {x: 0, y: 1}) // Update
 ```
 
-    <h3 id="dependency-tracking"> {"Dependency Tracking"} </h3>
-    <p>
-      {"Every "}
-      <code> {"Signal.get"} </code>
-      {" call inside an active computed or effect becomes a dependency. On the next run, dependencies are cleared and tracked again, so the graph follows control flow instead of staying fixed forever."}
-    </p>
-    
+### Dependency Tracking
+
+Every `Signal.get` call inside an active computed or effect becomes a dependency. On the next run, dependencies are cleared and tracked again, so the graph follows control flow instead of staying fixed forever.
+
 ```rescript
 let useMetric = Signal.make(true)
 let celsius = Signal.make(20)
@@ -171,12 +128,13 @@ let temperature = Computed.make(() =>
 )
 ```
 
-    <h2 id="signals-in-practice"> {"In Practice"} </h2>
-    <h3 id="example-counter"> {"Example: Counter"} </h3>
-    <p>
-      {"This is the same pattern most Xote state starts with: a signal, a few updates, and a reactive view read in the UI."}
-    </p>
-    <DocsExamplePanel
+## In Practice
+
+### Example: Counter
+
+This is the same pattern most Xote state starts with: a signal, a few updates, and a reactive view read in the UI.
+
+<DocsExamplePanel
       filename="Counter.res"
       code={`open Xote
 
@@ -216,40 +174,17 @@ View.mountById(app(), "app")`}
       <CounterDemo />
     </DocsExamplePanel>
 
-    <h2 id="signals-working-style"> {"Working Style"} </h2>
-    <h3 id="best-practices"> {"Best Practices"} </h3>
-    <ul>
-      <li>
-        {"Keep one signal focused on one job. A small record is fine; a grab-bag of unrelated state is not."}
-      </li>
-      <li>
-        {"Prefer "}
-        <code> {"Signal.update"} </code>
-        {" when the next value depends on the current one."}
-      </li>
-      <li>
-        {"Treat "}
-        <code> {"Signal.peek"} </code>
-        {" as a snapshot tool, not your default read API."}
-      </li>
-      <li>
-        {"Add custom equality only when strict equality creates real noise in the UI or effects."}
-      </li>
-    </ul>
+## Working Style
 
-    <h3 id="next-steps"> {"Next Steps"} </h3>
-    <ul>
-      <li>
-        <a href="/docs/core-concepts/computed">{"Read Computeds"}</a>
-        {" if the next question is how to derive state instead of storing it twice."}
-      </li>
-      <li>
-        <a href="/docs/core-concepts/effects">{"Read Effects"}</a>
-        {" if you need to connect signals to timers, network requests, or browser APIs."}
-      </li>
-      <li>
-        <a href="/docs/api/signals">{"Use the Signals API reference"}</a>
-        {" when you want signatures and quick examples."}
-      </li>
-    </ul>
-  </div>
+### Best Practices
+
+- Keep one signal focused on one job. A small record is fine; a grab-bag of unrelated state is not.
+- Prefer `Signal.update` when the next value depends on the current one.
+- Treat `Signal.peek` as a snapshot tool, not your default read API.
+- Add custom equality only when strict equality creates real noise in the UI or effects.
+
+### Next Steps
+
+- [Read Computeds](/docs/core-concepts/computed) if the next question is how to derive state instead of storing it twice.
+- [Read Effects](/docs/core-concepts/effects) if you need to connect signals to timers, network requests, or browser APIs.
+- [Use the Signals API reference](/docs/api/signals) when you want signatures and quick examples.
