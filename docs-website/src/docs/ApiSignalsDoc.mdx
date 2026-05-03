@@ -1,0 +1,203 @@
+<div>
+    <p>
+      {"This page covers the "}
+      <code> {"Signal"} </code>
+      {" module directly and links out to "}
+      <code> {"Computed"} </code>
+      {" and "}
+      <code> {"Effect"} </code>
+      {" where their behavior intersects with signals."}
+    </p>
+
+    <h2 id="signal-api"> {"Signal"} </h2>
+    <h3 id="type"> {"Type"} </h3>
+    
+```rescript
+type t<'a>
+```
+
+    <p>
+      {"A signal stores a value of type "}
+      <code> {"'a"} </code>
+      {", plus the bookkeeping needed for dependency tracking and scheduling."}
+    </p>
+
+    <h3 id="functions"> {"Functions"} </h3>
+
+    <h4 id="make"> <code> {"make"} </code> </h4>
+    
+```rescript
+let make: (
+  'a,
+  ~name: option<string>=?,
+  ~equals: option<('a, 'a) => bool>=?,
+) => t<'a>
+```
+
+    <p>
+      {"Create a signal with an initial value. "}
+      <code> {"~name"} </code>
+      {" is only for debugging. "}
+      <code> {"~equals"} </code>
+      {" overrides the default strict equality check."}
+    </p>
+
+    <h4 id="get"> <code> {"get"} </code> </h4>
+    
+```rescript
+let get: t<'a> => 'a
+```
+
+    <p>
+      {"Read the current value and subscribe the active computed or effect, if one exists."}
+    </p>
+
+    <h4 id="peek"> <code> {"peek"} </code> </h4>
+    
+```rescript
+let peek: t<'a> => 'a
+```
+
+    <p>
+      {"Read the current value without creating a dependency."}
+    </p>
+
+    <h4 id="set"> <code> {"set"} </code> </h4>
+    
+```rescript
+let set: (t<'a>, 'a) => unit
+```
+
+    <p>
+      {"Replace the signal value. Dependents are notified only if the equality check says the value changed."}
+    </p>
+
+    <h4 id="update"> <code> {"update"} </code> </h4>
+    
+```rescript
+let update: (t<'a>, 'a => 'a) => unit
+```
+
+    <p>
+      {"Compute the next value from the current one. Prefer this when the write depends on the existing state."}
+    </p>
+
+    <h4 id="batch"> <code> {"batch"} </code> </h4>
+    
+```rescript
+let batch: (unit => 'a) => 'a
+```
+
+    <p>
+      {"Defer scheduler flushing until the batch completes, then return the callback result."}
+    </p>
+
+    <h4 id="untrack"> <code> {"untrack"} </code> </h4>
+    
+```rescript
+let untrack: (unit => 'a) => 'a
+```
+
+    <p>
+      {"Run a block without dependency capture. Use this when "}
+      <code> {"peek"} </code>
+      {" is too narrow and a full untracked region is clearer."}
+    </p>
+
+    <h2 id="related-signal-apis"> {"Related APIs"} </h2>
+    <h3 id="behavior-notes"> {"Behavior Notes"} </h3>
+    <ul>
+      <li>
+        <strong> {"Default equality is strict equality:"} </strong>
+        <code> {"==="} </code>
+        {" is used unless you pass "}
+        <code> {"~equals"} </code>
+      </li>
+      <li>
+        <strong> {"Reads can be tracked or untracked:"} </strong>
+        {" use get for subscriptions, peek or untrack for snapshots"}
+      </li>
+      <li>
+        <strong> {"Updates are synchronous:"} </strong>
+        {" dependents flush immediately unless wrapped in batch"}
+      </li>
+      <li>
+        <strong> {"Computeds are just signal values at the type level:"} </strong>
+        {" read them with get or peek"}
+      </li>
+    </ul>
+
+    <h3 id="companion-modules"> {"Companion Modules"} </h3>
+    <p>
+      {"Most signal-heavy code also uses "}
+      <code> {"Computed"} </code>
+      {" and "}
+      <code> {"Effect"} </code>
+      {". Their key entry points are:"}
+    </p>
+    
+```rescript
+Computed.make : (
+  unit => 'a,
+  ~name: option<string>=?,
+  ~equals: option<('a, 'a) => bool>=?,
+) => Signal.t<'a>
+
+Computed.dispose : Signal.t<'a> => unit
+
+Effect.run : (
+  unit => option<unit => unit>,
+  ~name: option<string>=?,
+) => unit
+
+Effect.runWithDisposer : (
+  unit => option<unit => unit>,
+  ~name: option<string>=?,
+) => {dispose: unit => unit}
+```
+
+    <h2 id="signals-in-practice"> {"In Practice"} </h2>
+    <h3 id="examples"> {"Examples"} </h3>
+    
+```rescript
+open Xote
+
+let count = Signal.make(0)
+let doubled = Computed.make(() => Signal.get(count) * 2)
+
+Effect.run(() => {
+  Console.log2("count", Signal.get(count))
+  Console.log2("doubled", Signal.get(doubled))
+  None
+})
+
+Signal.update(count, n => n + 1)
+```
+
+    
+```rescript
+type filters = {query: string, page: int}
+
+let filters = Signal.make(
+  {query: "", page: 1},
+  ~equals=(a, b) => a.query == b.query && a.page == b.page,
+)
+```
+
+    <h2 id="where-to-go-next"> {"Where to Go Next"} </h2>
+    <h3 id="see-also"> {"See Also"} </h3>
+    <ul>
+      <li>
+        <a href="/docs/core-concepts/signals">{"Signals guide"}</a>
+      </li>
+      <li>
+        <a href="/docs/core-concepts/computed">{"Computeds guide"}</a>
+      </li>
+      <li>
+        <a href="/docs/core-concepts/effects">{"Effects guide"}</a>
+      </li>
+      <li>
+        <a href="/docs/advanced/batching">{"Batching"}</a>
+      </li>
+    </ul>
+  </div>

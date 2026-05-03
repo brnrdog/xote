@@ -54,3 +54,5 @@ let content = () => {
     </p>
   </div>
 }
+
+let make = _props => content()

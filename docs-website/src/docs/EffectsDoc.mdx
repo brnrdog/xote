@@ -1,0 +1,218 @@
+<div>
+    <p>
+      {"Effects connect the reactive graph to the outside world. They run immediately, track the signals they read, and re-run when those dependencies change."}
+    </p>
+    <p>
+      {"Use them for DOM APIs, timers, network coordination, logging, or any other work that should happen because state changed. Do not use them to compute values that could stay inside the reactive graph."}
+    </p>
+
+    <h2 id="working-with-effects"> {"Working with Effects"} </h2>
+    <h3 id="creating-effects"> {"Creating Effects"} </h3>
+    <p>
+      {"Use "}
+      <code> {"Effect.run"} </code>
+      {" for fire-and-forget effects and "}
+      <code> {"Effect.runWithDisposer"} </code>
+      {" when you need to stop the effect manually."}
+    </p>
+    
+```rescript
+open Xote
+
+let count = Signal.make(0)
+
+Effect.run(() => {
+  Console.log2("Count:", Signal.get(count))
+  None
+})
+```
+
+    <h3 id="dependency-tracking"> {"Dependency Tracking"} </h3>
+    <p>
+      {"Effects track dependencies automatically. Every "}
+      <code> {"Signal.get"} </code>
+      {" call inside the effect subscribes the effect to that signal. On each run, dependencies are cleared and tracked again."}
+    </p>
+    
+```rescript
+let showDetails = Signal.make(false)
+let name = Signal.make("Ada")
+let age = Signal.make(36)
+
+Effect.run(() => {
+  if Signal.get(showDetails) {
+    Console.log2("Name:", Signal.get(name))
+    Console.log2("Age:", Signal.get(age))
+  }
+  None
+})
+```
+
+    <h3 id="cleanup-callbacks"> {"Cleanup Callbacks"} </h3>
+    <p>
+      {"An effect can return "}
+      <code> {"Some(cleanupFn)"} </code>
+      {" or "}
+      <code> {"None"} </code>
+      {". Cleanup runs before the next execution and when the effect is disposed."}
+    </p>
+    
+```rescript
+let url = Signal.make("/api/users")
+
+Effect.run(() => {
+  let currentUrl = Signal.get(url)
+  let controller = AbortController.make()
+
+  fetch(currentUrl, {"signal": controller##signal})->ignore
+
+  Some(() => controller##abort())
+})
+```
+
+    <h3 id="disposing-effects"> {"Disposing Effects"} </h3>
+    <p>
+      {"When you need explicit teardown, use "}
+      <code> {"Effect.runWithDisposer"} </code>
+      {". It returns an object with a "}
+      <code> {"dispose()"} </code>
+      {" method."}
+    </p>
+    
+```rescript
+let disposer = Effect.runWithDisposer(() => {
+  Console.log(Signal.get(count))
+  None
+})
+
+disposer.dispose()
+```
+
+    <h3 id="avoiding-dependencies"> {"Avoiding Dependencies"} </h3>
+    <p>
+      {"If you need a value inside an effect without subscribing to it, use "}
+      <code> {"Signal.peek"} </code>
+      {" for one read or "}
+      <code> {"Signal.untrack"} </code>
+      {" for a larger block."}
+    </p>
+    
+```rescript
+let debug = Signal.make(true)
+
+Effect.run(() => {
+  let tracked = Signal.get(count)
+
+  if Signal.peek(debug) {
+    Console.log2("Debug count:", tracked)
+  }
+
+  None
+})
+```
+
+    <h2 id="effects-common-patterns"> {"Common Patterns"} </h2>
+    <h3 id="common-use-cases"> {"Common Use Cases"} </h3>
+    <ul>
+      <li>
+        <strong> {"Browser APIs:"} </strong>
+        {" document title, localStorage, media queries, history, and scroll state"}
+      </li>
+      <li>
+        <strong> {"Timers and subscriptions:"} </strong>
+        {" intervals, event listeners, sockets, and observers"}
+      </li>
+      <li>
+        <strong> {"Synchronization:"} </strong>
+        {" push reactive state into another system"}
+      </li>
+      <li>
+        <strong> {"Diagnostics:"} </strong>
+        {" logging, instrumentation, and dev-only inspection"}
+      </li>
+    </ul>
+
+    <h3 id="example-auto-save"> {"Example: Auto-save"} </h3>
+    <p>
+      {"This pattern is common: track a draft, debounce the work, and clean up old timers when the draft changes again."}
+    </p>
+    <DocsExamplePanel
+      filename="DraftAutoSave.res"
+      code={`open Xote
+
+let draft = Signal.make("")
+let saveStatus = Signal.make("Start typing to queue a save")
+
+let handleInput = evt => {
+  let target: {"value": string} = (evt->Obj.magic)["target"]
+  Signal.set(draft, target["value"])
+}
+
+Effect.run(() => {
+  let currentDraft = Signal.get(draft)->String.trim
+
+  if currentDraft == "" {
+    Signal.set(saveStatus, "Start typing to queue a save")
+    None
+  } else {
+    Signal.set(saveStatus, "Saving in 600ms")
+
+  let timeoutId = setTimeout(() => {
+      Console.log2("Saving draft:", currentDraft)
+  }, 500)
+
+    Some(() => clearTimeout(timeoutId))
+  }
+})`}
+    >
+      <EffectAutosaveDemo />
+    </DocsExamplePanel>
+
+    <h3 id="effects-vs-computed"> {"Effects vs Computed"} </h3>
+    <p>
+      {"Ask one question: is the result another value inside the reactive graph, or is it work outside the graph?"}
+    </p>
+    <ul>
+      <li>
+        <strong> {"Use a computed"} </strong>
+        {" when you are deriving a value from other values"}
+      </li>
+      <li>
+        <strong> {"Use an effect"} </strong>
+        {" when you need to talk to something external"}
+      </li>
+    </ul>
+
+    <h2 id="effects-working-style"> {"Working Style"} </h2>
+    <h3 id="best-practices"> {"Best Practices"} </h3>
+    <ul>
+      <li>
+        {"Keep one effect focused on one kind of external work so cleanup stays obvious."}
+      </li>
+      <li>
+        {"Return cleanup whenever you allocate timers, listeners, requests, or subscriptions."}
+      </li>
+      <li>
+        {"Do not use effects to keep derived state in sync. If the output is another value, use a computed."}
+      </li>
+      <li>
+        {"Use "}
+        <code> {"peek"} </code>
+        {" and "}
+        <code> {"untrack"} </code>
+        {" deliberately, because they opt out of tracking."}
+      </li>
+    </ul>
+
+    <h3 id="next-steps"> {"Next Steps"} </h3>
+    <ul>
+      <li>
+        <a href="/docs/view/overview">{"Move to View"}</a>
+        {" to see how effects fit into real UI code."}
+      </li>
+      <li>
+        <a href="/docs/advanced/batching">{"Read Batching"}</a>
+        {" when several writes should flush as one coordinated update."}
+      </li>
+    </ul>
+  </div>

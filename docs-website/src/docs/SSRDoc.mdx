@@ -1,0 +1,212 @@
+<div>
+    <h2 id="rendering-model"> {"Rendering Model"} </h2>
+    <h3 id="overview"> {"Overview"} </h3>
+    <p>
+      {"Xote's SSR story is built from three modules that line up with the render flow:"}
+    </p>
+    <ul>
+      <li>
+        <strong> {"SSR"} </strong>
+        {" - render nodes to HTML"}
+      </li>
+      <li>
+        <strong> {"SSRState"} </strong>
+        {" - serialize state on the server and restore it on the client"}
+      </li>
+      <li>
+        <strong> {"Hydration"} </strong>
+        {" - attach reactivity and event handlers to existing DOM"}
+      </li>
+    </ul>
+    <p>
+      {"The key idea is that the client should not re-render what the server already produced. Hydration walks the server HTML, reconnects reactive boundaries, and continues from there."}
+    </p>
+
+    <h3 id="render-on-the-server"> {"Render on the Server"} </h3>
+    <p>
+      {"Use "}
+      <code> {"SSR.renderToString"} </code>
+      {" for fragments and "}
+      <code> {"SSR.renderToStringWithRoot"} </code>
+      {" when you want a hydration root."}
+    </p>
+    
+```rescript
+open Xote
+
+let app = () => {
+  <div>
+    <h1> {View.text("Hello from the server")} </h1>
+  </div>
+}
+
+let html = SSR.renderToStringWithRoot(app, ~rootId="root")
+```
+
+    <h3 id="full-document-rendering"> {"Full Document Rendering"} </h3>
+    <p>
+      {"Use "}
+      <code> {"SSR.renderDocument"} </code>
+      {" when the server is responsible for the whole HTML document."}
+    </p>
+    
+```rescript
+let html = SSR.renderDocument(
+  ~head="<title>Xote App</title>",
+  ~scripts=["/client.js"],
+  ~stateScript=SSRState.generateScript(),
+  app,
+)
+```
+
+    <h3 id="environment-detection"> {"Environment Detection"} </h3>
+    <p>
+      {"Use "}
+      <code> {"SSRContext"} </code>
+      {" when code needs to branch between server and client behavior."}
+    </p>
+    
+```rescript
+let greeting = SSRContext.match(
+  ~server=() => "Rendered on the server",
+  ~client=() => "Rendered on the client",
+)
+```
+
+    <h2 id="state-and-hydration"> {"State and Hydration"} </h2>
+    <h3 id="state-transfer"> {"State Transfer"} </h3>
+    <p>
+      {"If the server and client must start from the same state, create or register signals with "}
+      <code> {"SSRState"} </code>
+      {"."}
+    </p>
+    <h4 id="creating-synced-state"> {"Creating Synced State"} </h4>
+    
+```rescript
+let count = SSRState.signal("count", 0, SSRState.Codec.int)
+let name = SSRState.signal("name", "Ada", SSRState.Codec.string)
+```
+
+    <h4 id="syncing-existing-signals"> {"Syncing Existing Signals"} </h4>
+    
+```rescript
+let draft = Signal.make("")
+SSRState.syncSignal("draft", draft, SSRState.Codec.string)
+```
+
+    <h4 id="built-in-codecs"> {"Built-in Codecs"} </h4>
+    <p>
+      {"Use the built-in codecs for primitives and common containers, or create your own with "}
+      <code> {"SSRState.Codec.make"} </code>
+      {"."}
+    </p>
+    
+```rescript
+SSRState.Codec.int
+SSRState.Codec.string
+SSRState.Codec.bool
+SSRState.Codec.array(SSRState.Codec.string)
+SSRState.Codec.option(SSRState.Codec.int)
+SSRState.Codec.tuple2(SSRState.Codec.int, SSRState.Codec.string)
+```
+
+    <p>
+      {"On long-lived servers that render more than one request, call "}
+      <code> {"SSRState.clear()"} </code>
+      {" between renders to reset the registry."}
+    </p>
+
+    <h3 id="hydration"> {"Client-Side Hydration"} </h3>
+    <p>
+      {"Hydration connects the client runtime to server-rendered DOM without replacing it."}
+    </p>
+    
+```rescript
+Hydration.hydrateById(app, "root", ~options={
+  onHydrated: () => Console.log("hydrated"),
+})
+```
+
+    <h2 id="ssr-in-practice"> {"In Practice"} </h2>
+    <h3 id="complete-example"> {"Complete Example"} </h3>
+    <p>
+      {"A typical setup shares the same component between server and client."}
+    </p>
+    <h4 id="shared-component"> {"Shared Component"} </h4>
+    
+```rescript
+open Xote
+
+let count = SSRState.signal("count", 0, SSRState.Codec.int)
+
+let app = () => {
+  <div>
+    <h1>
+      {View.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)}
+    </h1>
+    <button onClick={_ => Signal.update(count, n => n + 1)}>
+      {View.text("Increment")}
+    </button>
+  </div>
+}
+```
+
+    <h4 id="server-entry"> {"Server Entry"} </h4>
+    
+```rescript
+Router.initSSR(~pathname="/", ())
+
+let html = SSR.renderDocument(
+  ~scripts=["/client.js"],
+  ~stateScript=SSRState.generateScript(),
+  app,
+)
+```
+
+    <h4 id="client-entry"> {"Client Entry"} </h4>
+    
+```rescript
+Router.init()
+Hydration.hydrateById(app, "root")
+```
+
+    <h3 id="hydration-markers"> {"Hydration Markers"} </h3>
+    <p>
+      {"Xote inserts HTML comments around reactive boundaries during SSR. The client uses those markers to find reactive view text, fragments, keyed lists, and lazy components while hydrating."}
+    </p>
+
+    <h2 id="ssr-working-style"> {"Working Style"} </h2>
+    <h3 id="best-practices"> {"Best Practices"} </h3>
+    <ul>
+      <li>
+        {"Render the same component tree on the server and the client so hydration can attach cleanly."}
+      </li>
+      <li>
+        {"Initialize the router for the right environment: "}
+        <code> {"initSSR"} </code>
+        {" on the server, "}
+        <code> {"init"} </code>
+        {" on the client."}
+      </li>
+      <li>
+        {"Clear "}
+        <code> {"SSRState"} </code>
+        {" between server renders, especially in custom or long-lived processes."}
+      </li>
+      <li>
+        {"Choose codecs deliberately because they define the contract between serialized output and restored client state."}
+      </li>
+    </ul>
+
+    <h3 id="next-steps"> {"Next Steps"} </h3>
+    <ul>
+      <li>
+        <a href="/docs/router/overview">{"Read Router"}</a>
+        {" if these pages also depend on route state."}
+      </li>
+      <li>
+        <a href="/docs/technical-overview">{"Read the Technical Overview"}</a>
+        {" if you want the internal model behind hydration and runtime ownership."}
+      </li>
+    </ul>
+  </div>

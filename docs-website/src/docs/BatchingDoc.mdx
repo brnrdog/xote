@@ -1,0 +1,151 @@
+<div>
+    <p>
+      {"Batching lets you group several signal writes so dependent computeds and effects flush once after the batch finishes."}
+    </p>
+    <div className="info-box">
+      <p>
+        <strong> {"Info:"} </strong>
+        {" Updates still happen synchronously. Batching changes how many times dependents flush, not whether they flush immediately."}
+      </p>
+    </div>
+
+    <h2 id="why-and-when-to-batch"> {"Why and When to Batch"} </h2>
+    <h3 id="why-batch"> {"Why Batch?"} </h3>
+    <p>
+      {"Without batching, each write can trigger a new round of downstream work. That is fine for isolated updates, but noisy for coordinated state changes."}
+    </p>
+    
+```rescript
+let firstName = Signal.make("Ada")
+let lastName = Signal.make("Lovelace")
+
+let fullName = Computed.make(() =>
+  `${Signal.get(firstName)} ${Signal.get(lastName)}`
+)
+
+Effect.run(() => {
+  Console.log(Signal.get(fullName))
+  None
+})
+
+Signal.set(firstName, "Grace")
+Signal.set(lastName, "Hopper")
+```
+
+    <p>
+      {"That effect can run twice. If both writes belong to the same logical update, batch them."}
+    </p>
+
+    <h2 id="using-batching"> {"Using Batching"} </h2>
+    <h3 id="using-signal-batch"> {"Using Signal.batch()"} </h3>
+    <p>
+      {"Wrap related writes in "}
+      <code> {"Signal.batch"} </code>
+      {"."}
+    </p>
+    
+```rescript
+Signal.batch(() => {
+  Signal.set(firstName, "Grace")
+  Signal.set(lastName, "Hopper")
+})
+```
+
+    <h3 id="how-batching-works"> {"How Batching Works"} </h3>
+    <p>
+      {"Inside a batch, signals update immediately, but scheduler flushing is deferred until the outermost batch completes. Readers inside the batch still see the latest values."}
+    </p>
+    
+```rescript
+Signal.batch(() => {
+  Signal.set(firstName, "Grace")
+  Signal.set(lastName, "Hopper")
+
+  Console.log(Signal.peek(firstName)) // "Grace"
+  Console.log(Signal.peek(lastName)) // "Hopper"
+})
+```
+
+    <h3 id="common-cases"> {"Common Cases"} </h3>
+    <p>
+      {"Batching is most useful when one user action updates several related signals."}
+    </p>
+    
+```rescript
+type formState = {
+  name: string,
+  email: string,
+}
+
+let form = Signal.make({name: "", email: ""})
+let isSaving = Signal.make(false)
+let saveError = Signal.make(None)
+
+let submit = () => {
+  Signal.batch(() => {
+    Signal.set(isSaving, true)
+    Signal.set(saveError, None)
+  })
+}
+```
+
+    <h3 id="nested-batches"> {"Nested Batches"} </h3>
+    <p>
+      {"Batches can be nested. Flushing happens when the outermost batch ends."}
+    </p>
+    
+```rescript
+Signal.batch(() => {
+  Signal.set(count, 1)
+
+  Signal.batch(() => {
+    Signal.set(count, 2)
+    Signal.set(count, 3)
+  })
+})
+```
+
+    <h3 id="returning-values-from-batches"> {"Returning Values from Batches"} </h3>
+    <p>
+      {"A batch returns whatever the callback returns, so you can compute and write in one block."}
+    </p>
+    
+```rescript
+let result = Signal.batch(() => {
+  Signal.set(count, 10)
+  Signal.set(status, "ready")
+  "ok"
+})
+```
+
+    <h3 id="when-not-to-batch"> {"When Not to Batch"} </h3>
+    <p>
+      {"Do not batch by default. If one signal changes and the rest of the graph can react naturally, batching adds no clarity. Use it when several writes are one semantic update."}
+    </p>
+
+    <h2 id="batching-working-style"> {"Working Style"} </h2>
+    <h3 id="best-practices"> {"Best Practices"} </h3>
+    <ul>
+      <li>
+        {"Batch one logical unit of work, such as a submit action, a reset, or a reducer-style update."}
+      </li>
+      <li>
+        {"Keep batches short so the write order stays easy to reason about."}
+      </li>
+      <li>
+        {"Do not use batching to hide duplicated or awkward state. Fix the model first."}
+      </li>
+    </ul>
+
+    <h3 id="next-steps"> {"Next Steps"} </h3>
+    <ul>
+      <li>
+        <a href="/docs/core-concepts/signals">{"Go back to Signals"}</a>
+        {" if you want the update model before the scheduling details."}
+      </li>
+      <li>
+        <a href="/docs/core-concepts/effects">{"Read Effects"}</a>
+        {" to see the downstream work that batching reduces."}
+      </li>
+    </ul>
+  </div>
