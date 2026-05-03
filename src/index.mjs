@@ -16,6 +16,7 @@ export * as SSR from "./SSR.res.mjs";
 export * as SSRContext from "./SSRContext.res.mjs";
 export * as SSRState from "./SSRState.res.mjs";
 export * as Hydration from "./Hydration.res.mjs";
+export * as Mdx from "./Mdx.res.mjs";
 export * as Signal from "./Signal.res.mjs";
 export * as Computed from "./Computed.res.mjs";
 export * as Effect from "./Effect.res.mjs";
