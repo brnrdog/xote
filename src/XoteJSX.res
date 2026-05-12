@@ -158,6 +158,17 @@ module Elements = {
     onMouseMove?: Dom.event => unit,
     onMouseUp?: Dom.event => unit,
     onContextMenu?: Dom.event => unit,
+    /* Pointer event handlers */
+    onPointerDown?: Dom.event => unit,
+    onPointerMove?: Dom.event => unit,
+    onPointerUp?: Dom.event => unit,
+    onPointerCancel?: Dom.event => unit,
+    onPointerEnter?: Dom.event => unit,
+    onPointerLeave?: Dom.event => unit,
+    onPointerOver?: Dom.event => unit,
+    onPointerOut?: Dom.event => unit,
+    onGotPointerCapture?: Dom.event => unit,
+    onLostPointerCapture?: Dom.event => unit,
     /* Drag-and-drop event handlers */
     onDrag?: Dom.event => unit,
     onDragStart?: Dom.event => unit,
@@ -288,6 +299,16 @@ module Elements = {
     addEvent(events, props.onMouseMove, "mousemove")
     addEvent(events, props.onMouseUp, "mouseup")
     addEvent(events, props.onContextMenu, "contextmenu")
+    addEvent(events, props.onPointerDown, "pointerdown")
+    addEvent(events, props.onPointerMove, "pointermove")
+    addEvent(events, props.onPointerUp, "pointerup")
+    addEvent(events, props.onPointerCancel, "pointercancel")
+    addEvent(events, props.onPointerEnter, "pointerenter")
+    addEvent(events, props.onPointerLeave, "pointerleave")
+    addEvent(events, props.onPointerOver, "pointerover")
+    addEvent(events, props.onPointerOut, "pointerout")
+    addEvent(events, props.onGotPointerCapture, "gotpointercapture")
+    addEvent(events, props.onLostPointerCapture, "lostpointercapture")
     addEvent(events, props.onDrag, "drag")
     addEvent(events, props.onDragStart, "dragstart")
     addEvent(events, props.onDragEnd, "dragend")
