@@ -1,3 +1,10 @@
+# [6.3.0](https://github.com/brnrdog/xote/compare/v6.2.0...v6.3.0) (2026-05-12)
+
+
+### Features
+
+* add missing pointer event props ([3a8f596](https://github.com/brnrdog/xote/commit/3a8f596c2a516b0258e007e7080f07ac1d06ba47))
+
 # [6.2.0](https://github.com/brnrdog/xote/compare/v6.1.2...v6.2.0) (2026-04-26)
 
 
