@@ -5,6 +5,29 @@ external setHtmlAttribute: (string, string) => unit = "setAttribute"
 @val @scope("localStorage") external setItem: (string, string) => unit = "setItem"
 @val @scope("window") external addEventListener: (string, 'a) => unit = "addEventListener"
 @val @scope("window") external removeEventListener: (string, 'a) => unit = "removeEventListener"
+@val @scope("window")
+external addEventListenerCapture: (string, 'a, {"capture": bool}) => unit = "addEventListener"
+@val @scope("window")
+external removeEventListenerCapture: (string, 'a, {"capture": bool}) => unit = "removeEventListener"
+@val @scope("document")
+external addDocumentEventListenerCapture: (string, 'a, {"capture": bool}) => unit = "addEventListener"
+@val @scope("document")
+external removeDocumentEventListenerCapture: (string, 'a, {"capture": bool}) => unit = "removeEventListener"
+@val external queueMicrotask: (unit => unit) => unit = "queueMicrotask"
+@val external decodeURIComponent: string => string = "decodeURIComponent"
+@val external getById: string => Nullable.t<Dom.element> = "document.getElementById"
+@send
+external scrollIntoViewWithBlock: (Dom.element, {"block": string}) => unit = "scrollIntoView"
+
+let isEscapeEvent = (_evt: Dom.event): bool =>
+  %raw(`_evt.key === "Escape" || _evt.key === "Esc" || _evt.code === "Escape" || _evt.keyCode === 27 || _evt.which === 27`)
+
+let isCommandKEvent = (_evt: Dom.event): bool =>
+  %raw(`(_evt.ctrlKey || _evt.metaKey) && ((_evt.key && _evt.key.toLowerCase() === "k") || _evt.code === "KeyK" || _evt.keyCode === 75 || _evt.which === 75)`)
+
+let stopPropagation = (_evt: Dom.event) => {
+  let _ = %raw(`_evt.stopPropagation()`)
+}
 
 // ---- Theme management ----
 let initialTheme = if SSRContext.isClient {
@@ -61,6 +84,12 @@ type searchItem = {
   section: string,
 }
 
+type parsedPath = {
+  pathname: string,
+  search: string,
+  hash: string,
+}
+
 let searchItems: array<searchItem> = [
   {title: "Introduction", path: "/docs", section: "Getting Started"},
   {
@@ -86,9 +115,58 @@ let searchItems: array<searchItem> = [
 module SearchModal = {
   type props = {}
 
+  let parsePath = (path: string): parsedPath => {
+    let hashParts = path->String.split("#")
+    let pathWithoutHash = hashParts->Array.get(0)->Option.getOr(path)
+    let hash = switch hashParts->Array.get(1) {
+    | Some(fragment) => "#" ++ fragment
+    | None => ""
+    }
+    let searchParts = pathWithoutHash->String.split("?")
+    let pathname = searchParts->Array.get(0)->Option.getOr(pathWithoutHash)
+    let search = switch searchParts->Array.get(1) {
+    | Some(query) => "?" ++ query
+    | None => ""
+    }
+    {pathname, search, hash}
+  }
+
+  let focusSearchInput = () => {
+    let _ = %raw(`(() => {
+      const el = document.querySelector('.search-input');
+      if (el && typeof el.focus === 'function') el.focus();
+    })()`)
+  }
+
+  let scrollActiveIntoView = () => {
+    let _ = %raw(`(() => {
+      const el = document.querySelector('.search-result-item.active');
+      if (el && typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({block: 'nearest'});
+      }
+    })()`)
+  }
+
+  let scrollPathHashIntoView = (hash: string) => {
+    if hash != "" {
+      let id = hash->String.split("#")->Array.get(1)->Option.getOr("")->decodeURIComponent
+      switch getById(id)->Nullable.toOption {
+      | Some(el) => scrollIntoViewWithBlock(el, {"block": "start"})
+      | None => ()
+      }
+    }
+  }
+
   let make = (_props: props) => {
     let query = Signal.make("")
     let selectedIndex = Signal.make(0)
+
+    let resetSearchState = () =>
+      Signal.batch(() => {
+        closeSearch()
+        Signal.set(query, "")
+        Signal.set(selectedIndex, 0)
+      })
 
     let filteredItems = Computed.make(() => {
       let q = Signal.get(query)->String.toLowerCase
@@ -102,46 +180,119 @@ module SearchModal = {
       }
     })
 
+    if SSRContext.isClient {
+      Effect.run(() => {
+        if Signal.get(searchOpen) {
+          queueMicrotask(focusSearchInput)
+        } else {
+          Signal.set(query, "")
+          Signal.set(selectedIndex, 0)
+        }
+        None
+      })
+
+      Effect.run(() => {
+        let _ = Signal.get(selectedIndex)
+        let _ = Signal.get(filteredItems)
+        if Signal.peek(searchOpen) {
+          queueMicrotask(scrollActiveIntoView)
+        }
+        None
+      })
+
+      Effect.run(() => {
+        let _ = Signal.get(Router.location())
+        if Signal.peek(searchOpen) {
+          resetSearchState()
+        }
+        None
+      })
+
+      Effect.run(() => {
+        if Signal.get(searchOpen) {
+          let escapeHandler = (_evt: Dom.event) => {
+            if isEscapeEvent(_evt) {
+              let _ = %raw(`_evt.preventDefault()`)
+              stopPropagation(_evt)
+              resetSearchState()
+            }
+          }
+          addDocumentEventListenerCapture("keydown", escapeHandler, {"capture": true})
+          addDocumentEventListenerCapture("keyup", escapeHandler, {"capture": true})
+          addEventListenerCapture("keydown", escapeHandler, {"capture": true})
+          addEventListenerCapture("keyup", escapeHandler, {"capture": true})
+          Some(() =>
+            {
+              removeDocumentEventListenerCapture("keydown", escapeHandler, {"capture": true})
+              removeDocumentEventListenerCapture("keyup", escapeHandler, {"capture": true})
+              removeEventListenerCapture("keydown", escapeHandler, {"capture": true})
+              removeEventListenerCapture("keyup", escapeHandler, {"capture": true})
+            }
+          )
+        } else {
+          None
+        }
+      })
+    }
+
     let handleInput = (_evt: Dom.event) => {
       let value: string = %raw(`_evt.target.value`)
       Signal.set(query, value)
       Signal.set(selectedIndex, 0)
     }
 
+    let navigateToItem = (item: searchItem) => {
+      let {pathname, search, hash} = parsePath(item.path)
+      PostHog.capture(
+        "search_result_selected",
+        ~properties={"result_path": item.path, "result_title": item.title},
+      )
+      resetSearchState()
+      queueMicrotask(() => {
+        Router.push(pathname, ~search, ~hash, ())
+        if hash != "" {
+          queueMicrotask(() => scrollPathHashIntoView(hash))
+        }
+      })
+    }
+
     let navigateToResult = () => {
       let items = Signal.peek(filteredItems)
       let idx = Signal.peek(selectedIndex)
       switch items->Array.get(idx) {
-      | Some(item) =>
-        PostHog.capture(
-          "search_result_selected",
-          ~properties={"result_path": item.path, "result_title": item.title},
-        )
-        Router.push(item.path, ())
-        closeSearch()
-        Signal.set(query, "")
+      | Some(item) => navigateToItem(item)
       | None => ()
       }
     }
 
     let handleKeyDown = (_evt: Dom.event) => {
       let key: string = %raw(`_evt.key`)
-      switch key {
-      | "ArrowDown" => {
+      if isEscapeEvent(_evt) {
+        let _ = %raw(`_evt.preventDefault()`)
+        stopPropagation(_evt)
+        resetSearchState()
+      } else {
+        switch key {
+        | "ArrowDown" => {
+            let _ = %raw(`_evt.preventDefault()`)
+            let items = Signal.peek(filteredItems)
+            Signal.update(selectedIndex, i => i < Array.length(items) - 1 ? i + 1 : i)
+          }
+        | "ArrowUp" => {
+            let _ = %raw(`_evt.preventDefault()`)
+            Signal.update(selectedIndex, i => i > 0 ? i - 1 : 0)
+          }
+        | "Enter" => navigateToResult()
+        | _ => ()
+        }
+      }
+    }
+
+    let handleOverlayKeyDown = (_evt: Dom.event) => {
+      if isEscapeEvent(_evt) {
           let _ = %raw(`_evt.preventDefault()`)
-          let items = Signal.peek(filteredItems)
-          Signal.update(selectedIndex, i => i < Array.length(items) - 1 ? i + 1 : i)
-        }
-      | "ArrowUp" => {
-          let _ = %raw(`_evt.preventDefault()`)
-          Signal.update(selectedIndex, i => i > 0 ? i - 1 : 0)
-        }
-      | "Enter" => navigateToResult()
-      | "Escape" => {
-          closeSearch()
-          Signal.set(query, "")
-        }
-      | _ => ()
+        stopPropagation(_evt)
+        resetSearchState()
       }
     }
 
@@ -158,8 +309,7 @@ module SearchModal = {
                   _evt => {
                     let className: string = %raw(`_evt.target.className || ""`)
                     if className->String.includes("search-overlay") {
-                      closeSearch()
-                      Signal.set(query, "")
+                      resetSearchState()
                     }
                   },
                 ),
@@ -168,7 +318,7 @@ module SearchModal = {
                 <div
                   class="search-modal"
                   tabIndex=0
-                  onKeyDown={handleKeyDown}>
+                  onKeyDown={handleOverlayKeyDown}>
                   <div class="search-input-wrapper">
                     {Html.input(
                       ~attrs=[
@@ -176,7 +326,7 @@ module SearchModal = {
                         View.attr("placeholder", "Search the docs..."),
                         View.attr("autofocus", "true"),
                       ],
-                      ~events=[("input", handleInput)],
+                      ~events=[("input", handleInput), ("keydown", handleKeyDown)],
                       (),
                     )}
                   </div>
@@ -217,18 +367,7 @@ module SearchModal = {
                                 ~events=[
                                   (
                                     "click",
-                                    _ => {
-                                      PostHog.capture(
-                                        "search_result_selected",
-                                        ~properties={
-                                          "result_path": item.path,
-                                          "result_title": item.title,
-                                        },
-                                      )
-                                      Router.push(item.path, ())
-                                      closeSearch()
-                                      Signal.set(query, "")
-                                    },
+                                    _ => navigateToItem(item),
                                   ),
                                 ],
                                 ~children=[
@@ -441,19 +580,25 @@ module Footer = {
 if SSRContext.isClient {
   Effect.run(() => {
     let handler = (_evt: Dom.event) => {
-      let ctrlOrMeta: bool = %raw(`_evt.ctrlKey || _evt.metaKey`)
-      let key: string = %raw(`_evt.key`)
-      if ctrlOrMeta && key == "k" {
+      if isCommandKEvent(_evt) {
         let _ = %raw(`_evt.preventDefault()`)
         if Signal.peek(searchOpen) {
           closeSearch()
         } else {
           openSearch()
         }
+      } else if isEscapeEvent(_evt) && Signal.peek(searchOpen) {
+        let _ = %raw(`_evt.preventDefault()`)
+        stopPropagation(_evt)
+        closeSearch()
       }
     }
-    addEventListener("keydown", handler)
-    Some(() => removeEventListener("keydown", handler))
+    addEventListenerCapture("keydown", handler, {"capture": true})
+    addEventListenerCapture("keyup", handler, {"capture": true})
+    Some(() => {
+      removeEventListenerCapture("keydown", handler, {"capture": true})
+      removeEventListenerCapture("keyup", handler, {"capture": true})
+    })
   })
 }
 
