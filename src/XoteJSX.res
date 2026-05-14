@@ -90,6 +90,70 @@ module Elements = {
     'autofocus,
     'action,
     'method,
+    /* SVG props */
+    'xmlns,
+    'xmlnsXlink,
+    'version,
+    'viewBox,
+    'preserveAspectRatio,
+    'd,
+    'pathLength,
+    'cx,
+    'cy,
+    'r,
+    'rx,
+    'ry,
+    'x,
+    'y,
+    'x1,
+    'y1,
+    'x2,
+    'y2,
+    'fx,
+    'fy,
+    'dx,
+    'dy,
+    'points,
+    'transform,
+    'transformOrigin,
+    'fill,
+    'fillOpacity,
+    'fillRule,
+    'stroke,
+    'strokeWidth,
+    'strokeLinecap,
+    'strokeLinejoin,
+    'strokeDasharray,
+    'strokeDashoffset,
+    'strokeOpacity,
+    'strokeMiterlimit,
+    'opacity,
+    'color,
+    'visibility,
+    'vectorEffect,
+    'pointerEvents,
+    'clipPath,
+    'clipRule,
+    'mask,
+    'filter,
+    'textAnchor,
+    'dominantBaseline,
+    'fontFamily,
+    'fontSize,
+    'fontWeight,
+    'letterSpacing,
+    'wordSpacing,
+    'textDecoration,
+    'offset,
+    'stopColor,
+    'stopOpacity,
+    'gradientUnits,
+    'gradientTransform,
+    'spreadMethod,
+    'markerStart,
+    'markerMid,
+    'markerEnd,
+    'xlinkHref,
   > = {
     /* Standard attributes - accept raw strings or Prop.t<string> */
     id?: 'id,
@@ -143,6 +207,77 @@ module Elements = {
     @as("aria-selected") ariaSelected?: 'ariaSelected,
     /* Data attributes */
     data?: Obj.t,
+    /* SVG attributes - root */
+    xmlns?: 'xmlns,
+    @as("xmlns:xlink") xmlnsXlink?: 'xmlnsXlink,
+    version?: 'version,
+    viewBox?: 'viewBox,
+    preserveAspectRatio?: 'preserveAspectRatio,
+    /* SVG attributes - path/shape geometry */
+    d?: 'd,
+    pathLength?: 'pathLength,
+    cx?: 'cx,
+    cy?: 'cy,
+    r?: 'r,
+    rx?: 'rx,
+    ry?: 'ry,
+    x?: 'x,
+    y?: 'y,
+    x1?: 'x1,
+    y1?: 'y1,
+    x2?: 'x2,
+    y2?: 'y2,
+    fx?: 'fx,
+    fy?: 'fy,
+    dx?: 'dx,
+    dy?: 'dy,
+    points?: 'points,
+    transform?: 'transform,
+    @as("transform-origin") transformOrigin?: 'transformOrigin,
+    /* SVG attributes - presentation */
+    fill?: 'fill,
+    @as("fill-opacity") fillOpacity?: 'fillOpacity,
+    @as("fill-rule") fillRule?: 'fillRule,
+    stroke?: 'stroke,
+    @as("stroke-width") strokeWidth?: 'strokeWidth,
+    @as("stroke-linecap") strokeLinecap?: 'strokeLinecap,
+    @as("stroke-linejoin") strokeLinejoin?: 'strokeLinejoin,
+    @as("stroke-dasharray") strokeDasharray?: 'strokeDasharray,
+    @as("stroke-dashoffset") strokeDashoffset?: 'strokeDashoffset,
+    @as("stroke-opacity") strokeOpacity?: 'strokeOpacity,
+    @as("stroke-miterlimit") strokeMiterlimit?: 'strokeMiterlimit,
+    opacity?: 'opacity,
+    color?: 'color,
+    visibility?: 'visibility,
+    @as("vector-effect") vectorEffect?: 'vectorEffect,
+    @as("pointer-events") pointerEvents?: 'pointerEvents,
+    /* SVG attributes - clipping/masking/filter */
+    @as("clip-path") clipPath?: 'clipPath,
+    @as("clip-rule") clipRule?: 'clipRule,
+    mask?: 'mask,
+    filter?: 'filter,
+    /* SVG attributes - text */
+    @as("text-anchor") textAnchor?: 'textAnchor,
+    @as("dominant-baseline") dominantBaseline?: 'dominantBaseline,
+    @as("font-family") fontFamily?: 'fontFamily,
+    @as("font-size") fontSize?: 'fontSize,
+    @as("font-weight") fontWeight?: 'fontWeight,
+    @as("letter-spacing") letterSpacing?: 'letterSpacing,
+    @as("word-spacing") wordSpacing?: 'wordSpacing,
+    @as("text-decoration") textDecoration?: 'textDecoration,
+    /* SVG attributes - gradient/stop */
+    offset?: 'offset,
+    @as("stop-color") stopColor?: 'stopColor,
+    @as("stop-opacity") stopOpacity?: 'stopOpacity,
+    gradientUnits?: 'gradientUnits,
+    gradientTransform?: 'gradientTransform,
+    spreadMethod?: 'spreadMethod,
+    /* SVG attributes - markers */
+    @as("marker-start") markerStart?: 'markerStart,
+    @as("marker-mid") markerMid?: 'markerMid,
+    @as("marker-end") markerEnd?: 'markerEnd,
+    /* SVG attributes - xlink (legacy) */
+    @as("xlink:href") xlinkHref?: 'xlinkHref,
     /* Event handlers */
     onClick?: Dom.event => unit,
     onInput?: Dom.event => unit,
@@ -257,6 +392,85 @@ module Elements = {
     addAttr(attrs, props.ariaHidden, "aria-hidden", RuntimeJsxProp.toBoolAttr)
     addAttr(attrs, props.ariaExpanded, "aria-expanded", RuntimeJsxProp.toBoolAttr)
     addAttr(attrs, props.ariaSelected, "aria-selected", RuntimeJsxProp.toBoolAttr)
+
+    /* SVG attributes - root */
+    addAttr(attrs, props.xmlns, "xmlns", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.xmlnsXlink, "xmlns:xlink", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.version, "version", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.viewBox, "viewBox", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.preserveAspectRatio, "preserveAspectRatio", RuntimeJsxProp.toStringAttr)
+
+    /* SVG attributes - geometry */
+    addAttr(attrs, props.d, "d", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.pathLength, "pathLength", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.cx, "cx", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.cy, "cy", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.r, "r", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.rx, "rx", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.ry, "ry", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.x, "x", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.y, "y", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.x1, "x1", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.y1, "y1", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.x2, "x2", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.y2, "y2", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.fx, "fx", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.fy, "fy", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.dx, "dx", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.dy, "dy", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.points, "points", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.transform, "transform", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.transformOrigin, "transform-origin", RuntimeJsxProp.toStringAttr)
+
+    /* SVG attributes - presentation */
+    addAttr(attrs, props.fill, "fill", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.fillOpacity, "fill-opacity", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.fillRule, "fill-rule", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.stroke, "stroke", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.strokeWidth, "stroke-width", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.strokeLinecap, "stroke-linecap", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.strokeLinejoin, "stroke-linejoin", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.strokeDasharray, "stroke-dasharray", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.strokeDashoffset, "stroke-dashoffset", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.strokeOpacity, "stroke-opacity", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.strokeMiterlimit, "stroke-miterlimit", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.opacity, "opacity", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.color, "color", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.visibility, "visibility", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.vectorEffect, "vector-effect", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.pointerEvents, "pointer-events", RuntimeJsxProp.toStringAttr)
+
+    /* SVG attributes - clipping/masking/filter */
+    addAttr(attrs, props.clipPath, "clip-path", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.clipRule, "clip-rule", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.mask, "mask", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.filter, "filter", RuntimeJsxProp.toStringAttr)
+
+    /* SVG attributes - text */
+    addAttr(attrs, props.textAnchor, "text-anchor", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.dominantBaseline, "dominant-baseline", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.fontFamily, "font-family", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.fontSize, "font-size", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.fontWeight, "font-weight", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.letterSpacing, "letter-spacing", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.wordSpacing, "word-spacing", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.textDecoration, "text-decoration", RuntimeJsxProp.toStringAttr)
+
+    /* SVG attributes - gradient/stop */
+    addAttr(attrs, props.offset, "offset", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.stopColor, "stop-color", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.stopOpacity, "stop-opacity", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.gradientUnits, "gradientUnits", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.gradientTransform, "gradientTransform", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.spreadMethod, "spreadMethod", RuntimeJsxProp.toStringAttr)
+
+    /* SVG attributes - markers */
+    addAttr(attrs, props.markerStart, "marker-start", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.markerMid, "marker-mid", RuntimeJsxProp.toStringAttr)
+    addAttr(attrs, props.markerEnd, "marker-end", RuntimeJsxProp.toStringAttr)
+
+    /* SVG attributes - xlink (legacy) */
+    addAttr(attrs, props.xlinkHref, "xlink:href", RuntimeJsxProp.toStringAttr)
 
     /* Data attributes */
     switch props.data {
