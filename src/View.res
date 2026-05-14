@@ -117,21 +117,25 @@ module Render = {
   }
 
   let getKeyedChildren = (children: array<node>): option<array<keyedChild>> => {
-    let keyedChildren = []
-    let allKeyed = ref(true)
-
-    children->Array.forEach(child => {
-      switch child {
-      | Keyed({key, identity, child}) =>
-        keyedChildren->Array.push({key, identity, child})->ignore
-      | _ => allKeyed := false
-      }
-    })
-
-    if allKeyed.contents {
-      Some(keyedChildren)
-    } else {
+    if Array.length(children) == 0 {
       None
+    } else {
+      let keyedChildren = []
+      let allKeyed = ref(true)
+
+      children->Array.forEach(child => {
+        switch child {
+        | Keyed({key, identity, child}) =>
+          keyedChildren->Array.push({key, identity, child})->ignore
+        | _ => allKeyed := false
+        }
+      })
+
+      if allKeyed.contents {
+        Some(keyedChildren)
+      } else {
+        None
+      }
     }
   }
 
