@@ -136,6 +136,14 @@ let app = () => {
   - Global: `draggable`, `hidden`, `contentEditable`, `spellcheck`
   - Accessibility: `role`, `tabIndex`, `ariaLabel`, `ariaHidden`, `ariaExpanded`, `ariaSelected`
   - Data: `data` (an `Obj.t`/`Dict.t` expanded into `data-*` attributes)
+  - SVG root: `xmlns`, `xmlnsXlink`, `version`, `viewBox`, `preserveAspectRatio`
+  - SVG geometry: `d`, `pathLength`, `cx`, `cy`, `r`, `rx`, `ry`, `x`, `y`, `x1`, `y1`, `x2`, `y2`, `fx`, `fy`, `dx`, `dy`, `points`, `transform`, `transformOrigin`
+  - SVG presentation: `fill`, `fillOpacity`, `fillRule`, `stroke`, `strokeWidth`, `strokeLinecap`, `strokeLinejoin`, `strokeDasharray`, `strokeDashoffset`, `strokeOpacity`, `strokeMiterlimit`, `opacity`, `color`, `visibility`, `vectorEffect`, `pointerEvents`
+  - SVG clipping/filter: `clipPath`, `clipRule`, `mask`, `filter`
+  - SVG text: `textAnchor`, `dominantBaseline`, `fontFamily`, `fontSize`, `fontWeight`, `letterSpacing`, `wordSpacing`, `textDecoration`
+  - SVG gradient/stop: `offset`, `stopColor`, `stopOpacity`, `gradientUnits`, `gradientTransform`, `spreadMethod`
+  - SVG markers: `markerStart`, `markerMid`, `markerEnd`
+  - SVG xlink (legacy): `xlinkHref`
 - Props support raw values, `ReactiveProp.t<'a>` (`Static` / `Reactive`), raw `Signal.t<'a>`, or a computed `unit => 'a` function for flexible static/reactive handling
 - Event handlers: `onClick`, `onInput`, `onChange`, `onSubmit`, `onFocus`, `onBlur`, `onKeyDown`, `onKeyUp`, `onMouseEnter`, `onMouseLeave`, `onMouseDown`, `onMouseMove`, `onMouseUp`, `onContextMenu`, plus drag-and-drop: `onDrag`, `onDragStart`, `onDragEnd`, `onDragOver`, `onDragEnter`, `onDragLeave`, `onDrop`
 - Children are passed via JSX syntax and rendered as nodes

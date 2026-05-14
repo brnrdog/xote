@@ -112,6 +112,58 @@ let suite = Zekr.suite(
       | None => assertTrue(false)
       }
     }),
+    test("renders SVG element with SVG-specific attributes via JSX", () => {
+      let {container} = Dom.render("")
+      let _ = mountTo(
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+          <circle cx="50" cy="50" r="40" fill="red" stroke="black" strokeWidth="2" />
+          <path d="M10 10 L90 90" stroke="blue" fill="none" strokeLinecap="round" />
+        </svg>,
+        container,
+      )
+
+      switch querySelector(container, "svg")->Nullable.toOption {
+      | Some(svg) =>
+        switch (
+          querySelector(svg, "circle")->Nullable.toOption,
+          querySelector(svg, "path")->Nullable.toOption,
+        ) {
+        | (Some(circle), Some(path)) =>
+          combineResults([
+            Dom.Assert.toHaveAttribute(svg, "viewBox", ~value="0 0 100 100"),
+            Dom.Assert.toHaveAttribute(circle, "cx", ~value="50"),
+            Dom.Assert.toHaveAttribute(circle, "cy", ~value="50"),
+            Dom.Assert.toHaveAttribute(circle, "r", ~value="40"),
+            Dom.Assert.toHaveAttribute(circle, "fill", ~value="red"),
+            Dom.Assert.toHaveAttribute(circle, "stroke", ~value="black"),
+            Dom.Assert.toHaveAttribute(circle, "stroke-width", ~value="2"),
+            Dom.Assert.toHaveAttribute(path, "d", ~value="M10 10 L90 90"),
+            Dom.Assert.toHaveAttribute(path, "stroke-linecap", ~value="round"),
+          ])
+        | _ => assertTrue(false)
+        }
+      | None => assertTrue(false)
+      }
+    }),
+    test("renders SVG element with reactive fill attribute", () => {
+      let {container} = Dom.render("")
+      let color = Signal.make("red")
+      let _ = mountTo(
+        <svg viewBox="0 0 10 10">
+          <rect x="0" y="0" width="10" height="10" fill={Prop.reactive(color)} />
+        </svg>,
+        container,
+      )
+
+      switch querySelector(container, "rect")->Nullable.toOption {
+      | Some(rect) =>
+        let r1 = Dom.Assert.toHaveAttribute(rect, "fill", ~value="red")
+        Signal.set(color, "blue")
+        let r2 = Dom.Assert.toHaveAttribute(rect, "fill", ~value="blue")
+        combineResults([r1, r2])
+      | None => assertTrue(false)
+      }
+    }),
     test("renders disabled input via JSX boolean attribute", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
