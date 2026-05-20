@@ -1,7 +1,16 @@
 import { defineConfig } from 'vite'
+import mdx from '@mdx-js/rollup'
+import rehypeSlug from 'rehype-slug'
 
 export default defineConfig({
   base: '/',
+  plugins: [
+    mdx({
+      jsxImportSource: 'xote',
+      jsxRuntime: 'automatic',
+      rehypePlugins: [rehypeSlug],
+    }),
+  ],
   server: {
     port: 3000,
   },

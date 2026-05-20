@@ -23,7 +23,7 @@ let greeting = user =>
 A few things matter here:
 
 - `type user` declares a *variant* — a closed set of cases. The compiler knows every value `user` can hold.
-- `switch` matches each case directly. Add a new case to `user` later (say, `Suspended`), and the compiler points out every `switch` that no longer covers the type.
+- `switch` matches each case directly. Add a new case to `user` later (say, `Suspended` ), and the compiler points out every `switch` that no longer covers the type.
 - The function reads like straightforward application code, but the guarantees are stronger: there is no ambiguity about what shape can arrive at runtime.
 - Types are inferred, so `greeting` does not need an annotation. You get compiler help without turning the example into a wall of type syntax.
 - Template strings use backticks and `${...}` for interpolation, like in modern JavaScript.

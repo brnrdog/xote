@@ -1,0 +1,113 @@
+This page explains how Xote is put together at a module and runtime level. It is meant for readers who already know the public API and want the internal model behind it.
+
+> **Scope:** This is architecture-level guidance, not a substitute for the API docs.
+
+## System Shape
+
+### Architecture Overview
+
+### Module Structure
+
+The public surface is intentionally small. Xote re-exports reactive primitives and layers UI-focused modules on top.
+
+- `Signal`, `Computed`, `Effect` - state, derived state, and side effects
+- `View` and `Html` - UI node constructors, mounting, and HTML helpers
+- `XoteJSX` - generic JSX v4 integration
+- `Router` and `Route` - navigation and route matching
+- `SSR`, `SSRState`, `Hydration`, and `SSRContext` - server rendering and client resume
+
+Source files stay as bare module names in `src/`. ReScript's `namespace: true` setting scopes them under `Xote` for consumers.
+
+## Runtime Model
+
+### Reactivity Model
+
+Xote delegates reactivity to rescript-signals. The important runtime properties are:
+
+- **Tracked reads:** Signal.get subscribes the active observer
+- **Synchronous scheduling:** updates flush immediately unless wrapped in Signal.batch
+- **Lazy computeds:** upstream changes mark them dirty, but recomputation happens on read
+- **Equality checks on write:** signals notify only when the new value is considered different
+
+### View Rendering
+
+Xote does not rely on a general virtual DOM diff for updates. View functions and JSX components produce node structures once, and reactive nodes handle fine-grained updates after mounting.
+
+The public view variants cover the main cases: text, elements, fragments, signal-backed text, signal-backed fragments, lazy components, and keyed lists.
+
+```rescript
+View.text : string => node
+View.signalText : (unit => string) => node
+View.fragment : array<node> => node
+View.signalFragment : Signal.t<array<node>> => node
+View.each : (Signal.t<array<'a>>, 'a => node) => node
+View.eachWithKey : (Signal.t<array<'a>>, 'a => string, 'a => node) => node
+```
+
+### Router Architecture
+
+The router stores its state in a global singleton keyed with `Symbol.for`. That keeps routing shared even if more than one Xote bundle ends up on the page.
+
+At the public layer, the router is just a signal-driven location source plus helpers for matching and navigation.
+
+### SSR and Hydration
+
+Server rendering serializes the component tree to HTML and inserts comment markers around reactive boundaries. Hydration walks that DOM, finds the markers, and reattaches reactive behavior instead of rebuilding the tree from scratch.
+
+SSRState is separate from HTML rendering. That split keeps state transfer explicit and codec-driven instead of hiding it behind a framework convention.
+
+### Execution Characteristics
+
+- **Component functions are cheap to reason about:** most of the time they run once
+- **Reactive work is localized:** only consumers of changed signals update
+- **Owner-based cleanup prevents leaks:** DOM removal disposes associated reactive resources
+- **Batching is explicit:** coordinated writes are opt-in, not automatic
+
+## Reference Map
+
+### API Summary
+
+### Reactive Primitives
+
+```rescript
+Signal.make : ('a, ~name: option<string>=?, ~equals: option<('a, 'a) => bool>=?) => Signal.t<'a>
+Signal.get : Signal.t<'a> => 'a
+Signal.peek : Signal.t<'a> => 'a
+Signal.set : (Signal.t<'a>, 'a) => unit
+Signal.update : (Signal.t<'a>, 'a => 'a) => unit
+Signal.batch : (unit => 'a) => 'a
+Computed.make : (unit => 'a, ~name: option<string>=?, ~equals: option<('a, 'a) => bool>=?) => Signal.t<'a>
+Effect.run : (unit => option<unit => unit>, ~name: option<string>=?) => unit
+```
+
+### View Helpers
+
+```rescript
+View.Attr.string : (string, string) => (string, View.attrValue)
+View.Attr.signal : (string, Signal.t<string>) => (string, View.attrValue)
+View.Attr.compute : (string, unit => string) => (string, View.attrValue)
+View.mountById : (View.node, string) => unit
+```
+
+### Router Helpers
+
+```rescript
+Router.init : (~basePath: string=?, unit) => unit
+Router.initSSR : (~basePath: string=?, ~pathname: string, ~search: string=?, ~hash: string=?, unit) => unit
+Router.location : unit => Signal.t<{pathname: string, search: string, hash: string}>
+Router.push : (string, ~search: string=?, ~hash: string=?, unit) => unit
+Router.routes : array<routeConfig> => View.node
+```
+
+## Working Style
+
+### Best Practices
+
+- Model derived values as computeds so write paths stay smaller and easier to trust.
+- Keep the public explanation aligned with the real module boundaries: signals, views, router, and SSR each own a distinct concern.
+- Treat `SSRState` as explicit infrastructure. Hidden state transfer is harder to debug.
+
+### Next Steps
+
+- [Go back to the Core Modules guides](/docs/core-concepts/signals) for the day-to-day API surface.
+- [Use the Signals API page](/docs/api/signals) as the quick reference while reading the architecture back into the code.

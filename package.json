@@ -24,9 +24,12 @@
     "./ssr-context": "./src/SSRContext.res.mjs",
     "./ssr-state": "./src/SSRState.res.mjs",
     "./hydration": "./src/Hydration.res.mjs",
+    "./mdx": "./src/Mdx.res.mjs",
     "./signal": "./src/Signal.res.mjs",
     "./computed": "./src/Computed.res.mjs",
     "./effect": "./src/Effect.res.mjs",
+    "./jsx-runtime": "./src/jsx-runtime.mjs",
+    "./jsx-dev-runtime": "./src/jsx-dev-runtime.mjs",
     "./src/*": "./src/*",
     "./package.json": "./package.json",
     "./rescript.json": "./rescript.json"
@@ -37,6 +40,7 @@
     "src/**/*.res",
     "src/**/*.resi",
     "src/**/*.res.mjs",
+    "src/*.mjs",
     "rescript.json"
   ],
   "scripts": {
@@ -47,10 +51,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "mdx:poc": "npm run res:build && vite build --config examples/mdx/vite.config.mjs",
     "docs:start": "cd docs-website && npm run dev",
     "docs:build": "cd docs-website && npm run build",
     "docs:serve": "cd docs-website && npm run preview",
-    "test": "npx rescript && node tests/Tests.res.mjs"
+    "test": "npx rescript && node tests/Tests.res.mjs && node tests/JSXRuntime_test.mjs"
   },
   "keywords": [
     "rescript",
@@ -86,6 +91,7 @@
   "author": "Bernardo Gurgel <brnrdog@hey.com>",
   "license": "SEE LICENSE IN LICENSE",
   "devDependencies": {
+    "@mdx-js/rollup": "^3.1.1",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/git": "^10.0.1",

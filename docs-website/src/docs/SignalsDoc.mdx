@@ -1,0 +1,190 @@
+Signals are the state primitive in Xote. A signal stores a value, tracks who reads it, and notifies dependents when the value actually changes.
+
+> **Info:** Xote re-exports `Signal`, `Computed`, and `Effect` from [rescript-signals](https://brnrdog.github.io/rescript-signals).
+
+## Working with Signals
+
+### Creating Signals
+
+Use `Signal.make` to create a signal. You can optionally pass `~name` for debugging and `~equals` when the default equality is not enough.
+
+```rescript
+open Xote
+
+let count = Signal.make(0)
+let userName = Signal.make("Ada", ~name="user-name")
+let settings = Signal.make({
+  theme: "dark",
+  compact: false,
+})
+```
+
+### Reading Signal Values
+
+There are two read modes. Choose based on whether the current code should subscribe to future updates.
+
+#### `Signal.get()`
+
+Use `Signal.get` inside a computed, effect, or reactive node when the current code should re-run if the signal changes.
+
+```rescript
+let firstName = Signal.make("Ada")
+let lastName = Signal.make("Lovelace")
+
+let fullName = Computed.make(() =>
+  `${Signal.get(firstName)} ${Signal.get(lastName)}`
+)
+```
+
+#### `Signal.peek()`
+
+Use `Signal.peek` when you need the current value without subscribing. This is useful for logging, snapshots, and one-off reads inside effects.
+
+```rescript
+Effect.run(() => {
+  let tracked = Signal.get(count)
+  let snapshot = Signal.peek(settings)
+
+  Console.log2("Tracked count:", tracked)
+  Console.log2("Current theme:", snapshot.theme)
+  None
+})
+```
+
+### Updating Signals
+
+#### `Signal.set()`
+
+Use `Signal.set` when you already know the next value.
+
+```rescript
+Signal.set(count, 10)
+Signal.set(userName, "Grace")
+```
+
+#### `Signal.update()`
+
+Use `Signal.update` when the next value depends on the current one. This keeps the intent obvious and avoids an extra read.
+
+```rescript
+Signal.update(count, n => n + 1)
+
+Signal.update(settings, current => {...current,
+  compact: !current.compact,
+})
+```
+
+## How Signals Decide to Update
+
+### Equality and Change Detection
+
+Signals only notify dependents when the new value is considered different from the current value. By default that check uses JavaScript strict equality, `===`.
+
+#### Default Equality
+
+For primitives, setting the same value is a no-op. For arrays, records, and objects, a new reference counts as a change even when the fields look the same.
+
+```rescript
+let count = Signal.make(5)
+
+Signal.set(count, 5) // No update
+Signal.set(count, 6) // Notifies dependents
+
+let items = Signal.make([1, 2, 3])
+Signal.set(items, [1, 2, 3]) // New array reference, so this updates
+```
+
+#### Custom Equality
+
+When you want value-based comparison for compound data, pass `~equals` to `Signal.make`.
+
+```rescript
+type position = {x: int, y: int}
+
+let position = Signal.make(
+  {x: 0, y: 0},
+  ~equals=(a, b) => a.x == b.x && a.y == b.y,
+)
+
+Signal.set(position, {x: 0, y: 0}) // No update
+Signal.set(position, {x: 0, y: 1}) // Update
+```
+
+### Dependency Tracking
+
+Every `Signal.get` call inside an active computed or effect becomes a dependency. On the next run, dependencies are cleared and tracked again, so the graph follows control flow instead of staying fixed forever.
+
+```rescript
+let useMetric = Signal.make(true)
+let celsius = Signal.make(20)
+let fahrenheit = Signal.make(68)
+
+let temperature = Computed.make(() =>
+  if Signal.get(useMetric) {
+    Signal.get(celsius)
+  } else {
+    Signal.get(fahrenheit)
+  }
+)
+```
+
+## In Practice
+
+### Example: Counter
+
+This is the same pattern most Xote state starts with: a signal, a few updates, and a reactive view read in the UI.
+
+<DocsExamplePanel
+      filename="Counter.res"
+      code={`open Xote
+
+let count = Signal.make(0)
+
+let increment = (_evt: Dom.event) => {
+  Signal.update(count, n => n + 1)
+}
+
+let decrement = (_evt: Dom.event) => {
+  Signal.update(count, n => n - 1)
+}
+
+let reset = (_evt: Dom.event) => {
+  Signal.set(count, 0)
+}
+
+let app = () => {
+  <div>
+    <h1>
+      {View.signalText(() => \`Count: \${Signal.get(count)->Int.toString}\`)}
+    </h1>
+    <button onClick={increment}>
+      {View.text("+")}
+    </button>
+    <button onClick={decrement}>
+      {View.text("-")}
+    </button>
+    <button onClick={reset}>
+      {View.text("Reset")}
+    </button>
+  </div>
+}
+
+View.mountById(app(), "app")`}
+    >
+      <CounterDemo />
+    </DocsExamplePanel>
+
+## Working Style
+
+### Best Practices
+
+- Keep one signal focused on one job. A small record is fine; a grab-bag of unrelated state is not.
+- Prefer `Signal.update` when the next value depends on the current one.
+- Treat `Signal.peek` as a snapshot tool, not your default read API.
+- Add custom equality only when strict equality creates real noise in the UI or effects.
+
+### Next Steps
+
+- [Read Computeds](/docs/core-concepts/computed) if the next question is how to derive state instead of storing it twice.
+- [Read Effects](/docs/core-concepts/effects) if you need to connect signals to timers, network requests, or browser APIs.
+- [Use the Signals API reference](/docs/api/signals) when you want signatures and quick examples.
