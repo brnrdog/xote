@@ -1,3 +1,15 @@
+# [6.4.0](https://github.com/brnrdog/xote/compare/v6.3.0...v6.4.0) (2026-05-20)
+
+
+### Bug Fixes
+
+* empty view keyed children ([5fbe71b](https://github.com/brnrdog/xote/commit/5fbe71bfa2dd15818c5f1c58c7bc76759adbcd0e))
+
+
+### Features
+
+* add SVG attribute props to JSX Elements ([63592e5](https://github.com/brnrdog/xote/commit/63592e5d58bc581515b0bb707033f8d3246e1665))
+
 # [6.3.0](https://github.com/brnrdog/xote/compare/v6.2.0...v6.3.0) (2026-05-12)
 
 
