@@ -447,7 +447,37 @@ td strong {
 }
 
 .gh-star-btn {
-  display: none; /* editorial header drops the star button */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: var(--surface);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.gh-star-btn:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+  background: var(--elevated);
+  text-decoration: none;
+}
+
+.gh-star-icon {
+  color: var(--syntax-warm);
+  font-size: 0.9em;
+  line-height: 1;
+}
+
+.gh-star-label {
+  display: inline-block;
 }
 
 .mobile-menu-btn {
@@ -456,12 +486,33 @@ td strong {
 
 @media (max-width: 768px) {
   .header-nav,
-  .search-trigger > span,
-  .search-trigger-keys {
+  .search-trigger {
     display: none;
   }
   .mobile-menu-btn {
     display: inline-flex;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-inner {
+    padding: 0 var(--s-3);
+    gap: var(--s-3);
+  }
+
+  .header-left,
+  .header-right {
+    gap: var(--s-2);
+  }
+
+  .gh-star-btn {
+    width: 32px;
+    min-width: 32px;
+    padding: 0;
+  }
+
+  .gh-star-label {
+    display: none;
   }
 }
 
