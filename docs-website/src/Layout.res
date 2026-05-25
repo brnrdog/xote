@@ -452,6 +452,16 @@ module Header = {
           </nav>
         </div>
         <div class="header-right">
+          <a
+            href="https://github.com/brnrdog/xote"
+            target="_blank"
+            class="gh-star-btn"
+            ariaLabel="Star xote on GitHub"
+            onClick={_ =>
+              PostHog.capture("github_star_clicked", ~properties={"source": "header"})}>
+            <span class="gh-star-icon" ariaHidden=true> {View.text("\u2605")} </span>
+            <span class="gh-star-label"> {View.text("Star")} </span>
+          </a>
           {View.element(
             "button",
             ~attrs=[View.attr("class", "search-trigger")],
