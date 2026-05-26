@@ -2339,16 +2339,16 @@ td strong {
 }
 
 .docs-main:has(.changelog-doc) {
-  max-width: calc(840px + var(--s-12));
+  max-width: calc(760px + var(--s-12));
 }
 
 .docs-content:has(.changelog-doc) {
-  max-width: 840px;
+  max-width: 760px;
 }
 
 .changelog-doc {
   display: grid;
-  gap: var(--s-6);
+  gap: var(--s-8);
 }
 
 .changelog-summary {
@@ -2356,8 +2356,8 @@ td strong {
   justify-content: space-between;
   align-items: flex-end;
   gap: var(--s-5);
-  padding-bottom: var(--s-4);
-  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--s-5);
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .changelog-kicker {
@@ -2393,66 +2393,63 @@ td strong {
 
 .changelog-releases {
   display: grid;
-  gap: var(--s-4);
+  gap: var(--s-10);
 }
 
 .changelog-release {
   display: grid;
-  grid-template-columns: minmax(150px, 0.36fr) minmax(0, 1fr);
+  grid-template-columns: minmax(132px, 0.28fr) minmax(0, 1fr);
   gap: var(--s-6);
-  padding: var(--s-5);
-  border: 1px solid var(--border);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklch, var(--elevated) 62%, transparent),
-      color-mix(in oklch, var(--surface) 86%, transparent)
-    );
+  padding-top: var(--s-6);
+  border-top: 1px solid var(--border);
+}
+
+.changelog-release:first-child {
+  padding-top: 0;
+  border-top: 0;
 }
 
 .changelog-release-head {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: var(--s-5);
+  gap: var(--s-3);
   min-width: 0;
 }
 
 .changelog-version-block {
   display: grid;
   justify-items: start;
-  gap: var(--s-2);
+  gap: var(--s-1);
 }
 
-.changelog-latest {
-  display: inline-flex;
-  align-items: center;
-  min-height: 22px;
-  padding: 0 var(--s-2);
-  border: 1px solid color-mix(in oklch, var(--syntax-warm) 38%, var(--border));
+.changelog-release-kicker {
+  margin: 0;
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
-  line-height: 1;
-  color: var(--syntax-warm);
-  background: color-mix(in oklch, var(--syntax-warm) 10%, transparent);
+  line-height: var(--lh-ui);
+  color: var(--text-faint);
+  text-transform: uppercase;
 }
 
 .changelog-release-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--fs-2xl);
+  font-size: var(--fs-3xl);
   font-style: normal;
   line-height: var(--lh-tight);
 }
 
 .changelog-release-meta {
-  display: grid;
-  gap: var(--s-1);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  align-items: baseline;
 }
 
 .changelog-release-date,
 .changelog-release-count,
-.changelog-section-count {
+.changelog-section-count,
+.changelog-release-meta span[aria-hidden="true"] {
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
   line-height: var(--lh-ui);
@@ -2464,13 +2461,13 @@ td strong {
 }
 
 .changelog-release-body {
+  display: grid;
+  gap: var(--s-5);
   min-width: 0;
 }
 
 .changelog-section + .changelog-section {
-  margin-top: var(--s-5);
-  padding-top: var(--s-4);
-  border-top: 1px solid var(--border-soft);
+  margin-top: 0;
 }
 
 .changelog-section-head {
@@ -2478,7 +2475,7 @@ td strong {
   justify-content: space-between;
   align-items: baseline;
   gap: var(--s-4);
-  margin-bottom: var(--s-3);
+  margin-bottom: var(--s-2);
 }
 
 .changelog-section-title {
@@ -2488,36 +2485,21 @@ td strong {
   font-weight: 700;
   line-height: var(--lh-ui);
   color: var(--text);
+  letter-spacing: 0.02em;
 }
 
 .changelog-list {
   display: grid;
-  gap: var(--s-2);
+  gap: var(--s-1);
   margin: 0;
-  padding: 0;
-  list-style: none;
+  padding-left: 1.15em;
 }
 
 .changelog-item {
-  display: grid;
-  grid-template-columns: 14px minmax(0, 1fr);
-  gap: var(--s-3);
-  align-items: start;
   color: var(--text-muted);
-  font-size: var(--fs-sm);
-  line-height: 1.55;
-}
-
-.changelog-item-marker {
-  width: 6px;
-  height: 6px;
-  margin-top: 9px;
-  border: 1px solid color-mix(in oklch, var(--syntax-warm) 54%, var(--border));
-  background: color-mix(in oklch, var(--syntax-warm) 24%, var(--surface));
-}
-
-.changelog-item-copy {
-  min-width: 0;
+  font-size: var(--fs-base);
+  line-height: var(--lh-prose);
+  padding-left: var(--s-1);
 }
 
 .changelog-item strong,
@@ -2540,18 +2522,13 @@ td strong {
 
   .changelog-release {
     grid-template-columns: 1fr;
-    gap: var(--s-4);
+    gap: var(--s-3);
   }
 
   .changelog-release-head {
-    flex-direction: row;
+    flex-direction: column;
     align-items: flex-start;
-    gap: var(--s-4);
-  }
-
-  .changelog-release-meta {
-    justify-items: end;
-    text-align: right;
+    gap: var(--s-2);
   }
 }
 
@@ -2565,15 +2542,6 @@ td strong {
 
   .changelog-source-link {
     white-space: normal;
-  }
-
-  .changelog-release {
-    padding: var(--s-4);
-  }
-
-  .changelog-release-meta {
-    justify-items: start;
-    text-align: left;
   }
 }
 

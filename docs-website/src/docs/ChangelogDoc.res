@@ -39,11 +39,9 @@ let content = () => {
           <section class="changelog-release" id={release.id}>
             <header class="changelog-release-head">
               <div class="changelog-version-block">
-                {if index == 0 {
-                  <span class="changelog-latest"> {Node.text("Latest")} </span>
-                } else {
-                  Node.fragment([])
-                }}
+                <p class="changelog-release-kicker">
+                  {Node.text(index == 0 ? "Latest release" : "Release")}
+                </p>
                 <h2 class="changelog-release-title">
                   <a href={release.url} target="_blank" class="changelog-release-link">
                     {Node.text("v" ++ release.version)}
@@ -52,6 +50,7 @@ let content = () => {
               </div>
               <div class="changelog-release-meta">
                 <time class="changelog-release-date"> {Node.text(release.date)} </time>
+                <span ariaHidden=true> {Node.text("/")} </span>
                 <span class="changelog-release-count"> {Node.text(changeLabel(changeCount))} </span>
               </div>
             </header>
@@ -73,8 +72,7 @@ let content = () => {
                       {Node.fragment(
                         section.items->Array.map(item => {
                           <li class="changelog-item">
-                            <span class="changelog-item-marker" ariaHidden=true> {Node.text("")} </span>
-                            <span class="changelog-item-copy"> {Node.fragment(item)} </span>
+                            {Node.fragment(item)}
                           </li>
                         }),
                       )}
