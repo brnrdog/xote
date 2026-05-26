@@ -21,10 +21,56 @@ type release = {
 }
 
 let sourceUrl = "https://github.com/brnrdog/xote/blob/main/docs/CHANGELOG.md"
-let latestVersion = "6.2.0"
-let latestReleaseDate = "2026-04-26"
+let latestVersion = "6.4.0"
+let latestReleaseDate = "2026-05-20"
 
 let releases: array<release> = [
+  {
+    version: "6.4.0",
+    url: "https://github.com/brnrdog/xote/compare/v6.3.0...v6.4.0",
+    date: "2026-05-20",
+    id: "release-6-4-0-2026-05-20",
+    sections: [
+      {
+        title: "Bug Fixes",
+        items: [
+          [
+            Node.text("empty view keyed children ("),
+            <a href="https://github.com/brnrdog/xote/commit/5fbe71bfa2dd15818c5f1c58c7bc76759adbcd0e" target="_blank"> {Node.text("5fbe71b")} </a>,
+            Node.text(")")
+          ]
+        ],
+      },
+      {
+        title: "Features",
+        items: [
+          [
+            Node.text("add SVG attribute props to JSX Elements ("),
+            <a href="https://github.com/brnrdog/xote/commit/63592e5d58bc581515b0bb707033f8d3246e1665" target="_blank"> {Node.text("63592e5")} </a>,
+            Node.text(")")
+          ]
+        ],
+      }
+    ],
+  },
+  {
+    version: "6.3.0",
+    url: "https://github.com/brnrdog/xote/compare/v6.2.0...v6.3.0",
+    date: "2026-05-12",
+    id: "release-6-3-0-2026-05-12",
+    sections: [
+      {
+        title: "Features",
+        items: [
+          [
+            Node.text("add missing pointer event props ("),
+            <a href="https://github.com/brnrdog/xote/commit/3a8f596c2a516b0258e007e7080f07ac1d06ba47" target="_blank"> {Node.text("3a8f596")} </a>,
+            Node.text(")")
+          ]
+        ],
+      }
+    ],
+  },
   {
     version: "6.2.0",
     url: "https://github.com/brnrdog/xote/compare/v6.1.2...v6.2.0",
