@@ -453,9 +453,9 @@ td strong {
   gap: 6px;
   min-height: 30px;
   padding: 0 var(--s-3);
-  border: 1px solid var(--border);
+  border: none;
   color: var(--text);
-  background: var(--surface);
+  background: transparent;
   font-family: var(--font-body);
   font-size: var(--fs-sm);
   font-weight: 500;
@@ -464,7 +464,6 @@ td strong {
   white-space: nowrap;
 }
 .gh-star-btn:hover {
-  border-color: var(--text-muted);
   color: var(--text);
   background: var(--elevated);
   text-decoration: none;
@@ -2451,14 +2450,11 @@ td strong {
   display: grid;
   grid-template-columns: minmax(150px, 0.36fr) minmax(0, 1fr);
   gap: var(--s-6);
-  padding: var(--s-5);
-  border: 1px solid var(--border);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklch, var(--elevated) 62%, transparent),
-      color-mix(in oklch, var(--surface) 86%, transparent)
-    );
+}
+
+.changelog-release + .changelog-release {
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--border-soft);
 }
 
 .changelog-release-head {
@@ -2616,10 +2612,6 @@ td strong {
 
   .changelog-source-link {
     white-space: normal;
-  }
-
-  .changelog-release {
-    padding: var(--s-4);
   }
 
   .changelog-release-meta {
