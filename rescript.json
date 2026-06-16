@@ -18,6 +18,7 @@
         "SSRContext",
         "SSRState",
         "Hydration",
+        "Mdx",
         "Signal",
         "Computed",
         "Effect"

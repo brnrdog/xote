@@ -1,18 +1,3 @@
-// Import doc content
-module IntroDoc = IntroDoc
-module LearningReScriptDoc = LearningReScriptDoc
-module SignalsDoc = SignalsDoc
-module ComputedDoc = ComputedDoc
-module EffectsDoc = EffectsDoc
-module BatchingDoc = BatchingDoc
-module ViewsDoc = ViewsDoc
-module RouterDoc = RouterDoc
-module ApiSignalsDoc = ApiSignalsDoc
-module ReactComparisonDoc = ReactComparisonDoc
-module SolidJSComparisonDoc = SolidJSComparisonDoc
-module TechnicalOverviewDoc = TechnicalOverviewDoc
-module SSRDoc = SSRDoc
-module ChangelogDoc = ChangelogDoc
 
 // Demo modules are still on disk under `src/demos/*.res` for reuse as
 // inline figures, but no longer routed as standalone pages.
@@ -73,7 +58,7 @@ module App = {
               currentPath="/docs"
               pageTitle="Introduction"
               pageLead="Get oriented around Xote's reactive model, UI primitives, and setup."
-              content={IntroDoc.content()}
+              content={MdxDocs.intro()}
               tocItems=[
                 {text: "What is Xote?", id: "what-is-xote", level: 2},
                 {text: "Start Here", id: "quick-example", level: 2},
@@ -92,7 +77,7 @@ module App = {
               currentPath="/docs"
               pageTitle="Introduction"
               pageLead="Get oriented around Xote's reactive model, UI primitives, and setup."
-              content={IntroDoc.content()}
+              content={MdxDocs.intro()}
               tocItems=[
                 {text: "What is Xote?", id: "what-is-xote", level: 2},
                 {text: "Start Here", id: "quick-example", level: 2},
@@ -111,7 +96,7 @@ module App = {
               currentPath="/docs/getting-started/rescript"
               pageTitle="Learning ReScript"
               pageLead="A quick tour of ReScript syntax, with examples and links to the official docs for deeper study."
-              content={LearningReScriptDoc.content()}
+              content={MdxDocs.learningReScript()}
               tocItems=[
                 {text: "A First Look", id: "a-first-look", level: 2},
                 {text: "Let Bindings and Functions", id: "let-bindings-and-functions", level: 2},
@@ -140,7 +125,7 @@ module App = {
               currentPath="/docs/core-concepts/signals"
               pageTitle="Signals"
               pageLead="State containers that drive Xote's reactive graph."
-              content={SignalsDoc.content()}
+              content={MdxDocs.signals()}
               tocItems=[
                 {text: "Working with Signals", id: "working-with-signals", level: 2},
                 {text: "Creating Signals", id: "creating-signals", level: 3},
@@ -164,7 +149,7 @@ module App = {
               currentPath="/docs/core-concepts/computed"
               pageTitle="Computeds"
               pageLead="Derived signals that stay in sync with the values they read."
-              content={ComputedDoc.content()}
+              content={MdxDocs.computed()}
               tocItems=[
                 {text: "Working with Computeds", id: "working-with-computeds", level: 2},
                 {text: "Creating Computed Values", id: "creating-computed-values", level: 3},
@@ -187,7 +172,7 @@ module App = {
               currentPath="/docs/core-concepts/effects"
               pageTitle="Effects"
               pageLead="Reactive side effects for work that happens outside the signal graph."
-              content={EffectsDoc.content()}
+              content={MdxDocs.effects()}
               tocItems=[
                 {text: "Working with Effects", id: "working-with-effects", level: 2},
                 {text: "Creating Effects", id: "creating-effects", level: 3},
@@ -212,7 +197,7 @@ module App = {
               currentPath="/docs/advanced/ssr"
               pageTitle="Server-Side Rendering"
               pageLead="Render on the server, transfer state explicitly, and hydrate without re-rendering."
-              content={SSRDoc.content()}
+              content={MdxDocs.ssr()}
               tocItems=[
                 {text: "Rendering Model", id: "rendering-model", level: 2},
                 {text: "Overview", id: "overview", level: 3},
@@ -235,13 +220,41 @@ module App = {
             />,
         },
         {
+          pattern: "/docs/advanced/mdx-support",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/advanced/mdx-support"
+              pageTitle="MDX Support"
+              pageLead="Author Markdown-driven pages that compile to Xote views and can embed Xote components."
+              content={MdxDocs.mdx()}
+              tocItems=[
+                {text: "Setup", id: "setup", level: 2},
+                {text: "Install the MDX Plugin", id: "install-the-mdx-plugin", level: 3},
+                {text: "Configure Vite", id: "configure-vite", level: 3},
+                {text: "Import MDX from ReScript", id: "import-mdx-from-rescript", level: 3},
+                {text: "Component Overrides", id: "component-overrides", level: 2},
+                {text: "Mapping Elements to Components", id: "mapping-elements-to-components", level: 3},
+                {text: "Rendering Children", id: "rendering-children", level: 3},
+                {text: "Authoring MDX", id: "authoring-mdx", level: 2},
+                {text: "Markdown and Xote Components", id: "markdown-and-xote-components", level: 3},
+                {text: "GitHub Flavored Markdown", id: "github-flavored-markdown", level: 3},
+                {text: "Runtime Behavior", id: "runtime-behavior", level: 2},
+                {text: "What the JSX Runtime Handles", id: "what-the-jsx-runtime-handles", level: 3},
+                {text: "What Stays in the Bundler", id: "what-stays-in-the-bundler", level: 3},
+                {text: "Working Style", id: "working-style", level: 2},
+                {text: "Best Practices", id: "best-practices", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 3},
+              ]
+            />,
+        },
+        {
           pattern: "/docs/advanced/batching",
           render: _params =>
             <DocsPage
               currentPath="/docs/advanced/batching"
               pageTitle="Batching"
               pageLead="Group multiple signal updates to run observers only once."
-              content={BatchingDoc.content()}
+              content={MdxDocs.batching()}
               tocItems=[
                 {text: "Why and When to Batch", id: "why-and-when-to-batch", level: 2},
                 {text: "Why Batch?", id: "why-batch", level: 3},
@@ -265,14 +278,14 @@ module App = {
               currentPath="/docs/view/overview"
               pageTitle="View"
               pageLead="How the View module and JSX components render once and stay reactive over time."
-              content={ViewsDoc.content()}
+              content={MdxDocs.views()}
               tocItems=[
                 {text: "View Module", id: "component-model", level: 2},
                 {text: "Using View", id: "building-components", level: 2},
                 {text: "JSX Configuration", id: "jsx-configuration", level: 3},
                 {text: "Writing Components", id: "writing-components", level: 3},
                 {text: "Recommended Pattern", id: "component-module-pattern", level: 3},
-                {text: "Function API", id: "function-api", level: 3},
+                {text: "JSX Components", id: "jsx-components", level: 3},
                 {text: "Reactive Output", id: "reactive-output", level: 3},
                 {text: "Attributes and Events", id: "attributes-and-events", level: 3},
                 {text: "Lists", id: "lists", level: 3},
@@ -292,14 +305,14 @@ module App = {
               currentPath="/docs/view/overview"
               pageTitle="View"
               pageLead="How the View module and JSX components render once and stay reactive over time."
-              content={ViewsDoc.content()}
+              content={MdxDocs.views()}
               tocItems=[
                 {text: "View Module", id: "component-model", level: 2},
                 {text: "Using View", id: "building-components", level: 2},
                 {text: "JSX Configuration", id: "jsx-configuration", level: 3},
                 {text: "Writing Components", id: "writing-components", level: 3},
                 {text: "Recommended Pattern", id: "component-module-pattern", level: 3},
-                {text: "Function API", id: "function-api", level: 3},
+                {text: "JSX Components", id: "jsx-components", level: 3},
                 {text: "Reactive Output", id: "reactive-output", level: 3},
                 {text: "Attributes and Events", id: "attributes-and-events", level: 3},
                 {text: "Lists", id: "lists", level: 3},
@@ -319,7 +332,7 @@ module App = {
               currentPath="/docs/router/overview"
               pageTitle="Router"
               pageLead="Signal-based navigation with route matching, links, and SSR-aware initialization."
-              content={RouterDoc.content()}
+              content={MdxDocs.router()}
               tocItems=[
                 {text: "Getting Started", id: "getting-started-with-routing", level: 2},
                 {text: "Quick Start", id: "quick-start", level: 3},
@@ -343,7 +356,7 @@ module App = {
               currentPath="/docs/api/signals"
               pageTitle="Signals API"
               pageLead="Reference for the Signal module, plus the related Computed and Effect entry points."
-              content={ApiSignalsDoc.content()}
+              content={MdxDocs.apiSignals()}
               tocItems=[
                 {text: "Signal", id: "signal-api", level: 2},
                 {text: "Type", id: "type", level: 3},
@@ -365,7 +378,7 @@ module App = {
               currentPath="/docs/comparisons/react"
               pageTitle="React Comparison"
               pageLead="How Xote differs from React in rendering, effects, routing, SSR, and team tradeoffs."
-              content={ReactComparisonDoc.content()}
+              content={MdxDocs.reactComparison()}
               tocItems=[
                 {text: "At a Glance", id: "at-a-glance", level: 2},
                 {text: "Overview", id: "overview", level: 3},
@@ -395,7 +408,7 @@ module App = {
               currentPath="/docs/comparisons/solidjs"
               pageTitle="SolidJS Comparison"
               pageLead="How Xote compares to SolidJS, especially where they share the same reactive model."
-              content={SolidJSComparisonDoc.content()}
+              content={MdxDocs.solidComparison()}
               tocItems=[
                 {text: "At a Glance", id: "at-a-glance", level: 2},
                 {text: "Overview", id: "overview", level: 3},
@@ -426,7 +439,7 @@ module App = {
               currentPath="/docs/technical-overview"
               pageTitle="Technical Overview"
               pageLead="A lower-level view of Xote's modules, runtime behavior, and rendering model."
-              content={TechnicalOverviewDoc.content()}
+              content={MdxDocs.technicalOverview()}
               tocItems=[
                 {text: "System Shape", id: "system-shape", level: 2},
                 {text: "Architecture Overview", id: "architecture-overview", level: 3},
@@ -454,7 +467,7 @@ module App = {
             <DocsPage
               currentPath="/docs/changelog"
               pageTitle="Changelog"
-              content={ChangelogDoc.content()}
+              content={MdxDocs.changelog()}
               tocItems=changelogTocItems
             />,
         },

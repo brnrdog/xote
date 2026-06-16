@@ -73,6 +73,13 @@ const routes = [
     section: 'Advanced',
   },
   {
+    path: '/docs/advanced/mdx-support',
+    title: 'MDX Support - xote Docs',
+    description:
+      'Configure MDX with the xote JSX runtime, render MDX from ReScript, and customize Markdown components.',
+    section: 'Advanced',
+  },
+  {
     path: '/docs/advanced/batching',
     title: 'Batching - xote Signal Updates',
     description:

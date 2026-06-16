@@ -1,0 +1,158 @@
+## Rendering Model
+
+### Overview
+
+Xote's SSR story is built from three modules that line up with the render flow:
+
+- **SSR** - render nodes to HTML
+- **SSRState** - serialize state on the server and restore it on the client
+- **Hydration** - attach reactivity and event handlers to existing DOM
+
+The key idea is that the client should not re-render what the server already produced. Hydration walks the server HTML, reconnects reactive boundaries, and continues from there.
+
+### Render on the Server
+
+Use `SSR.renderToString` for fragments and `SSR.renderToStringWithRoot` when you want a hydration root.
+
+```rescript
+open Xote
+
+let app = () => {
+  <div>
+    <h1> {View.text("Hello from the server")} </h1>
+  </div>
+}
+
+let html = SSR.renderToStringWithRoot(app, ~rootId="root")
+```
+
+### Full Document Rendering
+
+Use `SSR.renderDocument` when the server is responsible for the whole HTML document.
+
+```rescript
+let html = SSR.renderDocument(
+  ~head="<title>Xote App</title>",
+  ~scripts=["/client.js"],
+  ~stateScript=SSRState.generateScript(),
+  app,
+)
+```
+
+### Environment Detection
+
+Use `SSRContext` when code needs to branch between server and client behavior.
+
+```rescript
+let greeting = SSRContext.match(
+  ~server=() => "Rendered on the server",
+  ~client=() => "Rendered on the client",
+)
+```
+
+## State and Hydration
+
+### State Transfer
+
+If the server and client must start from the same state, create or register signals with `SSRState`.
+
+#### Creating Synced State
+
+```rescript
+let count = SSRState.signal("count", 0, SSRState.Codec.int)
+let name = SSRState.signal("name", "Ada", SSRState.Codec.string)
+```
+
+#### Syncing Existing Signals
+
+```rescript
+let draft = Signal.make("")
+SSRState.syncSignal("draft", draft, SSRState.Codec.string)
+```
+
+#### Built-in Codecs
+
+Use the built-in codecs for primitives and common containers, or create your own with `SSRState.Codec.make`.
+
+```rescript
+SSRState.Codec.int
+SSRState.Codec.string
+SSRState.Codec.bool
+SSRState.Codec.array(SSRState.Codec.string)
+SSRState.Codec.option(SSRState.Codec.int)
+SSRState.Codec.tuple2(SSRState.Codec.int, SSRState.Codec.string)
+```
+
+On long-lived servers that render more than one request, call `SSRState.clear()` between renders to reset the registry.
+
+### Client-Side Hydration
+
+Hydration connects the client runtime to server-rendered DOM without replacing it.
+
+```rescript
+Hydration.hydrateById(app, "root", ~options={
+  onHydrated: () => Console.log("hydrated"),
+})
+```
+
+## In Practice
+
+### Complete Example
+
+A typical setup shares the same component between server and client.
+
+#### Shared Component
+
+```rescript
+open Xote
+
+let count = SSRState.signal("count", 0, SSRState.Codec.int)
+
+let app = () => {
+  <div>
+    <h1>
+      {View.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)}
+    </h1>
+    <button onClick={_ => Signal.update(count, n => n + 1)}>
+      {View.text("Increment")}
+    </button>
+  </div>
+}
+```
+
+#### Server Entry
+
+```rescript
+Router.initSSR(~pathname="/", ())
+
+let html = SSR.renderDocument(
+  ~scripts=["/client.js"],
+  ~stateScript=SSRState.generateScript(),
+  app,
+)
+```
+
+#### Client Entry
+
+```rescript
+Router.init()
+Hydration.hydrateById(app, "root")
+```
+
+### Hydration Markers
+
+Xote inserts HTML comments around reactive boundaries during SSR. The client uses those markers to find reactive view text, fragments, keyed lists, and lazy components while hydrating.
+
+## Working Style
+
+### Best Practices
+
+- Render the same component tree on the server and the client so hydration can attach cleanly.
+- Initialize the router for the right environment: `initSSR` on the server, `init` on the client.
+- Clear `SSRState` between server renders, especially in custom or long-lived processes.
+- Choose codecs deliberately because they define the contract between serialized output and restored client state.
+
+### Next Steps
+
+- [Read Router](/docs/router/overview) if these pages also depend on route state.
+- [Read the Technical Overview](/docs/technical-overview) if you want the internal model behind hydration and runtime ownership.

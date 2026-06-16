@@ -29,11 +29,17 @@ let suite = Zekr.suite(
       let _codec: SSRState.Codec.t<string> = SSRState.Codec.string
       let _ssrSignal = SSRState.signal("public-api-name", "xote", SSRState.Codec.string)
       let _isServer = SSRContext.isServer
+      let mdxDoc: Mdx.document = _props => View.text("mdx")
+      let _mdxComponents = Mdx.components([
+        ("Example", Mdx.component((_props: Obj.t) => View.text("component"))),
+      ])
       let html = SSR.renderToString(() => View.fragment([node, emptyView]))
+      let mdxHtml = SSR.renderToString(() => Mdx.render(mdxDoc, ()))
 
       combineResults([
         assertEqual(Signal.peek(greeting), "hello xote"),
         assertEqual(html, `<div class="app">xote</div>`),
+        assertEqual(mdxHtml, "mdx"),
       ])
     }),
   ],

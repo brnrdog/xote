@@ -32,7 +32,7 @@ If you already understand SolidJS, Xote's mental model will feel familiar quickl
 
 SolidJS uses getter and setter pairs. Xote uses explicit read and write functions against a signal value.
 
-```jsx
+```rescript
 import { createSignal, createMemo, createEffect } from "solid-js";
 
 const [count, setCount] = createSignal(0);
@@ -67,7 +67,7 @@ Both component models are close: the function runs, the DOM structure is created
 
 The main ergonomic difference is that SolidJS can embed reactive expressions directly inside JSX, while Xote makes the reactive boundary explicit with helpers such as `View.signalText`.
 
-```jsx
+```rescript
 function Counter() {
   const [count, setCount] = createSignal(0);
 
@@ -99,7 +99,7 @@ let counter = () => {
 
 SolidJS uses control-flow helpers like `<For>` and `<Index>`. Xote exposes list handling through `View.each` and `View.eachWithKey`.
 
-```jsx
+```rescript
 import { For } from "solid-js";
 
 function TodoList(props) {

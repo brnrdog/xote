@@ -1,0 +1,143 @@
+This page covers the `Signal` module directly and links out to `Computed` and `Effect` where their behavior intersects with signals.
+
+## Signal
+
+### Type
+
+```rescript
+type t<'a>
+```
+
+A signal stores a value of type `'a`, plus the bookkeeping needed for dependency tracking and scheduling.
+
+### Functions
+
+#### `make`
+
+```rescript
+let make: (
+  'a,
+  ~name: option<string>=?,
+  ~equals: option<('a, 'a) => bool>=?,
+) => t<'a>
+```
+
+Create a signal with an initial value. `~name` is only for debugging. `~equals` overrides the default strict equality check.
+
+#### `get`
+
+```rescript
+let get: t<'a> => 'a
+```
+
+Read the current value and subscribe the active computed or effect, if one exists.
+
+#### `peek`
+
+```rescript
+let peek: t<'a> => 'a
+```
+
+Read the current value without creating a dependency.
+
+#### `set`
+
+```rescript
+let set: (t<'a>, 'a) => unit
+```
+
+Replace the signal value. Dependents are notified only if the equality check says the value changed.
+
+#### `update`
+
+```rescript
+let update: (t<'a>, 'a => 'a) => unit
+```
+
+Compute the next value from the current one. Prefer this when the write depends on the existing state.
+
+#### `batch`
+
+```rescript
+let batch: (unit => 'a) => 'a
+```
+
+Defer scheduler flushing until the batch completes, then return the callback result.
+
+#### `untrack`
+
+```rescript
+let untrack: (unit => 'a) => 'a
+```
+
+Run a block without dependency capture. Use this when `peek` is too narrow and a full untracked region is clearer.
+
+## Related APIs
+
+### Behavior Notes
+
+- **Default equality is strict equality:** `===` is used unless you pass `~equals`
+- **Reads can be tracked or untracked:** use get for subscriptions, peek or untrack for snapshots
+- **Updates are synchronous:** dependents flush immediately unless wrapped in batch
+- **Computeds are just signal values at the type level:** read them with get or peek
+
+### Companion Modules
+
+Most signal-heavy code also uses `Computed` and `Effect`. Their key entry points are:
+
+```rescript
+Computed.make : (
+  unit => 'a,
+  ~name: option<string>=?,
+  ~equals: option<('a, 'a) => bool>=?,
+) => Signal.t<'a>
+
+Computed.dispose : Signal.t<'a> => unit
+
+Effect.run : (
+  unit => option<unit => unit>,
+  ~name: option<string>=?,
+) => unit
+
+Effect.runWithDisposer : (
+  unit => option<unit => unit>,
+  ~name: option<string>=?,
+) => {dispose: unit => unit}
+```
+
+## In Practice
+
+### Examples
+
+```rescript
+open Xote
+
+let count = Signal.make(0)
+let doubled = Computed.make(() => Signal.get(count) * 2)
+
+Effect.run(() => {
+  Console.log2("count", Signal.get(count))
+  Console.log2("doubled", Signal.get(doubled))
+  None
+})
+
+Signal.update(count, n => n + 1)
+```
+
+```rescript
+type filters = {query: string, page: int}
+
+let filters = Signal.make(
+  {query: "", page: 1},
+  ~equals=(a, b) => a.query == b.query && a.page == b.page,
+)
+```
+
+## Where to Go Next
+
+### See Also
+
+- [Signals guide](/docs/core-concepts/signals)
+- [Computeds guide](/docs/core-concepts/computed)
+- [Effects guide](/docs/core-concepts/effects)
+- [Batching](/docs/advanced/batching)

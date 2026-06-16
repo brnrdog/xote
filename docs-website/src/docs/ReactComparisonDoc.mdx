@@ -21,7 +21,7 @@ React updates by re-running component functions and diffing the next virtual tre
 
 Xote updates at the signal consumer level. When a signal changes, only the effects, computeds, or reactive DOM bindings that read that signal need to run again. The component function itself usually does not.
 
-```jsx
+```rescript
 import { useState } from "react";
 
 function Counter() {
@@ -59,7 +59,7 @@ React's `useEffect` and `useMemo` depend on manually maintained dependency array
 
 Xote tracks dependencies automatically. `Effect.run` subscribes to the signals it reads, and `Computed.make` derives values from the signals it reads.
 
-```jsx
+```rescript
 useEffect(() => {
   document.title = `Count: ${count}`;
 }, [count]);
@@ -86,7 +86,7 @@ Xote components usually run once. Signals, computeds, and effects are ordinary v
 
 React uses keys during virtual DOM reconciliation. Xote prefers `View.eachWithKey`, which works directly against DOM anchors and explicit keys.
 
-```jsx
+```rescript
 function TodoList({ todos }) {
   return (
     <ul>

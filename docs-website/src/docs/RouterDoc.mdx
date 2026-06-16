@@ -1,0 +1,142 @@
+Xote includes a client-side router built on signals. Route changes become regular reactive updates, so route matching and UI rendering fit the same model as the rest of the library.
+
+## Getting Started
+
+### Quick Start
+
+Initialize the router once, then render routes inside your app.
+
+```rescript
+open Xote
+
+Router.init()
+
+let app = () => {
+  <div>
+    {Router.routes([
+      {pattern: "/", render: _ => <HomePage />},
+      {pattern: "/users/:id", render: params =>
+        switch params->Dict.get("id") {
+        | Some(id) => <UserPage id />
+        | None => <NotFoundPage />
+        }
+      },
+    ])}
+  </div>
+}
+```
+
+### Reading the Current Location
+
+Use `Router.location()` to access the shared location signal. Read it with `Signal.get` wherever you need the current snapshot.
+
+```rescript
+Effect.run(() => {
+  let current = Signal.get(Router.location())
+  Console.log2("Current path:", current.pathname)
+  None
+})
+```
+
+The location record contains `pathname`, `search`, and `hash`.
+
+### Route Patterns
+
+Patterns can be static or dynamic. Dynamic segments use `:name` and are exposed through the params dictionary.
+
+```rescript
+{pattern: "/", render: _ => <HomePage />}
+{pattern: "/about", render: _ => <AboutPage />}
+{pattern: "/users/:id", render: params =>
+  switch params->Dict.get("id") {
+  | Some(id) => <UserPage id />
+  | None => <NotFoundPage />
+  }
+}
+```
+
+### Navigation Methods
+
+Use `Router.push` to create a new history entry and `Router.replace` to replace the current one. Both support optional `~search` and `~hash`.
+
+```rescript
+Router.push("/users/123", ())
+Router.push("/search", ~search="?q=xote", ())
+Router.replace("/login", ())
+```
+
+### Navigation Links
+
+Use `Router.Link` for JSX navigation. It intercepts navigation without reloading the page.
+
+```rescript
+let nav = () => {
+  <nav>
+    <Router.Link to="/" class="nav-link">
+      {View.text("Home")}
+    </Router.Link>
+    <Router.Link to="/docs" class="nav-link">
+      {View.text("Docs")}
+    </Router.Link>
+  </nav>
+}
+```
+
+### Server Rendering
+
+On the server, initialize router state with `Router.initSSR` instead of `Router.init`. That sets the initial location without touching browser APIs.
+
+```rescript
+Router.initSSR(
+  ~pathname="/docs",
+  ~search="?tab=signals",
+  (),
+)
+```
+
+## In Practice
+
+### Complete Example
+
+```rescript
+open Xote
+
+Router.init()
+
+let nav = () => {
+  <nav>
+    <Router.Link to="/"> {View.text("Home")} </Router.Link>
+    <Router.Link to="/users"> {View.text("Users")} </Router.Link>
+  </nav>
+}
+
+let app = () => {
+  <div>
+    <nav />
+    {Router.routes([
+      {pattern: "/", render: _ => <HomePage />},
+      {pattern: "/users", render: _ => <UsersPage />},
+      {pattern: "/users/:id", render: params =>
+        switch params->Dict.get("id") {
+        | Some(id) => <UserPage id />
+        | None => <NotFoundPage />
+        }
+      },
+    ])}
+  </div>
+}
+```
+
+## Working Style
+
+### Best Practices
+
+- Initialize the router once at the app boundary, not from leaf components.
+- Treat `Router.location()` like shared state. Read it where needed instead of mirroring it elsewhere.
+- Prefer `Router.Link` for ordinary UI navigation so the intent stays obvious in markup.
+- Use `Router.initSSR` on the server so routing stays consistent across SSR and hydration.
+
+### Next Steps
+
+- [Pair this with View](/docs/view/overview) when you want to turn routes into real pages and layouts.
+- [Read Server-Side Rendering](/docs/advanced/ssr) if the same routes also need SSR and hydration.

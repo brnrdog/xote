@@ -2,6 +2,7 @@
 /node_modules/
 /lib/
 /dist/
+/examples/*/dist/
 .bsb.lock
 .merlin
 *.res.mjs

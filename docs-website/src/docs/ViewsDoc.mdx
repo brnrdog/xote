@@ -1,0 +1,210 @@
+A Xote component is a function that returns a `View.node`. The component usually runs once, sets up its reactive graph, and then reactive nodes update in place over time.
+
+The docs use JSX for examples because it keeps component structure close to the HTML it produces. The lower-level `View` API still exists for runtime primitives such as reactive text, keyed lists, and mounting.
+
+## View Module
+
+Think in two layers:
+
+- **Static structure:** the component function builds the node tree
+- **Reactive bindings:** signal reads inside reactive nodes, computeds, and effects keep specific parts up to date
+
+## Using View
+
+### JSX Configuration
+
+To use JSX with Xote, point ReScript at `XoteJSX`.
+
+```rescript
+{
+  "dependencies": ["xote"],
+  "jsx": {
+    "version": 4,
+    "module": "XoteJSX"
+  },
+  "compiler-flags": ["-open Xote"]
+}
+```
+
+### Writing Components
+
+#### Recommended Pattern
+
+Use a module with a `make` function and annotate it with `@jsx.component`. ReScript derives the props shape from labeled arguments.
+
+```rescript
+open Xote
+
+module Greeting = {
+  @jsx.component
+  let make = (~name: string, ~emphasis=false) => {
+    <div class={emphasis ? "greeting strong" : "greeting"}>
+      <h1> {View.text(`Hello, ${name}`)} </h1>
+    </div>
+  }
+}
+
+let app = () => {
+  <Greeting name="World" emphasis />
+}
+```
+
+#### JSX Components
+
+```rescript
+open Xote
+
+module Greeting = {
+  @jsx.component
+  let make = (~name: string) => {
+    <section class="greeting-card">
+      <h2> {View.text(`Hello, ${name}`)} </h2>
+      <p> {View.text("This component is ordinary ReScript plus JSX.")} </p>
+    </section>
+  }
+}
+```
+
+### Reactive Output
+
+JSX expressions are just nodes. For reactive text, use `View.signalText`. For arrays and lists, prefer `View.eachWithKey` when item identity matters.
+
+```rescript
+let count = Signal.make(0)
+
+<div>
+  {View.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)}
+</div>
+```
+
+### Attributes and Events
+
+In JSX, common HTML props are exposed directly. Pass functions for reactive attributes when the value should be recomputed.
+
+```rescript
+let isActive = Signal.make(false)
+
+let toggle = (_evt: Dom.event) => {
+  Signal.update(isActive, active => !active)
+}
+
+<button
+  class={Signal.get(isActive) ? "btn active" : "btn"}
+  onClick={toggle}>
+  {View.text("Toggle")}
+</button>
+```
+
+In JSX, use `class`, not `className`. Use `type_` for the HTML `type` attribute because `type` is reserved in ReScript.
+
+### Lists
+
+Use `View.each` for simple arrays that can be fully re-rendered, and `View.eachWithKey` when item identity matters.
+
+```rescript
+let items = Signal.make(["Apple", "Banana", "Cherry"])
+
+<ul>
+  {View.each(items, item => <li> {View.text(item)} </li>)}
+</ul>
+```
+
+```rescript
+type todo = {id: string, text: string}
+let todos = Signal.make([
+  {id: "1", text: "Write docs"},
+  {id: "2", text: "Ship release"},
+])
+
+<ul>
+  {View.eachWithKey(
+    todos,
+    todo => todo.id,
+    todo => <li> {View.text(todo.text)} </li>,
+  )}
+</ul>
+```
+
+Choose stable keys. Database IDs and route slugs are good. Array indexes are not.
+
+### Mounting
+
+Use `View.mount` when you already have a DOM element, or `View.mountById` when you want to look one up by id.
+
+```rescript
+let app = () => {
+  <div> {View.text("Hello, Xote")} </div>
+}
+
+View.mountById(app(), "app")
+```
+
+## In Practice
+
+### Example: Todo List
+
+This example keeps the shape simple while still showing composition: an input form, a summary, and a keyed list of items all built from small components.
+
+<DocsExamplePanel
+      filename="TodoList.res"
+      code={`open Xote
+
+type todo = {
+  id: string,
+  title: string,
+  done: bool,
+}
+
+let todos = Signal.make([
+  {id: "1", title: "Write the View guide", done: true},
+  {id: "2", title: "Add a runnable example", done: false},
+])
+
+let draft = Signal.make("")
+
+module TodoComposer = {
+  @jsx.component
+  let make = () => {
+    <div>
+      <input onInput={handleInput} value={() => Signal.get(draft)} />
+      <button onClick={addTodo}> {View.text("Add")} </button>
+    </div>
+  }
+}
+
+module TodoRow = {
+  @jsx.component
+  let make = (~todo: todo) => {
+    <li>
+      <span> {View.text(todo.title)} </span>
+      <input type_="checkbox" checked={todo.done} />
+    </li>
+  }
+}
+
+@jsx.component
+let make = () => {
+  <div>
+    <TodoComposer />
+    <ul>
+      {View.eachWithKey(todos, todo => todo.id, todo => <TodoRow todo />)}
+    </ul>
+  </div>
+}`}
+    >
+      <TodoListDemo />
+    </DocsExamplePanel>
+
+## Working Style
+
+### Best Practices
+
+- Default to the JSX module pattern when there is no reason to drop lower.
+- Keep state close to where it is used. Local signals are cheap and usually easier to follow.
+- Use `View.eachWithKey` for collections that reorder, insert, or preserve local DOM state.
+- Be explicit about reactive output so the update boundaries stay readable in the component.
+
+### Next Steps
+
+- [Read Router](/docs/router/overview) when these components need client-side navigation.
+- [Read Server-Side Rendering](/docs/advanced/ssr) if the same components need to render on the server.
