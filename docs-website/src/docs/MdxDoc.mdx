@@ -47,9 +47,13 @@ Bind the compiled MDX module as an `Mdx.document`, then render it into a `View.n
 ```rescript
 @module("./article.mdx") external article: Mdx.document = "default"
 
-let page = Mdx.render(article, ())
+let app = () => {
+  <main class="article-shell">
+    {Mdx.render(article, ())}
+  </main>
+}
 
-View.mountById(page, "root")
+View.mountById(app(), "root")
 ```
 
 ## Component Overrides
@@ -66,19 +70,14 @@ type mdxProps = {
 
 module Link = {
   let make = (props: mdxProps) => {
-    View.element(
-      "a",
-      ~attrs=[
-        View.attr("href", props.href->Option.getOr("#")),
-        View.attr("target", "_blank"),
-        View.attr("rel", "noreferrer"),
-      ],
-      ~children=switch props.children {
-      | Some(children) => Mdx.childrenToNodes(children)
-      | None => []
-      },
-      (),
-    )
+    <a href={props.href->Option.getOr("#")} target="_blank" rel="noreferrer">
+      {View.fragment(
+        switch props.children {
+        | Some(children) => Mdx.childrenToNodes(children)
+        | None => []
+        },
+      )}
+    </a>
   }
 }
 

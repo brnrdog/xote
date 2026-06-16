@@ -1,6 +1,6 @@
 A Xote component is a function that returns a `View.node`. The component usually runs once, sets up its reactive graph, and then reactive nodes update in place over time.
 
-The recommended path is JSX plus `@jsx.component`. The function-based `View` and `Html` APIs stay available when you need lower-level control or are generating UI programmatically.
+The docs use JSX for examples because it keeps component structure close to the HTML it produces. The lower-level `View` API still exists for runtime primitives such as reactive text, keyed lists, and mounting.
 
 ## View Module
 
@@ -49,20 +49,19 @@ let app = () => {
 }
 ```
 
-#### Function API
-
-The lower-level API is still useful when JSX is not a good fit.
+#### JSX Components
 
 ```rescript
 open Xote
 
-let greeting = (name: string) => {
-  Html.div(
-    ~children=[
-      Html.h1(~children=[View.text(`Hello, ${name}`)], ())
-    ],
-    (),
-  )
+module Greeting = {
+  @jsx.component
+  let make = (~name: string) => {
+    <section class="greeting-card">
+      <h2> {View.text(`Hello, ${name}`)} </h2>
+      <p> {View.text("This component is ordinary ReScript plus JSX.")} </p>
+    </section>
+  }
 }
 ```
 
@@ -80,7 +79,7 @@ let count = Signal.make(0)
 
 ### Attributes and Events
 
-In JSX, common HTML props are exposed directly. In the function API, use `View.Attr.string`, `View.Attr.signal`, and `View.Attr.compute`.
+In JSX, common HTML props are exposed directly. Pass functions for reactive attributes when the value should be recomputed.
 
 ```rescript
 let isActive = Signal.make(false)
@@ -94,19 +93,6 @@ let toggle = (_evt: Dom.event) => {
   onClick={toggle}>
   {View.text("Toggle")}
 </button>
-```
-
-```rescript
-Html.button(
-  ~attrs=[
-    View.Attr.compute("class", () =>
-      Signal.get(isActive) ? "btn active" : "btn"
-    ),
-  ],
-  ~events=[("click", toggle)],
-  ~children=[View.text("Toggle")],
-  (),
-)
 ```
 
 In JSX, use `class`, not `className`. Use `type_` for the HTML `type` attribute because `type` is reserved in ReScript.
