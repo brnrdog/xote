@@ -6,6 +6,8 @@
 .merlin
 *.res.mjs
 bundlemeta.json
+bundle-size-report.md
+bundle-size-*.json
 .vite
 
 # Documentation site
