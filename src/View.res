@@ -552,6 +552,14 @@ let fragment = (children: array<node>): node => Fragment(children)
 
 let signalFragment = (signal: Signal.t<array<node>>): node => SignalFragment(signal)
 
+let childrenToArray = (child: option<node>): array<node> => {
+  switch child {
+  | Some(Fragment(children)) => children
+  | Some(child) => [child]
+  | None => []
+  }
+}
+
 /* Lists */
 let each = (signal: Signal.t<array<'a>>, renderItem: 'a => node): node => {
   let nodesSignal = Computed.make(() => {
@@ -575,6 +583,102 @@ let eachWithKey = (
 }
 
 let keyedList = eachWithKey
+
+/* JSX rendering primitives */
+module For = {
+  type props<'item> = {
+    each: Prop.t<array<'item>>,
+    render: 'item => node,
+  }
+
+  let make = (props: props<'item>): node => {
+    switch props.each {
+    | Static(items) => fragment(items->Array.map(props.render))
+    | Reactive(signal) => each(signal, props.render)
+    }
+  }
+}
+
+module KeyedFor = {
+  type props<'item> = {
+    each: Prop.t<array<'item>>,
+    by: 'item => string,
+    render: 'item => node,
+  }
+
+  let make = (props: props<'item>): node => {
+    switch props.each {
+    | Static(items) =>
+      fragment(
+        items->Array.map(item =>
+          Keyed({key: props.by(item), identity: Obj.magic(item), child: props.render(item)})
+        ),
+      )
+    | Reactive(signal) => eachWithKey(signal, props.by, props.render)
+    }
+  }
+}
+
+module Show = {
+  type props = {
+    when_: Prop.t<bool>,
+    children?: node,
+    fallback?: node,
+  }
+
+  let make = (props: props): node => {
+    switch props.when_ {
+    | Static(true) => fragment(childrenToArray(props.children))
+    | Static(false) => fragment(childrenToArray(props.fallback))
+    | Reactive(signal) =>
+      signalFragment(
+        Computed.make(() =>
+          if Signal.get(signal) {
+            childrenToArray(props.children)
+          } else {
+            childrenToArray(props.fallback)
+          }
+        ),
+      )
+    }
+  }
+}
+
+module Maybe = {
+  type props<'value> = {
+    value: Prop.t<option<'value>>,
+    render: 'value => node,
+    fallback?: node,
+  }
+
+  let renderValue = (props: props<'value>, value: option<'value>): array<node> => {
+    switch value {
+    | Some(value) => [props.render(value)]
+    | None => childrenToArray(props.fallback)
+    }
+  }
+
+  let make = (props: props<'value>): node => {
+    switch props.value {
+    | Static(value) => fragment(renderValue(props, value))
+    | Reactive(signal) => signalFragment(Computed.make(() => renderValue(props, Signal.get(signal))))
+    }
+  }
+}
+
+module Value = {
+  type props<'value> = {
+    value: Prop.t<'value>,
+    render: 'value => node,
+  }
+
+  let make = (props: props<'value>): node => {
+    switch props.value {
+    | Static(value) => props.render(value)
+    | Reactive(signal) => signalFragment(Computed.make(() => [props.render(Signal.get(signal))]))
+    }
+  }
+}
 
 /* Element constructor */
 let element = (
