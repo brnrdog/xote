@@ -27,6 +27,6 @@
   },
   "devDependencies": {
     "rescript": "^12.2.0",
-    "vite": "^7.3.2"
+    "vite": "^8.0.16"
   }
 }
