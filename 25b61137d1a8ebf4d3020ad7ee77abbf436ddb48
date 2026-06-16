@@ -1,0 +1,11 @@
+.github/workflows/deploy-docs.yml
+  s_39258136295469::t_fa4943d96be9ae 43-44
+docs-website/index.html
+  s_39258136295469::t_fa4943d96be9ae 22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "25b61137d1a8ebf4d3020ad7ee77abbf436ddb48",
+  "prompts": {}
+}

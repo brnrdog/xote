@@ -1,0 +1,38 @@
+docs-website/vite.config.js
+  s_39258136295469::t_e71d0723745c31 4
+docs-website/index.html
+  s_39258136295469::t_fa4943d96be9ae 23
+  s_39258136295469::t_e71d0723745c31 14
+.github/workflows/deploy-docs.yml
+  s_39258136295469::t_fa4943d96be9ae 43-44
+docs-website/src/EntryServer.res
+  s_39258136295469::t_e71d0723745c31 7
+docs-website/public/CNAME
+  s_39258136295469::t_fa4943d96be9ae 1
+docs-website/src/EntryClient.res
+  s_39258136295469::t_e71d0723745c31 5
+README.md
+  s_39258136295469::t_e71d0723745c31 1
+docs-website/public/404.html
+  s_39258136295469::t_e71d0723745c31 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "52450077c63e91178443190a2b8d25f858334b6e",
+  "prompts": {
+    "39258136295469be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e9478-afe4-7252-8615-a7f660e22281",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Bernardo Gurgel",
+      "messages": [],
+      "total_additions": 10,
+      "total_deletions": 6,
+      "accepted_lines": 0,
+      "overriden_lines": 0
+    }
+  }
+}
