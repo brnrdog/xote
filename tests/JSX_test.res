@@ -452,7 +452,7 @@ let suite = Zekr.suite(
         assertTrue(objectIs(updatedSecond, appleNode)),
       ])
     }),
-    test("View.KeyedFor reconciles reactive data by key", () => {
+    test("View.For reconciles reactive data when by is provided", () => {
       let {container} = Dom.render("")
       let apple: keyedForItem = {id: "1", label: "Apple"}
       let banana: keyedForItem = {id: "2", label: "Banana"}
@@ -460,7 +460,7 @@ let suite = Zekr.suite(
 
       let _ = mountTo(
         <ul>
-          <View.KeyedFor
+          <View.For
             each={Prop.signal(items)}
             by={item => item.id}
             render={item => <li> {View.text(item.label)} </li>}

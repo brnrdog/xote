@@ -590,13 +590,21 @@ let keyedList = eachWithKey
 module For = {
   type props<'item> = {
     each: Prop.t<array<'item>>,
+    by?: 'item => string,
     render: 'item => node,
   }
 
   let make = (props: props<'item>): node => {
-    switch props.each {
-    | Static(items) => fragment(items->Array.map(props.render))
-    | Reactive(signal) => each(signal, props.render)
+    switch (props.each, props.by) {
+    | (Static(items), Some(keyFn)) =>
+      fragment(
+        items->Array.map(item =>
+          Keyed({key: keyFn(item), identity: Obj.magic(item), child: props.render(item)})
+        ),
+      )
+    | (Static(items), None) => fragment(items->Array.map(props.render))
+    | (Reactive(signal), Some(keyFn)) => eachWithKey(signal, keyFn, props.render)
+    | (Reactive(signal), None) => each(signal, props.render)
     }
   }
 }
