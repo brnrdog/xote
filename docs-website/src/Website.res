@@ -220,6 +220,34 @@ module App = {
             />,
         },
         {
+          pattern: "/docs/advanced/mdx-support",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/advanced/mdx-support"
+              pageTitle="MDX Support"
+              pageLead="Author Markdown-driven pages that compile to Xote views and can embed Xote components."
+              content={MdxDocs.mdx()}
+              tocItems=[
+                {text: "Setup", id: "setup", level: 2},
+                {text: "Install the MDX Plugin", id: "install-the-mdx-plugin", level: 3},
+                {text: "Configure Vite", id: "configure-vite", level: 3},
+                {text: "Import MDX from ReScript", id: "import-mdx-from-rescript", level: 3},
+                {text: "Component Overrides", id: "component-overrides", level: 2},
+                {text: "Mapping Elements to Components", id: "mapping-elements-to-components", level: 3},
+                {text: "Rendering Children", id: "rendering-children", level: 3},
+                {text: "Authoring MDX", id: "authoring-mdx", level: 2},
+                {text: "Markdown and Xote Components", id: "markdown-and-xote-components", level: 3},
+                {text: "GitHub Flavored Markdown", id: "github-flavored-markdown", level: 3},
+                {text: "Runtime Behavior", id: "runtime-behavior", level: 2},
+                {text: "What the JSX Runtime Handles", id: "what-the-jsx-runtime-handles", level: 3},
+                {text: "What Stays in the Bundler", id: "what-stays-in-the-bundler", level: 3},
+                {text: "Working Style", id: "working-style", level: 2},
+                {text: "Best Practices", id: "best-practices", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 3},
+              ]
+            />,
+        },
+        {
           pattern: "/docs/advanced/batching",
           render: _params =>
             <DocsPage

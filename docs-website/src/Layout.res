@@ -106,6 +106,7 @@ let searchItems: array<searchItem> = [
   {title: "React Comparison", path: "/docs/comparisons/react", section: "Comparisons"},
   {title: "SolidJS Comparison", path: "/docs/comparisons/solidjs", section: "Comparisons"},
   {title: "Server-Side Rendering", path: "/docs/advanced/ssr", section: "Advanced"},
+  {title: "MDX Support", path: "/docs/advanced/mdx-support", section: "Advanced"},
   {title: "Batching", path: "/docs/advanced/batching", section: "Advanced"},
   {title: "Technical Overview", path: "/docs/technical-overview", section: "Advanced"},
   {title: "Changelog", path: "/docs/changelog", section: "Project"},

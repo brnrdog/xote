@@ -11,6 +11,7 @@
 @module("./docs/SolidJSComparisonDoc.mdx") external solidComparisonDoc: Mdx.document = "default"
 @module("./docs/TechnicalOverviewDoc.mdx") external technicalOverviewDoc: Mdx.document = "default"
 @module("./docs/SSRDoc.mdx") external ssrDoc: Mdx.document = "default"
+@module("./docs/MdxDoc.mdx") external mdxDoc: Mdx.document = "default"
 @module("./docs/ChangelogDoc.mdx") external changelogDoc: Mdx.document = "default"
 
 type mdxProps = {
@@ -132,4 +133,5 @@ let reactComparison = () => render(reactComparisonDoc)
 let solidComparison = () => render(solidComparisonDoc)
 let technicalOverview = () => render(technicalOverviewDoc)
 let ssr = () => render(ssrDoc)
+let mdx = () => render(mdxDoc)
 let changelog = () => render(changelogDoc)

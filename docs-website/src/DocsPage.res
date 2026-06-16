@@ -48,6 +48,7 @@ let docsNav: array<docCategory> = [
     label: "Advanced",
     items: [
       {title: "Server-Side Rendering", path: "/docs/advanced/ssr"},
+      {title: "MDX Support", path: "/docs/advanced/mdx-support"},
       {title: "Batching", path: "/docs/advanced/batching"},
       {title: "Technical Overview", path: "/docs/technical-overview"},
     ],
