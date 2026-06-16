@@ -1,0 +1,27 @@
+.gitignore
+  2f271236ce542719 9,16
+.github/workflows/ci.yml
+  2f271236ce542719 9-13,39-71
+package.json
+  2f271236ce542719 49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "940884871323f83bfbcb8b5dd248baf8aa4d63b2",
+  "prompts": {
+    "2f271236ce542719": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed1de-7ce2-7873-b8de-72a18830fbf1",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Bernardo Gurgel",
+      "messages": [],
+      "total_additions": 52,
+      "total_deletions": 1,
+      "accepted_lines": 41,
+      "overriden_lines": 0
+    }
+  }
+}
