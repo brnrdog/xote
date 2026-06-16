@@ -41,6 +41,7 @@ jobs:
 
       - name: Build website
         env:
+          SITE_URL: https://xote.dev
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST }}
         run: |

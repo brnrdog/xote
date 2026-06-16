@@ -1,4 +1,4 @@
-# [xote](https://brnrdog.github.io/xote/)
+# [xote](https://xote.dev/)
 ![NPM Version](https://img.shields.io/npm/v/xote)
 ![npm bundle size](https://badgen.net/bundlephobia/min/xote)
 ![npm bundle size](https://badgen.net/bundlephobia/minzip/xote)
