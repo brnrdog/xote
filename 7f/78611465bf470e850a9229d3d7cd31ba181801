@@ -1,0 +1,27 @@
+package.json
+  2f271236ce542719 49
+.gitignore
+  2f271236ce542719 9
+.github/workflows/ci.yml
+  2f271236ce542719 9-13,21-22,41-116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "7f78611465bf470e850a9229d3d7cd31ba181801",
+  "prompts": {
+    "2f271236ce542719": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed1de-7ce2-7873-b8de-72a18830fbf1",
+        "model": "gpt-5.5"
+      },
+      "human_author": null,
+      "messages": [],
+      "total_additions": 160,
+      "total_deletions": 2,
+      "accepted_lines": 85,
+      "overriden_lines": 0
+    }
+  }
+}
