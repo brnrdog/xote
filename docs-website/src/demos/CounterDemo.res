@@ -41,7 +41,7 @@ let make = () => {
       </div>
 
       <div class="counter-demo-readout">
-        <div class={() => countTone()}>{View.signalText(() => Signal.get(count)->Int.toString)}</div>
+        <div class={() => countTone()}><View.Int value={Prop.signal(count)} /></div>
         <div class="counter-demo-label"> {View.text("Current Count")} </div>
       </div>
 

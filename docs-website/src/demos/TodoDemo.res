@@ -30,6 +30,10 @@ let filteredTodos = Computed.make(() => {
   }
 })
 
+let hasFilteredTodos = Computed.make(() => Signal.get(filteredTodos)->Array.length > 0)
+
+let hasCompletedTodos = Computed.make(() => Signal.get(completedCount) > 0)
+
 let addTodo = (text: string) => {
   if String.trim(text) != "" {
     Signal.update(todos, list => {
@@ -178,55 +182,41 @@ let make = () => {
       </div>
     </div>
     <div class="demo-section">
-      {View.signalFragment(
-        Computed.make(() => {
-          let items = Signal.get(filteredTodos)
-          if Array.length(items) == 0 {
-            [
-              <div class="todo-demo-empty">
-                {View.signalText(() =>
-                  switch Signal.get(filterState) {
-                  | "active" => "No active tasks"
-                  | "completed" => "No completed tasks"
-                  | _ =>
-                    if Signal.get(totalCount) == 0 {
-                      "Add your first task above to get started"
-                    } else {
-                      "No tasks"
-                    }
-                  }
-                )}
-              </div>,
-            ]
-          } else {
-            [
-              <ul class="todo-demo-list">
-                {View.keyedList(
-                  filteredTodos,
-                  todo => todo.id->Int.toString,
-                  todo => <TodoItem todo={todo} />,
-                )}
-              </ul>,
-            ]
-          }
-        }),
-      )}
+      <View.Show
+        when_={Prop.signal(hasFilteredTodos)}
+        fallback={
+          <div class="todo-demo-empty">
+            {View.signalText(() =>
+              switch Signal.get(filterState) {
+              | "active" => "No active tasks"
+              | "completed" => "No completed tasks"
+              | _ =>
+                if Signal.get(totalCount) == 0 {
+                  "Add your first task above to get started"
+                } else {
+                  "No tasks"
+                }
+              }
+            )}
+          </div>
+        }>
+        <ul class="todo-demo-list">
+          <View.For
+            each={Prop.signal(filteredTodos)}
+            by={todo => todo.id->Int.toString}
+            render={todo => <TodoItem todo={todo} />}
+          />
+        </ul>
+      </View.Show>
     </div>
-    {View.signalFragment(
-      Computed.make(() => {
-        let completed = Signal.get(completedCount)
-        if completed > 0 {
-          [
-            <div style="text-align: center; margin-top: 0.5rem;">
-              <button class="demo-btn demo-btn-secondary" onClick={clearCompleted}>
-                {View.text("Clear completed (" ++ Int.toString(completed) ++ ")")}
-              </button>
-            </div>,
-          ]
-        } else {
-          []
-        }
-      }),
-    )}
+    <View.Show when_={Prop.signal(hasCompletedTodos)}>
+      <div style="text-align: center; margin-top: 0.5rem;">
+        <button class="demo-btn demo-btn-secondary" onClick={clearCompleted}>
+          {View.text("Clear completed (")}
+          <View.Int value={Prop.signal(completedCount)} />
+          {View.text(")")}
+        </button>
+      </div>
+    </View.Show>
   </div>
 }

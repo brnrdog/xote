@@ -44,7 +44,8 @@ let counter = () => {
 
   <div>
     <h1>
-      {View.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)}
+      {View.text("Count: ")}
+      <View.Int value={Prop.signal(count)} />
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
       {View.text("Increment")}
@@ -84,7 +85,7 @@ Xote components usually run once. Signals, computeds, and effects are ordinary v
 
 ### List Rendering
 
-React uses keys during virtual DOM reconciliation. Xote prefers `View.eachWithKey`, which works directly against DOM anchors and explicit keys.
+React uses keys during virtual DOM reconciliation. Xote uses `View.For` in JSX; passing `by` enables keyed reconciliation through Xote's DOM anchors.
 
 ```rescript
 function TodoList({ todos }) {
@@ -103,11 +104,11 @@ let todoList = () => {
   let todos = Signal.make([{id: "1", text: "Buy milk"}])
 
   <ul>
-    {View.eachWithKey(
-      todos,
-      todo => todo.id,
-      todo => <li> {View.text(todo.text)} </li>,
-    )}
+    <View.For
+      each={Prop.signal(todos)}
+      by={todo => todo.id}
+      render={todo => <li> {View.text(todo.text)} </li>}
+    />
   </ul>
 }
 ```
@@ -179,7 +180,7 @@ React developers usually adapt to Xote fastest when they stop looking for hook e
 1. `useState` becomes `Signal.make`
 2. `useMemo` becomes `Computed.make`
 3. `useEffect` becomes `Effect.run`
-4. keyed `.map()` rendering becomes `View.eachWithKey` when identity matters
+4. keyed `.map()` rendering becomes `View.For` with `by` when identity matters
 
 The conceptual shift is from re-rendered components to persistent reactive values.
 

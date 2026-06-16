@@ -42,6 +42,14 @@ View.fragment : array<node> => node
 View.signalFragment : Signal.t<array<node>> => node
 View.each : (Signal.t<array<'a>>, 'a => node) => node
 View.eachWithKey : (Signal.t<array<'a>>, 'a => string, 'a => node) => node
+<View.Text value={Prop.t<string>} />
+<View.Int value={Prop.t<int>} />
+<View.Float value={Prop.t<float>} />
+<View.Bool value={Prop.t<bool>} />
+<View.For each={Prop.t<array<'a>>} by={('a => string)=?} render={'a => node} />
+<View.Show when_={Prop.t<bool>} fallback={node=?}>...</View.Show>
+<View.Maybe value={Prop.t<option<'a>>} render={'a => node} fallback={node=?} />
+<View.Value value={Prop.t<'a>} render={'a => node} />
 ```
 
 ### Router Architecture

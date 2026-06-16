@@ -41,6 +41,8 @@ Effect.run(() => {
 
 @jsx.component
 let make = () => {
+  let hasSavedDrafts = Computed.make(() => Signal.get(savedDrafts)->Array.length > 0)
+
   <div class="effect-autosave-demo">
     <div class="effect-autosave-demo-section">
       <div class="effect-autosave-demo-heading">
@@ -80,34 +82,28 @@ let make = () => {
         </span>
       </div>
 
-      {View.signalFragment(
-        Computed.make(() => {
-          let entries = Signal.get(savedDrafts)
-          if Array.length(entries) == 0 {
-            [
-              <div class="effect-autosave-demo-empty">
-                {View.text("No saves yet. Type, pause, and the latest draft will be recorded here.")}
-              </div>,
-            ]
-          } else {
-            [
-              <ol class="effect-autosave-demo-list">
-                {View.keyedList(
-                  savedDrafts,
-                  entry => Int.toString(entry.id),
-                  entry =>
-                    <li class="effect-autosave-demo-item">
-                      <span class="effect-autosave-demo-item-label">
-                        {View.text("Saved draft")}
-                      </span>
-                      <span class="effect-autosave-demo-item-text"> {View.text(entry.text)} </span>
-                    </li>,
-                )}
-              </ol>,
-            ]
-          }
-        }),
-      )}
+      <View.Show
+        when_={Prop.signal(hasSavedDrafts)}
+        fallback={
+          <div class="effect-autosave-demo-empty">
+            {View.text("No saves yet. Type, pause, and the latest draft will be recorded here.")}
+          </div>
+        }>
+        <ol class="effect-autosave-demo-list">
+          <View.For
+            each={Prop.signal(savedDrafts)}
+            by={entry => Int.toString(entry.id)}
+            render={entry =>
+              <li class="effect-autosave-demo-item">
+                <span class="effect-autosave-demo-item-label">
+                  {View.text("Saved draft")}
+                </span>
+                <span class="effect-autosave-demo-item-text"> {View.text(entry.text)} </span>
+              </li>
+            }
+          />
+        </ol>
+      </View.Show>
     </div>
   </div>
 }

@@ -34,7 +34,7 @@ This README uses the application-facing names introduced for public code:
 - `Node` is a deprecated compatibility alias for `View` and will be removed in a future release.
 - `Prop` is the official static-or-reactive prop module.
 - `ReactiveProp` is a deprecated compatibility alias for `Prop`.
-- `View.signalText`, `View.each`, `View.eachWithKey`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are preferred in examples, while the deprecated `Node.signalText`, `Node.list`, `Node.keyedList`, `Node.attr`, `ReactiveProp.*`, and `SSRState.make` names remain supported.
+- `View.signalText`, `View.For`, `View.Show`, `View.Text`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are preferred in examples, while the deprecated `Node.signalText`, `Node.list`, `Node.keyedList`, `Node.attr`, `ReactiveProp.*`, and `SSRState.make` names remain supported.
 
 ### Quick Example
 
@@ -59,10 +59,12 @@ module App = {
     <div>
       <h1> {View.text("Counter")} </h1>
       <p>
-        {View.signalText(() => "Count: " ++ Signal.get(count)->Int.toString)}
+        {View.text("Count: ")}
+        <View.Int value={Prop.signal(count)} />
       </p>
       <p>
-        {View.signalText(() => "Doubled: " ++ Signal.get(doubled)->Int.toString)}
+        {View.text("Doubled: ")}
+        <View.Int value={Prop.signal(doubled)} />
       </p>
       <button onClick={(_evt: Dom.event) => Signal.update(count, n => n + 1)}>
         {View.text("Increment")}
@@ -136,7 +138,7 @@ Html.div(
 )
 ```
 
-For rendering collections, prefer `View.each` for simple lists and `View.eachWithKey` when items have stable identity:
+For rendering collections in JSX, prefer `View.For`. Add `by` when items have stable identity and should reconcile by key:
 
 ```rescript
 type todo = {id: string, title: string}
@@ -146,11 +148,50 @@ let todos = Signal.make([
   {id: "2", title: "Ship release"},
 ])
 
-View.eachWithKey(
-  todos,
-  todo => todo.id,
-  todo => <li> {View.text(todo.title)} </li>,
-)
+<View.For
+  each={Prop.signal(todos)}
+  by={todo => todo.id}
+  render={todo => <li> {View.text(todo.title)} </li>}
+/>
+```
+
+`View` also provides component primitives for static or reactive values. They accept `Prop.static(value)` for plain data and `Prop.signal(signal)` for signals.
+
+```rescript
+<View.For
+  each={Prop.static(["Draft", "Review", "Ship"])}
+  render={label => <span> {View.text(label)} </span>}
+/>
+
+<ul>
+  <View.For
+    each={Prop.signal(todos)}
+    by={todo => todo.id}
+    render={todo => <li> {View.text(todo.title)} </li>}
+  />
+</ul>
+
+<View.Show when_={Prop.signal(isReady)} fallback={<p> {View.text("Loading")} </p>}>
+  <p> {View.text("Ready")} </p>
+</View.Show>
+
+<View.Maybe
+  value={Prop.signal(selectedTodo)}
+  fallback={<p> {View.text("No selection")} </p>}
+  render={todo => <p> {View.text(todo.title)} </p>}
+/>
+
+<View.Value
+  value={Prop.signal(count)}
+  render={count => <p> {View.text("Count: " ++ count->Int.toString)} </p>}
+/>
+
+<p>
+  <View.Text value={Prop.static("Count: ")} />
+  <View.Int value={Prop.signal(count)} />
+  <View.Text value={Prop.static(", ready: ")} />
+  <View.Bool value={Prop.signal(isReady)} />
+</p>
 ```
 
 ### Static or Reactive Props

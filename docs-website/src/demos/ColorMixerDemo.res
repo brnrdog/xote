@@ -142,7 +142,7 @@ module ColorSlider = {
       <div class="color-demo-slider-label">
         <span> {View.text(label)} </span>
         <span class="color-demo-slider-value">
-          {View.signalText(() => Signal.get(value)->Int.toString)}
+          <View.Int value={Prop.signal(value)} />
         </span>
       </div>
       <input
@@ -180,7 +180,7 @@ module ColorInfo = {
       <div class="color-demo-value-row">
         <span> {View.text(label)} </span>
         <div>
-          <span> {View.signalText(() => Signal.get(value))} </span>
+          <span> <View.Text value={Prop.signal(value)} /> </span>
           <button
             class="demo-btn demo-btn-secondary"
             onClick={_evt => copyToClipboard(Signal.get(value))}
@@ -237,6 +237,8 @@ module ColorPalette = {
 module SavedColors = {
   @jsx.component
   let make = () => {
+    let hasSavedColors = Computed.make(() => Signal.get(savedColors)->Array.length > 0)
+
     <div>
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
         <h3> {View.text("Saved Colors")} </h3>
@@ -244,31 +246,26 @@ module SavedColors = {
           {View.text("+ Save Current")}
         </button>
       </div>
-      {
-        let savedColorsSignal = Computed.make(() => {
-          let colors = Signal.get(savedColors)
-          if Array.length(colors) == 0 {
-            [
-              <p style="text-align: center; padding: 1rem 0; opacity: 0.6;">
-                {View.text("No saved colors yet")}
-              </p>,
-            ]
-          } else {
-            [
-              <div class="color-demo-saved-grid">
-                {View.list(savedColors, color => {
-                  <div
-                    class="color-demo-palette-item"
-                    style={`background-color: ${color}`}
-                    onClick={_evt => copyToClipboard(color)}
-                  />
-                })}
-              </div>,
-            ]
-          }
-        })
-        View.signalFragment(savedColorsSignal)
-      }
+      <View.Show
+        when_={Prop.signal(hasSavedColors)}
+        fallback={
+          <p style="text-align: center; padding: 1rem 0; opacity: 0.6;">
+            {View.text("No saved colors yet")}
+          </p>
+        }>
+        <div class="color-demo-saved-grid">
+          <View.For
+            each={Prop.signal(savedColors)}
+            render={color =>
+              <div
+                class="color-demo-palette-item"
+                style={`background-color: ${color}`}
+                onClick={_evt => copyToClipboard(color)}
+              />
+            }
+          />
+        </div>
+      </View.Show>
     </div>
   }
 }

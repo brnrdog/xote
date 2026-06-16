@@ -67,13 +67,14 @@ module Greeting = {
 
 ### Reactive Output
 
-JSX expressions are just nodes. For reactive text, use `View.signalText`. For arrays and lists, prefer `View.eachWithKey` when item identity matters.
+JSX expressions are just nodes. For reactive text, use `View.signalText` or the value primitives such as `View.Text` and `View.Int`. For arrays and lists, use `View.For`; pass `by` when item identity matters.
 
 ```rescript
 let count = Signal.make(0)
 
 <div>
-  {View.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)}
+  {View.text("Count: ")}
+  <View.Int value={Prop.signal(count)} />
 </div>
 ```
 
@@ -99,13 +100,16 @@ In JSX, use `class`, not `className`. Use `type_` for the HTML `type` attribute 
 
 ### Lists
 
-Use `View.each` for simple arrays that can be fully re-rendered, and `View.eachWithKey` when item identity matters.
+Use `View.For` for simple arrays that can be fully re-rendered. Add `by` when item identity matters. `View.For` accepts `Prop.static(value)` for plain data and `Prop.signal(signal)` for reactive data.
 
 ```rescript
 let items = Signal.make(["Apple", "Banana", "Cherry"])
 
 <ul>
-  {View.each(items, item => <li> {View.text(item)} </li>)}
+  <View.For
+    each={Prop.signal(items)}
+    render={item => <li> {View.text(item)} </li>}
+  />
 </ul>
 ```
 
@@ -117,15 +121,43 @@ let todos = Signal.make([
 ])
 
 <ul>
-  {View.eachWithKey(
-    todos,
-    todo => todo.id,
-    todo => <li> {View.text(todo.text)} </li>,
-  )}
+  <View.For
+    each={Prop.signal(todos)}
+    by={todo => todo.id}
+    render={todo => <li> {View.text(todo.text)} </li>}
+  />
 </ul>
 ```
 
 Choose stable keys. Database IDs and route slugs are good. Array indexes are not.
+
+### Conditional Output
+
+Use `View.Show` for boolean branches, `View.Maybe` for option values, and `View.Value` when a whole node should be re-rendered from one static or reactive value. Use `View.Text`, `View.Int`, `View.Float`, and `View.Bool` for direct value output.
+
+```rescript
+<View.Show when_={Prop.signal(isReady)} fallback={<p> {View.text("Loading")} </p>}>
+  <p> {View.text("Ready")} </p>
+</View.Show>
+
+<View.Maybe
+  value={Prop.signal(selectedTodo)}
+  fallback={<p> {View.text("No todo selected")} </p>}
+  render={todo => <p> {View.text(todo.text)} </p>}
+/>
+
+<View.Value
+  value={Prop.signal(count)}
+  render={count => <p> {View.text("Count: " ++ count->Int.toString)} </p>}
+/>
+
+<p>
+  <View.Text value={Prop.static("Count: ")} />
+  <View.Int value={Prop.signal(count)} />
+  <View.Text value={Prop.static(", ready: ")} />
+  <View.Bool value={Prop.signal(isReady)} />
+</p>
+```
 
 ### Mounting
 
@@ -187,7 +219,11 @@ let make = () => {
   <div>
     <TodoComposer />
     <ul>
-      {View.eachWithKey(todos, todo => todo.id, todo => <TodoRow todo />)}
+      <View.For
+        each={Prop.signal(todos)}
+        by={todo => todo.id}
+        render={todo => <TodoRow todo />}
+      />
     </ul>
   </div>
 }`}
@@ -201,7 +237,7 @@ let make = () => {
 
 - Default to the JSX module pattern when there is no reason to drop lower.
 - Keep state close to where it is used. Local signals are cheap and usually easier to follow.
-- Use `View.eachWithKey` for collections that reorder, insert, or preserve local DOM state.
+- Pass `by` to `View.For` for JSX collections that reorder, insert, or preserve local DOM state.
 - Be explicit about reactive output so the update boundaries stay readable in the component.
 
 ### Next Steps

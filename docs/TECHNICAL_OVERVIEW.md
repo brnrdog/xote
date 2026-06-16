@@ -64,13 +64,19 @@ Xote components are functions that return `View.node`. `Node.node` remains avail
 Preferred public constructors:
 
 - `View.text("hello")`
-- `View.int(1)` and `View.float(1.5)`
+- `View.int(1)`, `View.float(1.5)`, and `View.bool(true)`
 - `View.signalText(() => ...)`
 - `View.signalInt(() => ...)` and `View.signalFloat(() => ...)`
+- `<View.Text value={Prop.t<string>} />`
+- `<View.Int value={Prop.t<int>} />`, `<View.Float value={Prop.t<float>} />`, and `<View.Bool value={Prop.t<bool>} />`
 - `View.fragment(children)`
 - `View.signalFragment(signal)`
 - `View.each(signal, renderItem)`
 - `View.eachWithKey(signal, keyFn, renderItem)`
+- `<View.For each={Prop.t<array<'a>>} by={optionalKeyFn} render={renderItem} />`
+- `<View.Show when_={Prop.t<bool>}>...</View.Show>`
+- `<View.Maybe value={Prop.t<option<'a>>} render={renderItem} />`
+- `<View.Value value={Prop.t<'a>} render={renderValue} />`
 - `View.element("div", ~attrs?, ~events?, ~children?, ())`
 - `View.null()` and `View.empty()`
 - `View.mount(node, container)`
@@ -194,6 +200,6 @@ The package exposes a bundled root entry through `dist/` and currently also expo
 ### Known Limitations And Future Work
 
 - The renderer still has some implementation details nested inside public modules; interface files should narrow that surface over time.
-- keyed JSX children now preserve identity inside reactive fragments when all siblings are keyed, but `View.eachWithKey` remains the clearest explicit list API.
+- keyed JSX children now preserve identity inside reactive fragments when all siblings are keyed, but `View.For` with `by` remains the clearest explicit list API.
 - JSX prop conversion currently uses dynamic checks to support several prop styles.
 - Renderer extraction can continue by moving keyed reconciliation behind an internal render module while preserving `View.Render` as a compatibility alias.
