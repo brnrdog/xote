@@ -46,6 +46,49 @@ let array = (children: array<element>): element => View.fragment(children)
 
 let null = (): element => View.text("")
 
+let childrenToArray = (child: option<element>): array<element> => {
+  switch child {
+  | Some(Fragment(children)) => children
+  | Some(child) => [child]
+  | None => []
+  }
+}
+
+/* JSX control-flow primitives */
+module For = {
+  type props<'item> = {
+    each: Prop.t<array<'item>>,
+    render: 'item => element,
+  }
+
+  let make = (props: props<'item>): element => {
+    switch props.each {
+    | Static(items) => View.fragment(items->Array.map(props.render))
+    | Reactive(signal) => View.each(signal, props.render)
+    }
+  }
+}
+
+module KeyedFor = {
+  type props<'item> = {
+    each: Prop.t<array<'item>>,
+    by: 'item => string,
+    render: 'item => element,
+  }
+
+  let make = (props: props<'item>): element => {
+    switch props.each {
+    | Static(items) =>
+      View.fragment(
+        items->Array.map(item =>
+          View.Keyed({key: props.by(item), identity: Obj.magic(item), child: props.render(item)})
+        ),
+      )
+    | Reactive(signal) => View.eachWithKey(signal, props.by, props.render)
+    }
+  }
+}
+
 /* Elements module for lowercase HTML tags */
 module Elements = {
   /* Props type for HTML elements - accepts both raw values and Prop.t for flexibility

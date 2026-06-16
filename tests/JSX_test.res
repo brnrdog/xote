@@ -17,6 +17,8 @@ let mountTo = (node, container) => {
 @val external objectIs: ('a, 'a) => bool = "Object.is"
 @val external dispatchEventByName: ('a, string) => unit = "__xoteTestDispatchEventByName"
 
+type keyedForItem = {id: string, label: string}
+
 let suite = Zekr.suite(
   "JSX",
   [
@@ -77,6 +79,47 @@ let suite = Zekr.suite(
       )
       let items = Dom.Query.getAllByRole(container, "listitem")
       assertEqual(Array.length(items), 3)
+    }),
+    test("XoteJSX.For renders static data", () => {
+      let {container} = Dom.render("")
+      let _ = mountTo(
+        <ul>
+          <XoteJSX.For
+            each={Prop.static(["One", "Two"])}
+            render={label => <li> {View.text(label)} </li>}
+          />
+        </ul>,
+        container,
+      )
+      assertEqual(
+        Dom.Query.getAllByRole(container, "listitem")->Array.map(Zekr__DomBindings.textContent),
+        ["One", "Two"],
+      )
+    }),
+    test("XoteJSX.For renders reactive data", () => {
+      let {container} = Dom.render("")
+      let items = Signal.make(["One"])
+      let _ = mountTo(
+        <ul>
+          <XoteJSX.For
+            each={Prop.signal(items)}
+            render={label => <li> {View.text(label)} </li>}
+          />
+        </ul>,
+        container,
+      )
+
+      let r1 = assertEqual(
+        Dom.Query.getAllByRole(container, "listitem")->Array.map(Zekr__DomBindings.textContent),
+        ["One"],
+      )
+      Signal.set(items, ["Two", "Three"])
+      let r2 = assertEqual(
+        Dom.Query.getAllByRole(container, "listitem")->Array.map(Zekr__DomBindings.textContent),
+        ["Two", "Three"],
+      )
+
+      combineResults([r1, r2])
     }),
     test("renders JSX with reactive class via Prop", () => {
       let {container} = Dom.render("")
@@ -313,6 +356,42 @@ let suite = Zekr.suite(
         ),
         assertFalse(objectIs(updatedFirst, bananaNode)),
         assertTrue(objectIs(updatedSecond, appleNode)),
+      ])
+    }),
+    test("XoteJSX.KeyedFor reconciles reactive data by key", () => {
+      let {container} = Dom.render("")
+      let apple: keyedForItem = {id: "1", label: "Apple"}
+      let banana: keyedForItem = {id: "2", label: "Banana"}
+      let items = Signal.make([apple, banana])
+
+      let _ = mountTo(
+        <ul>
+          <XoteJSX.KeyedFor
+            each={Prop.signal(items)}
+            by={item => item.id}
+            render={item => <li> {View.text(item.label)} </li>}
+          />
+        </ul>,
+        container,
+      )
+
+      let initialNodes = Dom.Query.getAllByRole(container, "listitem")
+      let appleNode = initialNodes->Array.get(0)->Option.getUnsafe
+      let bananaNode = initialNodes->Array.get(1)->Option.getUnsafe
+
+      Signal.set(items, [banana, apple])
+
+      let reorderedNodes = Dom.Query.getAllByRole(container, "listitem")
+      let reorderedBanana = reorderedNodes->Array.get(0)->Option.getUnsafe
+      let reorderedApple = reorderedNodes->Array.get(1)->Option.getUnsafe
+
+      combineResults([
+        assertEqual(
+          reorderedNodes->Array.map(Zekr__DomBindings.textContent),
+          ["Banana", "Apple"],
+        ),
+        assertTrue(objectIs(reorderedBanana, bananaNode)),
+        assertTrue(objectIs(reorderedApple, appleNode)),
       ])
     }),
   ],
