@@ -1,0 +1,25 @@
+docs-website/package.json
+  7ee6e897a8568fab 30
+package.json
+  7ee6e897a8568fab 102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "feba7c4c21a11c6200ef22bb8b3a5bb7b3e8fb01",
+  "prompts": {
+    "7ee6e897a8568fab": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed1d8-ca95-7372-9540-4d40156e943a",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Bernardo Gurgel",
+      "messages": [],
+      "total_additions": 3824,
+      "total_deletions": 0,
+      "accepted_lines": 3824,
+      "overriden_lines": 0
+    }
+  }
+}
