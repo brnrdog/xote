@@ -87,7 +87,8 @@ module TodoSummary = {
         })}
       </div>
       <div class="todo-list-demo-count">
-        {View.signalText(() => Int.toString(Signal.get(totalCount)) ++ " total")}
+        <View.Int value={Prop.signal(totalCount)} />
+        {View.text(" total")}
       </div>
     </div>
   }
@@ -123,7 +124,11 @@ module TodoList = {
   @jsx.component
   let make = () => {
     <ul class="todo-demo-list">
-      {View.eachWithKey(todos, todo => todo.id, todo => <TodoRow todo />)}
+      <View.For
+        each={Prop.signal(todos)}
+        by={todo => todo.id}
+        render={todo => <TodoRow todo />}
+      />
     </ul>
   }
 }

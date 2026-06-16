@@ -86,7 +86,8 @@ let counter = () => {
 
   <div>
     <h1>
-      {View.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)}
+      {View.text("Count: ")}
+      <View.Int value={Prop.signal(count)} />
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
       {View.text("Increment")}
@@ -97,7 +98,7 @@ let counter = () => {
 
 ### List Rendering
 
-SolidJS uses control-flow helpers like `<For>` and `<Index>`. Xote exposes list handling through `View.each` and `View.eachWithKey`.
+SolidJS uses control-flow helpers like `<For>` and `<Index>`. Xote exposes the same idea through `View.For`, with an optional `by` prop for keyed reconciliation.
 
 ```rescript
 import { For } from "solid-js";
@@ -118,11 +119,11 @@ let todoList = () => {
   let todos = Signal.make([{id: "1", text: "Buy milk"}])
 
   <ul>
-    {View.eachWithKey(
-      todos,
-      todo => todo.id,
-      todo => <li> {View.text(todo.text)} </li>,
-    )}
+    <View.For
+      each={Prop.signal(todos)}
+      by={todo => todo.id}
+      render={todo => <li> {View.text(todo.text)} </li>}
+    />
   </ul>
 }
 ```

@@ -558,7 +558,7 @@ let make = () => {
         </h2>
         <p style="margin: 0; font-size: 0.875rem; opacity: 0.7;">
           {View.text("Moves: ")}
-          {View.signalText(() => Signal.get(moves)->Int.toString)}
+          <View.Int value={Prop.signal(moves)} />
         </p>
       </div>
       <button

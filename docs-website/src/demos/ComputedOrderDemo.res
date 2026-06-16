@@ -38,7 +38,7 @@ let make = () => {
               {View.text("-")}
             </button>
             <div class="computed-order-demo-stepper-value">
-              {View.signalText(() => Int.toString(Signal.get(quantity)))}
+              <View.Int value={Prop.signal(quantity)} />
             </div>
             <button class="computed-order-demo-stepper-btn" onClick={increaseQuantity}>
               {View.text("+")}
@@ -107,15 +107,24 @@ let make = () => {
     <div class="computed-order-demo-summary">
       <div class="computed-order-demo-row">
         <span> {View.text("Subtotal")} </span>
-        <strong> {View.signalText(() => "$" ++ Int.toString(Signal.get(subtotal)))} </strong>
+        <strong>
+          <View.Text value={Prop.static("$")} />
+          <View.Int value={Prop.signal(subtotal)} />
+        </strong>
       </div>
       <div class="computed-order-demo-row">
         <span> {View.text("Shipping")} </span>
-        <strong> {View.signalText(() => "$" ++ Int.toString(Signal.get(shippingCost)))} </strong>
+        <strong>
+          <View.Text value={Prop.static("$")} />
+          <View.Int value={Prop.signal(shippingCost)} />
+        </strong>
       </div>
       <div class="computed-order-demo-row total">
         <span> {View.text("Total")} </span>
-        <strong> {View.signalText(() => "$" ++ Int.toString(Signal.get(total)))} </strong>
+        <strong>
+          <View.Text value={Prop.static("$")} />
+          <View.Int value={Prop.signal(total)} />
+        </strong>
       </div>
     </div>
   </div>

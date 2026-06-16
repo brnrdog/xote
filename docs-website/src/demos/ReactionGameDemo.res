@@ -171,7 +171,7 @@ module Statistics = {
         // Attempts count
         <div class="demo-stat">
           <div class="demo-stat-value">
-            {View.signalText(() => Signal.get(attemptsCount)->Int.toString)}
+            <View.Int value={Prop.signal(attemptsCount)} />
           </div>
           <div class="demo-stat-label"> {View.text("Attempts")} </div>
         </div>

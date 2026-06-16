@@ -11,7 +11,7 @@ let make = () => {
         onClick={_event => Signal.update(count, value => value - 1)}>
         {View.text("-")}
       </button>
-      <strong class="xote-demo__value"> {View.signalInt(() => Signal.get(count))} </strong>
+      <strong class="xote-demo__value"> <View.Int value={Prop.signal(count)} /> </strong>
       <button
         class="xote-demo__button"
         ariaLabel="Increase count"

@@ -29,7 +29,8 @@ let app = () => {
   <div>
     <h1> {View.text("Counter")} </h1>
     <p>
-      {View.signalText(() => `Count: ${Signal.get(count)->Int.toString}`)}
+      {View.text("Count: ")}
+      <View.Int value={Prop.signal(count)} />
     </p>
     <button onClick={increment}>
       {View.text("Increment")}

@@ -357,14 +357,14 @@ module GameInfo = {
       <div class="demo-stat">
         <div class="demo-stat-label"> {View.text("Level")} </div>
         <div class="demo-stat-value">
-          {View.signalText(() => Signal.get(currentLevelNum)->Int.toString)}
+          <View.Int value={Prop.signal(currentLevelNum)} />
         </div>
       </div>
       // Score
       <div class="demo-stat">
         <div class="demo-stat-label"> {View.text("Score")} </div>
         <div class="demo-stat-value">
-          {View.signalText(() => Signal.get(score)->Int.toString)}
+          <View.Int value={Prop.signal(score)} />
         </div>
       </div>
       // Progress
