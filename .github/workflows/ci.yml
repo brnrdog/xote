@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -13,6 +18,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Use Node.js 24
         uses: actions/setup-node@v4
@@ -31,3 +38,79 @@ jobs:
 
       - name: Vite Build
         run: npm run build
+
+      - name: Snapshot bundle size
+        run: GITHUB_STEP_SUMMARY= npm run bundle:size -- --json bundle-size-current.json
+
+      - name: Snapshot base bundle size
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          base_dir="$(mktemp -d)"
+
+          cleanup() {
+            git worktree remove "$base_dir" --force || true
+            rm -rf "$base_dir"
+          }
+
+          trap cleanup EXIT
+
+          git worktree add --detach "$base_dir" "$BASE_SHA"
+
+          (
+            cd "$base_dir"
+            npm install
+            npm run res:build
+            npm run build
+          )
+
+          GITHUB_STEP_SUMMARY= node "$GITHUB_WORKSPACE/scripts/bundle-size-report.mjs" \
+            --dist "$base_dir/dist" \
+            --package "$base_dir/package.json" \
+            --json bundle-size-base.json \
+            --markdown /tmp/bundle-size-base-report.md
+
+      - name: Generate bundle size report
+        env:
+          BASE_REF: ${{ github.base_ref || 'main' }}
+        run: |
+          if [ -f bundle-size-base.json ]; then
+            npm run bundle:size -- \
+              --json bundle-size-current.json \
+              --baseline bundle-size-base.json \
+              --baseline-label "$BASE_REF" \
+              --current-label PR
+          else
+            npm run bundle:size -- --json bundle-size-current.json
+          fi
+
+      - name: Comment bundle size on PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMENT_FILE: bundle-size-report.md
+        run: |
+          marker="<!-- xote-bundle-size-report -->"
+          body_file="$(mktemp)"
+
+          {
+            echo "$marker"
+            cat "$COMMENT_FILE"
+          } > "$body_file"
+
+          comment_id="$(
+            gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate \
+              --jq ".[] | select(.body | startswith(\"$marker\")) | .id" \
+              | head -n 1
+          )"
+
+          if [ -n "$comment_id" ]; then
+            gh api --method PATCH "repos/$REPO/issues/comments/$comment_id" \
+              -f body="$(cat "$body_file")"
+          else
+            gh api --method POST "repos/$REPO/issues/$PR_NUMBER/comments" \
+              -f body="$(cat "$body_file")"
+          fi

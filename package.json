@@ -46,6 +46,7 @@
     "format": "rescript format",
     "dev": "vite",
     "build": "vite build",
+    "bundle:size": "node scripts/bundle-size-report.mjs",
     "preview": "vite preview",
     "docs:start": "cd docs-website && npm run dev",
     "docs:build": "cd docs-website && npm run build",
