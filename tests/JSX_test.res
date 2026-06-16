@@ -176,6 +176,45 @@ let suite = Zekr.suite(
 
       combineResults([r1, r2])
     }),
+    test("View value primitives render static values", () => {
+      let {container} = Dom.render("")
+      let _ = mountTo(
+        <p>
+          <View.Text value={Prop.static("Items: ")} />
+          <View.Int value={Prop.static(2)} />
+          <View.Text value={Prop.static(", ratio: ")} />
+          <View.Float value={Prop.static(1.5)} />
+          <View.Text value={Prop.static(", ready: ")} />
+          <View.Bool value={Prop.static(true)} />
+        </p>,
+        container,
+      )
+
+      Dom.Assert.toHaveTextContent(container, "Items: 2, ratio: 1.5, ready: true")
+    }),
+    test("View value primitives render reactive values", () => {
+      let {container} = Dom.render("")
+      let label = Signal.make("Count: ")
+      let count = Signal.make(1)
+      let ready = Signal.make(false)
+      let _ = mountTo(
+        <p>
+          <View.Text value={Prop.signal(label)} />
+          <View.Int value={Prop.signal(count)} />
+          <View.Text value={Prop.static(", ready: ")} />
+          <View.Bool value={Prop.signal(ready)} />
+        </p>,
+        container,
+      )
+
+      let r1 = Dom.Assert.toHaveTextContent(container, "Count: 1, ready: false")
+      Signal.set(label, "Total: ")
+      Signal.set(count, 2)
+      Signal.set(ready, true)
+      let r2 = Dom.Assert.toHaveTextContent(container, "Total: 2, ready: true")
+
+      combineResults([r1, r2])
+    }),
     test("renders JSX with reactive class via Prop", () => {
       let {container} = Dom.render("")
       let cls = Signal.make("initial")

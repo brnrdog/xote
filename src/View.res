@@ -547,6 +547,8 @@ let int = (value: int): node => Text(Int.toString(value))
 
 let float = (value: float): node => Text(Float.toString(value))
 
+let bool = (value: bool): node => Text(value ? "true" : "false")
+
 /* Fragments */
 let fragment = (children: array<node>): node => Fragment(children)
 
@@ -703,5 +705,59 @@ let mountById = (node: node, containerId: string): unit => {
   switch DOM.getElementById(containerId)->Nullable.toOption {
   | Some(container) => mount(node, container)
   | None => Console.error("Container element not found: " ++ containerId)
+  }
+}
+
+module Text = {
+  type props = {
+    value: Prop.t<string>,
+  }
+
+  let make = (props: props): node => {
+    switch props.value {
+    | Static(value) => text(value)
+    | Reactive(signal) => SignalText(signal)
+    }
+  }
+}
+
+module Int = {
+  type props = {
+    value: Prop.t<int>,
+  }
+
+  let make = (props: props): node => {
+    switch props.value {
+    | Static(value) => int(value)
+    | Reactive(signal) => signalInt(() => Signal.get(signal))
+    }
+  }
+}
+
+module Float = {
+  type props = {
+    value: Prop.t<float>,
+  }
+
+  let make = (props: props): node => {
+    switch props.value {
+    | Static(value) => float(value)
+    | Reactive(signal) => signalFloat(() => Signal.get(signal))
+    }
+  }
+}
+
+module Bool = {
+  type props = {
+    value: Prop.t<bool>,
+  }
+
+  let toString = value => value ? "true" : "false"
+
+  let make = (props: props): node => {
+    switch props.value {
+    | Static(value) => bool(value)
+    | Reactive(signal) => signalText(() => Signal.get(signal)->toString)
+    }
   }
 }
