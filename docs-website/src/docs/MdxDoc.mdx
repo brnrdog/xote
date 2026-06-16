@@ -23,6 +23,7 @@ npm install --save-dev remark-gfm
 Point MDX at Xote's automatic JSX runtime.
 
 ```js
+// vite.config.js
 import mdx from "@mdx-js/rollup"
 import remarkGfm from "remark-gfm"
 import { defineConfig } from "vite"
@@ -45,6 +46,7 @@ The runtime entry points are exported from `xote/jsx-runtime` and `xote/jsx-dev-
 Bind the compiled MDX module as an `Mdx.document`, then render it into a `View.node`.
 
 ```rescript
+// ArticlePage.res
 @module("./article.mdx") external article: Mdx.document = "default"
 
 let app = () => {
@@ -63,6 +65,7 @@ View.mountById(app(), "root")
 MDX can receive a `components` dictionary. Keys match Markdown/HTML element names or custom MDX component names; values are Xote components wrapped with `Mdx.component`.
 
 ```rescript
+// ArticlePage.res
 type mdxProps = {
   children?: Mdx.children,
   href?: string,
@@ -96,6 +99,7 @@ MDX children arrive as JavaScript values because the MDX compiler owns the call 
 - `Mdx.childrenToText(children)` extracts plain text for cases like syntax highlighting or heading IDs.
 
 ```rescript
+// ArticleHeading.res
 module Heading = {
   let make = props => {
     <h2 class="article-heading">
@@ -117,6 +121,8 @@ module Heading = {
 An MDX file can mix Markdown, HTML-like tags, and named components supplied through the `components` dictionary.
 
 ```mdx
+{/* article.mdx */}
+
 # MDX with Xote
 
 This paragraph renders as Xote nodes.
@@ -129,6 +135,7 @@ This paragraph renders as Xote nodes.
 Markdown output can be overridden by key:
 
 ```rescript
+// ArticlePage.res
 let components = Mdx.components([
   ("h1", Mdx.component(ArticleTitle.make)),
   ("p", Mdx.component(LeadParagraph.make)),
@@ -141,6 +148,8 @@ let components = Mdx.components([
 Enable `remark-gfm` when your content uses GFM syntax such as tables.
 
 ```mdx
+{/* article.mdx */}
+
 | Feature | Supported |
 | --- | --- |
 | Component overrides | Yes |
