@@ -61,6 +61,38 @@ assert.equal(
   '<div class="ready" data-state="ready">ok</div>',
 );
 
+assert.equal(
+  renderToString(jsx("div", { dataEnabled: false, children: "ok" })),
+  '<div data-enabled="false">ok</div>',
+);
+
+assert.equal(
+  renderToString(
+    jsxs("svg", {
+      viewBox: "0 0 10 10",
+      markerWidth: 4,
+      children: jsx("path", { markerHeight: 5 }),
+    }),
+  ),
+  '<svg viewBox="0 0 10 10" markerWidth="4"><path markerHeight="5"></path></svg>',
+);
+
+const keyedFromProps = jsx("span", { key: "spread-key", children: "keyed" });
+assert.equal(keyedFromProps.TAG, "Keyed");
+assert.equal(keyedFromProps.key, "spread-key");
+
+let componentSawKey = false;
+function KeyProbe(props) {
+  componentSawKey = Object.prototype.hasOwnProperty.call(props, "key");
+  return jsx("span", { children: "probe" });
+}
+
+assert.equal(
+  renderToString(jsx(KeyProbe, { key: "component-key" })),
+  '<!--lc--><span>probe</span><!--/lc-->',
+);
+assert.equal(componentSawKey, false);
+
 const container = document.createElement("div");
 let clicked = 0;
 View.mount(

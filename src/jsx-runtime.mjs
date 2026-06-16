@@ -109,7 +109,7 @@ function normalizeAttrName(name) {
     return toKebab(name);
   }
 
-  return name.toLowerCase();
+  return name;
 }
 
 function normalizeStyle(style) {
@@ -209,10 +209,6 @@ function buildElement(tag, props = {}) {
       continue;
     }
 
-    if (value === false) {
-      continue;
-    }
-
     const attrName = normalizeAttrName(rawName);
     attrs.push(attrFromValue(attrName, value));
   }
@@ -220,28 +216,47 @@ function buildElement(tag, props = {}) {
   return View.element(tag, attrs, events, normalizeChildren(props.children), undefined);
 }
 
+function getReservedKey(props, key) {
+  if (key !== undefined && key !== null) {
+    return key;
+  }
+
+  return props?.key;
+}
+
+function stripReservedKey(props) {
+  if (!props || !Object.prototype.hasOwnProperty.call(props, "key")) {
+    return props ?? {};
+  }
+
+  const { key: _key, ...nextProps } = props;
+  return nextProps;
+}
+
 function withKey(node, key, props) {
-  if (key === undefined || key === null) {
+  const reservedKey = getReservedKey(props, key);
+
+  if (reservedKey === undefined || reservedKey === null) {
     return node;
   }
 
   return {
     TAG: "Keyed",
-    key: String(key),
+    key: String(reservedKey),
     identity: props ?? {},
     child: node,
   };
 }
 
 export function jsx(type, props, key) {
-  const nextProps = props ?? {};
+  const nextProps = stripReservedKey(props);
 
   if (type === Fragment) {
-    return withKey(View.fragment(normalizeChildren(nextProps.children)), key, nextProps);
+    return withKey(View.fragment(normalizeChildren(nextProps.children)), key, props);
   }
 
   if (typeof type === "string") {
-    return withKey(buildElement(type, nextProps), key, nextProps);
+    return withKey(buildElement(type, nextProps), key, props);
   }
 
   if (typeof type === "function") {
@@ -251,7 +266,7 @@ export function jsx(type, props, key) {
         _0: () => normalizeNode(type(nextProps)),
       },
       key,
-      nextProps,
+      props,
     );
   }
 
