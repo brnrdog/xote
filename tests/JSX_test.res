@@ -121,6 +121,61 @@ let suite = Zekr.suite(
 
       combineResults([r1, r2])
     }),
+    test("XoteJSX.Show renders conditional branches", () => {
+      let {container} = Dom.render("")
+      let visible = Signal.make(false)
+      let _ = mountTo(
+        <XoteJSX.Show when_={Prop.signal(visible)} fallback={<p> {View.text("Hidden")} </p>}>
+          <p> {View.text("Visible")} </p>
+        </XoteJSX.Show>,
+        container,
+      )
+
+      let r1 = Dom.Assert.toHaveTextContent(container, "Hidden")
+      Signal.set(visible, true)
+      let r2 = Dom.Assert.toHaveTextContent(container, "Visible")
+      Signal.set(visible, false)
+      let r3 = Dom.Assert.toHaveTextContent(container, "Hidden")
+
+      combineResults([r1, r2, r3])
+    }),
+    test("XoteJSX.Maybe renders option values and fallback", () => {
+      let {container} = Dom.render("")
+      let selected = Signal.make(None)
+      let _ = mountTo(
+        <XoteJSX.Maybe
+          value={Prop.signal(selected)}
+          fallback={<p> {View.text("None")} </p>}
+          render={value => <p> {View.text("Selected: " ++ value)} </p>}
+        />,
+        container,
+      )
+
+      let r1 = Dom.Assert.toHaveTextContent(container, "None")
+      Signal.set(selected, Some("Ada"))
+      let r2 = Dom.Assert.toHaveTextContent(container, "Selected: Ada")
+      Signal.set(selected, None)
+      let r3 = Dom.Assert.toHaveTextContent(container, "None")
+
+      combineResults([r1, r2, r3])
+    }),
+    test("XoteJSX.Value renders reactive values", () => {
+      let {container} = Dom.render("")
+      let count = Signal.make(1)
+      let _ = mountTo(
+        <XoteJSX.Value
+          value={Prop.signal(count)}
+          render={value => <p> {View.text("Count: " ++ value->Int.toString)} </p>}
+        />,
+        container,
+      )
+
+      let r1 = Dom.Assert.toHaveTextContent(container, "Count: 1")
+      Signal.set(count, 2)
+      let r2 = Dom.Assert.toHaveTextContent(container, "Count: 2")
+
+      combineResults([r1, r2])
+    }),
     test("renders JSX with reactive class via Prop", () => {
       let {container} = Dom.render("")
       let cls = Signal.make("initial")

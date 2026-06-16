@@ -89,6 +89,69 @@ module KeyedFor = {
   }
 }
 
+module Show = {
+  type props = {
+    when_: Prop.t<bool>,
+    children?: element,
+    fallback?: element,
+  }
+
+  let make = (props: props): element => {
+    switch props.when_ {
+    | Static(true) => View.fragment(childrenToArray(props.children))
+    | Static(false) => View.fragment(childrenToArray(props.fallback))
+    | Reactive(signal) =>
+      View.signalFragment(
+        Computed.make(() =>
+          if Signal.get(signal) {
+            childrenToArray(props.children)
+          } else {
+            childrenToArray(props.fallback)
+          }
+        ),
+      )
+    }
+  }
+}
+
+module Maybe = {
+  type props<'value> = {
+    value: Prop.t<option<'value>>,
+    render: 'value => element,
+    fallback?: element,
+  }
+
+  let renderValue = (props: props<'value>, value: option<'value>): array<element> => {
+    switch value {
+    | Some(value) => [props.render(value)]
+    | None => childrenToArray(props.fallback)
+    }
+  }
+
+  let make = (props: props<'value>): element => {
+    switch props.value {
+    | Static(value) => View.fragment(renderValue(props, value))
+    | Reactive(signal) =>
+      View.signalFragment(Computed.make(() => renderValue(props, Signal.get(signal))))
+    }
+  }
+}
+
+module Value = {
+  type props<'value> = {
+    value: Prop.t<'value>,
+    render: 'value => element,
+  }
+
+  let make = (props: props<'value>): element => {
+    switch props.value {
+    | Static(value) => props.render(value)
+    | Reactive(signal) =>
+      View.signalFragment(Computed.make(() => [props.render(Signal.get(signal))]))
+    }
+  }
+}
+
 /* Elements module for lowercase HTML tags */
 module Elements = {
   /* Props type for HTML elements - accepts both raw values and Prop.t for flexibility
