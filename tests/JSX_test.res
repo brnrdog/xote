@@ -80,11 +80,11 @@ let suite = Zekr.suite(
       let items = Dom.Query.getAllByRole(container, "listitem")
       assertEqual(Array.length(items), 3)
     }),
-    test("XoteJSX.For renders static data", () => {
+    test("View.For renders static data", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
         <ul>
-          <XoteJSX.For
+          <View.For
             each={Prop.static(["One", "Two"])}
             render={label => <li> {View.text(label)} </li>}
           />
@@ -96,12 +96,12 @@ let suite = Zekr.suite(
         ["One", "Two"],
       )
     }),
-    test("XoteJSX.For renders reactive data", () => {
+    test("View.For renders reactive data", () => {
       let {container} = Dom.render("")
       let items = Signal.make(["One"])
       let _ = mountTo(
         <ul>
-          <XoteJSX.For
+          <View.For
             each={Prop.signal(items)}
             render={label => <li> {View.text(label)} </li>}
           />
@@ -121,13 +121,13 @@ let suite = Zekr.suite(
 
       combineResults([r1, r2])
     }),
-    test("XoteJSX.Show renders conditional branches", () => {
+    test("View.Show renders conditional branches", () => {
       let {container} = Dom.render("")
       let visible = Signal.make(false)
       let _ = mountTo(
-        <XoteJSX.Show when_={Prop.signal(visible)} fallback={<p> {View.text("Hidden")} </p>}>
+        <View.Show when_={Prop.signal(visible)} fallback={<p> {View.text("Hidden")} </p>}>
           <p> {View.text("Visible")} </p>
-        </XoteJSX.Show>,
+        </View.Show>,
         container,
       )
 
@@ -139,11 +139,11 @@ let suite = Zekr.suite(
 
       combineResults([r1, r2, r3])
     }),
-    test("XoteJSX.Maybe renders option values and fallback", () => {
+    test("View.Maybe renders option values and fallback", () => {
       let {container} = Dom.render("")
       let selected = Signal.make(None)
       let _ = mountTo(
-        <XoteJSX.Maybe
+        <View.Maybe
           value={Prop.signal(selected)}
           fallback={<p> {View.text("None")} </p>}
           render={value => <p> {View.text("Selected: " ++ value)} </p>}
@@ -159,11 +159,11 @@ let suite = Zekr.suite(
 
       combineResults([r1, r2, r3])
     }),
-    test("XoteJSX.Value renders reactive values", () => {
+    test("View.Value renders reactive values", () => {
       let {container} = Dom.render("")
       let count = Signal.make(1)
       let _ = mountTo(
-        <XoteJSX.Value
+        <View.Value
           value={Prop.signal(count)}
           render={value => <p> {View.text("Count: " ++ value->Int.toString)} </p>}
         />,
@@ -413,7 +413,7 @@ let suite = Zekr.suite(
         assertTrue(objectIs(updatedSecond, appleNode)),
       ])
     }),
-    test("XoteJSX.KeyedFor reconciles reactive data by key", () => {
+    test("View.KeyedFor reconciles reactive data by key", () => {
       let {container} = Dom.render("")
       let apple: keyedForItem = {id: "1", label: "Apple"}
       let banana: keyedForItem = {id: "2", label: "Banana"}
@@ -421,7 +421,7 @@ let suite = Zekr.suite(
 
       let _ = mountTo(
         <ul>
-          <XoteJSX.KeyedFor
+          <View.KeyedFor
             each={Prop.signal(items)}
             by={item => item.id}
             render={item => <li> {View.text(item.label)} </li>}
