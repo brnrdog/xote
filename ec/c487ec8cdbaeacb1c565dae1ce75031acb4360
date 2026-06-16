@@ -1,0 +1,23 @@
+.github/workflows/deploy-docs.yml
+  08ae70758623650c 31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "ecc487ec8cdbaeacb1c565dae1ce75031acb4360",
+  "prompts": {
+    "08ae70758623650c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed208-60af-7d22-8009-e0e2c8ab0021",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Bernardo Gurgel",
+      "messages": [],
+      "total_additions": 1433,
+      "total_deletions": 1,
+      "accepted_lines": 1433,
+      "overriden_lines": 0
+    }
+  }
+}
