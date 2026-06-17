@@ -34,7 +34,7 @@ This README uses the application-facing names introduced for public code:
 - `Node` is a deprecated compatibility alias for `View` and will be removed in a future release.
 - `Prop` is the official static-or-reactive prop module.
 - `ReactiveProp` is a deprecated compatibility alias for `Prop`.
-- `View.signalText`, `View.For`, `View.Show`, `View.Text`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are preferred in examples, while the deprecated `Node.signalText`, `Node.list`, `Node.keyedList`, `Node.attr`, `ReactiveProp.*`, and `SSRState.make` names remain supported.
+- `View.Text`, `View.Int`, `View.For`, `View.Show`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are preferred in examples, while the deprecated `Node.signalText`, `Node.list`, `Node.keyedList`, `Node.attr`, `ReactiveProp.*`, and `SSRState.make` names remain supported.
 
 ### Quick Example
 
@@ -57,17 +57,17 @@ module App = {
 
     // Build the UI with JSX
     <div>
-      <h1> {View.text("Counter")} </h1>
+      <h1> <View.Text> "Counter" </View.Text> </h1>
       <p>
-        {View.text("Count: ")}
-        <View.Int value={Prop.signal(count)} />
+        <View.Text> "Count: " </View.Text>
+        <View.Int> {count} </View.Int>
       </p>
       <p>
-        {View.text("Doubled: ")}
-        <View.Int value={Prop.signal(doubled)} />
+        <View.Text> "Doubled: " </View.Text>
+        <View.Int> {doubled} </View.Int>
       </p>
       <button onClick={(_evt: Dom.event) => Signal.update(count, n => n + 1)}>
-        {View.text("Increment")}
+        <View.Text> "Increment" </View.Text>
       </button>
     </div>
   }
@@ -88,7 +88,7 @@ Here's an example of a reusable component with properties:
 @jsx.component
 let make = (~name: string, ~greeting: string="Hello") => {
   <p>
-    {View.text(greeting ++ ", " ++ name ++ "!")}
+    <View.Text> {`${greeting}, ${name}!`} </View.Text>
   </p>
 }
 
@@ -128,14 +128,10 @@ On top of the reactive primitives with signals, Xote provides a declarative view
 ```rescript
 let className = Signal.make("card")
 
-Html.div(
-  ~attrs=[View.Attr.signal("class", className)],
-  ~children=[
-    View.text("Status: "),
-    View.signalText(() => Signal.get(className)),
-  ],
-  (),
-)
+<div class={Prop.signal(className)}>
+  <View.Text> "Status: " </View.Text>
+  <View.Text> {className} </View.Text>
+</div>
 ```
 
 For rendering collections in JSX, prefer `View.For`. Add `by` when items have stable identity and should reconcile by key:
@@ -151,46 +147,51 @@ let todos = Signal.make([
 <View.For
   each={Prop.signal(todos)}
   by={todo => todo.id}
-  render={todo => <li> {View.text(todo.title)} </li>}
+  render={todo => <li> <View.Text> {todo.title} </View.Text> </li>}
 />
 ```
 
-`View` also provides component primitives for static or reactive values. They accept `Prop.static(value)` for plain data and `Prop.signal(signal)` for signals.
+`View` also provides component primitives for static or reactive values. Their children can be raw values, signals, `Prop.t` values, or functions.
 
 ```rescript
 <View.For
   each={Prop.static(["Draft", "Review", "Ship"])}
-  render={label => <span> {View.text(label)} </span>}
+  render={label => <span> <View.Text> {label} </View.Text> </span>}
 />
 
 <ul>
   <View.For
     each={Prop.signal(todos)}
     by={todo => todo.id}
-    render={todo => <li> {View.text(todo.title)} </li>}
+    render={todo => <li> <View.Text> {todo.title} </View.Text> </li>}
   />
 </ul>
 
-<View.Show when_={Prop.signal(isReady)} fallback={<p> {View.text("Loading")} </p>}>
-  <p> {View.text("Ready")} </p>
+<View.Show when_={Prop.signal(isReady)} fallback={<p> <View.Text> "Loading" </View.Text> </p>}>
+  <p> <View.Text> "Ready" </View.Text> </p>
 </View.Show>
 
 <View.Maybe
   value={Prop.signal(selectedTodo)}
-  fallback={<p> {View.text("No selection")} </p>}
-  render={todo => <p> {View.text(todo.title)} </p>}
+  fallback={<p> <View.Text> "No selection" </View.Text> </p>}
+  render={todo => <p> <View.Text> {todo.title} </View.Text> </p>}
 />
 
 <View.Value
   value={Prop.signal(count)}
-  render={count => <p> {View.text("Count: " ++ count->Int.toString)} </p>}
+  render={count =>
+    <p>
+      <View.Text> "Count: " </View.Text>
+      <View.Int> {count} </View.Int>
+    </p>
+  }
 />
 
 <p>
-  <View.Text value={Prop.static("Count: ")} />
-  <View.Int value={Prop.signal(count)} />
-  <View.Text value={Prop.static(", ready: ")} />
-  <View.Bool value={Prop.signal(isReady)} />
+  <View.Text> "Count: " </View.Text>
+  <View.Int> {count} </View.Int>
+  <View.Text> ", ready: " </View.Text>
+  <View.Bool> {isReady} </View.Bool>
 </p>
 ```
 
@@ -207,7 +208,7 @@ let make = (~className: Prop.t<string>=Prop.static("badge"), ~children) => {
 let tone = Signal.make("badge badge-info")
 
 <Badge className={Prop.signal(tone)}>
-  {View.text("Live")}
+  <View.Text> "Live" </View.Text>
 </Badge>
 ```
 
@@ -220,10 +221,11 @@ Router state is signal-based. Read the shared location signal directly with `Rou
 ```rescript
 Router.init(())
 
-let pathname = View.signalText(() => {
-  let location = Signal.get(Router.location())
-  "Current path: " ++ location.pathname
-})
+let pathname = () =>
+  <View.Text> {() => {
+    let location = Signal.get(Router.location())
+    "Current path: " ++ location.pathname
+  }} </View.Text>
 ```
 
 For server/client state transfer, prefer `SSRState.signal` when creating a synced signal:
