@@ -142,6 +142,39 @@ let suite = Zekr.suite(
         assertEqual(current.hash, "#signal-get"),
       ])
     }),
+    test("Router.Link keeps search and hash separate from pathname", () => {
+      Router.init()
+      let {container} = Dom.render("")
+      let clicked = ref(false)
+
+      View.mount(
+        <Router.Link
+          to="/docs/api/computed?tab=derive#computed-make"
+          class="api-link"
+          onClick={_evt => clicked := true}>
+          {View.text("Computed.make")}
+        </Router.Link>,
+        container,
+      )
+
+      let link = Dom.Query.getByText(container, "Computed.make")
+      let hrefResult = assertEqual(
+        getAttr(link, "href"),
+        "/docs/api/computed?tab=derive#computed-make",
+      )
+
+      Dom.Event.click(link)
+      let current = Signal.peek(Router.location())
+
+      combineResults([
+        hrefResult,
+        assertEqual(getAttr(link, "class"), "api-link"),
+        assertTrue(clicked.contents),
+        assertEqual(current.pathname, "/docs/api/computed"),
+        assertEqual(current.search, "?tab=derive"),
+        assertEqual(current.hash, "#computed-make"),
+      ])
+    }),
     test("Router.link scrolls to hash targets after navigation", () => {
       Router.init()
       useImmediateMicrotask()
@@ -170,6 +203,36 @@ let suite = Zekr.suite(
       restoreMicrotask()
 
       assertTrue(called.contents)
+    }),
+    test("Router.Link scrolls to encoded hash targets after navigation", () => {
+      Router.init()
+      useImmediateMicrotask()
+      let container = makeGlobalContainer()
+      View.mount(
+        <div>
+          <Router.Link to="/docs/api/view#view%20text">
+            {View.text("View.Text")}
+          </Router.Link>
+          <h2 id="view text"> {View.text("Target")} </h2>
+        </div>,
+        container,
+      )
+
+      let called = ref(false)
+      let target = querySelector(container, "#view\\ text")
+      setScrollIntoView(target, called)
+
+      let link = querySelector(container, "a")
+      clickElement(link)
+      restoreMicrotask()
+
+      let current = Signal.peek(Router.location())
+
+      combineResults([
+        assertTrue(called.contents),
+        assertEqual(current.pathname, "/docs/api/view"),
+        assertEqual(current.hash, "#view%20text"),
+      ])
     }),
   ],
   ~afterEach=() => {

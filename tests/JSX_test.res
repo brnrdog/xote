@@ -287,6 +287,33 @@ let suite = Zekr.suite(
 
       Dom.Assert.toHaveTextContent(container, "")
     }),
+    test("View value primitives treat null and undefined as empty output", () => {
+      let {container} = Dom.render("")
+      let nullText: string = %raw("null")
+      let undefinedText: string = %raw("undefined")
+      let nullInt: int = %raw("null")
+      let undefinedInt: int = %raw("undefined")
+      let nullFloat: float = %raw("null")
+      let undefinedFloat: float = %raw("undefined")
+      let nullBool: bool = %raw("null")
+      let undefinedBool: bool = %raw("undefined")
+
+      let _ = mountTo(
+        <p>
+          <View.Text value={nullText} />
+          <View.Text value={undefinedText} />
+          <View.Int value={nullInt} />
+          <View.Int value={undefinedInt} />
+          <View.Float value={nullFloat} />
+          <View.Float value={undefinedFloat} />
+          <View.Bool value={nullBool} />
+          <View.Bool value={undefinedBool} />
+        </p>,
+        container,
+      )
+
+      Dom.Assert.toHaveTextContent(container, "")
+    }),
     test("View.Text renders formatted Prop children", () => {
       let {container} = Dom.render("")
       let nameSignal = Signal.make("Ada")
@@ -303,6 +330,35 @@ let suite = Zekr.suite(
       let r2 = Dom.Assert.toHaveTextContent(container, "Hello, Grace")
 
       combineResults([r1, r2])
+    }),
+    test("View.Value detaches previous reactive descendants after shape changes", () => {
+      let {container} = Dom.render("")
+      let selected = Signal.make(true)
+      let first = Signal.make("First")
+      let second = Signal.make("Second")
+
+      let _ = mountTo(
+        <View.Value
+          value={Prop.signal(selected)}
+          render={isFirst =>
+            if isFirst {
+              <p> <View.Text> {first} </View.Text> </p>
+            } else {
+              <section> <View.Text> {second} </View.Text> </section>
+            }}
+        />,
+        container,
+      )
+
+      let r1 = Dom.Assert.toHaveTextContent(container, "First")
+      Signal.set(selected, false)
+      let r2 = Dom.Assert.toHaveTextContent(container, "Second")
+      Signal.set(first, "Detached")
+      let r3 = Dom.Assert.toHaveTextContent(container, "Second")
+      Signal.set(second, "Current")
+      let r4 = Dom.Assert.toHaveTextContent(container, "Current")
+
+      combineResults([r1, r2, r3, r4])
     }),
     test("renders JSX with reactive class via Prop", () => {
       let {container} = Dom.render("")
@@ -575,6 +631,67 @@ let suite = Zekr.suite(
         ),
         assertTrue(objectIs(reorderedBanana, bananaNode)),
         assertTrue(objectIs(reorderedApple, appleNode)),
+      ])
+    }),
+    test("View.KeyedFor renders static data", () => {
+      let {container} = Dom.render("")
+      let apple: keyedForItem = {id: "1", label: "Apple"}
+      let banana: keyedForItem = {id: "2", label: "Banana"}
+
+      let _ = mountTo(
+        <ul>
+          <View.KeyedFor
+            each={Prop.static([apple, banana])}
+            by={item => item.id}
+            render={item => <li> {View.text(item.label)} </li>}
+          />
+        </ul>,
+        container,
+      )
+
+      assertEqual(
+        Dom.Query.getAllByRole(container, "listitem")->Array.map(Zekr__DomBindings.textContent),
+        ["Apple", "Banana"],
+      )
+    }),
+    test("View.KeyedFor reconciles reactive data", () => {
+      let {container} = Dom.render("")
+      let apple: keyedForItem = {id: "1", label: "Apple"}
+      let banana: keyedForItem = {id: "2", label: "Banana"}
+      let cherry: keyedForItem = {id: "3", label: "Cherry"}
+      let items = Signal.make([apple, banana])
+
+      let _ = mountTo(
+        <ul>
+          <View.KeyedFor
+            each={Prop.signal(items)}
+            by={item => item.id}
+            render={item => <li> {View.text(item.label)} </li>}
+          />
+        </ul>,
+        container,
+      )
+
+      let initialNodes = Dom.Query.getAllByRole(container, "listitem")
+      let appleNode = initialNodes->Array.get(0)->Option.getUnsafe
+      let bananaNode = initialNodes->Array.get(1)->Option.getUnsafe
+
+      Signal.set(items, [cherry, banana, apple])
+
+      let updatedNodes = Dom.Query.getAllByRole(container, "listitem")
+      let updatedCherry = updatedNodes->Array.get(0)->Option.getUnsafe
+      let updatedBanana = updatedNodes->Array.get(1)->Option.getUnsafe
+      let updatedApple = updatedNodes->Array.get(2)->Option.getUnsafe
+
+      combineResults([
+        assertEqual(
+          updatedNodes->Array.map(Zekr__DomBindings.textContent),
+          ["Cherry", "Banana", "Apple"],
+        ),
+        assertFalse(objectIs(updatedCherry, appleNode)),
+        assertFalse(objectIs(updatedCherry, bananaNode)),
+        assertTrue(objectIs(updatedBanana, bananaNode)),
+        assertTrue(objectIs(updatedApple, appleNode)),
       ])
     }),
   ],
