@@ -740,18 +740,27 @@ let valuePrimitive = (value: 'input, stringify: 'value => string): node => {
   }
 }
 
-let renderValuePrimitive = (
-  ~value: option<'value>,
-  ~children: option<'children>,
-  ~stringify: 'scalar => string,
-): node => {
-  switch children {
-  | Some(children) => valuePrimitive(children, stringify)
-  | None =>
-    switch value {
-    | Some(value) => valuePrimitive(value, stringify)
-    | None => null()
-    }
+let getField = (props: 'props, key: string): 'value => {
+  ignore(props)
+  ignore(key)
+  %raw(`props[key]`)
+}
+
+let isUndefined = (value: 'value): bool => {
+  ignore(value)
+  %raw(`value === undefined`)
+}
+
+let renderValuePrimitiveProps = (props: 'props, stringify: 'scalar => string): node => {
+  let children: 'children = getField(props, "children")
+  let value: 'value = getField(props, "value")
+
+  if !isUndefined(children) {
+    valuePrimitive(children, stringify)
+  } else if !isUndefined(value) {
+    valuePrimitive(value, stringify)
+  } else {
+    null()
   }
 }
 
@@ -762,7 +771,7 @@ module Text = {
   }
 
   let make = (props: props<'value, 'children>): node => {
-    renderValuePrimitive(~value=props.value, ~children=props.children, ~stringify=value => value)
+    renderValuePrimitiveProps(props, value => value)
   }
 }
 
@@ -773,9 +782,7 @@ module Int = {
   }
 
   let make = (props: props<'value, 'children>): node => {
-    renderValuePrimitive(~value=props.value, ~children=props.children, ~stringify=value =>
-      value->Int.toString
-    )
+    renderValuePrimitiveProps(props, value => value->Int.toString)
   }
 }
 
@@ -786,9 +793,7 @@ module Float = {
   }
 
   let make = (props: props<'value, 'children>): node => {
-    renderValuePrimitive(~value=props.value, ~children=props.children, ~stringify=value =>
-      value->Float.toString
-    )
+    renderValuePrimitiveProps(props, value => value->Float.toString)
   }
 }
 
@@ -801,6 +806,6 @@ module Bool = {
   let toString = value => value ? "true" : "false"
 
   let make = (props: props<'value, 'children>): node => {
-    renderValuePrimitive(~value=props.value, ~children=props.children, ~stringify=toString)
+    renderValuePrimitiveProps(props, toString)
   }
 }
