@@ -1,7 +1,4 @@
-let isReactiveProp = (value: 'a): bool => {
-  ignore(value)
-  %raw(`value && typeof value === 'object' && ('TAG' in value) && (value.TAG === 'Static' || value.TAG === 'Reactive')`)
-}
+let isReactiveProp = RuntimeValue.isReactiveProp
 
 let toStringAttr = (key: string, value: 'a): (string, View.attrValue) => {
   if isReactiveProp(value) {
@@ -10,10 +7,10 @@ let toStringAttr = (key: string, value: 'a): (string, View.attrValue) => {
     | Static(value) => View.attr(key, value)
     | Reactive(signal) => View.signalAttr(key, signal)
     }
-  } else if typeof(value) == #function {
+  } else if value->RuntimeValue.isFunction {
     let compute: unit => string = Obj.magic(value)
     View.computedAttr(key, compute)
-  } else if typeof(value) == #object {
+  } else if value->RuntimeValue.isObject {
     let signal: Signal.t<string> = Obj.magic(value)
     View.signalAttr(key, signal)
   } else {
@@ -32,10 +29,10 @@ let toBoolAttr = (key: string, value: 'a): (string, View.attrValue) => {
         View.signalAttr(key, stringSignal)
       }
     }
-  } else if typeof(value) == #function {
+  } else if value->RuntimeValue.isFunction {
     let compute: unit => bool = Obj.magic(value)
     View.computedAttr(key, () => RuntimeAttr.boolToString(compute()))
-  } else if typeof(value) == #object {
+  } else if value->RuntimeValue.isObject {
     let signal: Signal.t<bool> = Obj.magic(value)
     let stringSignal = Computed.make(() => RuntimeAttr.boolToString(Signal.get(signal)))
     View.signalAttr(key, stringSignal)

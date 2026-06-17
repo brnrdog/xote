@@ -1,5 +1,6 @@
 module DOM = RuntimeDom
 module Reactivity = RuntimeOwner
+module Core = RescriptCore
 
 /* ============================================================================
  * Type Definitions
@@ -85,30 +86,32 @@ module Render = {
     }
 
     /* Recursively dispose children */
-    let childNodes: array<Dom.element> = %raw(`Array.from(el.childNodes || [])`)
-    childNodes->Array.forEach(disposeElement)
+    el->DOM.childNodesToArray->Array.forEach(disposeElement)
   }
 
   let shallowEqualIdentity = (a: Obj.t, b: Obj.t): bool =>
     if a === b {
       true
-    } else if typeof(a) != #object || typeof(b) != #object {
-      false
     } else {
-      let dictA: Dict.t<Obj.t> = Obj.magic(a)
-      let dictB: Dict.t<Obj.t> = Obj.magic(b)
-      let keysA = dictA->Dict.keysToArray
-      let keysB = dictB->Dict.keysToArray
+      switch (a->Core.Type.Classify.classify, b->Core.Type.Classify.classify) {
+      | (Object(objA), Object(objB)) => {
+          let dictA: Dict.t<Obj.t> = Obj.magic(objA)
+          let dictB: Dict.t<Obj.t> = Obj.magic(objB)
+          let keysA = dictA->Dict.keysToArray
+          let keysB = dictB->Dict.keysToArray
 
-      if keysA->Array.length !== keysB->Array.length {
-        false
-      } else {
-        keysA->Array.every(key =>
-          switch (dictA->Dict.get(key), dictB->Dict.get(key)) {
-          | (Some(valueA), Some(valueB)) => valueA === valueB
-          | _ => false
+          if keysA->Array.length !== keysB->Array.length {
+            false
+          } else {
+            keysA->Array.every(key =>
+              switch (dictA->Dict.get(key), dictB->Dict.get(key)) {
+              | (Some(valueA), Some(valueB)) => valueA === valueB
+              | _ => false
+              }
+            )
           }
-        )
+        }
+      | _ => false
       }
     }
 
@@ -117,21 +120,17 @@ module Render = {
   }
 
   let getKeyedChildren = (children: array<node>): option<array<keyedChild>> => {
-    if Array.length(children) == 0 {
+    if children->Core.Array.length == 0 {
       None
     } else {
-      let keyedChildren = []
-      let allKeyed = ref(true)
-
-      children->Array.forEach(child => {
+      let keyedChildren = children->Core.Array.filterMap(child => {
         switch child {
-        | Keyed({key, identity, child}) =>
-          keyedChildren->Array.push({key, identity, child})->ignore
-        | _ => allKeyed := false
+        | Keyed({key, identity, child}) => Some({key, identity, child})
+        | _ => None
         }
       })
 
-      if allKeyed.contents {
+      if keyedChildren->Core.Array.length == children->Core.Array.length {
         Some(keyedChildren)
       } else {
         None
@@ -288,8 +287,7 @@ module Render = {
                 clearKeyedItems(keyedItems)
 
                 /* Dispose existing children */
-                let childNodes: array<Dom.element> = %raw(`Array.from(container.childNodes || [])`)
-                childNodes->Array.forEach(disposeElement)
+                container->DOM.childNodesToArray->Array.forEach(disposeElement)
 
                 /* Clear existing children */
                 DOM.setInnerHTML(container, "")
@@ -693,9 +691,9 @@ module Value = {
 /* Element constructor */
 let element = (
   tag: string,
-  ~attrs: array<(string, attrValue)>=[]->Array.map(x => x),
-  ~events: array<(string, Dom.event => unit)>=[]->Array.map(x => x),
-  ~children: array<node>=[]->Array.map(x => x),
+  ~attrs: array<(string, attrValue)>=[],
+  ~events: array<(string, Dom.event => unit)>=[],
+  ~children: array<node>=[],
   (),
 ): node => Element({tag, attrs, events, children})
 
@@ -716,10 +714,7 @@ let mountById = (node: node, containerId: string): unit => {
   }
 }
 
-let isReactiveProp = (value: 'a): bool => {
-  ignore(value)
-  %raw(`value && typeof value === 'object' && ('TAG' in value) && (value.TAG === 'Static' || value.TAG === 'Reactive')`)
-}
+let isReactiveProp = RuntimeValue.isReactiveProp
 
 let valuePrimitive = (value: 'input, stringify: 'value => string): node => {
   if isReactiveProp(value) {
@@ -728,39 +723,30 @@ let valuePrimitive = (value: 'input, stringify: 'value => string): node => {
     | Static(value) => text(stringify(value))
     | Reactive(signal) => SignalText(Computed.make(() => stringify(Signal.get(signal))))
     }
-  } else if typeof(value) == #function {
-    let compute: unit => 'value = Obj.magic(value)
-    signalText(() => stringify(compute()))
-  } else if typeof(value) == #object {
-    let signal: Signal.t<'value> = Obj.magic(value)
-    SignalText(Computed.make(() => stringify(Signal.get(signal))))
   } else {
-    let value: 'value = Obj.magic(value)
-    text(stringify(value))
+    switch value->Core.Type.Classify.classify {
+    | Function(_) => {
+        let compute: unit => 'value = Obj.magic(value)
+        signalText(() => stringify(compute()))
+      }
+    | Object(_) => {
+        let signal: Signal.t<'value> = Obj.magic(value)
+        SignalText(Computed.make(() => stringify(Signal.get(signal))))
+      }
+    | Null | Undefined => null()
+    | _ => {
+        let value: 'value = Obj.magic(value)
+        text(stringify(value))
+      }
+    }
   }
 }
 
-let getField = (props: 'props, key: string): 'value => {
-  ignore(props)
-  ignore(key)
-  %raw(`props[key]`)
-}
-
-let isUndefined = (value: 'value): bool => {
-  ignore(value)
-  %raw(`value === undefined`)
-}
-
 let renderValuePrimitiveProps = (props: 'props, stringify: 'scalar => string): node => {
-  let children: 'children = getField(props, "children")
-  let value: 'value = getField(props, "value")
-
-  if !isUndefined(children) {
-    valuePrimitive(children, stringify)
-  } else if !isUndefined(value) {
-    valuePrimitive(value, stringify)
-  } else {
-    null()
+  switch (props->RuntimeValue.getField("children"), props->RuntimeValue.getField("value")) {
+  | (Some(children), _) => valuePrimitive(children, stringify)
+  | (None, Some(value)) => valuePrimitive(value, stringify)
+  | (None, None) => null()
   }
 }
 
