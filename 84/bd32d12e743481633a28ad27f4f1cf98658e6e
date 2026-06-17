@@ -1,0 +1,21 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "84bd32d12e743481633a28ad27f4f1cf98658e6e",
+  "prompts": {
+    "5b6c45bc3639bef2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed212-bae2-7cd3-b03a-02b94a47603d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Bernardo Gurgel",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1432,
+      "overriden_lines": 0
+    }
+  }
+}
