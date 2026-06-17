@@ -1,0 +1,112 @@
+This page lists the supported API for the `Signal` module.
+
+## Signal
+
+<a id="signal-module" />
+
+`Signal` stores writable reactive state. Read it with [`Signal.get`](#signal-get) when you want dependency tracking, or [`Signal.peek`](#signal-peek) when you want a snapshot.
+
+<a id="signal-type" />
+
+### Signal.t
+
+```rescript
+type t<'a>
+```
+
+A signal value containing state of type `'a`.
+
+<a id="signal-make" />
+
+### Signal.make
+
+```rescript
+let make: (
+  'a,
+  ~name: option<string>=?,
+  ~equals: option<('a, 'a) => bool>=?,
+) => Signal.t<'a>
+```
+
+Create a signal with an initial value. `~name` is for debugging, and `~equals` replaces the default JavaScript strict equality check.
+
+<a id="signal-get" />
+
+### Signal.get
+
+```rescript
+let get: Signal.t<'a> => 'a
+```
+
+Read the current value and subscribe the active computed or effect, if one exists.
+
+<a id="signal-peek" />
+
+### Signal.peek
+
+```rescript
+let peek: Signal.t<'a> => 'a
+```
+
+Read the current value without creating a dependency.
+
+<a id="signal-set" />
+
+### Signal.set
+
+```rescript
+let set: (Signal.t<'a>, 'a) => unit
+```
+
+Replace the signal value. Dependents are notified only when the equality check says the value changed.
+
+<a id="signal-update" />
+
+### Signal.update
+
+```rescript
+let update: (Signal.t<'a>, 'a => 'a) => unit
+```
+
+Compute the next value from the current value.
+
+<a id="signal-batch" />
+
+### Signal.batch
+
+```rescript
+let batch: (unit => 'a) => 'a
+```
+
+Run several writes as one scheduler flush. The callback result is returned.
+
+<a id="signal-untrack" />
+
+### Signal.untrack
+
+```rescript
+let untrack: (unit => 'a) => 'a
+```
+
+Run a block without dependency capture.
+
+## Example
+
+```rescript
+open Xote
+
+let count = Signal.make(0)
+
+let increment = () => {
+  Signal.update(count, n => n + 1)
+}
+
+let current = Signal.peek(count)
+```
+
+## See Also
+
+- [Signals guide](/docs/core-concepts/signals)
+- [Computed API](/docs/api/computed)
+- [Effect API](/docs/api/effect)
+- [Batching](/docs/advanced/batching)

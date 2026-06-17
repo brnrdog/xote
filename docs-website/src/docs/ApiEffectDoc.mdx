@@ -1,0 +1,64 @@
+This page lists the supported API for the `Effect` module.
+
+## Effect
+
+<a id="effect-module" />
+
+`Effect` runs side effects when the signals it reads change.
+
+<a id="effect-disposer" />
+
+### Effect.disposer
+
+```rescript
+type disposer = {dispose: unit => unit}
+```
+
+A manual teardown handle returned by [`Effect.runWithDisposer`](#effect-runwithdisposer).
+
+<a id="effect-run" />
+
+### Effect.run
+
+```rescript
+let run: (
+  unit => option<unit => unit>,
+  ~name: option<string>=?,
+) => unit
+```
+
+Run an effect immediately, then re-run it whenever tracked dependencies change. Return `Some(cleanup)` to clean up before the next run, or `None` when no cleanup is needed.
+
+<a id="effect-runwithdisposer" />
+
+### Effect.runWithDisposer
+
+```rescript
+let runWithDisposer: (
+  unit => option<unit => unit>,
+  ~name: option<string>=?,
+) => Effect.disposer
+```
+
+Run an effect and return a disposer for explicit teardown.
+
+## Example
+
+```rescript
+open Xote
+
+let count = Signal.make(0)
+
+let disposer = Effect.runWithDisposer(() => {
+  Console.log2("count", Signal.get(count))
+  None
+})
+
+disposer.dispose()
+```
+
+## See Also
+
+- [Effects guide](/docs/core-concepts/effects)
+- [Signal API](/docs/api/signal)
+- [Computed API](/docs/api/computed)

@@ -57,7 +57,7 @@ Effect.run(() => {
 
 Key differences:
 
-- SolidJS reads via function calls like `count()`, Xote reads via `Signal.get(count)`
+- SolidJS reads via function calls like `count()`, Xote reads via [`Signal.get`](/docs/api/signal#signal-get)
 - Xote effects return cleanup directly; SolidJS uses `onCleanup`
 - Xote signals use strict equality by default and let you opt into custom equality with `~equals`
 
@@ -65,7 +65,7 @@ Key differences:
 
 Both component models are close: the function runs, the DOM structure is created, and later updates flow through reactive bindings instead of through repeated component renders.
 
-The main ergonomic difference is that SolidJS can embed reactive expressions directly inside JSX, while Xote makes the reactive boundary explicit with JSX primitives such as `View.Int`, `View.Text`, and `View.For`.
+The main ergonomic difference is that SolidJS can embed reactive expressions directly inside JSX, while Xote makes the reactive boundary explicit with JSX primitives such as [`View.Int`](/docs/api/view#view-int-component), [`View.Text`](/docs/api/view#view-text-component), and [`View.For`](/docs/api/view#view-for).
 
 ```rescript
 function Counter() {
@@ -98,7 +98,7 @@ let counter = () => {
 
 ### List Rendering
 
-SolidJS uses control-flow helpers like `<For>` and `<Index>`. Xote exposes the same idea through `View.For`, with an optional `by` prop for keyed reconciliation.
+SolidJS uses control-flow helpers like `<For>` and `<Index>`. Xote exposes the same idea through [`View.For`](/docs/api/view#view-for), with an optional `by` prop for keyed reconciliation.
 
 ```rescript
 import { For } from "solid-js";
@@ -191,8 +191,8 @@ Xote is intentionally smaller. That means fewer ready-made packages, but also fe
 
 SolidJS developers typically need to adapt in three places:
 
-1. signal reads move from function calls to `Signal.get`
-2. reactive JSX expressions often become `View.Text`, `View.Int`, `View.For`, or another explicit `View` primitive
+1. signal reads move from function calls to [`Signal.get`](/docs/api/signal#signal-get)
+2. reactive JSX expressions often become [`View.Text`](/docs/api/view#view-text-component), [`View.Int`](/docs/api/view#view-int-component), [`View.For`](/docs/api/view#view-for), or another explicit [`View`](/docs/api/view#view-module) primitive
 3. routing and SSR move from the Solid ecosystem to Xote's built-in modules
 
 The underlying mental model stays largely the same.

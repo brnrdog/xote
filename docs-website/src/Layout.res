@@ -102,7 +102,10 @@ let searchItems: array<searchItem> = [
   {title: "Effects", path: "/docs/core-concepts/effects", section: "Core Modules"},
   {title: "View", path: "/docs/view/overview", section: "Core Modules"},
   {title: "Router", path: "/docs/router/overview", section: "Router"},
-  {title: "Signals API", path: "/docs/api/signals", section: "API Reference"},
+  {title: "Signal API", path: "/docs/api/signal", section: "API Reference"},
+  {title: "Computed API", path: "/docs/api/computed", section: "API Reference"},
+  {title: "Effect API", path: "/docs/api/effect", section: "API Reference"},
+  {title: "View API", path: "/docs/api/view", section: "API Reference"},
   {title: "React Comparison", path: "/docs/comparisons/react", section: "Comparisons"},
   {title: "SolidJS Comparison", path: "/docs/comparisons/solidjs", section: "Comparisons"},
   {title: "Server-Side Rendering", path: "/docs/advanced/ssr", section: "Advanced"},
@@ -538,7 +541,7 @@ module Footer = {
               </li>
               <li>
                 {Router.link(
-                  ~to="/docs/api/signals",
+                  ~to="/docs/api/signal",
                   ~children=[View.text("API Reference")],
                   (),
                 )}

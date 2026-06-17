@@ -6,7 +6,10 @@
 @module("./docs/BatchingDoc.mdx") external batchingDoc: Mdx.document = "default"
 @module("./docs/ViewsDoc.mdx") external viewsDoc: Mdx.document = "default"
 @module("./docs/RouterDoc.mdx") external routerDoc: Mdx.document = "default"
-@module("./docs/ApiSignalsDoc.mdx") external apiSignalsDoc: Mdx.document = "default"
+@module("./docs/ApiSignalDoc.mdx") external apiSignalDoc: Mdx.document = "default"
+@module("./docs/ApiComputedDoc.mdx") external apiComputedDoc: Mdx.document = "default"
+@module("./docs/ApiEffectDoc.mdx") external apiEffectDoc: Mdx.document = "default"
+@module("./docs/ApiViewDoc.mdx") external apiViewDoc: Mdx.document = "default"
 @module("./docs/ReactComparisonDoc.mdx") external reactComparisonDoc: Mdx.document = "default"
 @module("./docs/SolidJSComparisonDoc.mdx") external solidComparisonDoc: Mdx.document = "default"
 @module("./docs/TechnicalOverviewDoc.mdx") external technicalOverviewDoc: Mdx.document = "default"
@@ -128,7 +131,10 @@ let effects = () => render(effectsDoc)
 let batching = () => render(batchingDoc)
 let views = () => render(viewsDoc)
 let router = () => render(routerDoc)
-let apiSignals = () => render(apiSignalsDoc)
+let apiSignal = () => render(apiSignalDoc)
+let apiComputed = () => render(apiComputedDoc)
+let apiEffect = () => render(apiEffectDoc)
+let apiView = () => render(apiViewDoc)
 let reactComparison = () => render(reactComparisonDoc)
 let solidComparison = () => render(solidComparisonDoc)
 let technicalOverview = () => render(technicalOverviewDoc)

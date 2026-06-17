@@ -1,0 +1,410 @@
+This page lists the supported API for the `View` module.
+
+`Node` is intentionally not expanded here. It currently exists as a compatibility alias, but new code and docs should use `View`.
+
+## View
+
+<a id="view-module" />
+
+`View` is the UI node API used by JSX components and lower-level rendering helpers.
+
+<a id="view-types" />
+
+### View types
+
+```rescript
+type attrValue =
+  | Static(string)
+  | SignalValue(Signal.t<string>)
+  | Compute(unit => string)
+
+type node
+```
+
+`View.node` is the renderable value returned by components. `View.attrValue` is the supported attribute source type.
+
+<a id="view-attr" />
+
+### View.attr
+
+```rescript
+let attr: (string, string) => (string, View.attrValue)
+```
+
+Create a static attribute entry.
+
+<a id="view-signalattr" />
+
+### View.signalAttr
+
+```rescript
+let signalAttr: (string, Signal.t<string>) => (string, View.attrValue)
+```
+
+Create a reactive attribute from a string signal.
+
+<a id="view-computedattr" />
+
+### View.computedAttr
+
+```rescript
+let computedAttr: (string, unit => string) => (string, View.attrValue)
+```
+
+Create a reactive attribute from a compute function.
+
+<a id="view-attr-module" />
+
+### View.Attr
+
+```rescript
+View.Attr.string: (string, string) => (string, View.attrValue)
+View.Attr.signal: (string, Signal.t<string>) => (string, View.attrValue)
+View.Attr.compute: (string, unit => string) => (string, View.attrValue)
+```
+
+Namespaced aliases for [`View.attr`](#view-attr), [`View.signalAttr`](#view-signalattr), and [`View.computedAttr`](#view-computedattr).
+
+<a id="view-text" />
+
+### View.text
+
+```rescript
+let text: string => View.node
+```
+
+Create a static text node.
+
+<a id="view-int" />
+
+### View.int
+
+```rescript
+let int: int => View.node
+```
+
+Create a static integer text node.
+
+<a id="view-float" />
+
+### View.float
+
+```rescript
+let float: float => View.node
+```
+
+Create a static float text node.
+
+<a id="view-bool" />
+
+### View.bool
+
+```rescript
+let bool: bool => View.node
+```
+
+Create a static boolean text node.
+
+<a id="view-signaltext" />
+
+### View.signalText
+
+```rescript
+let signalText: (unit => string) => View.node
+```
+
+Create a reactive text node from a compute function.
+
+<a id="view-signalint" />
+
+### View.signalInt
+
+```rescript
+let signalInt: (unit => int) => View.node
+```
+
+Create a reactive integer text node from a compute function.
+
+<a id="view-signalfloat" />
+
+### View.signalFloat
+
+```rescript
+let signalFloat: (unit => float) => View.node
+```
+
+Create a reactive float text node from a compute function.
+
+<a id="view-fragment" />
+
+### View.fragment
+
+```rescript
+let fragment: array<View.node> => View.node
+```
+
+Group several nodes without adding a wrapper element.
+
+<a id="view-signalfragment" />
+
+### View.signalFragment
+
+```rescript
+let signalFragment: Signal.t<array<View.node>> => View.node
+```
+
+Render an array of nodes from a signal and replace the fragment when it changes.
+
+<a id="view-each" />
+
+### View.each
+
+```rescript
+let each: (Signal.t<array<'a>>, 'a => View.node) => View.node
+```
+
+Render each item from a reactive array. Updates re-render the list contents.
+
+<a id="view-list" />
+
+### View.list
+
+```rescript
+let list: (Signal.t<array<'a>>, 'a => View.node) => View.node
+```
+
+Alias for [`View.each`](#view-each).
+
+<a id="view-eachwithkey" />
+
+### View.eachWithKey
+
+```rescript
+let eachWithKey: (Signal.t<array<'a>>, 'a => string, 'a => View.node) => View.node
+```
+
+Render a reactive array with keyed DOM reconciliation.
+
+<a id="view-keyedlist" />
+
+### View.keyedList
+
+```rescript
+let keyedList: (Signal.t<array<'a>>, 'a => string, 'a => View.node) => View.node
+```
+
+Alias for [`View.eachWithKey`](#view-eachwithkey).
+
+<a id="view-for" />
+
+### View.For
+
+```rescript
+module For: {
+  type props<'item> = {
+    each: Prop.t<array<'item>>,
+    by?: 'item => string,
+    render: 'item => View.node,
+  }
+
+  let make: props<'item> => View.node
+}
+```
+
+JSX list primitive. Pass `by` to enable keyed reconciliation.
+
+<a id="view-keyedfor" />
+
+### View.KeyedFor
+
+```rescript
+module KeyedFor: {
+  type props<'item> = {
+    each: Prop.t<array<'item>>,
+    by: 'item => string,
+    render: 'item => View.node,
+  }
+
+  let make: props<'item> => View.node
+}
+```
+
+JSX list primitive that always requires a key function.
+
+<a id="view-show" />
+
+### View.Show
+
+```rescript
+module Show: {
+  type props = {
+    when_: Prop.t<bool>,
+    children?: View.node,
+    fallback?: View.node,
+  }
+
+  let make: props => View.node
+}
+```
+
+JSX conditional primitive for boolean branches.
+
+<a id="view-maybe" />
+
+### View.Maybe
+
+```rescript
+module Maybe: {
+  type props<'value> = {
+    value: Prop.t<option<'value>>,
+    render: 'value => View.node,
+    fallback?: View.node,
+  }
+
+  let make: props<'value> => View.node
+}
+```
+
+JSX conditional primitive for option values.
+
+<a id="view-value" />
+
+### View.Value
+
+```rescript
+module Value: {
+  type props<'value> = {
+    value: Prop.t<'value>,
+    render: 'value => View.node,
+  }
+
+  let make: props<'value> => View.node
+}
+```
+
+JSX primitive that re-renders a node from one static or reactive value.
+
+<a id="view-element" />
+
+### View.element
+
+```rescript
+let element: (
+  string,
+  ~attrs: array<(string, View.attrValue)>=?,
+  ~events: array<(string, Dom.event => unit)>=?,
+  ~children: array<View.node>=?,
+  unit,
+) => View.node
+```
+
+Create an element node for any tag.
+
+<a id="view-null" />
+
+### View.null
+
+```rescript
+let null: unit => View.node
+```
+
+Create an empty placeholder text node.
+
+<a id="view-empty" />
+
+### View.empty
+
+```rescript
+let empty: unit => View.node
+```
+
+Alias for [`View.null`](#view-null).
+
+<a id="view-mount" />
+
+### View.mount
+
+```rescript
+let mount: (View.node, Dom.element) => unit
+```
+
+Render a node into a DOM element.
+
+<a id="view-mountbyid" />
+
+### View.mountById
+
+```rescript
+let mountById: (View.node, string) => unit
+```
+
+Look up a DOM element by id and mount into it.
+
+<a id="view-text-component" />
+
+### View.Text
+
+```rescript
+<View.Text>{value}</View.Text>
+<View.Text value={value} />
+```
+
+JSX text primitive. `value` or `children` may be a raw string, `Signal.t<string>`, `Prop.t<string>`, or `unit => string`.
+
+<a id="view-int-component" />
+
+### View.Int
+
+```rescript
+<View.Int>{value}</View.Int>
+<View.Int value={value} />
+```
+
+JSX integer text primitive. `value` or `children` may be a raw int, `Signal.t<int>`, `Prop.t<int>`, or `unit => int`.
+
+<a id="view-float-component" />
+
+### View.Float
+
+```rescript
+<View.Float>{value}</View.Float>
+<View.Float value={value} />
+```
+
+JSX float text primitive. `value` or `children` may be a raw float, `Signal.t<float>`, `Prop.t<float>`, or `unit => float`.
+
+<a id="view-bool-component" />
+
+### View.Bool
+
+```rescript
+<View.Bool>{value}</View.Bool>
+<View.Bool value={value} />
+```
+
+JSX boolean text primitive. `value` or `children` may be a raw bool, `Signal.t<bool>`, `Prop.t<bool>`, or `unit => bool`.
+
+## Example
+
+```rescript
+open Xote
+
+let count = Signal.make(0)
+
+let app = () => {
+  <div>
+    <View.Text> "Count: " </View.Text>
+    <View.Int> {count} </View.Int>
+    <button onClick={_ => Signal.update(count, n => n + 1)}>
+      <View.Text> "Increment" </View.Text>
+    </button>
+  </div>
+}
+
+View.mountById(app(), "app")
+```
+
+## See Also
+
+- [View guide](/docs/view/overview)
+- [Signal API](/docs/api/signal)

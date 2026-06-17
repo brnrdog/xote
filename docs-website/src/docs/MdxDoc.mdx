@@ -43,7 +43,7 @@ The runtime entry points are exported from `xote/jsx-runtime` and `xote/jsx-dev-
 
 ### Import MDX from ReScript
 
-Bind the compiled MDX module as an `Mdx.document`, then render it into a `View.node`.
+Bind the compiled MDX module as an `Mdx.document`, then render it into a [`View.node`](/docs/api/view#view-types).
 
 ```rescript
 // ArticlePage.res
@@ -95,7 +95,7 @@ let page = Mdx.render(article, ~components, ())
 
 MDX children arrive as JavaScript values because the MDX compiler owns the call shape. Use the helpers in `Mdx` to turn them back into Xote-friendly values.
 
-- `Mdx.childrenToNodes(children)` returns an array of `View.node`.
+- `Mdx.childrenToNodes(children)` returns an array of [`View.node`](/docs/api/view#view-types).
 - `Mdx.childrenToText(children)` extracts plain text for cases like syntax highlighting or heading IDs.
 
 ```rescript
@@ -162,7 +162,7 @@ Without `remark-gfm`, Markdown pipe tables are parsed as paragraph text by the b
 
 ### What the JSX Runtime Handles
 
-Xote's MDX runtime turns MDX's automatic JSX calls into `View.node` values. It supports:
+Xote's MDX runtime turns MDX's automatic JSX calls into [`View.node`](/docs/api/view#view-types) values. It supports:
 
 - HTML and SVG tags
 - event props such as `onClick`

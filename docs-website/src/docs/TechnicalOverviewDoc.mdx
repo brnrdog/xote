@@ -1,6 +1,6 @@
 This page explains how Xote is put together at a module and runtime level. It is meant for readers who already know the public API and want the internal model behind it.
 
-> **Scope:** This is architecture-level guidance, not a substitute for the API docs.
+> **Scope:** This is architecture-level guidance, not a substitute for the module API reference pages.
 
 ## System Shape
 
@@ -10,8 +10,8 @@ This page explains how Xote is put together at a module and runtime level. It is
 
 The public surface is intentionally small. Xote re-exports reactive primitives and layers UI-focused modules on top.
 
-- `Signal`, `Computed`, `Effect` - state, derived state, and side effects
-- `View` and `Html` - UI node constructors, mounting, and HTML helpers
+- [`Signal`](/docs/api/signal#signal-module), [`Computed`](/docs/api/computed#computed-module), [`Effect`](/docs/api/effect#effect-module) - state, derived state, and side effects
+- [`View`](/docs/api/view#view-module) and `Html` - UI node constructors, mounting, and HTML helpers
 - `XoteJSX` - generic JSX v4 integration
 - `Router` and `Route` - navigation and route matching
 - `SSR`, `SSRState`, `Hydration`, and `SSRContext` - server rendering and client resume
@@ -24,8 +24,8 @@ Source files stay as bare module names in `src/`. ReScript's `namespace: true` s
 
 Xote delegates reactivity to rescript-signals. The important runtime properties are:
 
-- **Tracked reads:** Signal.get subscribes the active observer
-- **Synchronous scheduling:** updates flush immediately unless wrapped in Signal.batch
+- **Tracked reads:** [`Signal.get`](/docs/api/signal#signal-get) subscribes the active observer
+- **Synchronous scheduling:** updates flush immediately unless wrapped in [`Signal.batch`](/docs/api/signal#signal-batch)
 - **Lazy computeds:** upstream changes mark them dirty, but recomputation happens on read
 - **Equality checks on write:** signals notify only when the new value is considered different
 
@@ -33,7 +33,7 @@ Xote delegates reactivity to rescript-signals. The important runtime properties 
 
 Xote does not rely on a general virtual DOM diff for updates. View functions and JSX components produce node structures once, and reactive nodes handle fine-grained updates after mounting.
 
-The public view variants cover the main cases: text, elements, fragments, value rendering, conditionals, lazy components, and lists. JSX apps usually consume the `View` primitives first; lower-level constructors remain available when building custom abstractions.
+The public view variants cover the main cases: text, elements, fragments, value rendering, conditionals, lazy components, and lists. JSX apps usually consume the [`View`](/docs/api/view#view-module) primitives first; lower-level constructors remain available when building custom abstractions.
 
 ```rescript
 View.text : string => node
@@ -116,4 +116,4 @@ Router.routes : array<routeConfig> => View.node
 ### Next Steps
 
 - [Go back to the Core Modules guides](/docs/core-concepts/signals) for the day-to-day API surface.
-- [Use the Signals API page](/docs/api/signals) as the quick reference while reading the architecture back into the code.
+- [Use the Signal API page](/docs/api/signal) as the quick reference while reading the architecture back into the code.

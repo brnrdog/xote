@@ -1,6 +1,6 @@
-A Xote component is a function that returns a `View.node`. The component usually runs once, sets up its reactive graph, and then reactive nodes update in place over time.
+A Xote component is a function that returns a [`View.node`](/docs/api/view#view-types). The component usually runs once, sets up its reactive graph, and then reactive nodes update in place over time.
 
-The docs use JSX for examples because it keeps component structure close to the HTML it produces. The lower-level `View` API still exists for runtime primitives such as reactive text, keyed lists, and mounting.
+The docs use JSX for examples because it keeps component structure close to the HTML it produces. The lower-level [`View`](/docs/api/view#view-module) API still exists for runtime primitives such as reactive text, keyed lists, and mounting.
 
 ## View Module
 
@@ -67,7 +67,7 @@ module Greeting = {
 
 ### Reactive Output
 
-JSX expressions are just nodes. For direct value output, use primitives such as `View.Text`, `View.Int`, `View.Float`, and `View.Bool`. Their children can be raw values, signals, `Prop.t` values, or computed functions. For arrays and lists, use `View.For`; pass `by` when item identity matters.
+JSX expressions are just nodes. For direct value output, use primitives such as [`View.Text`](/docs/api/view#view-text-component), [`View.Int`](/docs/api/view#view-int-component), [`View.Float`](/docs/api/view#view-float-component), and [`View.Bool`](/docs/api/view#view-bool-component). Their children can be raw values, signals, `Prop.t` values, or computed functions. For arrays and lists, use [`View.For`](/docs/api/view#view-for); pass `by` when item identity matters.
 
 ```rescript
 let count = Signal.make(0)
@@ -109,7 +109,7 @@ In JSX, use `class`, not `className`. Use `type_` for the HTML `type` attribute 
 
 ### Lists
 
-Use `View.For` for simple arrays that can be fully re-rendered. Add `by` when item identity matters. `View.For` accepts `Prop.static(value)` for plain data and `Prop.signal(signal)` for reactive data.
+Use [`View.For`](/docs/api/view#view-for) for simple arrays that can be fully re-rendered. Add `by` when item identity matters. [`View.For`](/docs/api/view#view-for) accepts `Prop.static(value)` for plain data and `Prop.signal(signal)` for reactive data.
 
 ```rescript
 let items = Signal.make(["Apple", "Banana", "Cherry"])
@@ -142,7 +142,7 @@ Choose stable keys. Database IDs and route slugs are good. Array indexes are not
 
 ### Conditional Output
 
-Use `View.Show` for boolean branches, `View.Maybe` for option values, and `View.Value` when a whole node should be re-rendered from one static or reactive value. Use `View.Text`, `View.Int`, `View.Float`, and `View.Bool` for direct value output.
+Use [`View.Show`](/docs/api/view#view-show) for boolean branches, [`View.Maybe`](/docs/api/view#view-maybe) for option values, and [`View.Value`](/docs/api/view#view-value) when a whole node should be re-rendered from one static or reactive value. Use [`View.Text`](/docs/api/view#view-text-component), [`View.Int`](/docs/api/view#view-int-component), [`View.Float`](/docs/api/view#view-float-component), and [`View.Bool`](/docs/api/view#view-bool-component) for direct value output.
 
 ```rescript
 <View.Show when_={Prop.signal(isReady)} fallback={<p> <View.Text> "Loading" </View.Text> </p>}>
@@ -175,7 +175,7 @@ Use `View.Show` for boolean branches, `View.Maybe` for option values, and `View.
 
 ### Mounting
 
-Use `View.mount` when you already have a DOM element, or `View.mountById` when you want to look one up by id.
+Use [`View.mount`](/docs/api/view#view-mount) when you already have a DOM element, or [`View.mountById`](/docs/api/view#view-mountbyid) when you want to look one up by id.
 
 ```rescript
 let app = () => {
@@ -251,7 +251,7 @@ let make = () => {
 
 - Default to the JSX module pattern when there is no reason to drop lower.
 - Keep state close to where it is used. Local signals are cheap and usually easier to follow.
-- Pass `by` to `View.For` for JSX collections that reorder, insert, or preserve local DOM state.
+- Pass `by` to [`View.For`](/docs/api/view#view-for) for JSX collections that reorder, insert, or preserve local DOM state.
 - Be explicit about reactive output so the update boundaries stay readable in the component.
 
 ### Next Steps
