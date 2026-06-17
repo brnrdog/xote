@@ -6,6 +6,62 @@ let getAttr = (el, key: string): string => {
   %raw(`el.getAttribute(key)`)
 }
 
+let useImmediateMicrotask = (): unit => {
+  let _: unit = %raw(`
+    (() => {
+      if (!globalThis.__xoteOriginalQueueMicrotask) {
+        globalThis.__xoteOriginalQueueMicrotask = globalThis.queueMicrotask;
+      }
+      globalThis.queueMicrotask = callback => callback();
+    })()
+  `)
+}
+
+let restoreMicrotask = (): unit => {
+  let _: unit = %raw(`
+    (() => {
+      if (globalThis.__xoteOriginalQueueMicrotask) {
+        globalThis.queueMicrotask = globalThis.__xoteOriginalQueueMicrotask;
+        delete globalThis.__xoteOriginalQueueMicrotask;
+      }
+    })()
+  `)
+}
+
+let cleanupGlobalContainers = (): unit => {
+  let _: unit = %raw(`
+    document.querySelectorAll("[data-router-test]").forEach(element => element.remove())
+  `)
+}
+
+let makeGlobalContainer = () => {
+  %raw(`
+    (() => {
+      const container = document.createElement("div");
+      container.setAttribute("data-router-test", "true");
+      document.body.appendChild(container);
+      return container;
+    })()
+  `)
+}
+
+let querySelector = (el, selector: string) => {
+  ignore(el)
+  ignore(selector)
+  %raw(`el.querySelector(selector)`)
+}
+
+let clickElement = el => {
+  ignore(el)
+  let _: unit = %raw(`el.click()`)
+}
+
+let setScrollIntoView = (el, called: ref<bool>): unit => {
+  ignore(el)
+  ignore(called)
+  let _: unit = %raw(`el.scrollIntoView = () => { called.contents = true }`)
+}
+
 let suite = Zekr.suite(
   "Route",
   [
@@ -86,5 +142,39 @@ let suite = Zekr.suite(
         assertEqual(current.hash, "#signal-get"),
       ])
     }),
+    test("Router.link scrolls to hash targets after navigation", () => {
+      Router.init()
+      useImmediateMicrotask()
+      let container = makeGlobalContainer()
+      View.mount(
+        Html.div(
+          ~children=[
+            Router.link(
+              ~to="/docs/api/signal#signal-get",
+              ~children=[View.text("Signal.get")],
+              (),
+            ),
+            Html.h2(~attrs=[View.attr("id", "signal-get")], ~children=[View.text("Target")], ()),
+          ],
+          (),
+        ),
+        container,
+      )
+
+      let called = ref(false)
+      let target = querySelector(container, "#signal-get")
+      setScrollIntoView(target, called)
+
+      let link = querySelector(container, "a")
+      clickElement(link)
+      restoreMicrotask()
+
+      assertTrue(called.contents)
+    }),
   ],
+  ~afterEach=() => {
+    restoreMicrotask()
+    cleanupGlobalContainers()
+    Dom.cleanup()
+  },
 )
