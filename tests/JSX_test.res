@@ -273,6 +273,20 @@ let suite = Zekr.suite(
 
       combineResults([r1, r2])
     }),
+    test("View value primitives tolerate empty props", () => {
+      let {container} = Dom.render("")
+      let _ = mountTo(
+        <p>
+          <View.Text />
+          <View.Int />
+          <View.Float />
+          <View.Bool />
+        </p>,
+        container,
+      )
+
+      Dom.Assert.toHaveTextContent(container, "")
+    }),
     test("View.Text renders formatted Prop children", () => {
       let {container} = Dom.render("")
       let nameSignal = Signal.make("Ada")
