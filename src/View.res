@@ -716,56 +716,91 @@ let mountById = (node: node, containerId: string): unit => {
   }
 }
 
+let isReactiveProp = (value: 'a): bool => {
+  ignore(value)
+  %raw(`value && typeof value === 'object' && ('TAG' in value) && (value.TAG === 'Static' || value.TAG === 'Reactive')`)
+}
+
+let valuePrimitive = (value: 'input, stringify: 'value => string): node => {
+  if isReactiveProp(value) {
+    let prop: Prop.t<'value> = Obj.magic(value)
+    switch prop {
+    | Static(value) => text(stringify(value))
+    | Reactive(signal) => SignalText(Computed.make(() => stringify(Signal.get(signal))))
+    }
+  } else if typeof(value) == #function {
+    let compute: unit => 'value = Obj.magic(value)
+    signalText(() => stringify(compute()))
+  } else if typeof(value) == #object {
+    let signal: Signal.t<'value> = Obj.magic(value)
+    SignalText(Computed.make(() => stringify(Signal.get(signal))))
+  } else {
+    let value: 'value = Obj.magic(value)
+    text(stringify(value))
+  }
+}
+
+let renderValuePrimitive = (
+  ~value: option<'value>,
+  ~children: option<'children>,
+  ~stringify: 'scalar => string,
+): node => {
+  switch children {
+  | Some(children) => valuePrimitive(children, stringify)
+  | None =>
+    switch value {
+    | Some(value) => valuePrimitive(value, stringify)
+    | None => null()
+    }
+  }
+}
+
 module Text = {
-  type props = {
-    value: Prop.t<string>,
+  type props<'value, 'children> = {
+    value?: 'value,
+    children?: 'children,
   }
 
-  let make = (props: props): node => {
-    switch props.value {
-    | Static(value) => text(value)
-    | Reactive(signal) => SignalText(signal)
-    }
+  let make = (props: props<'value, 'children>): node => {
+    renderValuePrimitive(~value=props.value, ~children=props.children, ~stringify=value => value)
   }
 }
 
 module Int = {
-  type props = {
-    value: Prop.t<int>,
+  type props<'value, 'children> = {
+    value?: 'value,
+    children?: 'children,
   }
 
-  let make = (props: props): node => {
-    switch props.value {
-    | Static(value) => int(value)
-    | Reactive(signal) => signalInt(() => Signal.get(signal))
-    }
+  let make = (props: props<'value, 'children>): node => {
+    renderValuePrimitive(~value=props.value, ~children=props.children, ~stringify=value =>
+      value->Int.toString
+    )
   }
 }
 
 module Float = {
-  type props = {
-    value: Prop.t<float>,
+  type props<'value, 'children> = {
+    value?: 'value,
+    children?: 'children,
   }
 
-  let make = (props: props): node => {
-    switch props.value {
-    | Static(value) => float(value)
-    | Reactive(signal) => signalFloat(() => Signal.get(signal))
-    }
+  let make = (props: props<'value, 'children>): node => {
+    renderValuePrimitive(~value=props.value, ~children=props.children, ~stringify=value =>
+      value->Float.toString
+    )
   }
 }
 
 module Bool = {
-  type props = {
-    value: Prop.t<bool>,
+  type props<'value, 'children> = {
+    value?: 'value,
+    children?: 'children,
   }
 
   let toString = value => value ? "true" : "false"
 
-  let make = (props: props): node => {
-    switch props.value {
-    | Static(value) => bool(value)
-    | Reactive(signal) => signalText(() => Signal.get(signal)->toString)
-    }
+  let make = (props: props<'value, 'children>): node => {
+    renderValuePrimitive(~value=props.value, ~children=props.children, ~stringify=toString)
   }
 }
