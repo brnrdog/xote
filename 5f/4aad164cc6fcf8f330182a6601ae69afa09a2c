@@ -1,0 +1,19 @@
+README.md
+  s_5b6c45bc3639be::t_430623a8fd753d 37,60,62-63,66-67,70,91,131-134,150,154,159,166,170-171,176-177,182-187,191-194,211,224-228
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "5f4aad164cc6fcf8f330182a6601ae69afa09a2c",
+  "prompts": {},
+  "sessions": {
+    "s_5b6c45bc3639be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed212-bae2-7cd3-b03a-02b94a47603d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Bernardo Gurgel <brnrdog@hey.com>"
+    }
+  }
+}
