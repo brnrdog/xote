@@ -38,15 +38,17 @@ The public view variants cover the main cases: text, elements, fragments, value 
 ```rescript
 View.text : string => node
 View.fragment : array<node> => node
-<View.Text value={Prop.t<string>} />
-<View.Int value={Prop.t<int>} />
-<View.Float value={Prop.t<float>} />
-<View.Bool value={Prop.t<bool>} />
+<View.Text>{value}</View.Text>
+<View.Int>{value}</View.Int>
+<View.Float>{value}</View.Float>
+<View.Bool>{value}</View.Bool>
 <View.For each={Prop.t<array<'a>>} by={('a => string)=?} render={'a => node} />
 <View.Show when_={Prop.t<bool>} fallback={node=?}>...</View.Show>
 <View.Maybe value={Prop.t<option<'a>>} render={'a => node} fallback={node=?} />
 <View.Value value={Prop.t<'a>} render={'a => node} />
 ```
+
+For value primitives, `value` can be a raw value, a signal, a `Prop.t`, or a `unit => value` function.
 
 ### Router Architecture
 

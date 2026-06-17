@@ -213,7 +213,7 @@ let make = () => {
       <div style="text-align: center; margin-top: 0.5rem;">
         <button class="demo-btn demo-btn-secondary" onClick={clearCompleted}>
           {View.text("Clear completed (")}
-          <View.Int value={Prop.signal(completedCount)} />
+          <View.Int> {completedCount} </View.Int>
           {View.text(")")}
         </button>
       </div>

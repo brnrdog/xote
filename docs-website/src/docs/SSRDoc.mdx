@@ -19,7 +19,7 @@ open Xote
 
 let app = () => {
   <div>
-    <h1> <View.Text value={Prop.static("Hello from the server")} /> </h1>
+    <h1> <View.Text> {"Hello from the server"} </View.Text> </h1>
   </div>
 }
 
@@ -111,11 +111,11 @@ let count = SSRState.signal("count", 0, SSRState.Codec.int)
 let app = () => {
   <div>
     <h1>
-      <View.Text value={Prop.static("Count: ")} />
-      <View.Int value={Prop.signal(count)} />
+      <View.Text> {"Count: "} </View.Text>
+      <View.Int> {count} </View.Int>
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
-      <View.Text value={Prop.static("Increment")} />
+      <View.Text> {"Increment"} </View.Text>
     </button>
   </div>
 }

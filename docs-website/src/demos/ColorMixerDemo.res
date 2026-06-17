@@ -142,7 +142,7 @@ module ColorSlider = {
       <div class="color-demo-slider-label">
         <span> {View.text(label)} </span>
         <span class="color-demo-slider-value">
-          <View.Int value={Prop.signal(value)} />
+          <View.Int> {value} </View.Int>
         </span>
       </div>
       <input
@@ -180,7 +180,7 @@ module ColorInfo = {
       <div class="color-demo-value-row">
         <span> {View.text(label)} </span>
         <div>
-          <span> <View.Text value={Prop.signal(value)} /> </span>
+          <span> <View.Text> {value} </View.Text> </span>
           <button
             class="demo-btn demo-btn-secondary"
             onClick={_evt => copyToClipboard(Signal.get(value))}

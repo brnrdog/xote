@@ -27,13 +27,13 @@ let increment = (_evt: Dom.event) => {
 
 let app = () => {
   <div>
-    <h1> <View.Text value={Prop.static("Counter")} /> </h1>
+    <h1> <View.Text> {"Counter"} </View.Text> </h1>
     <p>
-      <View.Text value={Prop.static("Count: ")} />
-      <View.Int value={Prop.signal(count)} />
+      <View.Text> {"Count: "} </View.Text>
+      <View.Int> {count} </View.Int>
     </p>
     <button onClick={increment}>
-      <View.Text value={Prop.static("Increment")} />
+      <View.Text> {"Increment"} </View.Text>
     </button>
   </div>
 }
