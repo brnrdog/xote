@@ -1,0 +1,52 @@
+docs-website/src/demos/TodoListDemo.res
+  s_5b6c45bc3639be::t_80a39d704d3ba2 90
+docs-website/src/demos/SolitaireDemo.res
+  s_5b6c45bc3639be::t_80a39d704d3ba2 561
+docs-website/src/demos/ComputedOrderDemo.res
+  s_5b6c45bc3639be::t_80a39d704d3ba2 41,111-112,118-119,125-126
+docs-website/src/demos/TodoDemo.res
+  s_5b6c45bc3639be::t_80a39d704d3ba2 216
+docs-website/src/docs/SolidJSComparisonDoc.mdx
+  s_5b6c45bc3639be::t_c8d8d40d9e80b8 89-90,93,125
+docs-website/src/demos/ColorMixerDemo.res
+  s_5b6c45bc3639be::t_80a39d704d3ba2 145,183
+docs-website/src/docs/IntroDoc.mdx
+  s_5b6c45bc3639be::t_c8d8d40d9e80b8 30,32-33,36
+docs-website/src/docs/SSRDoc.mdx
+  s_5b6c45bc3639be::t_c8d8d40d9e80b8 22,114-115,118
+docs-website/src/docs/TechnicalOverviewDoc.mdx
+  s_5b6c45bc3639be::t_e5bebbba1bca4c 51-52
+  s_5b6c45bc3639be::t_c8d8d40d9e80b8 41-44
+docs-website/src/docs/RouterDoc.mdx
+  s_5b6c45bc3639be::t_c8d8d40d9e80b8 76,79,108-109
+docs-website/src/docs/ViewsDoc.mdx
+  s_5b6c45bc3639be::t_8c5ceb0f55960b 42,61-62,70,76-77,81-89,104,120,136,148-149,154-155,162-163,169-172,182,216,225
+docs-website/src/demos/CounterDemo.res
+  s_5b6c45bc3639be::t_80a39d704d3ba2 44
+docs-website/src/demos/SnakeGameDemo.res
+  s_5b6c45bc3639be::t_80a39d704d3ba2 360,367
+docs-website/src/docs/ComputedDoc.mdx
+  s_5b6c45bc3639be::t_c8d8d40d9e80b8 110-111,114-115,118-119
+docs-website/src/demos/ReactionGameDemo.res
+  s_5b6c45bc3639be::t_80a39d704d3ba2 174
+docs-website/src/docs/ReactComparisonDoc.mdx
+  s_5b6c45bc3639be::t_c8d8d40d9e80b8 47-48,51,110
+docs-website/src/docs/SignalsDoc.mdx
+  s_5b6c45bc3639be::t_c8d8d40d9e80b8 158-159,162,165,168
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "c386dbd4de51efc69a867e54cde5adf023868ddf",
+  "prompts": {},
+  "sessions": {
+    "s_5b6c45bc3639be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed212-bae2-7cd3-b03a-02b94a47603d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Bernardo Gurgel <brnrdog@hey.com>"
+    }
+  }
+}
