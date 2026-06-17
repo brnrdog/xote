@@ -1,0 +1,40 @@
+docs-website/src/docs/SolidJSComparisonDoc.mdx
+  s_5b6c45bc3639be::t_6ae695a7c0b656 68,195
+  s_5b6c45bc3639be::t_a4404c9fcb75ed 89,93,125
+docs-website/src/docs/ReactComparisonDoc.mdx
+  s_5b6c45bc3639be::t_a4404c9fcb75ed 47,51,110
+docs-website/src/docs/ViewsDoc.mdx
+  s_5b6c45bc3639be::t_f4ab375deedb4b 42,61-62,76,95,111,127,139-140,145-146,151-156,173,207,216
+  s_5b6c45bc3639be::t_6ae695a7c0b656 70
+docs-website/src/docs/ComputedDoc.mdx
+  s_5b6c45bc3639be::t_a4404c9fcb75ed 110,114,118
+docs-website/src/docs/RouterDoc.mdx
+  s_5b6c45bc3639be::t_c51aaa953edd47 76,79,108-109
+docs-website/src/docs/SSRDoc.mdx
+  s_5b6c45bc3639be::t_6ae695a7c0b656 114-115
+  s_5b6c45bc3639be::t_c51aaa953edd47 22
+  s_5b6c45bc3639be::t_a4404c9fcb75ed 118
+docs-website/src/docs/SignalsDoc.mdx
+  s_5b6c45bc3639be::t_6ae695a7c0b656 158-159
+  s_5b6c45bc3639be::t_a4404c9fcb75ed 162,165,168
+docs-website/src/docs/IntroDoc.mdx
+  s_5b6c45bc3639be::t_a4404c9fcb75ed 30,32,36
+docs-website/src/docs/TechnicalOverviewDoc.mdx
+  s_5b6c45bc3639be::t_6ae695a7c0b656 36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "7036a7a21dec9d8456613fba9345110e69fcd82b",
+  "prompts": {},
+  "sessions": {
+    "s_5b6c45bc3639be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed212-bae2-7cd3-b03a-02b94a47603d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Bernardo Gurgel <brnrdog@hey.com>"
+    }
+  }
+}
