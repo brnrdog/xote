@@ -174,6 +174,36 @@ let scrollTo = (x: float, y: float): unit => {
   let _: unit = %raw(`window.scrollTo(x, y)`)
 }
 
+let queueMicrotask = (callback: unit => unit): unit => {
+  ignore(callback)
+  let _: unit = %raw(`globalThis.queueMicrotask(callback)`)
+}
+
+let scrollHashIntoView = (hash: string): unit => {
+  ignore(hash)
+  let _: unit = %raw(`
+    (() => {
+      if (!hash) {
+        return;
+      }
+
+      const id = decodeURIComponent(hash.startsWith("#") ? hash.slice(1) : hash);
+      const target = document.getElementById(id);
+      if (target && typeof target.scrollIntoView === "function") {
+        target.scrollIntoView();
+      }
+    })()
+  `)
+}
+
+let scrollAfterNavigation = (hash: string): unit => {
+  if hash == "" {
+    scrollTo(0.0, 0.0)
+  } else {
+    queueMicrotask(() => scrollHashIntoView(hash))
+  }
+}
+
 // Create history state with scroll position
 let makeHistoryState = (scrollX: float, scrollY: float): historyState => {
   ignore(scrollX)
@@ -306,8 +336,8 @@ let push = (pathname: string, ~search: string="", ~hash: string="", ()): unit =>
   pushState(emptyHistoryState(), "", url)
   Signal.set(location(), newLocation)
 
-  // Scroll to top for new navigation
-  scrollTo(0.0, 0.0)
+  // Scroll to a fragment target when present, otherwise reset to top.
+  scrollAfterNavigation(hash)
 }
 
 // Imperative navigation - replace current history entry
@@ -324,8 +354,8 @@ let replace = (pathname: string, ~search: string="", ~hash: string="", ()): unit
   replaceState(emptyHistoryState(), "", url)
   Signal.set(location(), newLocation)
 
-  // Scroll to top for new navigation
-  scrollTo(0.0, 0.0)
+  // Scroll to a fragment target when present, otherwise reset to top.
+  scrollAfterNavigation(hash)
 }
 
 // Route definition for routes() component
