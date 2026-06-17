@@ -1,0 +1,32 @@
+package.json
+  s_5b6c45bc3639be::t_658b4c1b8c2e8a 110
+src/View.res
+  s_5b6c45bc3639be::t_4e93ac8a0c02d2 3,89,96-111,113-114,123,126,128-129,133,290,694-696,717,727-741,746-749
+rescript.json
+  s_5b6c45bc3639be::t_ae221bcda2b0ae 44
+src/RuntimeDom.res
+  s_5b6c45bc3639be::t_d7fa06e0b8f8be 1-2,67-70
+  s_5b6c45bc3639be::t_27d711a396fc93 66
+src/RuntimeJsxProp.res
+  s_5b6c45bc3639be::t_19b45465468edc 10,13,32,35
+  s_5b6c45bc3639be::t_96d8e2078979c0 1
+src/RuntimeValue.res
+  s_5b6c45bc3639be::t_4c94b0303d76d1 1-19,32-35
+  s_5b6c45bc3639be::t_834466e100b82b 20-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "190fd9d39c41166cdf9b5be3bd451ac4ad2b2560",
+  "prompts": {},
+  "sessions": {
+    "s_5b6c45bc3639be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed212-bae2-7cd3-b03a-02b94a47603d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Bernardo Gurgel <brnrdog@hey.com>"
+    }
+  }
+}
