@@ -1,0 +1,24 @@
+tests/JSX_test.res
+  s_5b6c45bc3639be::t_06d66f6dd6b07f 219-221,228-231,292
+  s_5b6c45bc3639be::t_ed4ad2120707a7 257-275
+  s_5b6c45bc3639be::t_d8e4ff41024b71 218,222-227,232-256,276-291
+src/View.res
+  s_5b6c45bc3639be::t_e376672163c4b0 776-778,789-791
+  s_5b6c45bc3639be::t_9f3e28b10c2f2e 719-739,741,743-753,758-768,770-772,775,783-785,788,796-798,803-804
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "d6ee65a647db209e8b1bb5ed631cdd5f38d7350b",
+  "prompts": {},
+  "sessions": {
+    "s_5b6c45bc3639be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed212-bae2-7cd3-b03a-02b94a47603d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Bernardo Gurgel <brnrdog@hey.com>"
+    }
+  }
+}
