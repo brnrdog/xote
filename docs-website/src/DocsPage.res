@@ -242,7 +242,7 @@ module TableOfContents = {
         <div class="toc-title"> {View.text("Contents")} </div>
         {View.fragment(
           props.items->Array.map(item => {
-            let className = "toc-link" ++ (item.level == 3 ? " toc-link-h3" : "")
+            let className = "toc-link" ++ (item.level >= 3 ? " toc-link-h3" : "")
             <a href={"#" ++ item.id} class={className}>
               {View.text(item.text)}
             </a>
