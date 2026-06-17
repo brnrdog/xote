@@ -107,15 +107,15 @@ let total = Computed.make(() =>
 let app = () => {
   <div>
     <p>
-      {View.text("Subtotal: $")}
+      <View.Text value={Prop.static("Subtotal: $")} />
       <View.Int value={Prop.signal(subtotal)} />
     </p>
     <p>
-      {View.text("Shipping: $")}
+      <View.Text value={Prop.static("Shipping: $")} />
       <View.Int value={Prop.signal(shippingCost)} />
     </p>
     <p>
-      {View.text("Total: $")}
+      <View.Text value={Prop.static("Total: $")} />
       <View.Int value={Prop.signal(total)} />
     </p>
   </div>

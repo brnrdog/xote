@@ -44,11 +44,11 @@ let counter = () => {
 
   <div>
     <h1>
-      {View.text("Count: ")}
+      <View.Text value={Prop.static("Count: ")} />
       <View.Int value={Prop.signal(count)} />
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
-      {View.text("Increment")}
+      <View.Text value={Prop.static("Increment")} />
     </button>
   </div>
 }
@@ -107,7 +107,7 @@ let todoList = () => {
     <View.For
       each={Prop.signal(todos)}
       by={todo => todo.id}
-      render={todo => <li> {View.text(todo.text)} </li>}
+      render={todo => <li> <View.Text value={Prop.static(todo.text)} /> </li>}
     />
   </ul>
 }

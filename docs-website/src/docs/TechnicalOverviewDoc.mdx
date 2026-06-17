@@ -33,15 +33,11 @@ Xote delegates reactivity to rescript-signals. The important runtime properties 
 
 Xote does not rely on a general virtual DOM diff for updates. View functions and JSX components produce node structures once, and reactive nodes handle fine-grained updates after mounting.
 
-The public view variants cover the main cases: text, elements, fragments, signal-backed text, signal-backed fragments, lazy components, and keyed lists.
+The public view variants cover the main cases: text, elements, fragments, value rendering, conditionals, lazy components, and lists. JSX apps usually consume the `View` primitives first; lower-level constructors remain available when building custom abstractions.
 
 ```rescript
 View.text : string => node
-View.signalText : (unit => string) => node
 View.fragment : array<node> => node
-View.signalFragment : Signal.t<array<node>> => node
-View.each : (Signal.t<array<'a>>, 'a => node) => node
-View.eachWithKey : (Signal.t<array<'a>>, 'a => string, 'a => node) => node
 <View.Text value={Prop.t<string>} />
 <View.Int value={Prop.t<int>} />
 <View.Float value={Prop.t<float>} />
