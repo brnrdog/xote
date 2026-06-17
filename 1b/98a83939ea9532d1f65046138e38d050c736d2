@@ -1,0 +1,21 @@
+tests/Route_test.res
+  s_621eb59d7f2ab4::t_05474358b9b972 145-177,207-235
+tests/JSX_test.res
+  s_621eb59d7f2ab4::t_79d1025795e885 290-316,334-362,636-694
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "1b98a83939ea9532d1f65046138e38d050c736d2",
+  "prompts": {},
+  "sessions": {
+    "s_621eb59d7f2ab4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed6de-c727-78a1-b231-d833836fd6bd",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Bernardo Gurgel <brnrdog@hey.com>"
+    }
+  }
+}
