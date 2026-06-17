@@ -540,10 +540,10 @@ let symbolFor = u =>
 let make = (~value: float, ~unit: tempUnit) =>
   <div class="temp-display">
     <span class="temp-value">
-      {View.text(value->Float.toFixed(~digits=1))}
+      <View.Text> {value->Float.toFixed(~digits=1)} </View.Text>
     </span>
     <span class="temp-unit">
-      {View.text(symbolFor(unit))}
+      <View.Text> {symbolFor(unit)} </View.Text>
     </span>
   </div>`
 

@@ -31,10 +31,10 @@ module TemperatureDisplay = {
   let make = (~value: unit => float, ~unit: tempUnit) =>
     <div class={unitClass(unit)}>
       <span class="temp-value">
-        {View.signalText(() => value()->Float.toFixed(~digits=1))}
+        <View.Text> {() => value()->Float.toFixed(~digits=1)} </View.Text>
       </span>
-      <span class="temp-unit"> {View.text(symbolFor(unit))} </span>
-      <span class="temp-label"> {View.text(unitLabel(unit))} </span>
+      <span class="temp-unit"> <View.Text> {symbolFor(unit)} </View.Text> </span>
+      <span class="temp-label"> <View.Text> {unitLabel(unit)} </View.Text> </span>
     </div>
 }
 
@@ -299,9 +299,9 @@ module Step3 = {
 
   let card = (~unit, ~text) =>
     <div class={unitClass(unit)}>
-      <span class="temp-value"> {View.signalText(text)} </span>
-      <span class="temp-unit"> {View.text(symbolFor(unit))} </span>
-      <span class="temp-label"> {View.text(unitLabel(unit))} </span>
+      <span class="temp-value"> <View.Text> {text} </View.Text> </span>
+      <span class="temp-unit"> <View.Text> {symbolFor(unit)} </View.Text> </span>
+      <span class="temp-label"> <View.Text> {unitLabel(unit)} </View.Text> </span>
     </div>
 
   let statusText = () =>
@@ -317,7 +317,7 @@ module Step3 = {
       <div class="tutorial-capital">
         <span class="tutorial-capital-label"> {View.text("Now in")} </span>
         <span class="tutorial-capital-name">
-          {View.signalText(() => Signal.get(capital).name)}
+          <View.Text> {() => Signal.get(capital).name} </View.Text>
         </span>
       </div>
       <div class="temp-row">
@@ -325,7 +325,7 @@ module Step3 = {
         {card(~unit=Fahrenheit, ~text=displayFahrenheit)}
         {card(~unit=Kelvin, ~text=displayKelvin)}
       </div>
-      <div class="tutorial-status"> {View.signalText(statusText)} </div>
+      <div class="tutorial-status"> <View.Text> {statusText} </View.Text> </div>
       <button class="btn btn-ghost tutorial-shuffle" onClick={shuffle}>
         {View.text("Try another capital \u2197")}
       </button>
