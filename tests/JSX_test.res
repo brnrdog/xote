@@ -215,6 +215,81 @@ let suite = Zekr.suite(
 
       combineResults([r1, r2])
     }),
+    test("View value primitives render child values", () => {
+      let {container} = Dom.render("")
+      let _ = mountTo(
+        <p>
+          <View.Text> {"Items: "} </View.Text>
+          <View.Int> {2} </View.Int>
+          <View.Text> {", ratio: "} </View.Text>
+          <View.Float> {1.5} </View.Float>
+          <View.Text> {", ready: "} </View.Text>
+          <View.Bool> {true} </View.Bool>
+        </p>,
+        container,
+      )
+
+      Dom.Assert.toHaveTextContent(container, "Items: 2, ratio: 1.5, ready: true")
+    }),
+    test("View value primitives render signal children", () => {
+      let {container} = Dom.render("")
+      let label = Signal.make("Count: ")
+      let count = Signal.make(1)
+      let ready = Signal.make(false)
+      let _ = mountTo(
+        <p>
+          <View.Text> {label} </View.Text>
+          <View.Int> {count} </View.Int>
+          <View.Text> {", ready: "} </View.Text>
+          <View.Bool> {ready} </View.Bool>
+        </p>,
+        container,
+      )
+
+      let r1 = Dom.Assert.toHaveTextContent(container, "Count: 1, ready: false")
+      Signal.set(label, "Total: ")
+      Signal.set(count, 2)
+      Signal.set(ready, true)
+      let r2 = Dom.Assert.toHaveTextContent(container, "Total: 2, ready: true")
+
+      combineResults([r1, r2])
+    }),
+    test("View value primitives render Prop children", () => {
+      let {container} = Dom.render("")
+      let count = Signal.make(1)
+      let label: Prop.t<string> = Prop.static("Count: ")
+      let value: Prop.t<int> = Prop.signal(count)
+      let _ = mountTo(
+        <p>
+          <View.Text> {label} </View.Text>
+          <View.Int> {value} </View.Int>
+        </p>,
+        container,
+      )
+
+      let r1 = Dom.Assert.toHaveTextContent(container, "Count: 1")
+      Signal.set(count, 2)
+      let r2 = Dom.Assert.toHaveTextContent(container, "Count: 2")
+
+      combineResults([r1, r2])
+    }),
+    test("View.Text renders formatted Prop children", () => {
+      let {container} = Dom.render("")
+      let nameSignal = Signal.make("Ada")
+      let reactiveName: Prop.t<string> = Prop.signal(nameSignal)
+      let _ = mountTo(
+        <p>
+          <View.Text> {() => `Hello, ${Prop.get(reactiveName)}`} </View.Text>
+        </p>,
+        container,
+      )
+
+      let r1 = Dom.Assert.toHaveTextContent(container, "Hello, Ada")
+      Signal.set(nameSignal, "Grace")
+      let r2 = Dom.Assert.toHaveTextContent(container, "Hello, Grace")
+
+      combineResults([r1, r2])
+    }),
     test("renders JSX with reactive class via Prop", () => {
       let {container} = Dom.render("")
       let cls = Signal.make("initial")
