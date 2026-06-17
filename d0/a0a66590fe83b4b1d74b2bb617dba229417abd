@@ -1,0 +1,38 @@
+docs-website/src/docs/SSRDoc.mdx
+  s_5b6c45bc3639be::t_1999e05bd321e5 22,114,118
+docs-website/src/docs/ViewsDoc.mdx
+  s_5b6c45bc3639be::t_1999e05bd321e5 62,76,104,148-149,154,162,169,171,182,216
+docs-website/src/docs/ComputedDoc.mdx
+  s_5b6c45bc3639be::t_1999e05bd321e5 110,114,118
+docs-website/src/docs/ReactComparisonDoc.mdx
+  s_5b6c45bc3639be::t_1999e05bd321e5 47,51
+docs-website/src/demos/ComputedOrderDemo.res
+  s_5b6c45bc3639be::t_1999e05bd321e5 111,118,125
+docs-website/src/docs/SignalsDoc.mdx
+  s_5b6c45bc3639be::t_1999e05bd321e5 158,162,165,168
+docs-website/src/docs/SolidJSComparisonDoc.mdx
+  s_5b6c45bc3639be::t_1999e05bd321e5 89,93
+docs-website/src/docs/RouterDoc.mdx
+  s_5b6c45bc3639be::t_1999e05bd321e5 76,79,108-109
+tests/JSX_test.res
+  s_5b6c45bc3639be::t_d296f7d90401f9 222
+  s_5b6c45bc3639be::t_1999e05bd321e5 224,226,243
+docs-website/src/docs/IntroDoc.mdx
+  s_5b6c45bc3639be::t_1999e05bd321e5 30,32,36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "d0a0a66590fe83b4b1d74b2bb617dba229417abd",
+  "prompts": {},
+  "sessions": {
+    "s_5b6c45bc3639be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed212-bae2-7cd3-b03a-02b94a47603d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Bernardo Gurgel <brnrdog@hey.com>"
+    }
+  }
+}
