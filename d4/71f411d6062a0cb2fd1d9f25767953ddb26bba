@@ -1,0 +1,26 @@
+tests/Route_test.res
+  s_5b6c45bc3639be::t_0226c88d583185 9-10,17-21,28-30,49,57-58,145-147,149-164,166-167,170-173,175-176,178-179
+  s_5b6c45bc3639be::t_0bdbeea97d95e0 60,63-64
+  s_5b6c45bc3639be::t_23a4f612a38bc4 11-16,22-27
+  s_5b6c45bc3639be::t_df9eaece454c45 31-48,50-56,59,61-62,148,165,168-169,177
+src/Router.res
+  s_5b6c45bc3639be::t_3c0894f34dd77c 181-184,189,196-206,339-340,357-358
+  s_5b6c45bc3639be::t_44608b40036f72 177-180
+  s_5b6c45bc3639be::t_1fcb1257e340ce 185-188,190-195
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "d471f411d6062a0cb2fd1d9f25767953ddb26bba",
+  "prompts": {},
+  "sessions": {
+    "s_5b6c45bc3639be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ed212-bae2-7cd3-b03a-02b94a47603d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Bernardo Gurgel <brnrdog@hey.com>"
+    }
+  }
+}
