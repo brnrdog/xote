@@ -39,7 +39,7 @@ module Greeting = {
   @jsx.component
   let make = (~name: string, ~emphasis=false) => {
     <div class={emphasis ? "greeting strong" : "greeting"}>
-      <h1> <View.Text value={Prop.static(`Hello, ${name}`)} /> </h1>
+      <h1> <View.Text> {`Hello, ${name}`} </View.Text> </h1>
     </div>
   }
 }
@@ -58,8 +58,8 @@ module Greeting = {
   @jsx.component
   let make = (~name: string) => {
     <section class="greeting-card">
-      <h2> <View.Text value={Prop.static(`Hello, ${name}`)} /> </h2>
-      <p> <View.Text value={Prop.static("This component is ordinary ReScript plus JSX.")} /> </p>
+      <h2> <View.Text> {`Hello, ${name}`} </View.Text> </h2>
+      <p> <View.Text> {"This component is ordinary ReScript plus JSX."} </View.Text> </p>
     </section>
   }
 }
@@ -67,15 +67,24 @@ module Greeting = {
 
 ### Reactive Output
 
-JSX expressions are just nodes. For direct value output, use primitives such as `View.Text`, `View.Int`, `View.Float`, and `View.Bool`. For arrays and lists, use `View.For`; pass `by` when item identity matters.
+JSX expressions are just nodes. For direct value output, use primitives such as `View.Text`, `View.Int`, `View.Float`, and `View.Bool`. Their children can be raw values, signals, `Prop.t` values, or computed functions. For arrays and lists, use `View.For`; pass `by` when item identity matters.
 
 ```rescript
 let count = Signal.make(0)
 
 <div>
-  <View.Text value={Prop.static("Count: ")} />
-  <View.Int value={Prop.signal(count)} />
+  <View.Text> {"Count: "} </View.Text>
+  <View.Int> {count} </View.Int>
 </div>
+```
+
+When a formatted string depends on a value that can be static or reactive, keep the prop as `Prop.t` and read it inside a function child.
+
+```rescript
+@jsx.component
+let make = (~name: Prop.t<string>) => {
+  <View.Text> {() => `Hello, ${Prop.get(name)}`} </View.Text>
+}
 ```
 
 ### Attributes and Events
@@ -92,7 +101,7 @@ let toggle = (_evt: Dom.event) => {
 <button
   class={Signal.get(isActive) ? "btn active" : "btn"}
   onClick={toggle}>
-  <View.Text value={Prop.static("Toggle")} />
+  <View.Text> {"Toggle"} </View.Text>
 </button>
 ```
 
@@ -108,7 +117,7 @@ let items = Signal.make(["Apple", "Banana", "Cherry"])
 <ul>
   <View.For
     each={Prop.signal(items)}
-    render={item => <li> <View.Text value={Prop.static(item)} /> </li>}
+    render={item => <li> <View.Text> {item} </View.Text> </li>}
   />
 </ul>
 ```
@@ -124,7 +133,7 @@ let todos = Signal.make([
   <View.For
     each={Prop.signal(todos)}
     by={todo => todo.id}
-    render={todo => <li> <View.Text value={Prop.static(todo.text)} /> </li>}
+    render={todo => <li> <View.Text> {todo.text} </View.Text> </li>}
   />
 </ul>
 ```
@@ -136,31 +145,31 @@ Choose stable keys. Database IDs and route slugs are good. Array indexes are not
 Use `View.Show` for boolean branches, `View.Maybe` for option values, and `View.Value` when a whole node should be re-rendered from one static or reactive value. Use `View.Text`, `View.Int`, `View.Float`, and `View.Bool` for direct value output.
 
 ```rescript
-<View.Show when_={Prop.signal(isReady)} fallback={<p> <View.Text value={Prop.static("Loading")} /> </p>}>
-  <p> <View.Text value={Prop.static("Ready")} /> </p>
+<View.Show when_={Prop.signal(isReady)} fallback={<p> <View.Text> {"Loading"} </View.Text> </p>}>
+  <p> <View.Text> {"Ready"} </View.Text> </p>
 </View.Show>
 
 <View.Maybe
   value={Prop.signal(selectedTodo)}
-  fallback={<p> <View.Text value={Prop.static("No todo selected")} /> </p>}
-  render={todo => <p> <View.Text value={Prop.static(todo.text)} /> </p>}
+  fallback={<p> <View.Text> {"No todo selected"} </View.Text> </p>}
+  render={todo => <p> <View.Text> {todo.text} </View.Text> </p>}
 />
 
 <View.Value
   value={Prop.signal(count)}
   render={count =>
     <p>
-      <View.Text value={Prop.static("Count: ")} />
-      <View.Int value={Prop.static(count)} />
+      <View.Text> {"Count: "} </View.Text>
+      <View.Int> {count} </View.Int>
     </p>
   }
 />
 
 <p>
-  <View.Text value={Prop.static("Count: ")} />
-  <View.Int value={Prop.signal(count)} />
-  <View.Text value={Prop.static(", ready: ")} />
-  <View.Bool value={Prop.signal(isReady)} />
+  <View.Text> {"Count: "} </View.Text>
+  <View.Int> {count} </View.Int>
+  <View.Text> {", ready: "} </View.Text>
+  <View.Bool> {isReady} </View.Bool>
 </p>
 ```
 
@@ -170,7 +179,7 @@ Use `View.mount` when you already have a DOM element, or `View.mountById` when y
 
 ```rescript
 let app = () => {
-  <div> <View.Text value={Prop.static("Hello, Xote")} /> </div>
+  <div> <View.Text> {"Hello, Xote"} </View.Text> </div>
 }
 
 View.mountById(app(), "app")
@@ -204,7 +213,7 @@ module TodoComposer = {
   let make = () => {
     <div>
       <input onInput={handleInput} value={() => Signal.get(draft)} />
-      <button onClick={addTodo}> <View.Text value={Prop.static("Add")} /> </button>
+      <button onClick={addTodo}> <View.Text> {"Add"} </View.Text> </button>
     </div>
   }
 }
@@ -213,7 +222,7 @@ module TodoRow = {
   @jsx.component
   let make = (~todo: todo) => {
     <li>
-      <span> <View.Text value={Prop.static(todo.title)} /> </span>
+      <span> <View.Text> {todo.title} </View.Text> </span>
       <input type_="checkbox" checked={todo.done} />
     </li>
   }

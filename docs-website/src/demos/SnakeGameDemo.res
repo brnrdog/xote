@@ -357,14 +357,14 @@ module GameInfo = {
       <div class="demo-stat">
         <div class="demo-stat-label"> {View.text("Level")} </div>
         <div class="demo-stat-value">
-          <View.Int value={Prop.signal(currentLevelNum)} />
+          <View.Int> {currentLevelNum} </View.Int>
         </div>
       </div>
       // Score
       <div class="demo-stat">
         <div class="demo-stat-label"> {View.text("Score")} </div>
         <div class="demo-stat-value">
-          <View.Int value={Prop.signal(score)} />
+          <View.Int> {score} </View.Int>
         </div>
       </div>
       // Progress

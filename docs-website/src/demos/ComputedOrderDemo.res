@@ -38,7 +38,7 @@ let make = () => {
               {View.text("-")}
             </button>
             <div class="computed-order-demo-stepper-value">
-              <View.Int value={Prop.signal(quantity)} />
+              <View.Int> {quantity} </View.Int>
             </div>
             <button class="computed-order-demo-stepper-btn" onClick={increaseQuantity}>
               {View.text("+")}
@@ -108,22 +108,22 @@ let make = () => {
       <div class="computed-order-demo-row">
         <span> {View.text("Subtotal")} </span>
         <strong>
-          <View.Text value={Prop.static("$")} />
-          <View.Int value={Prop.signal(subtotal)} />
+          <View.Text> {"$"} </View.Text>
+          <View.Int> {subtotal} </View.Int>
         </strong>
       </div>
       <div class="computed-order-demo-row">
         <span> {View.text("Shipping")} </span>
         <strong>
-          <View.Text value={Prop.static("$")} />
-          <View.Int value={Prop.signal(shippingCost)} />
+          <View.Text> {"$"} </View.Text>
+          <View.Int> {shippingCost} </View.Int>
         </strong>
       </div>
       <div class="computed-order-demo-row total">
         <span> {View.text("Total")} </span>
         <strong>
-          <View.Text value={Prop.static("$")} />
-          <View.Int value={Prop.signal(total)} />
+          <View.Text> {"$"} </View.Text>
+          <View.Int> {total} </View.Int>
         </strong>
       </div>
     </div>

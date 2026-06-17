@@ -87,7 +87,7 @@ module TodoSummary = {
         })}
       </div>
       <div class="todo-list-demo-count">
-        <View.Int value={Prop.signal(totalCount)} />
+        <View.Int> {totalCount} </View.Int>
         {View.text(" total")}
       </div>
     </div>

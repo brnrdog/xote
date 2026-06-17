@@ -171,7 +171,7 @@ module Statistics = {
         // Attempts count
         <div class="demo-stat">
           <div class="demo-stat-value">
-            <View.Int value={Prop.signal(attemptsCount)} />
+            <View.Int> {attemptsCount} </View.Int>
           </div>
           <div class="demo-stat-label"> {View.text("Attempts")} </div>
         </div>

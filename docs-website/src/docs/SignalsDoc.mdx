@@ -155,17 +155,17 @@ let reset = (_evt: Dom.event) => {
 let app = () => {
   <div>
     <h1>
-      <View.Text value={Prop.static("Count: ")} />
-      <View.Int value={Prop.signal(count)} />
+      <View.Text> {"Count: "} </View.Text>
+      <View.Int> {count} </View.Int>
     </h1>
     <button onClick={increment}>
-      <View.Text value={Prop.static("+")} />
+      <View.Text> {"+"} </View.Text>
     </button>
     <button onClick={decrement}>
-      <View.Text value={Prop.static("-")} />
+      <View.Text> {"-"} </View.Text>
     </button>
     <button onClick={reset}>
-      <View.Text value={Prop.static("Reset")} />
+      <View.Text> {"Reset"} </View.Text>
     </button>
   </div>
 }
