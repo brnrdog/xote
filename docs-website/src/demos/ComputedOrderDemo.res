@@ -108,21 +108,21 @@ let make = () => {
       <div class="computed-order-demo-row">
         <span> {View.text("Subtotal")} </span>
         <strong>
-          <View.Text> {"$"} </View.Text>
+          <View.Text> "$" </View.Text>
           <View.Int> {subtotal} </View.Int>
         </strong>
       </div>
       <div class="computed-order-demo-row">
         <span> {View.text("Shipping")} </span>
         <strong>
-          <View.Text> {"$"} </View.Text>
+          <View.Text> "$" </View.Text>
           <View.Int> {shippingCost} </View.Int>
         </strong>
       </div>
       <div class="computed-order-demo-row total">
         <span> {View.text("Total")} </span>
         <strong>
-          <View.Text> {"$"} </View.Text>
+          <View.Text> "$" </View.Text>
           <View.Int> {total} </View.Int>
         </strong>
       </div>

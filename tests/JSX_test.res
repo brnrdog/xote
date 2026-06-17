@@ -219,11 +219,11 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let _ = mountTo(
         <p>
-          <View.Text> {"Items: "} </View.Text>
+          <View.Text> "Items: " </View.Text>
           <View.Int> {2} </View.Int>
-          <View.Text> {", ratio: "} </View.Text>
+          <View.Text> ", ratio: " </View.Text>
           <View.Float> {1.5} </View.Float>
-          <View.Text> {", ready: "} </View.Text>
+          <View.Text> ", ready: " </View.Text>
           <View.Bool> {true} </View.Bool>
         </p>,
         container,
@@ -240,7 +240,7 @@ let suite = Zekr.suite(
         <p>
           <View.Text> {label} </View.Text>
           <View.Int> {count} </View.Int>
-          <View.Text> {", ready: "} </View.Text>
+          <View.Text> ", ready: " </View.Text>
           <View.Bool> {ready} </View.Bool>
         </p>,
         container,

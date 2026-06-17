@@ -86,11 +86,11 @@ let counter = () => {
 
   <div>
     <h1>
-      <View.Text> {"Count: "} </View.Text>
+      <View.Text> "Count: " </View.Text>
       <View.Int> {count} </View.Int>
     </h1>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
-      <View.Text> {"Increment"} </View.Text>
+      <View.Text> "Increment" </View.Text>
     </button>
   </div>
 }
