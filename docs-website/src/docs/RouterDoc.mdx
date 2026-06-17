@@ -73,10 +73,10 @@ Use `Router.Link` for JSX navigation. It intercepts navigation without reloading
 let nav = () => {
   <nav>
     <Router.Link to="/" class="nav-link">
-      {View.text("Home")}
+      <View.Text value={Prop.static("Home")} />
     </Router.Link>
     <Router.Link to="/docs" class="nav-link">
-      {View.text("Docs")}
+      <View.Text value={Prop.static("Docs")} />
     </Router.Link>
   </nav>
 }
@@ -105,8 +105,8 @@ Router.init()
 
 let nav = () => {
   <nav>
-    <Router.Link to="/"> {View.text("Home")} </Router.Link>
-    <Router.Link to="/users"> {View.text("Users")} </Router.Link>
+    <Router.Link to="/"> <View.Text value={Prop.static("Home")} /> </Router.Link>
+    <Router.Link to="/users"> <View.Text value={Prop.static("Users")} /> </Router.Link>
   </nav>
 }
 
