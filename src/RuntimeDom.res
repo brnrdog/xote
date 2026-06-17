@@ -1,3 +1,5 @@
+module Core = RescriptCore
+
 let svgNamespace = "http://www.w3.org/2000/svg"
 
 let svgTags = [
@@ -61,6 +63,11 @@ external getElementById: string => Nullable.t<Dom.element> = "getElementById"
 @get external getNextSibling: Dom.element => Nullable.t<Dom.element> = "nextSibling"
 @get external getFirstChild: Dom.element => Nullable.t<Dom.element> = "firstChild"
 @get external getParentNode: Dom.element => Nullable.t<Dom.element> = "parentNode"
+@get external childNodes: Dom.element => Array.arrayLike<Dom.element> = "childNodes"
+
+let childNodesToArray = (el: Dom.element): array<Dom.element> => {
+  el->childNodes->Core.Array.fromArrayLike
+}
 
 @send
 external addEventListener: (Dom.element, string, Dom.event => unit) => unit = "addEventListener"
