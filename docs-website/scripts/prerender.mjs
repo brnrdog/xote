@@ -115,6 +115,13 @@ const routes = [
     section: 'API Reference',
   },
   {
+    path: '/docs/api/signals',
+    title: 'Signal API - xote Reference',
+    description:
+      'Reference the xote Signal API including make, get, peek, set, update, batch, and untrack.',
+    section: 'API Reference',
+  },
+  {
     path: '/docs/api/computed',
     title: 'Computed API - xote Reference',
     description:
