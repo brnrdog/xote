@@ -1,6 +1,8 @@
 import { JSDOM } from 'jsdom';
 
-const dom = new JSDOM('<!DOCTYPE html><html><head></head><body></body></html>');
+const dom = new JSDOM('<!DOCTYPE html><html><head></head><body></body></html>', {
+  url: 'https://xote.test/',
+});
 globalThis.window = dom.window;
 globalThis.document = dom.window.document;
 globalThis.HTMLElement = dom.window.HTMLElement;
@@ -9,3 +11,4 @@ globalThis.Event = dom.window.Event;
 globalThis.MouseEvent = dom.window.MouseEvent;
 globalThis.KeyboardEvent = dom.window.KeyboardEvent;
 globalThis.InputEvent = dom.window.InputEvent;
+globalThis.window.scrollTo = () => {};

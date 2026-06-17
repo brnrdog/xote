@@ -1,0 +1,48 @@
+This page lists the supported API for the `Computed` module.
+
+## Computed
+
+<a id="computed-module" />
+
+`Computed` creates derived signals. A computed value has type [`Signal.t<'a>`](/docs/api/signal#signal-type), so you read it with [`Signal.get`](/docs/api/signal#signal-get) or [`Signal.peek`](/docs/api/signal#signal-peek).
+
+<a id="computed-make" />
+
+### Computed.make
+
+```rescript
+let make: (
+  unit => 'a,
+  ~name: option<string>=?,
+  ~equals: option<('a, 'a) => bool>=?,
+) => Signal.t<'a>
+```
+
+Create a lazily recomputed derived signal. `~equals` controls whether recomputed values propagate to downstream observers.
+
+<a id="computed-dispose" />
+
+### Computed.dispose
+
+```rescript
+let dispose: Signal.t<'a> => unit
+```
+
+Manually disconnect a computed from its dependencies. Most UI-owned computeds are cleaned up through DOM ownership and do not need manual disposal.
+
+## Example
+
+```rescript
+open Xote
+
+let count = Signal.make(0)
+let doubled = Computed.make(() => Signal.get(count) * 2)
+
+Console.log(Signal.get(doubled))
+```
+
+## See Also
+
+- [Computeds guide](/docs/core-concepts/computed)
+- [Signal API](/docs/api/signal)
+- [Effect API](/docs/api/effect)

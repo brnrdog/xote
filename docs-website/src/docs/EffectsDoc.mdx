@@ -6,7 +6,7 @@ Use them for DOM APIs, timers, network coordination, logging, or any other work 
 
 ### Creating Effects
 
-Use `Effect.run` for fire-and-forget effects and `Effect.runWithDisposer` when you need to stop the effect manually.
+Use [`Effect.run`](/docs/api/effect#effect-run) for fire-and-forget effects and [`Effect.runWithDisposer`](/docs/api/effect#effect-runwithdisposer) when you need to stop the effect manually.
 
 ```rescript
 open Xote
@@ -21,7 +21,7 @@ Effect.run(() => {
 
 ### Dependency Tracking
 
-Effects track dependencies automatically. Every `Signal.get` call inside the effect subscribes the effect to that signal. On each run, dependencies are cleared and tracked again.
+Effects track dependencies automatically. Every [`Signal.get`](/docs/api/signal#signal-get) call inside the effect subscribes the effect to that signal. On each run, dependencies are cleared and tracked again.
 
 ```rescript
 let showDetails = Signal.make(false)
@@ -56,7 +56,7 @@ Effect.run(() => {
 
 ### Disposing Effects
 
-When you need explicit teardown, use `Effect.runWithDisposer`. It returns an object with a `dispose()` method.
+When you need explicit teardown, use [`Effect.runWithDisposer`](/docs/api/effect#effect-runwithdisposer). It returns an object with a `dispose()` method.
 
 ```rescript
 let disposer = Effect.runWithDisposer(() => {
@@ -69,7 +69,7 @@ disposer.dispose()
 
 ### Avoiding Dependencies
 
-If you need a value inside an effect without subscribing to it, use `Signal.peek` for one read or `Signal.untrack` for a larger block.
+If you need a value inside an effect without subscribing to it, use [`Signal.peek`](/docs/api/signal#signal-peek) for one read or [`Signal.untrack`](/docs/api/signal#signal-untrack) for a larger block.
 
 ```rescript
 let debug = Signal.make(true)
@@ -144,7 +144,7 @@ Ask one question: is the result another value inside the reactive graph, or is i
 - Keep one effect focused on one kind of external work so cleanup stays obvious.
 - Return cleanup whenever you allocate timers, listeners, requests, or subscriptions.
 - Do not use effects to keep derived state in sync. If the output is another value, use a computed.
-- Use `peek` and `untrack` deliberately, because they opt out of tracking.
+- Use [`Signal.peek`](/docs/api/signal#signal-peek) and [`Signal.untrack`](/docs/api/signal#signal-untrack) deliberately, because they opt out of tracking.
 
 ### Next Steps
 

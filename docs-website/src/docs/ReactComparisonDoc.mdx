@@ -5,8 +5,8 @@
 | Aspect | React | Xote |
 | --- | --- | --- |
 | **Update model** | Re-render component trees, then diff | Update the specific reactive consumers directly |
-| **State** | `useState`, `useReducer`, external stores | `Signal`, `Computed`, `Effect` |
-| **Effects** | `useEffect` with explicit dependency arrays | `Effect.run` with tracked dependencies |
+| **State** | `useState`, `useReducer`, external stores | [`Signal`](/docs/api/signal#signal-module), [`Computed`](/docs/api/computed#computed-module), [`Effect`](/docs/api/effect#effect-module) |
+| **Effects** | `useEffect` with explicit dependency arrays | [`Effect.run`](/docs/api/effect#effect-run) with tracked dependencies |
 | **Routing** | Third-party packages | Built in |
 | **SSR** | Mature ecosystem and frameworks | Built-in primitives for SSR, hydration, and state transfer |
 | **Language** | JavaScript / TypeScript | ReScript |
@@ -58,7 +58,7 @@ let counter = () => {
 
 React's `useEffect` and `useMemo` depend on manually maintained dependency arrays. That is workable, but stale or over-broad dependency lists are a common source of bugs and noise.
 
-Xote tracks dependencies automatically. `Effect.run` subscribes to the signals it reads, and `Computed.make` derives values from the signals it reads.
+Xote tracks dependencies automatically. [`Effect.run`](/docs/api/effect#effect-run) subscribes to the signals it reads, and [`Computed.make`](/docs/api/computed#computed-make) derives values from the signals it reads.
 
 ```rescript
 useEffect(() => {
@@ -85,7 +85,7 @@ Xote components usually run once. Signals, computeds, and effects are ordinary v
 
 ### List Rendering
 
-React uses keys during virtual DOM reconciliation. Xote uses `View.For` in JSX; passing `by` enables keyed reconciliation through Xote's DOM anchors.
+React uses keys during virtual DOM reconciliation. Xote uses [`View.For`](/docs/api/view#view-for) in JSX; passing `by` enables keyed reconciliation through Xote's DOM anchors.
 
 ```rescript
 function TodoList({ todos }) {
@@ -177,10 +177,10 @@ Xote is the better fit when you want to own the stack, keep runtime dependencies
 
 React developers usually adapt to Xote fastest when they stop looking for hook equivalents and instead map responsibilities directly:
 
-1. `useState` becomes `Signal.make`
-2. `useMemo` becomes `Computed.make`
-3. `useEffect` becomes `Effect.run`
-4. keyed `.map()` rendering becomes `View.For` with `by` when identity matters
+1. `useState` becomes [`Signal.make`](/docs/api/signal#signal-make)
+2. `useMemo` becomes [`Computed.make`](/docs/api/computed#computed-make)
+3. `useEffect` becomes [`Effect.run`](/docs/api/effect#effect-run)
+4. keyed `.map()` rendering becomes [`View.For`](/docs/api/view#view-for) with `by` when identity matters
 
 The conceptual shift is from re-rendered components to persistent reactive values.
 

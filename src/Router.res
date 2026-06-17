@@ -127,6 +127,28 @@ let addBasePath = (pathname: string): string => {
   }
 }
 
+let parseTarget = (to: string): location => {
+  let hashParts = to->String.split("#")
+  let beforeHash = hashParts->Array.get(0)->Option.getOr("")
+  let hash = switch hashParts->Array.get(1) {
+  | Some(value) => "#" ++ value
+  | None => ""
+  }
+
+  let searchParts = beforeHash->String.split("?")
+  let pathname = searchParts->Array.get(0)->Option.getOr("/")
+  let search = switch searchParts->Array.get(1) {
+  | Some(value) => "?" ++ value
+  | None => ""
+  }
+
+  {pathname, search, hash}
+}
+
+let targetToHref = (target: location): string => {
+  addBasePath(target.pathname) ++ target.search ++ target.hash
+}
+
 // External bindings for History API
 type historyState
 
@@ -355,14 +377,15 @@ let link = (
   (),
 ): View.node => {
   warnIfNotInitialized("Router.link()")
+  let target = parseTarget(to)
 
   let handleClick = (_evt: Dom.event) => {
     let _: unit = %raw(`_evt.preventDefault()`)
-    push(to, ())
+    push(target.pathname, ~search=target.search, ~hash=target.hash, ())
   }
 
   Html.a(
-    ~attrs=Array.concat(attrs, [View.attr("href", addBasePath(to))]),
+    ~attrs=Array.concat(attrs, [View.attr("href", targetToHref(target))]),
     ~events=[("click", handleClick)],
     ~children,
     (),
@@ -432,10 +455,11 @@ module Link = {
   /* JSX component function */
   let make = (props): View.node => {
     warnIfNotInitialized("Router.Link")
+    let target = parseTarget(props.to)
 
     let handleClick = (evt: Dom.event) => {
       let _: unit = %raw(`evt.preventDefault()`)
-      push(props.to, ())
+      push(target.pathname, ~search=target.search, ~hash=target.hash, ())
 
       // Call user's onClick if provided
       switch props.onClick {
@@ -445,7 +469,7 @@ module Link = {
     }
 
     Html.a(
-      ~attrs=Array.concat(propsToAttrs(props), [View.attr("href", addBasePath(props.to))]),
+      ~attrs=Array.concat(propsToAttrs(props), [View.attr("href", targetToHref(target))]),
       ~events=[("click", handleClick)],
       ~children=getChildren(props),
       (),

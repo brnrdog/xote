@@ -35,7 +35,12 @@ let docsNav: array<docCategory> = [
   },
   {
     label: "API Reference",
-    items: [{title: "Signals API", path: "/docs/api/signals"}],
+    items: [
+      {title: "Signal API", path: "/docs/api/signal"},
+      {title: "Computed API", path: "/docs/api/computed"},
+      {title: "Effect API", path: "/docs/api/effect"},
+      {title: "View API", path: "/docs/api/view"},
+    ],
   },
   {
     label: "Comparisons",

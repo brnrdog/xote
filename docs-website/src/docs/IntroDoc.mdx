@@ -4,10 +4,10 @@ Xote is a UI library for ReScript built around fine-grained reactivity. It re-ex
 
 The design goal is simple: keep the reactive model small and explicit, then let updates flow directly to the DOM instead of re-running whole component trees.
 
-- Signals for local and shared state
-- Computed values for derived state
-- Effects for external side effects
-- View primitives and JSX for UI composition
+- [`Signal`](/docs/api/signal#signal-module) for local and shared state
+- [`Computed`](/docs/api/computed#computed-module) values for derived state
+- [`Effect`](/docs/api/effect#effect-module) for external side effects
+- [`View`](/docs/api/view#view-module) primitives and JSX for UI composition
 - A built-in router, SSR, and hydration
 
 ## Start Here
@@ -81,7 +81,7 @@ pnpm add xote
 
 - [Read Signals first](/docs/core-concepts/signals) if you want the shortest path into the reactive model.
 - [Move to View next](/docs/view/overview) once the state model feels clear.
-- [Keep the Signals API nearby](/docs/api/signals) while you are writing real code.
+- [Keep the Signal API nearby](/docs/api/signal) while you are writing real code.
 
 ## Philosophy
 

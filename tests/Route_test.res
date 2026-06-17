@@ -1,5 +1,11 @@
 open! Zekr
 
+let getAttr = (el, key: string): string => {
+  ignore(el)
+  ignore(key)
+  %raw(`el.getAttribute(key)`)
+}
+
 let suite = Zekr.suite(
   "Route",
   [
@@ -54,6 +60,31 @@ let suite = Zekr.suite(
       | Route.Match(_) => Fail("Expected NoMatch for partial path")
       | Route.NoMatch => Pass
       }
+    }),
+    test("Router.link keeps search and hash separate from pathname", () => {
+      Router.init()
+      let {container} = Dom.render("")
+      View.mount(
+        Router.link(
+          ~to="/docs/api/signal?tab=read#signal-get",
+          ~children=[View.text("Signal.get")],
+          (),
+        ),
+        container,
+      )
+
+      let link = Dom.Query.getByText(container, "Signal.get")
+      let hrefResult = assertEqual(getAttr(link, "href"), "/docs/api/signal?tab=read#signal-get")
+
+      Dom.Event.click(link)
+      let current = Signal.peek(Router.location())
+
+      combineResults([
+        hrefResult,
+        assertEqual(current.pathname, "/docs/api/signal"),
+        assertEqual(current.search, "?tab=read"),
+        assertEqual(current.hash, "#signal-get"),
+      ])
     }),
   ],
 )

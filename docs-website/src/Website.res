@@ -63,6 +63,57 @@ module App = {
     {text: "Next Steps", id: "next-steps", level: 3},
   ]
 
+  let signalApiTocItems: array<DocsPage.TableOfContents.tocItem> = [
+    {text: "Signal", id: "signal", level: 2},
+    {text: "Signal.t", id: "signal-type", level: 3},
+    {text: "Signal.make", id: "signal-make", level: 3},
+    {text: "Signal.get", id: "signal-get", level: 3},
+    {text: "Signal.peek", id: "signal-peek", level: 3},
+    {text: "Signal.set", id: "signal-set", level: 3},
+    {text: "Signal.update", id: "signal-update", level: 3},
+    {text: "Signal.batch", id: "signal-batch", level: 3},
+    {text: "Signal.untrack", id: "signal-untrack", level: 3},
+    {text: "Example", id: "example", level: 2},
+    {text: "See Also", id: "see-also", level: 2},
+  ]
+
+  let computedApiTocItems: array<DocsPage.TableOfContents.tocItem> = [
+    {text: "Computed", id: "computed", level: 2},
+    {text: "Computed.make", id: "computed-make", level: 3},
+    {text: "Computed.dispose", id: "computed-dispose", level: 3},
+    {text: "Example", id: "example", level: 2},
+    {text: "See Also", id: "see-also", level: 2},
+  ]
+
+  let effectApiTocItems: array<DocsPage.TableOfContents.tocItem> = [
+    {text: "Effect", id: "effect", level: 2},
+    {text: "Effect.disposer", id: "effect-disposer", level: 3},
+    {text: "Effect.run", id: "effect-run", level: 3},
+    {text: "Effect.runWithDisposer", id: "effect-runwithdisposer", level: 3},
+    {text: "Example", id: "example", level: 2},
+    {text: "See Also", id: "see-also", level: 2},
+  ]
+
+  let viewApiTocItems: array<DocsPage.TableOfContents.tocItem> = [
+    {text: "View", id: "view", level: 2},
+    {text: "View types", id: "view-types", level: 3},
+    {text: "View.Attr", id: "view-attr-module", level: 3},
+    {text: "View text nodes", id: "view-text", level: 3},
+    {text: "View lists", id: "view-each", level: 3},
+    {text: "View.For", id: "view-for", level: 3},
+    {text: "View.Show", id: "view-show", level: 3},
+    {text: "View.Maybe", id: "view-maybe", level: 3},
+    {text: "View.Value", id: "view-value", level: 3},
+    {text: "View.element", id: "view-element", level: 3},
+    {text: "View.mount", id: "view-mount", level: 3},
+    {text: "View.Text", id: "view-text-component", level: 3},
+    {text: "View.Int", id: "view-int-component", level: 3},
+    {text: "View.Float", id: "view-float-component", level: 3},
+    {text: "View.Bool", id: "view-bool-component", level: 3},
+    {text: "Example", id: "example", level: 2},
+    {text: "See Also", id: "see-also", level: 2},
+  ]
+
   let make = (_props: props) => {
     Router.routes(
       [
@@ -337,25 +388,58 @@ module App = {
             />,
         },
         {
+          pattern: "/docs/api/signal",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/api/signal"
+              pageTitle="Signal API"
+              pageLead="Reference for writable reactive state."
+              content={MdxDocs.apiSignal()}
+              tocItems=signalApiTocItems
+            />,
+        },
+        {
           pattern: "/docs/api/signals",
           render: _params =>
             <DocsPage
-              currentPath="/docs/api/signals"
-              pageTitle="Signals API"
-              pageLead="Reference for the Signal module, plus the related Computed and Effect entry points."
-              content={MdxDocs.apiSignals()}
-              tocItems=[
-                {text: "Signal", id: "signal-api", level: 2},
-                {text: "Type", id: "type", level: 3},
-                {text: "Functions", id: "functions", level: 3},
-                {text: "Related APIs", id: "related-signal-apis", level: 2},
-                {text: "Behavior Notes", id: "behavior-notes", level: 3},
-                {text: "Companion Modules", id: "companion-modules", level: 3},
-                {text: "In Practice", id: "signals-in-practice", level: 2},
-                {text: "Examples", id: "examples", level: 3},
-                {text: "Where to Go Next", id: "where-to-go-next", level: 2},
-                {text: "See Also", id: "see-also", level: 3},
-              ]
+              currentPath="/docs/api/signal"
+              pageTitle="Signal API"
+              pageLead="Reference for writable reactive state."
+              content={MdxDocs.apiSignal()}
+              tocItems=signalApiTocItems
+            />,
+        },
+        {
+          pattern: "/docs/api/computed",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/api/computed"
+              pageTitle="Computed API"
+              pageLead="Reference for derived reactive values."
+              content={MdxDocs.apiComputed()}
+              tocItems=computedApiTocItems
+            />,
+        },
+        {
+          pattern: "/docs/api/effect",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/api/effect"
+              pageTitle="Effect API"
+              pageLead="Reference for reactive side effects and disposal."
+              content={MdxDocs.apiEffect()}
+              tocItems=effectApiTocItems
+            />,
+        },
+        {
+          pattern: "/docs/api/view",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/api/view"
+              pageTitle="View API"
+              pageLead="Reference for UI nodes, JSX primitives, lists, attributes, and mounting."
+              content={MdxDocs.apiView()}
+              tocItems=viewApiTocItems
             />,
         },
         {

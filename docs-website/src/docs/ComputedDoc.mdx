@@ -1,6 +1,6 @@
 Computeds are derived signals. They let you describe state in terms of other state instead of manually keeping multiple signals in sync.
 
-> **Important:** `Computed.make` returns a `Signal.t<'a>`. You read it with `Signal.get` or `Signal.peek`, just like any other signal.
+> **Important:** [`Computed.make`](/docs/api/computed#computed-make) returns a [`Signal.t<'a>`](/docs/api/signal#signal-type). You read it with [`Signal.get`](/docs/api/signal#signal-get) or [`Signal.peek`](/docs/api/signal#signal-peek), just like any other signal.
 
 ## Working with Computeds
 
@@ -19,11 +19,11 @@ let subtotal = Computed.make(() =>
 )
 ```
 
-If you need to suppress downstream updates for equivalent derived values, `Computed.make` also accepts `~equals`.
+If you need to suppress downstream updates for equivalent derived values, [`Computed.make`](/docs/api/computed#computed-make) also accepts `~equals`.
 
 ### Reading Computed Values
 
-Read a computed exactly like a signal. Use `Signal.get` when the current code should subscribe, or `Signal.peek` for a one-off read.
+Read a computed exactly like a signal. Use [`Signal.get`](/docs/api/signal#signal-get) when the current code should subscribe, or [`Signal.peek`](/docs/api/signal#signal-peek) for a one-off read.
 
 ```rescript
 let subtotal = Computed.make(() =>
@@ -132,7 +132,7 @@ Most computeds do not need manual cleanup. They dispose automatically when nothi
 
 #### Manual Disposal
 
-If you create a long-lived computed outside normal component ownership and want to tear it down explicitly, call `Computed.dispose`.
+If you create a long-lived computed outside normal component ownership and want to tear it down explicitly, call [`Computed.dispose`](/docs/api/computed#computed-dispose).
 
 ```rescript
 let doubled = Computed.make(() => Signal.get(count) * 2)
@@ -166,7 +166,7 @@ let doubled = Computed.make(() => Signal.get(count) * 2)
 ### Best Practices
 
 - Keep computeds pure. If the code talks to the outside world, it probably belongs in an effect instead.
-- Read computeds with `Signal.get` or `Signal.peek`, because they are signals at the type level.
+- Read computeds with [`Signal.get`](/docs/api/signal#signal-get) or [`Signal.peek`](/docs/api/signal#signal-peek), because they are signals at the type level.
 - Avoid copying derived values into writable signals unless you truly need editable local state.
 - Reach for custom equality only when downstream updates are too noisy with the default behavior.
 

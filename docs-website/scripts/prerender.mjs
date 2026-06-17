@@ -108,10 +108,31 @@ const routes = [
     section: 'Router',
   },
   {
-    path: '/docs/api/signals',
-    title: 'Signals API - xote Reference',
+    path: '/docs/api/signal',
+    title: 'Signal API - xote Reference',
     description:
-      'Reference the xote Signal, Computed, and Effect APIs including make, get, peek, set, update, batch, and untrack.',
+      'Reference the xote Signal API including make, get, peek, set, update, batch, and untrack.',
+    section: 'API Reference',
+  },
+  {
+    path: '/docs/api/computed',
+    title: 'Computed API - xote Reference',
+    description:
+      'Reference the xote Computed API for derived signals, lazy recomputation, equality, and disposal.',
+    section: 'API Reference',
+  },
+  {
+    path: '/docs/api/effect',
+    title: 'Effect API - xote Reference',
+    description:
+      'Reference the xote Effect API for reactive side effects, cleanup callbacks, and manual disposal.',
+    section: 'API Reference',
+  },
+  {
+    path: '/docs/api/view',
+    title: 'View API - xote Reference',
+    description:
+      'Reference the xote View API for UI nodes, JSX primitives, lists, attributes, and mounting.',
     section: 'API Reference',
   },
   {
