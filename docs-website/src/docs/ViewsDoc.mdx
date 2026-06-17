@@ -59,7 +59,7 @@ module Greeting = {
   let make = (~name: string) => {
     <section class="greeting-card">
       <h2> <View.Text> {`Hello, ${name}`} </View.Text> </h2>
-      <p> <View.Text> {"This component is ordinary ReScript plus JSX."} </View.Text> </p>
+      <p> <View.Text> "This component is ordinary ReScript plus JSX." </View.Text> </p>
     </section>
   }
 }
@@ -73,7 +73,7 @@ JSX expressions are just nodes. For direct value output, use primitives such as 
 let count = Signal.make(0)
 
 <div>
-  <View.Text> {"Count: "} </View.Text>
+  <View.Text> "Count: " </View.Text>
   <View.Int> {count} </View.Int>
 </div>
 ```
@@ -101,7 +101,7 @@ let toggle = (_evt: Dom.event) => {
 <button
   class={Signal.get(isActive) ? "btn active" : "btn"}
   onClick={toggle}>
-  <View.Text> {"Toggle"} </View.Text>
+  <View.Text> "Toggle" </View.Text>
 </button>
 ```
 
@@ -145,13 +145,13 @@ Choose stable keys. Database IDs and route slugs are good. Array indexes are not
 Use `View.Show` for boolean branches, `View.Maybe` for option values, and `View.Value` when a whole node should be re-rendered from one static or reactive value. Use `View.Text`, `View.Int`, `View.Float`, and `View.Bool` for direct value output.
 
 ```rescript
-<View.Show when_={Prop.signal(isReady)} fallback={<p> <View.Text> {"Loading"} </View.Text> </p>}>
-  <p> <View.Text> {"Ready"} </View.Text> </p>
+<View.Show when_={Prop.signal(isReady)} fallback={<p> <View.Text> "Loading" </View.Text> </p>}>
+  <p> <View.Text> "Ready" </View.Text> </p>
 </View.Show>
 
 <View.Maybe
   value={Prop.signal(selectedTodo)}
-  fallback={<p> <View.Text> {"No todo selected"} </View.Text> </p>}
+  fallback={<p> <View.Text> "No todo selected" </View.Text> </p>}
   render={todo => <p> <View.Text> {todo.text} </View.Text> </p>}
 />
 
@@ -159,16 +159,16 @@ Use `View.Show` for boolean branches, `View.Maybe` for option values, and `View.
   value={Prop.signal(count)}
   render={count =>
     <p>
-      <View.Text> {"Count: "} </View.Text>
+      <View.Text> "Count: " </View.Text>
       <View.Int> {count} </View.Int>
     </p>
   }
 />
 
 <p>
-  <View.Text> {"Count: "} </View.Text>
+  <View.Text> "Count: " </View.Text>
   <View.Int> {count} </View.Int>
-  <View.Text> {", ready: "} </View.Text>
+  <View.Text> ", ready: " </View.Text>
   <View.Bool> {isReady} </View.Bool>
 </p>
 ```
@@ -179,7 +179,7 @@ Use `View.mount` when you already have a DOM element, or `View.mountById` when y
 
 ```rescript
 let app = () => {
-  <div> <View.Text> {"Hello, Xote"} </View.Text> </div>
+  <div> <View.Text> "Hello, Xote" </View.Text> </div>
 }
 
 View.mountById(app(), "app")
@@ -213,7 +213,7 @@ module TodoComposer = {
   let make = () => {
     <div>
       <input onInput={handleInput} value={() => Signal.get(draft)} />
-      <button onClick={addTodo}> <View.Text> {"Add"} </View.Text> </button>
+      <button onClick={addTodo}> <View.Text> "Add" </View.Text> </button>
     </div>
   }
 }
