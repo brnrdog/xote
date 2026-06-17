@@ -19,6 +19,9 @@ export default defineConfig({
   build: {
     outDir: 'build/client',
   },
+  optimizeDeps: {
+    exclude: ['xote'],
+  },
   resolve: {
     preserveSymlinks: true,
   },
