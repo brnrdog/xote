@@ -44,6 +44,25 @@ module App = {
       item
     })
 
+  let viewTocItems: array<DocsPage.TableOfContents.tocItem> = [
+    {text: "View Module", id: "view-module", level: 2},
+    {text: "Using View", id: "using-view", level: 2},
+    {text: "JSX Configuration", id: "jsx-configuration", level: 3},
+    {text: "Writing Components", id: "writing-components", level: 3},
+    {text: "Recommended Pattern", id: "recommended-pattern", level: 4},
+    {text: "JSX Components", id: "jsx-components", level: 4},
+    {text: "Reactive Output", id: "reactive-output", level: 3},
+    {text: "Attributes and Events", id: "attributes-and-events", level: 3},
+    {text: "Lists", id: "lists", level: 3},
+    {text: "Conditional Output", id: "conditional-output", level: 3},
+    {text: "Mounting", id: "mounting", level: 3},
+    {text: "In Practice", id: "in-practice", level: 2},
+    {text: "Example: Todo List", id: "example-todo-list", level: 3},
+    {text: "Working Style", id: "working-style", level: 2},
+    {text: "Best Practices", id: "best-practices", level: 3},
+    {text: "Next Steps", id: "next-steps", level: 3},
+  ]
+
   let make = (_props: props) => {
     Router.routes(
       [
@@ -279,23 +298,7 @@ module App = {
               pageTitle="View"
               pageLead="How the View module and JSX components render once and stay reactive over time."
               content={MdxDocs.views()}
-              tocItems=[
-                {text: "View Module", id: "component-model", level: 2},
-                {text: "Using View", id: "building-components", level: 2},
-                {text: "JSX Configuration", id: "jsx-configuration", level: 3},
-                {text: "Writing Components", id: "writing-components", level: 3},
-                {text: "Recommended Pattern", id: "component-module-pattern", level: 3},
-                {text: "JSX Components", id: "jsx-components", level: 3},
-                {text: "Reactive Output", id: "reactive-output", level: 3},
-                {text: "Attributes and Events", id: "attributes-and-events", level: 3},
-                {text: "Lists", id: "lists", level: 3},
-                {text: "Mounting", id: "mounting", level: 3},
-                {text: "In Practice", id: "components-in-practice", level: 2},
-                {text: "Example: Todo List", id: "example-todo-list", level: 3},
-                {text: "Working Style", id: "components-working-style", level: 2},
-                {text: "Best Practices", id: "best-practices", level: 3},
-                {text: "Next Steps", id: "next-steps", level: 3},
-              ]
+              tocItems=viewTocItems
             />,
         },
         {
@@ -306,23 +309,7 @@ module App = {
               pageTitle="View"
               pageLead="How the View module and JSX components render once and stay reactive over time."
               content={MdxDocs.views()}
-              tocItems=[
-                {text: "View Module", id: "component-model", level: 2},
-                {text: "Using View", id: "building-components", level: 2},
-                {text: "JSX Configuration", id: "jsx-configuration", level: 3},
-                {text: "Writing Components", id: "writing-components", level: 3},
-                {text: "Recommended Pattern", id: "component-module-pattern", level: 3},
-                {text: "JSX Components", id: "jsx-components", level: 3},
-                {text: "Reactive Output", id: "reactive-output", level: 3},
-                {text: "Attributes and Events", id: "attributes-and-events", level: 3},
-                {text: "Lists", id: "lists", level: 3},
-                {text: "Mounting", id: "mounting", level: 3},
-                {text: "In Practice", id: "components-in-practice", level: 2},
-                {text: "Example: Todo List", id: "example-todo-list", level: 3},
-                {text: "Working Style", id: "components-working-style", level: 2},
-                {text: "Best Practices", id: "best-practices", level: 3},
-                {text: "Next Steps", id: "next-steps", level: 3},
-              ]
+              tocItems=viewTocItems
             />,
         },
         {
