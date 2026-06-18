@@ -6,6 +6,7 @@
 .bsb.lock
 .merlin
 *.res.mjs
+*.gen.tsx
 bundlemeta.json
 bundle-size-report.md
 bundle-size-*.json

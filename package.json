@@ -6,23 +6,46 @@
   },
   "main": "./dist/xote.cjs",
   "module": "./dist/xote.mjs",
+  "types": "./dist/client.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/client.d.ts",
       "import": "./dist/xote.mjs",
       "require": "./dist/xote.cjs",
       "default": "./dist/xote.mjs"
     },
     "./client": {
+      "types": "./dist/client.d.ts",
       "import": "./dist/client.mjs",
       "require": "./dist/client.cjs",
       "default": "./dist/client.mjs"
     },
-    "./view": "./src/View.res.mjs",
-    "./node": "./src/Node.res.mjs",
-    "./html": "./src/Html.res.mjs",
+    "./view": {
+      "types": "./dist/view.d.ts",
+      "import": "./src/View.res.mjs",
+      "default": "./src/View.res.mjs"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./src/Node.res.mjs",
+      "default": "./src/Node.res.mjs"
+    },
+    "./html": {
+      "types": "./dist/html.d.ts",
+      "import": "./src/Html.res.mjs",
+      "default": "./src/Html.res.mjs"
+    },
     "./jsx": "./src/XoteJSX.res.mjs",
-    "./prop": "./src/Prop.res.mjs",
-    "./reactive-prop": "./src/ReactiveProp.res.mjs",
+    "./prop": {
+      "types": "./dist/prop.d.ts",
+      "import": "./src/Prop.res.mjs",
+      "default": "./src/Prop.res.mjs"
+    },
+    "./reactive-prop": {
+      "types": "./dist/reactive-prop.d.ts",
+      "import": "./src/ReactiveProp.res.mjs",
+      "default": "./src/ReactiveProp.res.mjs"
+    },
     "./route": "./src/Route.res.mjs",
     "./router": {
       "import": "./dist/router.mjs",
@@ -46,9 +69,21 @@
       "require": "./dist/mdx.cjs",
       "default": "./dist/mdx.mjs"
     },
-    "./signal": "./src/Signal.res.mjs",
-    "./computed": "./src/Computed.res.mjs",
-    "./effect": "./src/Effect.res.mjs",
+    "./signal": {
+      "types": "./dist/signal.d.ts",
+      "import": "./src/Signal.res.mjs",
+      "default": "./src/Signal.res.mjs"
+    },
+    "./computed": {
+      "types": "./dist/computed.d.ts",
+      "import": "./src/Computed.res.mjs",
+      "default": "./src/Computed.res.mjs"
+    },
+    "./effect": {
+      "types": "./dist/effect.d.ts",
+      "import": "./src/Effect.res.mjs",
+      "default": "./src/Effect.res.mjs"
+    },
     "./jsx-runtime": "./src/jsx-runtime.mjs",
     "./jsx-dev-runtime": "./src/jsx-dev-runtime.mjs",
     "./src/*": "./src/*",
@@ -70,7 +105,8 @@
     "res:dev": "rescript -w",
     "format": "rescript format",
     "dev": "vite",
-    "build": "vite build && vite build --config vite.subpath.config.js",
+    "build": "vite build && vite build --config vite.subpath.config.js && node scripts/generate-types.mjs",
+    "types:generate": "npm run res:build && node scripts/generate-types.mjs",
     "bundle:size": "node scripts/bundle-size-report.mjs",
     "preview": "vite preview",
     "mdx:poc": "npm run res:build && vite build --config examples/mdx/vite.config.mjs",

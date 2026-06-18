@@ -40,6 +40,11 @@
     "in-source": true
   },
   "suffix": ".res.mjs",
+  "gentypeconfig": {
+    "module": "esmodule",
+    "moduleResolution": "node16",
+    "generatedFileExtension": ".gen.tsx"
+  },
   "dependencies": [
     "@rescript/core",
     "rescript-signals"
