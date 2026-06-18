@@ -193,6 +193,7 @@ async function makeSnapshot({ distDir, packageJsonPath }) {
       const contents = await readFile(filePath);
       const fileStat = await stat(filePath);
       const name = path.relative(resolvedDistDir, filePath);
+      const isPublicArtifact = Object.prototype.hasOwnProperty.call(artifactMetadata, name);
       const metadata = artifactMetadata[name] ?? {
         format: path.extname(name).slice(1).toUpperCase() || "File",
         consumer: "Additional artifact",
@@ -200,6 +201,7 @@ async function makeSnapshot({ distDir, packageJsonPath }) {
 
       return {
         name,
+        isPublicArtifact,
         ...metadata,
         raw: fileStat.size,
         gzip: gzipSync(contents, { level: 9 }).length,
@@ -218,11 +220,39 @@ async function makeSnapshot({ distDir, packageJsonPath }) {
   };
 }
 
+function summarizeSharedChunks(files) {
+  const sharedChunks = files.filter((row) => !row.isPublicArtifact);
+
+  if (sharedChunks.length === 0) {
+    return null;
+  }
+
+  return {
+    name: `shared chunks (${sharedChunks.length} files)`,
+    isPublicArtifact: false,
+    format: "Rollup chunks",
+    consumer: "Shared internal output",
+    raw: sharedChunks.reduce((total, row) => total + row.raw, 0),
+    gzip: sharedChunks.reduce((total, row) => total + row.gzip, 0),
+    brotli: sharedChunks.reduce((total, row) => total + row.brotli, 0),
+  };
+}
+
+function getReportRows(snapshot) {
+  const publicRows = snapshot.files.filter((row) => row.isPublicArtifact);
+  const sharedSummary = summarizeSharedChunks(snapshot.files);
+  const rows = sharedSummary ? [...publicRows, sharedSummary] : publicRows;
+
+  return rows.sort(compareArtifacts);
+}
+
 function renderCurrentTable(snapshot) {
+  const rows = getReportRows(snapshot);
+
   return [
     "| Artifact | Format | Consumer | Raw | Gzip | Brotli |",
     "| --- | --- | --- | ---: | ---: | ---: |",
-    ...snapshot.files.map(
+    ...rows.map(
       (row) =>
         `| \`${escapeMarkdownCell(row.name)}\` | ${escapeMarkdownCell(row.format)} | ${row.consumer} | ${formatBytes(
           row.raw
@@ -234,11 +264,11 @@ function renderCurrentTable(snapshot) {
 function renderComparisonTable({ baseline, current, baselineLabel, currentLabel }) {
   const rowsByName = new Map();
 
-  for (const row of baseline.files) {
+  for (const row of getReportRows(baseline)) {
     rowsByName.set(row.name, { baseline: row, current: null });
   }
 
-  for (const row of current.files) {
+  for (const row of getReportRows(current)) {
     const existing = rowsByName.get(row.name) ?? { baseline: null, current: null };
     existing.current = row;
     rowsByName.set(row.name, existing);
