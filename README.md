@@ -36,6 +36,54 @@ This README uses the application-facing names introduced for public code:
 - `ReactiveProp` is a deprecated compatibility alias for `Prop`.
 - `View.Text`, `View.Int`, `View.For`, `View.Show`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are preferred in examples, while the deprecated `Node.signalText`, `Node.list`, `Node.keyedList`, `Node.attr`, `ReactiveProp.*`, and `SSRState.make` names remain supported.
 
+### JavaScript and TypeScript
+
+Xote is built for ReScript first, but the compiled package can also be used from JavaScript or TypeScript. Import the focused client entry and build nodes with `View` or `Html` helpers:
+
+```js
+import { Signal, Computed, Effect, View } from "xote/client";
+
+const count = Signal.make(0);
+const doubled = Computed.make(() => Signal.get(count) * 2);
+
+Effect.run(() => {
+  console.log("Count:", Signal.get(count));
+});
+
+const app = View.element("div", [], [], [
+  View.element("h1", [], [], [View.text("Counter")]),
+  View.element("p", [], [], [
+    View.text("Count: "),
+    View.signalText(() => String(Signal.get(count))),
+  ]),
+  View.element("p", [], [], [
+    View.text("Doubled: "),
+    View.signalText(() => String(Signal.get(doubled))),
+  ]),
+  View.element(
+    "button",
+    [],
+    [["click", () => Signal.update(count, n => n + 1)]],
+    [View.text("Increment")],
+  ),
+]);
+
+View.mountById(app, "app");
+```
+
+For TypeScript projects, add a small ambient declaration until Xote ships first-party `.d.ts` files:
+
+```ts
+// src/xote.d.ts
+declare module "xote/client";
+declare module "xote/router";
+declare module "xote/ssr";
+declare module "xote/hydration";
+declare module "xote/mdx";
+```
+
+Use `xote/client` for browser UI, `xote/router` for routing, `xote/ssr` for server rendering, `xote/hydration` for hydrating server-rendered pages, and `xote/mdx` for MDX integration.
+
 ### Quick Example
 
 ```rescript

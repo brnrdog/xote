@@ -185,6 +185,23 @@ module App = {
             />,
         },
         {
+          pattern: "/docs/getting-started/javascript-typescript",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/getting-started/javascript-typescript"
+              pageTitle="JavaScript and TypeScript"
+              pageLead="Use Xote's compiled runtime from JavaScript or TypeScript projects without ReScript JSX."
+              content={MdxDocs.javaScriptTypeScript()}
+              tocItems=[
+                {text: "Install", id: "install", level: 2},
+                {text: "Use the Client Entry", id: "use-the-client-entry", level: 2},
+                {text: "JavaScript Counter", id: "javascript-counter", level: 2},
+                {text: "TypeScript Setup", id: "typescript-setup", level: 2},
+                {text: "Working with Existing Apps", id: "working-with-existing-apps", level: 2},
+              ]
+            />,
+        },
+        {
           pattern: "/docs/core-concepts/signals",
           render: _params =>
             <DocsPage
