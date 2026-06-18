@@ -15,6 +15,46 @@ const artifactMetadata = {
     format: "UMD",
     consumer: "Browser global",
   },
+  "client.mjs": {
+    format: "ESM",
+    consumer: "`xote/client` import",
+  },
+  "client.cjs": {
+    format: "CommonJS",
+    consumer: "`xote/client` require",
+  },
+  "router.mjs": {
+    format: "ESM",
+    consumer: "`xote/router` import",
+  },
+  "router.cjs": {
+    format: "CommonJS",
+    consumer: "`xote/router` require",
+  },
+  "ssr.mjs": {
+    format: "ESM",
+    consumer: "`xote/ssr` import",
+  },
+  "ssr.cjs": {
+    format: "CommonJS",
+    consumer: "`xote/ssr` require",
+  },
+  "hydration.mjs": {
+    format: "ESM",
+    consumer: "`xote/hydration` import",
+  },
+  "hydration.cjs": {
+    format: "CommonJS",
+    consumer: "`xote/hydration` require",
+  },
+  "mdx.mjs": {
+    format: "ESM",
+    consumer: "`xote/mdx` import",
+  },
+  "mdx.cjs": {
+    format: "CommonJS",
+    consumer: "`xote/mdx` require",
+  },
 };
 
 function parseArgs(args) {
@@ -110,7 +150,21 @@ function escapeMarkdownCell(value) {
 }
 
 function compareArtifacts(left, right) {
-  const order = ["xote.mjs", "xote.cjs", "xote.umd.js"];
+  const order = [
+    "xote.mjs",
+    "xote.cjs",
+    "xote.umd.js",
+    "client.mjs",
+    "client.cjs",
+    "router.mjs",
+    "router.cjs",
+    "ssr.mjs",
+    "ssr.cjs",
+    "hydration.mjs",
+    "hydration.cjs",
+    "mdx.mjs",
+    "mdx.cjs",
+  ];
   const leftIndex = order.indexOf(left.name);
   const rightIndex = order.indexOf(right.name);
 
