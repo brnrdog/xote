@@ -1,5 +1,5 @@
 @jsx.component
-let make = (~filename, ~code, ~caption=?, ~children) => {
+let make = (~filename, ~code, ~caption=?, ~children=?) => {
   let activeTab = Signal.make("code")
 
   let setTab = (tab, _evt: Dom.event) => Signal.set(activeTab, tab)
@@ -28,15 +28,19 @@ let make = (~filename, ~code, ~caption=?, ~children) => {
         >
           {View.text("Code")}
         </button>
-        <button
-          class={() => tabClass("demo")}
-          onClick={setTab("demo", _)}
-          role="tab"
-          type_="button"
-          ariaSelected={() => Signal.get(activeTab) == "demo"}
-        >
-          {View.text("Demo")}
-        </button>
+        {switch children {
+        | Some(_) =>
+          <button
+            class={() => tabClass("demo")}
+            onClick={setTab("demo", _)}
+            role="tab"
+            type_="button"
+            ariaSelected={() => Signal.get(activeTab) == "demo"}
+          >
+            {View.text("Demo")}
+          </button>
+        | None => View.fragment([])
+        }}
       </div>
       <div class="docs-example-filename"> {View.text(filename)} </div>
     </div>
@@ -48,15 +52,19 @@ let make = (~filename, ~code, ~caption=?, ~children) => {
         </pre>
       </div>
 
-      <div class={() => panelClass("demo")}>
-        <div class="docs-example-demo">
-          <div class="docs-example-demo-stage"> {children} </div>
-          {switch caption {
-          | Some(text) => <div class="docs-example-caption"> {View.text(text)} </div>
-          | None => View.fragment([])
-          }}
+      {switch children {
+      | Some(children) =>
+        <div class={() => panelClass("demo")}>
+          <div class="docs-example-demo">
+            <div class="docs-example-demo-stage"> {children} </div>
+            {switch caption {
+            | Some(text) => <div class="docs-example-caption"> {View.text(text)} </div>
+            | None => View.fragment([])
+            }}
+          </div>
         </div>
-      </div>
+      | None => View.fragment([])
+      }}
     </div>
   </section>
 }

@@ -115,10 +115,6 @@ let components = Mdx.components([
   ("code", Mdx.component(Code.make)),
   ("pre", Mdx.component(Pre.make)),
   ("DocsExamplePanel", Mdx.component(DocsExamplePanel.make)),
-  ("CounterDemo", Mdx.component(CounterDemo.make)),
-  ("ComputedOrderDemo", Mdx.component(ComputedOrderDemo.make)),
-  ("EffectAutosaveDemo", Mdx.component(EffectAutosaveDemo.make)),
-  ("TodoListDemo", Mdx.component(TodoListDemo.make)),
 ])
 
 let render = document => Mdx.render(document, ~components, ())
