@@ -18,11 +18,11 @@ export default defineConfig(() => ({
     sourcemap: false,
     lib: {
       entry: {
-        client: "src/client.mjs",
-        router: "src/router.mjs",
-        ssr: "src/ssr.mjs",
-        hydration: "src/hydration.mjs",
-        mdx: "src/mdx.mjs",
+        client: "entries/client.mjs",
+        router: "entries/router.mjs",
+        ssr: "entries/ssr.mjs",
+        hydration: "entries/hydration.mjs",
+        mdx: "entries/mdx.mjs",
       },
       formats: ["es", "cjs"],
       fileName: (format, entryName) =>
