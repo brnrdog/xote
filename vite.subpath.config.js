@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import { readFileSync } from "node:fs";
 
-// Read package.json to auto-externalize deps & name the UMD build
 const pkg = JSON.parse(
   readFileSync(new URL("./package.json", import.meta.url), "utf-8")
 );
@@ -18,19 +17,20 @@ export default defineConfig(() => ({
     target: "es2020",
     sourcemap: false,
     lib: {
-      entry: "src/index.mjs",
-      name: "xote",
-      formats: ["es", "cjs", "umd"],
-      fileName: (format) =>
-        format === "es"
-          ? "xote.mjs"
-          : format === "cjs"
-            ? "xote.cjs"
-            : "xote.umd.js",
+      entry: {
+        client: "src/client.mjs",
+        router: "src/router.mjs",
+        ssr: "src/ssr.mjs",
+        hydration: "src/hydration.mjs",
+        mdx: "src/mdx.mjs",
+      },
+      formats: ["es", "cjs"],
+      fileName: (format, entryName) =>
+        format === "es" ? `${entryName}.mjs` : `${entryName}.cjs`,
     },
     rollupOptions: {
       external: externals,
     },
-    emptyOutDir: true,
+    emptyOutDir: false,
   },
 }));
