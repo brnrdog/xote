@@ -67,18 +67,9 @@ The reactive reads happen inside `Computed.make`, `Effect.run`, and `View.signal
 
 ## TypeScript Setup
 
-Xote does not currently ship first-party TypeScript declaration files. If your TypeScript project rejects untyped packages, add an app-level declaration file:
+Xote generates TypeScript declarations from the ReScript modules with `genType`. The root entry, `xote/client`, and the core client subpaths expose typed signals, computeds, effects, props, view nodes, and HTML helpers.
 
-```ts
-// src/xote.d.ts
-declare module "xote/client";
-declare module "xote/router";
-declare module "xote/ssr";
-declare module "xote/hydration";
-declare module "xote/mdx";
-```
-
-After that, import the same runtime modules from TypeScript:
+Import the same runtime modules from TypeScript:
 
 ```ts
 import { Signal, View } from "xote/client";
@@ -92,7 +83,7 @@ const app = View.element("p", [], [], [
 View.mountById(app, "app");
 ```
 
-This keeps the TypeScript compiler unblocked, but the imported Xote modules are typed as `any`. For fully typed Xote components, use ReScript source files and import the compiled JavaScript into the rest of the app.
+The router, SSR, hydration, and MDX entries can still be imported from JavaScript or TypeScript, but the first generated declarations focus on the browser client surface. For fully typed Xote components and JSX, use ReScript source files and import the compiled JavaScript into the rest of the app.
 
 ## Working with Existing Apps
 

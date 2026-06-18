@@ -71,16 +71,7 @@ const app = View.element("div", [], [], [
 View.mountById(app, "app");
 ```
 
-For TypeScript projects, add a small ambient declaration until Xote ships first-party `.d.ts` files:
-
-```ts
-// src/xote.d.ts
-declare module "xote/client";
-declare module "xote/router";
-declare module "xote/ssr";
-declare module "xote/hydration";
-declare module "xote/mdx";
-```
+TypeScript projects can import the same entries. Xote generates package declarations from the ReScript modules with `genType`, so `xote`, `xote/client`, and the core client subpaths expose typed signals, computeds, effects, props, view nodes, and HTML helpers.
 
 Use `xote/client` for browser UI, `xote/router` for routing, `xote/ssr` for server rendering, `xote/hydration` for hydrating server-rendered pages, and `xote/mdx` for MDX integration.
 
