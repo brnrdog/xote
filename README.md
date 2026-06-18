@@ -28,6 +28,20 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
 
 The compiler flag `-open Xote` is optional, it makes the Xote modules available unqualified inside your source files.
 
+### Package Entries
+
+Prefer focused package entries so bundlers and CDN users do not download optional runtime features:
+
+```js
+import { View, Signal, Computed, Effect } from "xote/client";
+import { Router, Route } from "xote/router";
+import { SSR, SSRState, SSRContext } from "xote/ssr";
+import { Hydration } from "xote/hydration";
+import { Mdx } from "xote/mdx";
+```
+
+The root `xote` entry is client-focused and intentionally excludes routing, SSR, hydration, MDX, and deprecated aliases such as `Node` and `ReactiveProp`. Single-module subpaths like `xote/view`, `xote/html`, `xote/route`, `xote/signal`, and `xote/reactive-prop` remain available for direct imports.
+
 This README uses the application-facing names introduced for public code:
 
 - `View` is the official module for building and mounting DOM nodes.
