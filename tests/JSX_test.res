@@ -501,7 +501,9 @@ let suite = Zekr.suite(
           )
 
           <div>
-            <span> {View.signalInt(() => Signal.get(counter))} </span>
+            <span>
+              <View.Int> {() => Signal.get(counter)} </View.Int>
+            </span>
             <button onClick={_evt => Signal.update(counter, n => n + 1)}>
               {View.text("Inc")}
             </button>

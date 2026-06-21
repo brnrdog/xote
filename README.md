@@ -34,7 +34,7 @@ This README uses the application-facing names introduced for public code:
 - `Node` is a deprecated compatibility alias for `View` and will be removed in a future release.
 - `Prop` is the official static-or-reactive prop module.
 - `ReactiveProp` is a deprecated compatibility alias for `Prop`.
-- `View.Text`, `View.Int`, `View.For`, `View.Show`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are preferred in examples, while the deprecated `Node.signalText`, `Node.list`, `Node.keyedList`, `Node.attr`, `ReactiveProp.*`, and `SSRState.make` names remain supported.
+- `View.Text`, `View.Int`, `View.For`, `View.Show`, `View.Attr.*`, `View.each`, `View.eachWithKey`, `Router.location`, and `SSRState.signal` are preferred in examples, while the deprecated `Node.*`, `ReactiveProp.*`, `View.signalText`, `View.signalInt`, `View.signalFloat`, `View.list`, `View.keyedList`, and `SSRState.make` names remain supported.
 
 ### JavaScript and TypeScript
 
@@ -54,11 +54,11 @@ const app = View.element("div", [], [], [
   View.element("h1", [], [], [View.text("Counter")]),
   View.element("p", [], [], [
     View.text("Count: "),
-    View.signalText(() => String(Signal.get(count))),
+    View.Text.make({ children: () => String(Signal.get(count)) }),
   ]),
   View.element("p", [], [], [
     View.text("Doubled: "),
-    View.signalText(() => String(Signal.get(doubled))),
+    View.Text.make({ children: () => String(Signal.get(doubled)) }),
   ]),
   View.element(
     "button",

@@ -65,8 +65,6 @@ Preferred public constructors:
 
 - `View.text("hello")`
 - `View.int(1)`, `View.float(1.5)`, and `View.bool(true)`
-- `View.signalText(() => ...)`
-- `View.signalInt(() => ...)` and `View.signalFloat(() => ...)`
 - `<View.Text value={Prop.t<string>} />`
 - `<View.Int value={Prop.t<int>} />`, `<View.Float value={Prop.t<float>} />`, and `<View.Bool value={Prop.t<bool>} />`
 - `View.fragment(children)`
@@ -82,7 +80,7 @@ Preferred public constructors:
 - `View.mount(node, container)`
 - `View.mountById(node, "root")`
 
-Deprecated `Node.*` entry points remain supported as aliases, including `Node.list` / `Node.keyedList` alongside `View.each` / `View.eachWithKey`.
+Deprecated `Node.*` entry points remain supported as aliases. `View.signalText`, `View.signalInt`, `View.signalFloat`, `View.list`, and `View.keyedList` also remain supported for compatibility; prefer `View.Text`, `View.Int`, `View.Float`, `View.each`, and `View.eachWithKey` in new code.
 
 Rendering is fine-grained:
 

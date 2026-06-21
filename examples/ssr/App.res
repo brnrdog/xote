@@ -5,10 +5,10 @@
 
 /* Shared state factory - creates signals that sync between server and client */
 let makeAppState = () => {
-  /* Using SSRState.make creates the signal and syncs it automatically */
-  let count = SSRState.make("count", 0, SSRState.Codec.int)
+  /* Using SSRState.signal creates the signal and syncs it automatically */
+  let count = SSRState.signal("count", 0, SSRState.Codec.int)
 
-  let items = SSRState.make(
+  let items = SSRState.signal(
     "items",
     ["Apple", "Banana", "Cherry"],
     SSRState.Codec.array(SSRState.Codec.string),
@@ -51,10 +51,7 @@ let app = (count, items, inputValue) =>
           ~children=[
             Html.h2(~children=[View.text("Counter")], ()),
             Html.p(
-              ~children=[
-                View.text("Count: "),
-                View.signalText(() => Signal.get(count)->Int.toString),
-              ],
+              ~children=[View.text("Count: "), View.Int.make({children: () => Signal.get(count)})],
               (),
             ),
             Html.div(
@@ -106,7 +103,7 @@ let app = (count, items, inputValue) =>
             ),
             Html.ul(
               ~attrs=[View.attr("class", "item-list")],
-              ~children=[View.list(items, item => Html.li(~children=[View.text(item)], ()))],
+              ~children=[View.each(items, item => Html.li(~children=[View.text(item)], ()))],
               (),
             ),
           ],
@@ -131,15 +128,17 @@ let app = (count, items, inputValue) =>
                 }),
               ],
               ~children=[
-                View.signalText(() => {
-                  let c = Signal.get(count)
-                  if c > 5 {
-                    "Count is HIGH!"
-                  } else if c < 0 {
-                    "Count is LOW!"
-                  } else {
-                    "Count is normal"
-                  }
+                View.Text.make({
+                  children: () => {
+                    let c = Signal.get(count)
+                    if c > 5 {
+                      "Count is HIGH!"
+                    } else if c < 0 {
+                      "Count is LOW!"
+                    } else {
+                      "Count is normal"
+                    }
+                  },
                 }),
               ],
               (),

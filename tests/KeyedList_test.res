@@ -27,7 +27,7 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                View.keyedList(
+                View.eachWithKey(
                   items,
                   item => item.id,
                   item => Html.li(~children=[View.text(item.label)], ()),
@@ -50,7 +50,7 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                View.keyedList(
+                View.eachWithKey(
                   items,
                   item => item.id,
                   item => Html.li(~children=[View.text(item.label)], ()),
@@ -77,7 +77,7 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                View.keyedList(
+                View.eachWithKey(
                   items,
                   item => item.id,
                   item => Html.li(~children=[View.text(item.label)], ()),
@@ -108,7 +108,7 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                View.keyedList(
+                View.eachWithKey(
                   items,
                   item => item.id,
                   item => Html.li(~children=[View.text(item.label)], ()),
@@ -139,7 +139,7 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                View.keyedList(
+                View.eachWithKey(
                   items,
                   item => item.id,
                   item => Html.li(~children=[View.text(item.label)], ()),
@@ -166,7 +166,7 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                View.keyedList(
+                View.eachWithKey(
                   items,
                   item => item.id,
                   item => Html.li(~children=[View.text(item.label)], ()),
@@ -190,7 +190,7 @@ let suite = Zekr.suite(
           ~children=[
             Html.ul(
               ~children=[
-                View.keyedList(
+                View.eachWithKey(
                   items,
                   item => item.id,
                   item => Html.li(~children=[View.text(item.label)], ()),

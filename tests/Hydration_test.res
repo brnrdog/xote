@@ -15,7 +15,9 @@ let suite = Zekr.suite(
       let count = Signal.make(0)
       let component = () =>
         Html.div(
-          ~children=[View.signalText(() => "Count: " ++ Int.toString(Signal.get(count)))],
+          ~children=[
+            View.Text.make({children: () => "Count: " ++ Int.toString(Signal.get(count))}),
+          ],
           (),
         )
       let ssrHtml = SSR.renderToString(component)

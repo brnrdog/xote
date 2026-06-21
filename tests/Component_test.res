@@ -16,7 +16,7 @@ let suite = Zekr.suite(
     test("renders reactive text that updates when signal changes", () => {
       let {container} = Dom.render("")
       let name = Signal.make("Alice")
-      let _ = mountTo(View.signalText(() => "Hello, " ++ Signal.get(name)), container)
+      let _ = mountTo(View.Text.make({children: () => "Hello, " ++ Signal.get(name)}), container)
       let r1 = Dom.Assert.toHaveTextContent(container, "Hello, Alice")
       Signal.set(name, "Bob")
       let r2 = Dom.Assert.toHaveTextContent(container, "Hello, Bob")
@@ -25,7 +25,7 @@ let suite = Zekr.suite(
     test("renders signalInt", () => {
       let {container} = Dom.render("")
       let count = Signal.make(42)
-      let _ = mountTo(View.signalInt(() => Signal.get(count)), container)
+      let _ = mountTo(View.Int.make({children: () => Signal.get(count)}), container)
       let r1 = Dom.Assert.toHaveTextContent(container, "42")
       Signal.set(count, 99)
       let r2 = Dom.Assert.toHaveTextContent(container, "99")
@@ -34,7 +34,7 @@ let suite = Zekr.suite(
     test("renders signalFloat", () => {
       let {container} = Dom.render("")
       let price = Signal.make(3.14)
-      let _ = mountTo(View.signalFloat(() => Signal.get(price)), container)
+      let _ = mountTo(View.Float.make({children: () => Signal.get(price)}), container)
       Dom.Assert.toHaveTextContent(container, "3.14")
     }),
     test("renders static int and float helpers", () => {
@@ -92,7 +92,7 @@ let suite = Zekr.suite(
               ~children=[View.text("Click me")],
               (),
             ),
-            View.signalInt(() => Signal.get(count)),
+            View.Int.make({children: () => Signal.get(count)}),
           ],
           (),
         ),
@@ -157,7 +157,7 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let items = Signal.make(["Apple", "Banana"])
       let _ = mountTo(
-        Html.div(~children=[View.list(items, item => Html.p(~children=[View.text(item)], ()))], ()),
+        Html.div(~children=[View.each(items, item => Html.p(~children=[View.text(item)], ()))], ()),
         container,
       )
       let r1 = Dom.Assert.toHaveTextContent(container, "AppleBanana")

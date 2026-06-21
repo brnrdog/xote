@@ -525,16 +525,25 @@ module Render = {
 /* Text nodes */
 let text = (content: string): node => Text(content)
 
+@deprecated(
+  "Use View.Text instead. signalText is deprecated and will be removed in a future release."
+)
 let signalText = (compute: unit => string): node => {
   let signal = Computed.make(compute)
   SignalText(signal)
 }
 
+@deprecated(
+  "Use View.Int instead. signalInt is deprecated and will be removed in a future release."
+)
 let signalInt = (compute: unit => int): node => {
   let signal = Computed.make(() => compute()->Int.toString)
   SignalText(signal)
 }
 
+@deprecated(
+  "Use View.Float instead. signalFloat is deprecated and will be removed in a future release."
+)
 let signalFloat = (compute: unit => float): node => {
   let signal = Computed.make(() => compute()->Float.toString)
   SignalText(signal)
@@ -568,6 +577,7 @@ let each = (signal: Signal.t<array<'a>>, renderItem: 'a => node): node => {
   SignalFragment(nodesSignal)
 }
 
+@deprecated("Use View.each instead. list is deprecated and will be removed in a future release.")
 let list = each
 
 let eachWithKey = (
@@ -582,6 +592,9 @@ let eachWithKey = (
   })
 }
 
+@deprecated(
+  "Use View.eachWithKey instead. keyedList is deprecated and will be removed in a future release."
+)
 let keyedList = eachWithKey
 
 /* JSX rendering primitives */
@@ -727,7 +740,7 @@ let valuePrimitive = (value: 'input, stringify: 'value => string): node => {
     switch value->Core.Type.Classify.classify {
     | Function(_) => {
         let compute: unit => 'value = Obj.magic(value)
-        signalText(() => stringify(compute()))
+        SignalText(Computed.make(() => stringify(compute())))
       }
     | Object(_) => {
         let signal: Signal.t<'value> = Obj.magic(value)

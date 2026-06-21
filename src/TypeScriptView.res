@@ -21,13 +21,16 @@ let computedAttr = (key: string, compute: unit => string): (string, attrValue) =
 let text = (content: string): node => Obj.magic(View.text(content))
 
 @genType
-let signalText = (compute: unit => string): node => Obj.magic(View.signalText(compute))
+let signalText = (compute: unit => string): node =>
+  Obj.magic(View.SignalText(Computed.make(compute)))
 
 @genType
-let signalInt = (compute: unit => int): node => Obj.magic(View.signalInt(compute))
+let signalInt = (compute: unit => int): node =>
+  Obj.magic(View.SignalText(Computed.make(() => compute()->Int.toString)))
 
 @genType
-let signalFloat = (compute: unit => float): node => Obj.magic(View.signalFloat(compute))
+let signalFloat = (compute: unit => float): node =>
+  Obj.magic(View.SignalText(Computed.make(() => compute()->Float.toString)))
 
 @genType
 let int = (value: int): node => Obj.magic(View.int(value))
