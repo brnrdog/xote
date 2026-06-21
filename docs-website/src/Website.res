@@ -550,7 +550,7 @@ module App = {
           render: _params =>
             <DocsPage
               currentPath="/docs/changelog"
-              pageTitle="Changelog"
+              pageTitle="Release notes"
               content={MdxDocs.changelog()}
               tocItems=changelogTocItems
             />,
