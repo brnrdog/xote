@@ -35,7 +35,11 @@
       "import": "./src/Html.res.mjs",
       "default": "./src/Html.res.mjs"
     },
-    "./jsx": "./src/XoteJSX.res.mjs",
+    "./jsx": {
+      "types": "./dist/jsx.d.ts",
+      "import": "./src/XoteJSX.res.mjs",
+      "default": "./src/XoteJSX.res.mjs"
+    },
     "./prop": {
       "types": "./dist/prop.d.ts",
       "import": "./src/Prop.res.mjs",
@@ -46,25 +50,41 @@
       "import": "./src/ReactiveProp.res.mjs",
       "default": "./src/ReactiveProp.res.mjs"
     },
-    "./route": "./src/Route.res.mjs",
+    "./route": {
+      "types": "./dist/route.d.ts",
+      "import": "./src/Route.res.mjs",
+      "default": "./src/Route.res.mjs"
+    },
     "./router": {
+      "types": "./dist/router.d.ts",
       "import": "./dist/router.mjs",
       "require": "./dist/router.cjs",
       "default": "./dist/router.mjs"
     },
     "./ssr": {
+      "types": "./dist/ssr.d.ts",
       "import": "./dist/ssr.mjs",
       "require": "./dist/ssr.cjs",
       "default": "./dist/ssr.mjs"
     },
-    "./ssr-context": "./src/SSRContext.res.mjs",
-    "./ssr-state": "./src/SSRState.res.mjs",
+    "./ssr-context": {
+      "types": "./dist/ssr-context.d.ts",
+      "import": "./src/SSRContext.res.mjs",
+      "default": "./src/SSRContext.res.mjs"
+    },
+    "./ssr-state": {
+      "types": "./dist/ssr-state.d.ts",
+      "import": "./src/SSRState.res.mjs",
+      "default": "./src/SSRState.res.mjs"
+    },
     "./hydration": {
+      "types": "./dist/hydration.d.ts",
       "import": "./dist/hydration.mjs",
       "require": "./dist/hydration.cjs",
       "default": "./dist/hydration.mjs"
     },
     "./mdx": {
+      "types": "./dist/mdx.d.ts",
       "import": "./dist/mdx.mjs",
       "require": "./dist/mdx.cjs",
       "default": "./dist/mdx.mjs"
@@ -84,8 +104,16 @@
       "import": "./src/Effect.res.mjs",
       "default": "./src/Effect.res.mjs"
     },
-    "./jsx-runtime": "./src/jsx-runtime.mjs",
-    "./jsx-dev-runtime": "./src/jsx-dev-runtime.mjs",
+    "./jsx-runtime": {
+      "types": "./dist/jsx-runtime.d.ts",
+      "import": "./src/jsx-runtime.mjs",
+      "default": "./src/jsx-runtime.mjs"
+    },
+    "./jsx-dev-runtime": {
+      "types": "./dist/jsx-dev-runtime.d.ts",
+      "import": "./src/jsx-dev-runtime.mjs",
+      "default": "./src/jsx-dev-runtime.mjs"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json",
     "./rescript.json": "./rescript.json"
@@ -113,6 +141,8 @@
     "docs:start": "cd docs-website && npm run dev",
     "docs:build": "cd docs-website && npm run build",
     "docs:serve": "cd docs-website && npm run preview",
+    "example:typescript": "vite --config examples/typescript/vite.config.mjs",
+    "example:typescript:build": "vite build --config examples/typescript/vite.config.mjs",
     "test": "npx rescript && node tests/Tests.res.mjs && node tests/JSXRuntime_test.mjs"
   },
   "keywords": [
