@@ -26,6 +26,15 @@ function slugify(text) {
     .replace(/^-|-$/g, '')
 }
 
+function formatReleaseDate(date) {
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T00:00:00Z`))
+}
+
 function parseInlineMarkdown(text) {
   const parts = []
   let current = ''
@@ -168,6 +177,7 @@ function parseChangelog(markdown) {
         version: releaseMatch[1],
         url: releaseMatch[2],
         date: releaseMatch[3],
+        formattedDate: formatReleaseDate(releaseMatch[3]),
         id: `release-${slugify(releaseMatch[1])}-${releaseMatch[3]}`,
         sections: [],
       }
@@ -228,7 +238,7 @@ function generateRepoData(releases) {
         })
         .join(',\n')
 
-      return `  {\n    version: "${escapeForReScript(release.version)}",\n    url: "${escapeForReScript(release.url)}",\n    date: "${escapeForReScript(release.date)}",\n    id: "${escapeForReScript(release.id)}",\n    sections: [\n${sections}\n    ],\n  }`
+      return `  {\n    version: "${escapeForReScript(release.version)}",\n    url: "${escapeForReScript(release.url)}",\n    date: "${escapeForReScript(release.date)}",\n    formattedDate: "${escapeForReScript(release.formattedDate)}",\n    id: "${escapeForReScript(release.id)}",\n    sections: [\n${sections}\n    ],\n  }`
     })
     .join(',\n')
 
@@ -250,6 +260,7 @@ type release = {
   version: string,
   url: string,
   date: string,
+  formattedDate: string,
   id: string,
   sections: array<releaseSection>,
 }
@@ -257,6 +268,7 @@ type release = {
 let sourceUrl = "${CHANGELOG_SOURCE_URL}"
 let latestVersion = "${escapeForReScript(latest.version)}"
 let latestReleaseDate = "${escapeForReScript(latest.date)}"
+let latestReleaseFormattedDate = "${escapeForReScript(latest.formattedDate)}"
 
 let releases: array<release> = [
 ${releaseEntries}

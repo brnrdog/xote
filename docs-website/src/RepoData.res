@@ -16,6 +16,7 @@ type release = {
   version: string,
   url: string,
   date: string,
+  formattedDate: string,
   id: string,
   sections: array<releaseSection>,
 }
@@ -23,12 +24,14 @@ type release = {
 let sourceUrl = "https://github.com/brnrdog/xote/blob/main/docs/CHANGELOG.md"
 let latestVersion = "6.4.0"
 let latestReleaseDate = "2026-05-20"
+let latestReleaseFormattedDate = "May 20, 2026"
 
 let releases: array<release> = [
   {
     version: "6.4.0",
     url: "https://github.com/brnrdog/xote/compare/v6.3.0...v6.4.0",
     date: "2026-05-20",
+    formattedDate: "May 20, 2026",
     id: "release-6-4-0-2026-05-20",
     sections: [
       {
@@ -57,6 +60,7 @@ let releases: array<release> = [
     version: "6.3.0",
     url: "https://github.com/brnrdog/xote/compare/v6.2.0...v6.3.0",
     date: "2026-05-12",
+    formattedDate: "May 12, 2026",
     id: "release-6-3-0-2026-05-12",
     sections: [
       {
@@ -75,6 +79,7 @@ let releases: array<release> = [
     version: "6.2.0",
     url: "https://github.com/brnrdog/xote/compare/v6.1.2...v6.2.0",
     date: "2026-04-26",
+    formattedDate: "Apr 26, 2026",
     id: "release-6-2-0-2026-04-26",
     sections: [
       {
@@ -108,6 +113,7 @@ let releases: array<release> = [
     version: "6.1.2",
     url: "https://github.com/brnrdog/xote/compare/v6.1.1...v6.1.2",
     date: "2026-04-25",
+    formattedDate: "Apr 25, 2026",
     id: "release-6-1-2-2026-04-25",
     sections: [
       {
@@ -126,6 +132,7 @@ let releases: array<release> = [
     version: "6.1.1",
     url: "https://github.com/brnrdog/xote/compare/v6.1.0...v6.1.1",
     date: "2026-04-25",
+    formattedDate: "Apr 25, 2026",
     id: "release-6-1-1-2026-04-25",
     sections: [
       {
@@ -144,6 +151,7 @@ let releases: array<release> = [
     version: "6.1.1",
     url: "https://github.com/brnrdog/xote/compare/v6.1.0...v6.1.1",
     date: "2026-04-21",
+    formattedDate: "Apr 21, 2026",
     id: "release-6-1-1-2026-04-21",
     sections: [
       {
@@ -162,6 +170,7 @@ let releases: array<release> = [
     version: "6.1.0",
     url: "https://github.com/brnrdog/xote/compare/v6.0.1...v6.1.0",
     date: "2026-04-10",
+    formattedDate: "Apr 10, 2026",
     id: "release-6-1-0-2026-04-10",
     sections: [
       {
@@ -180,6 +189,7 @@ let releases: array<release> = [
     version: "6.0.1",
     url: "https://github.com/brnrdog/xote/compare/v6.0.0...v6.0.1",
     date: "2026-04-09",
+    formattedDate: "Apr 9, 2026",
     id: "release-6-0-1-2026-04-09",
     sections: [
       {
@@ -198,6 +208,7 @@ let releases: array<release> = [
     version: "6.0.0",
     url: "https://github.com/brnrdog/xote/compare/v5.0.0...v6.0.0",
     date: "2026-04-08",
+    formattedDate: "Apr 8, 2026",
     id: "release-6-0-0-2026-04-08",
     sections: [
       {
@@ -341,6 +352,7 @@ let releases: array<release> = [
     version: "5.0.0",
     url: "https://github.com/brnrdog/xote/compare/v4.16.1...v5.0.0",
     date: "2026-04-04",
+    formattedDate: "Apr 4, 2026",
     id: "release-5-0-0-2026-04-04",
     sections: [
       {
@@ -367,6 +379,7 @@ let releases: array<release> = [
     version: "4.16.1",
     url: "https://github.com/brnrdog/xote/compare/v4.16.0...v4.16.1",
     date: "2026-03-13",
+    formattedDate: "Mar 13, 2026",
     id: "release-4-16-1-2026-03-13",
     sections: [
       {
@@ -387,6 +400,7 @@ let releases: array<release> = [
     version: "4.16.0",
     url: "https://github.com/brnrdog/xote/compare/v4.15.3...v4.16.0",
     date: "2026-03-12",
+    formattedDate: "Mar 12, 2026",
     id: "release-4-16-0-2026-03-12",
     sections: [
       {
@@ -405,6 +419,7 @@ let releases: array<release> = [
     version: "4.15.3",
     url: "https://github.com/brnrdog/xote/compare/v4.15.2...v4.15.3",
     date: "2026-03-12",
+    formattedDate: "Mar 12, 2026",
     id: "release-4-15-3-2026-03-12",
     sections: [
       {
@@ -423,6 +438,7 @@ let releases: array<release> = [
     version: "4.15.2",
     url: "https://github.com/brnrdog/xote/compare/v4.15.1...v4.15.2",
     date: "2026-03-12",
+    formattedDate: "Mar 12, 2026",
     id: "release-4-15-2-2026-03-12",
     sections: [
       {
@@ -443,6 +459,7 @@ let releases: array<release> = [
     version: "4.15.1",
     url: "https://github.com/brnrdog/xote/compare/v4.15.0...v4.15.1",
     date: "2026-03-07",
+    formattedDate: "Mar 7, 2026",
     id: "release-4-15-1-2026-03-07",
     sections: [
       {
@@ -461,6 +478,7 @@ let releases: array<release> = [
     version: "4.15.0",
     url: "https://github.com/brnrdog/xote/compare/v4.14.0...v4.15.0",
     date: "2026-03-04",
+    formattedDate: "Mar 4, 2026",
     id: "release-4-15-0-2026-03-04",
     sections: [
       {
@@ -479,6 +497,7 @@ let releases: array<release> = [
     version: "4.14.0",
     url: "https://github.com/brnrdog/xote/compare/v4.13.0...v4.14.0",
     date: "2026-03-01",
+    formattedDate: "Mar 1, 2026",
     id: "release-4-14-0-2026-03-01",
     sections: [
       {
@@ -497,6 +516,7 @@ let releases: array<release> = [
     version: "4.13.0",
     url: "https://github.com/brnrdog/xote/compare/v4.12.0...v4.13.0",
     date: "2026-02-28",
+    formattedDate: "Feb 28, 2026",
     id: "release-4-13-0-2026-02-28",
     sections: [
       {
@@ -516,6 +536,7 @@ let releases: array<release> = [
     version: "4.12.0",
     url: "https://github.com/brnrdog/xote/compare/v4.11.0...v4.12.0",
     date: "2026-02-28",
+    formattedDate: "Feb 28, 2026",
     id: "release-4-12-0-2026-02-28",
     sections: [
       {
@@ -537,6 +558,7 @@ let releases: array<release> = [
     version: "4.11.0",
     url: "https://github.com/brnrdog/xote/compare/v4.10.1...v4.11.0",
     date: "2026-01-22",
+    formattedDate: "Jan 22, 2026",
     id: "release-4-11-0-2026-01-22",
     sections: [
       {
@@ -555,6 +577,7 @@ let releases: array<release> = [
     version: "4.10.1",
     url: "https://github.com/brnrdog/xote/compare/v4.10.0...v4.10.1",
     date: "2026-01-10",
+    formattedDate: "Jan 10, 2026",
     id: "release-4-10-1-2026-01-10",
     sections: [
       {
@@ -573,6 +596,7 @@ let releases: array<release> = [
     version: "4.10.0",
     url: "https://github.com/brnrdog/xote/compare/v4.9.0...v4.10.0",
     date: "2026-01-10",
+    formattedDate: "Jan 10, 2026",
     id: "release-4-10-0-2026-01-10",
     sections: [
       {
@@ -592,6 +616,7 @@ let releases: array<release> = [
     version: "4.9.0",
     url: "https://github.com/brnrdog/xote/compare/v4.8.0...v4.9.0",
     date: "2026-01-06",
+    formattedDate: "Jan 6, 2026",
     id: "release-4-9-0-2026-01-06",
     sections: [
       {
@@ -611,6 +636,7 @@ let releases: array<release> = [
     version: "4.8.0",
     url: "https://github.com/brnrdog/xote/compare/v4.7.0...v4.8.0",
     date: "2025-12-31",
+    formattedDate: "Dec 31, 2025",
     id: "release-4-8-0-2025-12-31",
     sections: [
       {
@@ -630,6 +656,7 @@ let releases: array<release> = [
     version: "4.7.0",
     url: "https://github.com/brnrdog/xote/compare/v4.6.0...v4.7.0",
     date: "2025-12-29",
+    formattedDate: "Dec 29, 2025",
     id: "release-4-7-0-2025-12-29",
     sections: [
       {
@@ -655,6 +682,7 @@ let releases: array<release> = [
     version: "4.6.0",
     url: "https://github.com/brnrdog/xote/compare/v4.5.0...v4.6.0",
     date: "2025-12-29",
+    formattedDate: "Dec 29, 2025",
     id: "release-4-6-0-2025-12-29",
     sections: [
       {
@@ -673,6 +701,7 @@ let releases: array<release> = [
     version: "4.5.0",
     url: "https://github.com/brnrdog/xote/compare/v4.4.3...v4.5.0",
     date: "2025-12-29",
+    formattedDate: "Dec 29, 2025",
     id: "release-4-5-0-2025-12-29",
     sections: [
       {
@@ -691,6 +720,7 @@ let releases: array<release> = [
     version: "4.4.3",
     url: "https://github.com/brnrdog/xote/compare/v4.4.2...v4.4.3",
     date: "2025-12-20",
+    formattedDate: "Dec 20, 2025",
     id: "release-4-4-3-2025-12-20",
     sections: [
       {
@@ -710,6 +740,7 @@ let releases: array<release> = [
     version: "4.4.2",
     url: "https://github.com/brnrdog/xote/compare/v4.4.1...v4.4.2",
     date: "2025-12-20",
+    formattedDate: "Dec 20, 2025",
     id: "release-4-4-2-2025-12-20",
     sections: [
       {
@@ -729,6 +760,7 @@ let releases: array<release> = [
     version: "4.4.1",
     url: "https://github.com/brnrdog/xote/compare/v4.4.0...v4.4.1",
     date: "2025-12-20",
+    formattedDate: "Dec 20, 2025",
     id: "release-4-4-1-2025-12-20",
     sections: [
       {
@@ -748,6 +780,7 @@ let releases: array<release> = [
     version: "4.4.0",
     url: "https://github.com/brnrdog/xote/compare/v4.3.1...v4.4.0",
     date: "2025-12-19",
+    formattedDate: "Dec 19, 2025",
     id: "release-4-4-0-2025-12-19",
     sections: [
       {
@@ -773,6 +806,7 @@ let releases: array<release> = [
     version: "4.3.1",
     url: "https://github.com/brnrdog/xote/compare/v4.3.0...v4.3.1",
     date: "2025-12-18",
+    formattedDate: "Dec 18, 2025",
     id: "release-4-3-1-2025-12-18",
     sections: [
       {
@@ -791,6 +825,7 @@ let releases: array<release> = [
     version: "4.3.0",
     url: "https://github.com/brnrdog/xote/compare/v4.2.0...v4.3.0",
     date: "2025-12-15",
+    formattedDate: "Dec 15, 2025",
     id: "release-4-3-0-2025-12-15",
     sections: [
       {
@@ -809,6 +844,7 @@ let releases: array<release> = [
     version: "4.2.0",
     url: "https://github.com/brnrdog/xote/compare/v4.1.1...v4.2.0",
     date: "2025-12-14",
+    formattedDate: "Dec 14, 2025",
     id: "release-4-2-0-2025-12-14",
     sections: [
       {
@@ -830,6 +866,7 @@ let releases: array<release> = [
     version: "4.1.1",
     url: "https://github.com/brnrdog/xote/compare/v4.1.0...v4.1.1",
     date: "2025-12-14",
+    formattedDate: "Dec 14, 2025",
     id: "release-4-1-1-2025-12-14",
     sections: [
       {
@@ -849,6 +886,7 @@ let releases: array<release> = [
     version: "4.1.0",
     url: "https://github.com/brnrdog/xote/compare/v4.0.0...v4.1.0",
     date: "2025-12-05",
+    formattedDate: "Dec 5, 2025",
     id: "release-4-1-0-2025-12-05",
     sections: [
       {
@@ -867,6 +905,7 @@ let releases: array<release> = [
     version: "4.0.0",
     url: "https://github.com/brnrdog/xote/compare/v3.0.0...v4.0.0",
     date: "2025-12-02",
+    formattedDate: "Dec 2, 2025",
     id: "release-4-0-0-2025-12-02",
     sections: [
       {
@@ -893,6 +932,7 @@ let releases: array<release> = [
     version: "3.0.0",
     url: "https://github.com/brnrdog/xote/compare/v2.0.0...v3.0.0",
     date: "2025-11-28",
+    formattedDate: "Nov 28, 2025",
     id: "release-3-0-0-2025-11-28",
     sections: [
       {
@@ -972,6 +1012,7 @@ let releases: array<release> = [
     version: "2.0.0",
     url: "https://github.com/brnrdog/xote/compare/v1.3.3...v2.0.0",
     date: "2025-11-27",
+    formattedDate: "Nov 27, 2025",
     id: "release-2-0-0-2025-11-27",
     sections: [
       {
@@ -1003,6 +1044,7 @@ let releases: array<release> = [
     version: "1.3.3",
     url: "https://github.com/brnrdog/xote/compare/v1.3.2...v1.3.3",
     date: "2025-11-26",
+    formattedDate: "Nov 26, 2025",
     id: "release-1-3-3-2025-11-26",
     sections: [
       {
@@ -1021,6 +1063,7 @@ let releases: array<release> = [
     version: "1.3.2",
     url: "https://github.com/brnrdog/xote/compare/v1.3.1...v1.3.2",
     date: "2025-11-24",
+    formattedDate: "Nov 24, 2025",
     id: "release-1-3-2-2025-11-24",
     sections: [
       {
@@ -1045,6 +1088,7 @@ let releases: array<release> = [
     version: "1.3.1",
     url: "https://github.com/brnrdog/xote/compare/v1.3.0...v1.3.1",
     date: "2025-11-21",
+    formattedDate: "Nov 21, 2025",
     id: "release-1-3-1-2025-11-21",
     sections: [
       {
@@ -1063,6 +1107,7 @@ let releases: array<release> = [
     version: "1.3.0",
     url: "https://github.com/brnrdog/xote/compare/v1.2.1...v1.3.0",
     date: "2025-11-21",
+    formattedDate: "Nov 21, 2025",
     id: "release-1-3-0-2025-11-21",
     sections: [
       {
@@ -1081,6 +1126,7 @@ let releases: array<release> = [
     version: "1.2.1",
     url: "https://github.com/brnrdog/xote/compare/v1.2.0...v1.2.1",
     date: "2025-11-19",
+    formattedDate: "Nov 19, 2025",
     id: "release-1-2-1-2025-11-19",
     sections: [
       {
@@ -1099,6 +1145,7 @@ let releases: array<release> = [
     version: "1.2.0",
     url: "https://github.com/brnrdog/xote/compare/v1.1.0...v1.2.0",
     date: "2025-11-19",
+    formattedDate: "Nov 19, 2025",
     id: "release-1-2-0-2025-11-19",
     sections: [
       {
@@ -1117,6 +1164,7 @@ let releases: array<release> = [
     version: "1.1.0",
     url: "https://github.com/brnrdog/xote/compare/v1.0.1...v1.1.0",
     date: "2025-11-18",
+    formattedDate: "Nov 18, 2025",
     id: "release-1-1-0-2025-11-18",
     sections: [
       {
@@ -1160,6 +1208,7 @@ let releases: array<release> = [
     version: "1.0.1",
     url: "https://github.com/brnrdog/xote/compare/v1.0.0...v1.0.1",
     date: "2025-11-02",
+    formattedDate: "Nov 2, 2025",
     id: "release-1-0-1-2025-11-02",
     sections: [
       {
@@ -1257,6 +1306,7 @@ let releases: array<release> = [
     version: "1.1.0",
     url: "https://github.com/brnrdog/xote/compare/v1.0.3...v1.1.0",
     date: "2025-11-02",
+    formattedDate: "Nov 2, 2025",
     id: "release-1-1-0-2025-11-02",
     sections: [
       {
@@ -1294,6 +1344,7 @@ let releases: array<release> = [
     version: "1.1.0",
     url: "https://github.com/brnrdog/xote/compare/v1.0.3...v1.1.0",
     date: "2025-11-01",
+    formattedDate: "Nov 1, 2025",
     id: "release-1-1-0-2025-11-01",
     sections: [
       {
@@ -1325,6 +1376,7 @@ let releases: array<release> = [
     version: "1.1.0",
     url: "https://github.com/brnrdog/xote/compare/v1.0.3...v1.1.0",
     date: "2025-10-31",
+    formattedDate: "Oct 31, 2025",
     id: "release-1-1-0-2025-10-31",
     sections: [
       {
@@ -1344,6 +1396,7 @@ let releases: array<release> = [
     version: "1.0.3",
     url: "https://github.com/brnrdog/xote/compare/v1.0.2...v1.0.3",
     date: "2025-10-31",
+    formattedDate: "Oct 31, 2025",
     id: "release-1-0-3-2025-10-31",
     sections: [
       {
@@ -1367,6 +1420,7 @@ let releases: array<release> = [
     version: "1.0.2",
     url: "https://github.com/brnrdog/xote/compare/v1.0.1...v1.0.2",
     date: "2025-10-30",
+    formattedDate: "Oct 30, 2025",
     id: "release-1-0-2-2025-10-30",
     sections: [
       {
@@ -1385,6 +1439,7 @@ let releases: array<release> = [
     version: "1.0.1",
     url: "https://github.com/brnrdog/xote/compare/v1.0.0...v1.0.1",
     date: "2025-10-30",
+    formattedDate: "Oct 30, 2025",
     id: "release-1-0-1-2025-10-30",
     sections: [
       {
