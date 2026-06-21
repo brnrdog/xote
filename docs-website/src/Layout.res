@@ -98,7 +98,7 @@ let searchItems: array<searchItem> = [
     section: "Getting Started",
   },
   {
-    title: "JavaScript and TypeScript",
+    title: "JavaScript Runtime",
     path: "/docs/getting-started/javascript-typescript",
     section: "Getting Started",
   },

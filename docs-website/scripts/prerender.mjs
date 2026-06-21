@@ -46,9 +46,9 @@ const routes = [
   },
   {
     path: '/docs/getting-started/javascript-typescript',
-    title: 'JavaScript and TypeScript - xote Docs',
+    title: 'JavaScript Runtime - xote Docs',
     description:
-      'Use xote from JavaScript and TypeScript projects with focused package entries and runtime view constructors.',
+      'Use xote from JavaScript projects with focused package entries and runtime view constructors.',
     section: 'Getting Started',
     priority: '0.8',
   },

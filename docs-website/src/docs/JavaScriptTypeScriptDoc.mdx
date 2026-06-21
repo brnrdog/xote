@@ -1,6 +1,6 @@
-Xote is a ReScript-first library, but the package also ships JavaScript modules that can be imported by JavaScript and TypeScript applications.
+Xote is a ReScript-first library, but the package also ships JavaScript modules that can be imported by JavaScript applications.
 
-The main difference is syntax: ReScript projects usually use Xote's JSX integration, while JavaScript and TypeScript projects should use the runtime constructors directly.
+The main difference is syntax: ReScript projects usually use Xote's JSX integration, while JavaScript projects should use the runtime constructors directly.
 
 ## Install
 
@@ -65,35 +65,6 @@ View.mountById(app, "app");
 
 The reactive reads happen inside `Computed.make`, `Effect.run`, and `View.signalText`. When `count` changes, the text nodes update in place.
 
-## TypeScript Setup
-
-Xote does not currently ship first-party TypeScript declaration files. If your TypeScript project rejects untyped packages, add an app-level declaration file:
-
-```ts
-// src/xote.d.ts
-declare module "xote/client";
-declare module "xote/router";
-declare module "xote/ssr";
-declare module "xote/hydration";
-declare module "xote/mdx";
-```
-
-After that, import the same runtime modules from TypeScript:
-
-```ts
-import { Signal, View } from "xote/client";
-
-const message = Signal.make("Hello from TypeScript");
-
-const app = View.element("p", [], [], [
-  View.signalText(() => Signal.get(message)),
-]);
-
-View.mountById(app, "app");
-```
-
-This keeps the TypeScript compiler unblocked, but the imported Xote modules are typed as `any`. For fully typed Xote components, use ReScript source files and import the compiled JavaScript into the rest of the app.
-
 ## Working with Existing Apps
 
 Xote can be mounted into any existing DOM node:
@@ -116,4 +87,4 @@ View.mountById(
 );
 ```
 
-That makes JavaScript and TypeScript usage a good fit for small widgets, gradual adoption, and integration tests around the compiled runtime. New full applications should still prefer ReScript so the JSX and type system work together.
+That makes JavaScript usage a good fit for small widgets, gradual adoption, and integration tests around the compiled runtime. New full applications should still prefer ReScript so the JSX and type system work together.
