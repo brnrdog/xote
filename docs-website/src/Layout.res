@@ -522,9 +522,9 @@ module Footer = {
       <div class="footer-inner">
         <div class="footer-grid">
           <div class="footer-brand">
-            <h4 class="footer-brand-name">
+            <h2 class="footer-brand-name">
               <span class="logo-text"> {View.text("xote")} </span>
-            </h4>
+            </h2>
             <p>
               {View.text(
                 "A ReScript Library for Interactive User Interfaces",
@@ -532,7 +532,7 @@ module Footer = {
             </p>
           </div>
           <div class="footer-col">
-            <h4> {View.text("Docs")} </h4>
+            <h3> {View.text("Docs")} </h3>
             <ul>
               <li>
                 {Router.link(~to="/docs", ~children=[View.text("Introduction")], ())}
@@ -557,7 +557,7 @@ module Footer = {
             </ul>
           </div>
           <div class="footer-col">
-            <h4> {View.text("Community")} </h4>
+            <h3> {View.text("Community")} </h3>
             <ul>
               <li>
                 <a href="https://github.com/brnrdog/xote" target="_blank">
