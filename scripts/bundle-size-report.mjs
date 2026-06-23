@@ -15,7 +15,80 @@ const artifactMetadata = {
     format: "UMD",
     consumer: "Browser global",
   },
+  "client.mjs": {
+    format: "ESM",
+    consumer: "`xote/client` import",
+  },
+  "client.cjs": {
+    format: "CommonJS",
+    consumer: "`xote/client` require",
+  },
+  "router.mjs": {
+    format: "ESM",
+    consumer: "`xote/router` import",
+  },
+  "router.cjs": {
+    format: "CommonJS",
+    consumer: "`xote/router` require",
+  },
+  "ssr.mjs": {
+    format: "ESM",
+    consumer: "`xote/ssr` import",
+  },
+  "ssr.cjs": {
+    format: "CommonJS",
+    consumer: "`xote/ssr` require",
+  },
+  "hydration.mjs": {
+    format: "ESM",
+    consumer: "`xote/hydration` import",
+  },
+  "hydration.cjs": {
+    format: "CommonJS",
+    consumer: "`xote/hydration` require",
+  },
+  "mdx.mjs": {
+    format: "ESM",
+    consumer: "`xote/mdx` import",
+  },
+  "mdx.cjs": {
+    format: "CommonJS",
+    consumer: "`xote/mdx` require",
+  },
 };
+
+const reportGroups = [
+  {
+    entry: "Root",
+    importPath: "`xote`",
+    files: { esm: "xote.mjs", cjs: "xote.cjs", umd: "xote.umd.js" },
+  },
+  {
+    entry: "Client",
+    importPath: "`xote/client`",
+    files: { esm: "client.mjs", cjs: "client.cjs" },
+  },
+  {
+    entry: "Router",
+    importPath: "`xote/router`",
+    files: { esm: "router.mjs", cjs: "router.cjs" },
+  },
+  {
+    entry: "SSR",
+    importPath: "`xote/ssr`",
+    files: { esm: "ssr.mjs", cjs: "ssr.cjs" },
+  },
+  {
+    entry: "Hydration",
+    importPath: "`xote/hydration`",
+    files: { esm: "hydration.mjs", cjs: "hydration.cjs" },
+  },
+  {
+    entry: "MDX",
+    importPath: "`xote/mdx`",
+    files: { esm: "mdx.mjs", cjs: "mdx.cjs" },
+  },
+];
 
 function parseArgs(args) {
   const options = {
@@ -110,7 +183,21 @@ function escapeMarkdownCell(value) {
 }
 
 function compareArtifacts(left, right) {
-  const order = ["xote.mjs", "xote.cjs", "xote.umd.js"];
+  const order = [
+    "xote.mjs",
+    "xote.cjs",
+    "xote.umd.js",
+    "client.mjs",
+    "client.cjs",
+    "router.mjs",
+    "router.cjs",
+    "ssr.mjs",
+    "ssr.cjs",
+    "hydration.mjs",
+    "hydration.cjs",
+    "mdx.mjs",
+    "mdx.cjs",
+  ];
   const leftIndex = order.indexOf(left.name);
   const rightIndex = order.indexOf(right.name);
 
@@ -139,6 +226,7 @@ async function makeSnapshot({ distDir, packageJsonPath }) {
       const contents = await readFile(filePath);
       const fileStat = await stat(filePath);
       const name = path.relative(resolvedDistDir, filePath);
+      const isPublicArtifact = Object.prototype.hasOwnProperty.call(artifactMetadata, name);
       const metadata = artifactMetadata[name] ?? {
         format: path.extname(name).slice(1).toUpperCase() || "File",
         consumer: "Additional artifact",
@@ -146,6 +234,7 @@ async function makeSnapshot({ distDir, packageJsonPath }) {
 
       return {
         name,
+        isPublicArtifact,
         ...metadata,
         raw: fileStat.size,
         gzip: gzipSync(contents, { level: 9 }).length,
@@ -164,57 +253,120 @@ async function makeSnapshot({ distDir, packageJsonPath }) {
   };
 }
 
-function renderCurrentTable(snapshot) {
+function summarizeSharedChunks(files) {
+  const sharedChunks = files.filter((row) => !row.isPublicArtifact);
+
+  if (sharedChunks.length === 0) {
+    return null;
+  }
+
+  return {
+    name: `shared chunks (${sharedChunks.length} files)`,
+    isPublicArtifact: false,
+    count: sharedChunks.length,
+    format: "Rollup chunks",
+    consumer: "Shared internal output",
+    raw: sharedChunks.reduce((total, row) => total + row.raw, 0),
+    gzip: sharedChunks.reduce((total, row) => total + row.gzip, 0),
+    brotli: sharedChunks.reduce((total, row) => total + row.brotli, 0),
+  };
+}
+
+function rowsByFile(snapshot) {
+  return new Map(snapshot.files.map((row) => [row.name, row]));
+}
+
+function formatCurrentGzip(row) {
+  return row ? formatBytes(row.gzip) : "-";
+}
+
+function formatComparisonGzip(base, head) {
+  if (base && head) {
+    return `${formatBytes(head.gzip)} (${formatDelta(head.gzip - base.gzip)})`;
+  }
+
+  if (head) {
+    return `${formatBytes(head.gzip)} (new)`;
+  }
+
+  if (base) {
+    return "removed";
+  }
+
+  return "-";
+}
+
+function renderSharedCurrent(snapshot) {
+  const shared = summarizeSharedChunks(snapshot.files);
+
+  if (!shared) {
+    return [];
+  }
+
   return [
-    "| Artifact | Format | Consumer | Raw | Gzip | Brotli |",
-    "| --- | --- | --- | ---: | ---: | ---: |",
-    ...snapshot.files.map(
-      (row) =>
-        `| \`${escapeMarkdownCell(row.name)}\` | ${escapeMarkdownCell(row.format)} | ${row.consumer} | ${formatBytes(
-          row.raw
-        )} | ${formatBytes(row.gzip)} | ${formatBytes(row.brotli)} |`
-    ),
+    "",
+    `Shared Rollup chunks: ${formatBytes(shared.gzip)} gzip (${formatBytes(shared.raw)} raw) across ${shared.count} files.`,
+  ];
+}
+
+function renderSharedComparison({ baseline, current }) {
+  const base = summarizeSharedChunks(baseline.files);
+  const head = summarizeSharedChunks(current.files);
+
+  if (!base && !head) {
+    return [];
+  }
+
+  return [
+    "",
+    `Shared Rollup chunks: ${formatComparisonGzip(base, head)} gzip across ${head?.count ?? 0} files.`,
+  ];
+}
+
+function renderCurrentTable(snapshot) {
+  const byFile = rowsByFile(snapshot);
+
+  return [
+    "| Entry | Import | ESM gzip | CJS gzip | UMD gzip |",
+    "| --- | --- | ---: | ---: | ---: |",
+    ...reportGroups.map((group) => {
+      const esm = byFile.get(group.files.esm);
+      const cjs = byFile.get(group.files.cjs);
+      const umd = group.files.umd ? byFile.get(group.files.umd) : null;
+
+      return `| ${group.entry} | ${group.importPath} | ${formatCurrentGzip(esm)} | ${formatCurrentGzip(
+        cjs
+      )} | ${formatCurrentGzip(umd)} |`;
+    }),
+    ...renderSharedCurrent(snapshot),
+    "",
+    "Raw, Brotli, and per-file chunk details are available in the JSON report.",
   ];
 }
 
 function renderComparisonTable({ baseline, current, baselineLabel, currentLabel }) {
-  const rowsByName = new Map();
-
-  for (const row of baseline.files) {
-    rowsByName.set(row.name, { baseline: row, current: null });
-  }
-
-  for (const row of current.files) {
-    const existing = rowsByName.get(row.name) ?? { baseline: null, current: null };
-    existing.current = row;
-    rowsByName.set(row.name, existing);
-  }
-
-  const rows = Array.from(rowsByName.entries())
-    .map(([name, values]) => ({
-      name,
-      format: values.current?.format ?? values.baseline?.format ?? "",
-      consumer: values.current?.consumer ?? values.baseline?.consumer ?? "",
-      ...values,
-    }))
-    .sort(compareArtifacts);
+  const baselineByFile = rowsByFile(baseline);
+  const currentByFile = rowsByFile(current);
 
   return [
-    `| Artifact | Format | Consumer | Raw (${baselineLabel}) | Raw (${currentLabel}) | Δ Raw | Gzip (${baselineLabel}) | Gzip (${currentLabel}) | Δ Gzip | Brotli (${baselineLabel}) | Brotli (${currentLabel}) | Δ Brotli |`,
-    "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
-    ...rows.map(({ name, format, consumer, baseline: base, current: head }) => {
-      const rawDelta = base && head ? formatDelta(head.raw - base.raw) : head ? "new" : "removed";
-      const gzipDelta = base && head ? formatDelta(head.gzip - base.gzip) : head ? "new" : "removed";
-      const brotliDelta = base && head ? formatDelta(head.brotli - base.brotli) : head ? "new" : "removed";
+    `| Entry | Import | ESM gzip (${currentLabel}, Δ vs ${baselineLabel}) | CJS gzip (${currentLabel}, Δ vs ${baselineLabel}) | UMD gzip (${currentLabel}, Δ vs ${baselineLabel}) |`,
+    "| --- | --- | ---: | ---: | ---: |",
+    ...reportGroups.map((group) => {
+      const baseEsm = baselineByFile.get(group.files.esm);
+      const headEsm = currentByFile.get(group.files.esm);
+      const baseCjs = baselineByFile.get(group.files.cjs);
+      const headCjs = currentByFile.get(group.files.cjs);
+      const baseUmd = group.files.umd ? baselineByFile.get(group.files.umd) : null;
+      const headUmd = group.files.umd ? currentByFile.get(group.files.umd) : null;
 
-      return `| \`${escapeMarkdownCell(name)}\` | ${escapeMarkdownCell(format)} | ${consumer} | ${
-        base ? formatBytes(base.raw) : "-"
-      } | ${head ? formatBytes(head.raw) : "-"} | ${rawDelta} | ${
-        base ? formatBytes(base.gzip) : "-"
-      } | ${head ? formatBytes(head.gzip) : "-"} | ${gzipDelta} | ${
-        base ? formatBytes(base.brotli) : "-"
-      } | ${head ? formatBytes(head.brotli) : "-"} | ${brotliDelta} |`;
+      return `| ${group.entry} | ${group.importPath} | ${formatComparisonGzip(
+        baseEsm,
+        headEsm
+      )} | ${formatComparisonGzip(baseCjs, headCjs)} | ${formatComparisonGzip(baseUmd, headUmd)} |`;
     }),
+    ...renderSharedComparison({ baseline, current }),
+    "",
+    "Raw, Brotli, and per-file chunk details are available in the JSON report.",
   ];
 }
 
