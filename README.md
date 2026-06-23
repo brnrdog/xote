@@ -236,6 +236,10 @@ let count = SSRState.signal("count", 0, SSRState.Codec.int)
 
 Check the [website](https://brnrdog.github.io/xote/) for more comprehensive documentations about Xote and Signals.
 
+## Releasing
+
+Releases are automated with semantic-release and published to npm. See [docs/RELEASING.md](docs/RELEASING.md) for the stable and beta channels and the release flow.
+
 ## License
 
 LGPL v3 
