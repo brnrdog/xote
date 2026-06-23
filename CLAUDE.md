@@ -222,7 +222,7 @@ The `DOM.setAttrOrProp` helper (in `Node.res`) handles the distinction between H
 
 10. **Exception safety**: The scheduler and observer execution is wrapped in try/catch blocks to ensure tracking state is always restored, even when exceptions are thrown.
 
-11. **ReScript compilation required**: Always compile ReScript before building with Vite. Vite entry points come from the per-module compiled `.res.mjs` files in `src/` (e.g. `src/Node.res.mjs`), and the aggregated bundle entry is `src/index.mjs`.
+11. **ReScript compilation required**: Always compile ReScript before building with Vite. Vite entry points consume the per-module compiled `.res.mjs` files in `src/` (e.g. `src/View.res.mjs`). Hand-written package-entry glue lives in `entries/` so maintained source modules in `src/` stay ReScript-first.
 
 12. **Owner-based cleanup**: Reactive state (effects, computeds) is tracked per-DOM-element via the owner system. When elements are removed, their owners are disposed recursively, preventing memory leaks.
 

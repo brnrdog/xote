@@ -12,6 +12,11 @@
       "require": "./dist/xote.cjs",
       "default": "./dist/xote.mjs"
     },
+    "./client": {
+      "import": "./dist/client.mjs",
+      "require": "./dist/client.cjs",
+      "default": "./dist/client.mjs"
+    },
     "./view": "./src/View.res.mjs",
     "./node": "./src/Node.res.mjs",
     "./html": "./src/Html.res.mjs",
@@ -19,12 +24,28 @@
     "./prop": "./src/Prop.res.mjs",
     "./reactive-prop": "./src/ReactiveProp.res.mjs",
     "./route": "./src/Route.res.mjs",
-    "./router": "./src/Router.res.mjs",
-    "./ssr": "./src/SSR.res.mjs",
+    "./router": {
+      "import": "./dist/router.mjs",
+      "require": "./dist/router.cjs",
+      "default": "./dist/router.mjs"
+    },
+    "./ssr": {
+      "import": "./dist/ssr.mjs",
+      "require": "./dist/ssr.cjs",
+      "default": "./dist/ssr.mjs"
+    },
     "./ssr-context": "./src/SSRContext.res.mjs",
     "./ssr-state": "./src/SSRState.res.mjs",
-    "./hydration": "./src/Hydration.res.mjs",
-    "./mdx": "./src/Mdx.res.mjs",
+    "./hydration": {
+      "import": "./dist/hydration.mjs",
+      "require": "./dist/hydration.cjs",
+      "default": "./dist/hydration.mjs"
+    },
+    "./mdx": {
+      "import": "./dist/mdx.mjs",
+      "require": "./dist/mdx.cjs",
+      "default": "./dist/mdx.mjs"
+    },
     "./signal": "./src/Signal.res.mjs",
     "./computed": "./src/Computed.res.mjs",
     "./effect": "./src/Effect.res.mjs",
@@ -49,7 +70,7 @@
     "res:dev": "rescript -w",
     "format": "rescript format",
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.subpath.config.js",
     "bundle:size": "node scripts/bundle-size-report.mjs",
     "preview": "vite preview",
     "mdx:poc": "npm run res:build && vite build --config examples/mdx/vite.config.mjs",
