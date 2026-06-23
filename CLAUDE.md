@@ -31,12 +31,26 @@ The build process generates:
 - `dist/xote.mjs` - ES module
 - `dist/xote.cjs` - CommonJS module
 - `dist/xote.umd.js` - UMD bundle
+- `dist/client.{mjs,cjs}` - client rendering entry
+- `dist/router.{mjs,cjs}` - router and route utilities entry
+- `dist/ssr.{mjs,cjs}` - SSR, SSR state, and SSR context entry
+- `dist/hydration.{mjs,cjs}` - hydration entry
+- `dist/mdx.{mjs,cjs}` - optional MDX integration entry
 
 ## Architecture
 
 ### Module Structure
 
 The codebase uses ReScript's `namespace: true` setting in `rescript.json`, so every source file in `src/` is automatically scoped under the `Xote` namespace by the compiler. There is no manual `Xote__` prefix and no central `Xote.res` barrel — each module is an independent entry point, which lets bundlers tree-shake at module granularity.
+
+JavaScript package entries are intentionally split by feature:
+- `xote` and `xote/client` expose the client rendering core (`View`, `Html`, `XoteJSX`, `Prop`, and signal shims).
+- `xote/router` exposes the browser router plus `Route`.
+- `xote/ssr` exposes `SSR`, `SSRState`, and `SSRContext`.
+- `xote/hydration` exposes hydration only.
+- `xote/mdx` exposes the optional MDX integration.
+
+The root `xote` entry is client-focused and does not export router, SSR, hydration, MDX, or deprecated aliases such as `Node` and `ReactiveProp`. Direct source/module subpaths remain available where listed in `package.json`.
 
 **Reactive Primitives (re-exported from rescript-signals):**
 - **`Xote.Signal`**: Reactive state cells with `make`, `get`, `peek`, `set`, `update`, plus `batch` and `untrack` from the scheduler. `Signal.make` accepts optional `~name` (for debugging) and `~equals` (a custom `('a, 'a) => bool` comparator) parameters. The default equality is JavaScript `===` (reference/strict), not structural — pass `~equals` when you need deep comparison. `set` only notifies dependents when the new value differs from the current one, preventing unnecessary updates and accidental infinite loops.
