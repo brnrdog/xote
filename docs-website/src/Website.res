@@ -1,7 +1,3 @@
-
-// Demo modules are still on disk under `src/demos/*.res` for reuse as
-// inline figures, but no longer routed as standalone pages.
-
 // 404 Page component
 module NotFoundPage = {
   type props = {}
