@@ -28,13 +28,11 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
 
 The compiler flag `-open Xote` is optional, it makes the Xote modules available unqualified inside your source files.
 
-This README uses the application-facing names introduced for public code:
+This README uses the application-facing names for public code:
 
-- `View` is the official module for building and mounting DOM nodes.
-- `Node` is a deprecated compatibility alias for `View` and will be removed in a future release.
-- `Prop` is the official static-or-reactive prop module.
-- `ReactiveProp` is a deprecated compatibility alias for `Prop`.
-- `View.Text`, `View.Int`, `View.For`, `View.Show`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are preferred in examples, while the deprecated `Node.signalText`, `Node.list`, `Node.keyedList`, `Node.attr`, `ReactiveProp.*`, and `SSRState.make` names remain supported.
+- `View` is the module for building and mounting DOM nodes.
+- `Prop` is the static-or-reactive prop module.
+- `View.Text`, `View.Int`, `View.For`, `View.Show`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are the building blocks used throughout these examples.
 
 ### JavaScript
 
@@ -249,20 +247,37 @@ let tone = Signal.make("badge badge-info")
 </Badge>
 ```
 
-`Prop` is the source module for static-or-reactive props. `ReactiveProp` remains available as a deprecated compatibility alias.
+`Prop` is the module for static-or-reactive props.
 
 ### Router and SSR State
 
-Router state is signal-based. Read the shared location signal directly with `Router.location()`:
+Initialize the router once at your app entry, then describe your screens with
+the `Router.routes` component. Each route matches a pattern and receives the
+parsed params:
 
 ```rescript
 Router.init(())
 
-let pathname = () =>
-  <View.Text> {() => {
-    let location = Signal.get(Router.location())
-    "Current path: " ++ location.pathname
-  }} </View.Text>
+let app = () =>
+  Router.routes([
+    {pattern: "/", render: _ => <Home />},
+    {pattern: "/about", render: _ => <About />},
+    {
+      pattern: "/users/:id",
+      render: params =>
+        <UserPage id={params->Dict.get("id")->Option.getOr("")} />,
+    },
+  ])
+```
+
+Use the `Router.Link` component for client-side navigation without a full page
+reload:
+
+```rescript
+<nav>
+  <Router.Link to="/"> <View.Text> "Home" </View.Text> </Router.Link>
+  <Router.Link to="/about" class="nav-link"> <View.Text> "About" </View.Text> </Router.Link>
+</nav>
 ```
 
 For server/client state transfer, prefer `SSRState.signal` when creating a synced signal:

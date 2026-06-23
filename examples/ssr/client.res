@@ -3,7 +3,7 @@
  * This script hydrates the server-rendered HTML
  */
 
-/* Create state - SSRState.make automatically restores from server-serialized values */
+/* Create state - SSRState.signal automatically restores from server-serialized values */
 let (count, items, inputValue) = App.makeAppState()
 let appComponent = App.app(count, items, inputValue)
 

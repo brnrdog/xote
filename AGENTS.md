@@ -8,13 +8,13 @@ Instructions for AI coding agents working on this repository. This file compleme
 - **Reactivity**: [rescript-signals](https://brnrdog.github.io/rescript-signals) - `Signal`, `Computed`, `Effect`
 - **Build**: `npm run res:build` (ReScript) then `npm run build` (Vite)
 - **Watch**: `npm run res:dev` for ReScript watch mode
-- **Public API**: ReScript namespacing scopes every file in `src/` under `Xote` (e.g. `Xote.Node`, `Xote.Router`). The public set is enumerated in `rescript.json`'s `sources.public`. There is no `Xote__` prefix and no central `Xote.res` barrel.
+- **Public API**: ReScript namespacing scopes every file in `src/` under `Xote` (e.g. `Xote.View`, `Xote.Router`). The public set is enumerated in `rescript.json`'s `sources.public`. There is no `Xote__` prefix and no central `Xote.res` barrel.
 
 ## Before Making Changes
 
 1. **Read `CLAUDE.md`** for full architecture, module descriptions, API surface, and code patterns
 2. **Compile first**: Always run `npm run res:build` before testing or building
-3. **Understand the module boundary**: The public surface is the list of modules in `rescript.json`'s `sources.public` (`Node`, `View`, `Html`, `XoteJSX`, `ReactiveProp`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Signal`, `Computed`, `Effect`). Helpers like `DOM`, `Reactivity`, and `Render` are implementation details and should not be relied on by consumers.
+3. **Understand the module boundary**: The public surface is the list of modules in `rescript.json`'s `sources.public` (`View`, `Html`, `XoteJSX`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Mdx`, `Signal`, `Computed`, `Effect`). Helpers like `DOM`, `Reactivity`, and `Render` are implementation details and should not be relied on by consumers.
 
 ## Development Workflow
 
@@ -27,8 +27,7 @@ Instructions for AI coding agents working on this repository. This file compleme
 ### Key Files
 | File | Purpose |
 |------|---------|
-| `src/Node.res` | Core rendering, node primitives, mount, reconciliation |
-| `src/View.res` | Alias for `Node` with clearer UI-view naming |
+| `src/View.res` | Core rendering, node primitives, mount, reconciliation |
 | `src/Html.res` | Common HTML element constructors (`div`, `button`, ...) |
 | `src/XoteJSX.res` | JSX v4 transform and `Elements` module |
 | `src/Router.res` | Client-side routing |
@@ -37,8 +36,7 @@ Instructions for AI coding agents working on this repository. This file compleme
 | `src/Hydration.res` | Client-side hydration |
 | `src/SSRState.res` | Server-client state transfer |
 | `src/SSRContext.res` | Server/client environment detection |
-| `src/ReactiveProp.res` | Static/Reactive prop wrapper |
-| `src/Prop.res` | Alias for `ReactiveProp` with shorter prop naming |
+| `src/Prop.res` | Static/Reactive prop wrapper |
 | `src/Signal.res`, `src/Computed.res`, `src/Effect.res` | Re-export shims for `rescript-signals` |
 | `rescript.json` | ReScript compiler configuration (`namespace: true`) |
 | `vite.config.js` | Library build configuration |

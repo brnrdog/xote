@@ -50,7 +50,7 @@ JavaScript package entries are intentionally split by feature:
 - `xote/hydration` exposes hydration only.
 - `xote/mdx` exposes the optional MDX integration.
 
-The root `xote` entry is client-focused and does not export router, SSR, hydration, MDX, or deprecated aliases such as `Node` and `ReactiveProp`. Direct source/module subpaths remain available where listed in `package.json`.
+The root `xote` entry is client-focused and does not export router, SSR, hydration, or MDX. Direct source/module subpaths remain available where listed in `package.json`.
 
 **Reactive Primitives (re-exported from rescript-signals):**
 - **`Xote.Signal`**: Reactive state cells with `make`, `get`, `peek`, `set`, `update`, plus `batch` and `untrack` from the scheduler. `Signal.make` accepts optional `~name` (for debugging) and `~equals` (a custom `('a, 'a) => bool` comparator) parameters. The default equality is JavaScript `===` (reference/strict), not structural — pass `~equals` when you need deep comparison. `set` only notifies dependents when the new value differs from the current one, preventing unnecessary updates and accidental infinite loops.
@@ -60,17 +60,15 @@ The root `xote` entry is client-focused and does not export router, SSR, hydrati
 These three are thin shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.res`) that `include` the corresponding modules from `rescript-signals`.
 
 **Xote Modules:**
-- **`Xote.Node`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `computedText`, `computedInt`, `computedFloat`, `fragment`, `signalFragment`, `list`, `keyedList`, `each`, `keyedEach`, `element`), attribute helpers (`attr`, `signalAttr`, `computedAttr`, `Attr`), the `null`/`empty` placeholders, and `mount`/`mountById`. The owner-based reactivity system for resource cleanup also lives here.
-- **`Xote.View`**: Alias module for `Node`, useful when the term "view" reads more clearly than "node" in application code.
-- **`Xote.Html`**: Convenience constructors for common HTML tags (`div`, `span`, `button`, `input`, `h1`-`h3`, `p`, `ul`, `li`, `a`). Thin wrappers over `Node.element`. For tags not listed, call `Node.element(tag, ...)` directly or use JSX.
-- **`Xote.XoteJSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with a broad set of supported attributes (standard, form/input, link, media, accessibility, drag-and-drop, and data attributes). Named `XoteJSX` (not `JSX`) to avoid colliding with unrelated modules when consumers use `open Xote`. Note: to defer side-effecting component evaluation out of any surrounding `Computed` context, `XoteJSX.jsx` wraps user-defined components in `Node.LazyComponent`.
-- **`Xote.ReactiveProp`**: A helper type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` for flexible prop handling in JSX - allows props to accept either static values or reactive signals.
-- **`Xote.Prop`**: Alias module for `ReactiveProp`, including `Prop.signal(signal)` as a shorter alias for `ReactiveProp.reactive(signal)`.
+- **`Xote.View`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `Keyed`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `int`, `float`, `bool`, `fragment`, `signalFragment`, `each`, `eachWithKey`, `element`), the JSX rendering components (`For`, `Show`, `Maybe`, `Value`, `Text`, `Int`, `Float`, `Bool`), attribute helpers (`attr`, `signalAttr`, `computedAttr`, `Attr`), the `null`/`empty` placeholders, and `mount`/`mountById`. The owner-based reactivity system for resource cleanup also lives here.
+- **`Xote.Html`**: Convenience constructors for common HTML tags (`div`, `span`, `button`, `input`, `h1`-`h3`, `p`, `ul`, `li`, `a`). Thin wrappers over `View.element`. For tags not listed, call `View.element(tag, ...)` directly or use JSX.
+- **`Xote.XoteJSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with a broad set of supported attributes (standard, form/input, link, media, accessibility, drag-and-drop, and data attributes). Named `XoteJSX` (not `JSX`) to avoid colliding with unrelated modules when consumers use `open Xote`. Note: to defer side-effecting component evaluation out of any surrounding `Computed` context, `XoteJSX.jsx` wraps user-defined components in `View.LazyComponent`.
+- **`Xote.Prop`**: Static-or-reactive prop module exposing the type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` plus the `static`, `reactive`, `signal` (alias of `reactive`), and `get` helpers. Lets props accept either static values or reactive signals in JSX.
 - **`Xote.Router`**: Signal-based client-side router with pattern matching, dynamic routes, base path support, scroll position restoration, and a global singleton state (via `Symbol.for()`) that works across multiple bundles.
 - **`Xote.Route`**: Route matching utilities.
 - **`Xote.SSR`**: Server-side rendering to HTML strings with hydration markers (`<!--$-->`, `<!--#-->`, `<!--kl-->`, `<!--k:KEY-->`, `<!--lc-->`).
 - **`Xote.SSRContext`**: Runtime environment detection (`isServer`, `isClient`) and helpers (`onServer`, `onClient`, `match`).
-- **`Xote.SSRState`**: State serialization/restoration between server and client. Includes a `Codec` system for type-safe encoding/decoding and a `sync`/`make` API for seamless server-client state transfer.
+- **`Xote.SSRState`**: State serialization/restoration between server and client. Includes a `Codec` system for type-safe encoding/decoding and a `sync`/`signal` API for seamless server-client state transfer.
 - **`Xote.Hydration`**: Client-side hydration that walks server-rendered DOM, attaches reactive effects, event listeners, and sets up keyed list reconciliation without re-rendering.
 
 ### Reactivity Model
@@ -87,13 +85,13 @@ All reactive behavior is provided by **rescript-signals**:
 
 **Batching**: `Signal.batch(fn)` defers scheduler flushing until `fn` returns, so a burst of `Signal.set` calls triggers each effect at most once. Batches can be nested and return a value. `Signal.untrack(fn)` disables dependency capture inside `fn`, which is the idiomatic way to read a signal without subscribing the current observer to it (there is also `Signal.peek(signal)` for a single untracked read).
 
-**Owner System**: Components use an owner-based tracking system (`Reactivity` module in `Node.res`) that stores effect disposers and computed references on DOM elements via the `__xote_owner__` property. Owners are disposed recursively when DOM elements are removed, preventing memory leaks.
+**Owner System**: Components use an owner-based tracking system (the `RuntimeOwner` module, surfaced as `Reactivity` in `View.res`) that stores effect disposers and computed references on DOM elements via the `__xote_owner__` property. Owners are disposed recursively when DOM elements are removed, preventing memory leaks.
 
 ### ReScript Configuration
 
 - **Build system**: ReScript compiler v12+ with `esmodule` output format
 - **Output**: In-source compilation (`.res.mjs` files alongside `.res` files)
-- **Namespacing**: `namespace: true` in `rescript.json` automatically scopes every module under `Xote`. Public modules are listed explicitly in `sources.public` (`Node`, `View`, `Html`, `XoteJSX`, `ReactiveProp`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Signal`, `Computed`, `Effect`); everything else (e.g. `DOM`, `Reactivity`, which live inside `Node.res`) stays internal.
+- **Namespacing**: `namespace: true` in `rescript.json` automatically scopes every module under `Xote`. Public modules are listed explicitly in `sources.public` (`View`, `Html`, `XoteJSX`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Mdx`, `Signal`, `Computed`, `Effect`); everything else (e.g. `DOM`/`Reactivity`, which live inside `View.res`) stays internal.
 - **Dependencies**: `rescript-signals` ^2.1.0 (the only runtime dependency)
 - **JSX**: ReScript JSX v4 configured with `module: "XoteJSX"` (generic JSX transform). Consumers must mirror this in their own `rescript.json`.
 
@@ -119,11 +117,11 @@ Xote supports **two syntax styles**:
    - `signalAttr("key", signal)` - reactive attribute from a signal
    - `computedAttr("key", () => ...)` - reactive attribute from a computed function
 5. **Lists**:
-   - `list(signal, renderItem)` - simple reactive list (re-renders all items on change)
-   - `keyedList(signal, keyFn, renderItem)` - efficient keyed list with DOM reconciliation (preserves element identity, only updates changed items)
+   - `each(signal, renderItem)` - simple reactive list (re-renders all items on change)
+   - `eachWithKey(signal, keyFn, renderItem)` - efficient keyed list with DOM reconciliation (preserves element identity, only updates changed items)
 6. **Event handlers**: `events` parameter for DOM event listeners
-7. **Null node**: `Node.null()` - renders an empty text node
-8. **HTML element helpers**: `Html.div`, `Html.button`, `Html.p`, etc. live in the `Xote.Html` module — use them when writing the function-based API. For tags not covered, fall back to `Node.element("tag", ...)`.
+7. **Null node**: `View.null()` - renders an empty text node
+8. **HTML element helpers**: `Html.div`, `Html.button`, `Html.p`, etc. live in the `Xote.Html` module — use them when writing the function-based API. For tags not covered, fall back to `View.element("tag", ...)`.
 9. **Mounting**: `mount(node, container)` or `mountById(node, "element-id")` to attach to DOM
 
 #### JSX Syntax
@@ -132,9 +130,9 @@ Xote supports ReScript's generic JSX v4 for a declarative component syntax:
 ```rescript
 let app = () => {
   <div class="container">
-    <h1> {Node.text("Hello JSX")} </h1>
+    <h1> {View.text("Hello JSX")} </h1>
     <button onClick={handleClick}>
-      {Node.text("Click me")}
+      {View.text("Click me")}
     </button>
   </div>
 }
@@ -158,7 +156,7 @@ let app = () => {
   - SVG gradient/stop: `offset`, `stopColor`, `stopOpacity`, `gradientUnits`, `gradientTransform`, `spreadMethod`
   - SVG markers: `markerStart`, `markerMid`, `markerEnd`
   - SVG xlink (legacy): `xlinkHref`
-- Props support raw values, `ReactiveProp.t<'a>` (`Static` / `Reactive`), raw `Signal.t<'a>`, or a computed `unit => 'a` function for flexible static/reactive handling
+- Props support raw values, `Prop.t<'a>` (`Static` / `Reactive`), raw `Signal.t<'a>`, or a computed `unit => 'a` function for flexible static/reactive handling
 - Event handlers: `onClick`, `onInput`, `onChange`, `onSubmit`, `onFocus`, `onBlur`, `onKeyDown`, `onKeyUp`, `onMouseEnter`, `onMouseLeave`, `onMouseDown`, `onMouseMove`, `onMouseUp`, `onContextMenu`, plus drag-and-drop: `onDrag`, `onDragStart`, `onDragEnd`, `onDragOver`, `onDragEnter`, `onDragLeave`, `onDrop`
 - Children are passed via JSX syntax and rendered as nodes
 - Boolean attributes (`disabled`, `checked`, `required`, `readOnly`, `multiple`, `autofocus`, `ariaHidden`, `ariaExpanded`, `ariaSelected`, `draggable`, `hidden`, `contentEditable`, `spellcheck`) are added/removed based on the value rather than stringified
@@ -191,7 +189,7 @@ Full server-side rendering with client-side hydration:
 **State transfer (`SSRState` module)**:
 - `SSRState.Codec` - type-safe serialization with built-in codecs for `int`, `float`, `string`, `bool`, `array`, `option`, `tuple2`, `tuple3`, `dict`; and `Codec.make(~encode, ~decode)` for custom codecs
 - `SSRState.sync(id, signal, codec)` - register on server, restore on client
-- `SSRState.make(id, initial, codec)` - create and sync a signal in one call
+- `SSRState.signal(id, initial, codec)` - create and sync a signal in one call
 - `SSRState.generateScript(~nonce?)` - generate `<script>` tag with serialized state
 - Lower-level API: `SSRState.register(id, signal, codec)` (server), `SSRState.restore(id, signal, codec)` (client), `SSRState.clear()` (reset registry), `SSRState.getClientState()` (read `window.__XOTE_STATE__`)
 
@@ -209,7 +207,7 @@ Full server-side rendering with client-side hydration:
 
 ### Attribute & Property Handling
 
-The `DOM.setAttrOrProp` helper (in `Node.res`) handles the distinction between HTML attributes and DOM properties:
+The `DOM.setAttrOrProp` helper (in `View.res`, via the internal `RuntimeDom` module) handles the distinction between HTML attributes and DOM properties:
 - `value`, `checked`, `disabled` are set as DOM properties (not attributes)
 - Boolean attributes (`required`, `readonly`, `multiple`, `aria-hidden`, `aria-expanded`, `aria-selected`, `draggable`, `hidden`, `contenteditable`, `spellcheck`, `autofocus`) are added or removed based on whether the serialized value is `"true"`
 - All other attributes use `setAttribute`
@@ -228,7 +226,7 @@ The `DOM.setAttrOrProp` helper (in `Node.res`) handles the distinction between H
 
 6. **Batching**: Use `Signal.batch(fn)` to coalesce multiple writes so each dependent effect runs at most once per batch. Batches return the value produced by `fn` and can be nested safely.
 
-7. **Module naming**: Source files in `src/` use bare names (`Node.res`, `Router.res`, ...). ReScript's `namespace: true` scopes them under `Xote`, so consumers access them as `Xote.Node`, `Xote.Router`, etc. There is no `Xote__` prefix and no central `Xote.res` barrel.
+7. **Module naming**: Source files in `src/` use bare names (`View.res`, `Router.res`, ...). ReScript's `namespace: true` scopes them under `Xote`, so consumers access them as `Xote.View`, `Xote.Router`, etc. There is no `Xote__` prefix and no central `Xote.res` barrel.
 
 8. **Debug names**: `Signal.make`, `Computed.make`, `Effect.run`, and `Effect.runWithDisposer` all accept an optional `~name` argument surfaced for debugging/tooling. Prefer naming long-lived or cross-module reactive primitives when diagnosing graph issues.
 
@@ -240,7 +238,7 @@ The `DOM.setAttrOrProp` helper (in `Node.res`) handles the distinction between H
 
 12. **Owner-based cleanup**: Reactive state (effects, computeds) is tracked per-DOM-element via the owner system. When elements are removed, their owners are disposed recursively, preventing memory leaks.
 
-13. **Keyed list reconciliation**: `keyedList` uses comment-based anchors and a 3-phase algorithm (remove, build new order, reconcile DOM) for efficient updates. Preserves element identity across re-renders.
+13. **Keyed list reconciliation**: `eachWithKey` uses comment-based anchors and a 3-phase algorithm (remove, build new order, reconcile DOM) for efficient updates. Preserves element identity across re-renders.
 
 14. **SSR hydration markers**: Comment nodes mark reactive boundaries in server-rendered HTML. The hydration walker uses these to attach reactivity without re-rendering the DOM.
 
@@ -248,7 +246,7 @@ The `DOM.setAttrOrProp` helper (in `Node.res`) handles the distinction between H
 
 16. **SVG element support**: SVG elements are created with `createElementNS` using the SVG namespace. The component renderer detects SVG tags via `isSvgTag` and uses the appropriate DOM creation method automatically.
 
-17. **JSX component laziness**: `XoteJSX.jsx` wraps user component functions in `Node.LazyComponent`, deferring evaluation until render time so effects/computeds created inside a component aren't incorrectly tracked by a surrounding `Computed` context.
+17. **JSX component laziness**: `XoteJSX.jsx` wraps user component functions in `View.LazyComponent`, deferring evaluation until render time so effects/computeds created inside a component aren't incorrectly tracked by a surrounding `Computed` context.
 
 ## Common Patterns
 
@@ -325,37 +323,37 @@ Effect.run(() => {
 ### Text nodes
 ```rescript
 // Static text
-Node.text("Hello")
+View.text("Hello")
 
 // Reactive text (auto-updates)
-Node.signalText(() => Signal.get(count)->Int.toString)
+View.signalText(() => Signal.get(count)->Int.toString)
 
 // Type-specific helpers
-Node.signalInt(() => Signal.get(count))
-Node.signalFloat(() => Signal.get(price))
-Node.int(42)
-Node.float(3.14)
+View.signalInt(() => Signal.get(count))
+View.signalFloat(() => Signal.get(price))
+View.int(42)
+View.float(3.14)
 ```
 
 ### Attributes
 ```rescript
 // Static
-Node.attr("class", "btn btn-primary")
+View.attr("class", "btn btn-primary")
 
 // Reactive from signal
 let className = Signal.make("btn-primary")
-Node.signalAttr("class", className)
+View.signalAttr("class", className)
 
 // Reactive from computation
-Node.computedAttr("class", () =>
+View.computedAttr("class", () =>
   Signal.get(isActive) ? "active" : "inactive"
 )
 
 // Mixing static and reactive
 Html.button(
   ~attrs=[
-    Node.attr("type", "button"),
-    Node.computedAttr("class", () =>
+    View.attr("type", "button"),
+    View.computedAttr("class", () =>
       Signal.get(isActive) ? "active" : "inactive"
     )
   ],
@@ -367,15 +365,15 @@ Html.button(
 ```rescript
 // Simple list (re-renders all items on change)
 let items = Signal.make([1, 2, 3])
-Node.list(items, item => Node.text(Int.toString(item)))
+View.each(items, item => View.text(Int.toString(item)))
 
 // Keyed list (efficient reconciliation)
 type todo = { id: string, text: string }
 let todos = Signal.make([{ id: "1", text: "Buy milk" }])
-Node.keyedList(
+View.eachWithKey(
   todos,
   todo => todo.id,
-  todo => Html.li(~children=[Node.text(todo.text)], ())
+  todo => Html.li(~children=[View.text(todo.text)], ())
 )
 ```
 
@@ -384,12 +382,12 @@ Node.keyedList(
 #### Basic JSX elements
 ```rescript
 <div class="container">
-  {Node.text("Hello")}
+  {View.text("Hello")}
 </div>
 
 // With events
 <button onClick={handleClick}>
-  {Node.text("Click me")}
+  {View.text("Click me")}
 </button>
 
 // Input with reactive value
@@ -400,15 +398,15 @@ Node.keyedList(
 />
 ```
 
-#### Reactive props with ReactiveProp
+#### Reactive props with Prop
 ```rescript
 // Props can accept either static or reactive values
-<div class={ReactiveProp.static("container")}>
-  {Node.text("Static class")}
+<div class={Prop.static("container")}>
+  {View.text("Static class")}
 </div>
 
-<div class={ReactiveProp.reactive(classSignal)}>
-  {Node.text("Reactive class")}
+<div class={Prop.signal(classSignal)}>
+  {View.text("Reactive class")}
 </div>
 ```
 
@@ -419,7 +417,7 @@ Router.init(~basePath="/my-app", ())
 
 // JSX Link component
 <Router.Link to="/about" class="nav-link">
-  {Node.text("About")}
+  {View.text("About")}
 </Router.Link>
 
 // Route matching
@@ -436,12 +434,12 @@ Router.routes([
 ```rescript
 // Shared component (runs on both server and client)
 let app = () => {
-  let count = SSRState.make("count", 0, SSRState.Codec.int)
+  let count = SSRState.signal("count", 0, SSRState.Codec.int)
 
   <div>
-    <p> {Node.signalInt(() => Signal.get(count))} </p>
+    <p> {View.signalInt(() => Signal.get(count))} </p>
     <button onClick={_ => Signal.update(count, n => n + 1)}>
-      {Node.text("+")}
+      {View.text("+")}
     </button>
   </div>
 }
@@ -468,8 +466,8 @@ Hydration.hydrateById(app, "root")
 
 ## Known Limitations
 
-1. **SignalFragment updates**: `SignalFragment` replaces all children without diffing (no reconciliation algorithm). Use `keyedList` for efficient list updates.
+1. **SignalFragment updates**: `SignalFragment` replaces all children without diffing (no reconciliation algorithm). Use `eachWithKey` for efficient list updates.
 2. **Hydration is one-way**: After hydration, subsequent updates use full client-side rendering (no incremental/streaming hydration).
 3. **Synchronous scheduler**: All scheduling is synchronous; there is no microtask/animation-frame integration. Use `Signal.batch` to coalesce updates, but understand that effects still run inline when the batch ends.
-4. **Manual JSX key plumbing**: `jsxKeyed`/`jsxsKeyed` currently ignore the `~key` argument — use `Node.keyedList` for reconciled lists rather than relying on JSX-level keys.
-5. **`list` re-renders fully**: `Node.list` recreates every item on change (it is implemented on top of `SignalFragment`). Prefer `Node.keyedList` when item identity matters.
+4. **Manual JSX key plumbing**: `jsxKeyed`/`jsxsKeyed` currently ignore the `~key` argument — use `View.eachWithKey` (or `<View.For by=...>`) for reconciled lists rather than relying on JSX-level keys.
+5. **`each` re-renders fully**: `View.each` recreates every item on change (it is implemented on top of `SignalFragment`). Prefer `View.eachWithKey` when item identity matters.

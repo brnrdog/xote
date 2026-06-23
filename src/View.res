@@ -568,8 +568,6 @@ let each = (signal: Signal.t<array<'a>>, renderItem: 'a => node): node => {
   SignalFragment(nodesSignal)
 }
 
-let list = each
-
 let eachWithKey = (
   signal: Signal.t<array<'a>>,
   keyFn: 'a => string,
@@ -581,8 +579,6 @@ let eachWithKey = (
     renderItem: Obj.magic(renderItem),
   })
 }
-
-let keyedList = eachWithKey
 
 /* JSX rendering primitives */
 module For = {

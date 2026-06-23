@@ -239,11 +239,8 @@ let sync = (id: string, signal: Signal.t<'a>, codec: Codec.t<'a>): unit => {
 }
 
 /* Create and sync a signal in one call */
-let make = (id: string, initial: 'a, codec: Codec.t<'a>): Signal.t<'a> => {
+let signal = (id: string, initial: 'a, codec: Codec.t<'a>): Signal.t<'a> => {
   let signal = Signal.make(initial)
   sync(id, signal, codec)
   signal
 }
-
-let signal = make
-let syncSignal = sync

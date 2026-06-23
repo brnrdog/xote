@@ -8,12 +8,10 @@ Xote uses [rescript-signals](https://brnrdog.github.io/rescript-signals) for rea
 
 The ReScript compiler is configured with `"namespace": true`, so every source file in `src/` is namespaced under `Xote`. The public modules are listed in `rescript.json` under `sources.public`:
 
-- **`Xote.View`**: Official UI node API for constructors, attributes, rendering, and mounting.
-- **`Xote.Node`**: Deprecated compatibility alias for `View`.
+- **`Xote.View`**: UI node API for constructors, attributes, rendering, and mounting.
 - **`Xote.Html`**: Convenience constructors for common HTML tags.
 - **`Xote.XoteJSX`**: JSX v4 transform support and lowercase HTML element definitions.
-- **`Xote.Prop`**: Official static-or-reactive prop wrapper for JSX-friendly APIs.
-- **`Xote.ReactiveProp`**: Deprecated compatibility alias for `Prop`.
+- **`Xote.Prop`**: Static-or-reactive prop wrapper for JSX-friendly APIs.
 - **`Xote.Route`**: Pure route pattern parsing and matching.
 - **`Xote.Router`**: Signal-based client and SSR routing helpers.
 - **`Xote.SSR`**: Server-side rendering to HTML strings.
@@ -22,7 +20,7 @@ The ReScript compiler is configured with `"namespace": true`, so every source fi
 - **`Xote.Hydration`**: Client-side hydration for server-rendered DOM.
 - **`Xote.Signal`**, **`Xote.Computed`**, **`Xote.Effect`**: Re-export shims for `rescript-signals`.
 
-There is no central `Xote.res` barrel and no `Xote__` prefixed source module naming. Consumers access modules through the generated namespace, for example `Xote.View`, `Xote.Router`, or unqualified `View` after `-open Xote`. `Node` remains available as a deprecated compatibility alias.
+There is no central `Xote.res` barrel and no `Xote__` prefixed source module naming. Consumers access modules through the generated namespace, for example `Xote.View`, `Xote.Router`, or unqualified `View` after `-open Xote`.
 
 Some implementation modules are currently nested inside public modules, such as `View.DOM`, `View.Reactivity`, `View.Render`, `SSR.Html`, `SSR.Markers`, and `Hydration.DOMWalker`. These exist to share implementation code inside the package and should be treated as internal details unless they are explicitly documented as public API.
 
@@ -49,7 +47,7 @@ Computed values and effects are also provided by `rescript-signals`:
 
 ### View And Rendering Model
 
-Xote components are functions that return `View.node`. `Node.node` remains available as the deprecated equivalent alias.
+Xote components are functions that return `View.node`.
 
 `View.node` variants:
 
@@ -82,8 +80,6 @@ Preferred public constructors:
 - `View.mount(node, container)`
 - `View.mountById(node, "root")`
 
-Deprecated `Node.*` entry points remain supported as aliases, including `Node.list` / `Node.keyedList` alongside `View.each` / `View.eachWithKey`.
-
 Rendering is fine-grained:
 
 - Static text renders once.
@@ -100,7 +96,7 @@ Attributes are represented as `(string, View.attrValue)` pairs:
 - `View.Attr.string(key, value)` for static string attributes.
 - `View.Attr.signal(key, signal)` for reactive string attributes.
 - `View.Attr.compute(key, fn)` for computed string attributes.
-- `View.attr`, `View.signalAttr`, and `View.computedAttr` remain available, and the equivalent deprecated `Node.*` names still forward to `View`.
+- `View.attr`, `View.signalAttr`, and `View.computedAttr` are equivalent shorthands for the `View.Attr.*` helpers.
 
 The DOM renderer maps selected names to DOM properties or boolean attribute behavior:
 
@@ -125,7 +121,7 @@ SSR mirrors the same boolean attribute behavior when rendering strings.
 type t<'a> = Reactive(Signal.t<'a>) | Static('a)
 ```
 
-Use `Prop.static(value)` or `Prop.reactive(signal)` when a component prop should support either static or reactive input. `ReactiveProp` remains available as a deprecated compatibility alias.
+Use `Prop.static(value)` or `Prop.signal(signal)` (alias of `Prop.reactive`) when a component prop should support either static or reactive input.
 
 ### Router
 
@@ -182,8 +178,6 @@ SSR uses comment markers to identify reactive boundaries for hydration:
 - `SSRState.restore(id, signal, codec)` restores state on the client.
 - `SSRState.sync(id, signal, codec)` registers or restores depending on runtime.
 - `SSRState.signal(id, initial, codec)` creates a signal and syncs it.
-- `SSRState.make(id, initial, codec)` remains available as the equivalent alias.
-- `SSRState.syncSignal(id, signal, codec)` is a clearer alias for `sync`.
 - `SSRState.generateScript(~nonce?)` serializes state into a script tag.
 - `SSRState.clear()` resets the server registry between independent renders.
 
