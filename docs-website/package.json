@@ -10,7 +10,8 @@
     "res:dev": "rescript -w",
     "dev": "node server.mjs",
     "dev:client": "vite",
-    "build": "npm run res:build && npm run build:client && npm run build:server && npm run build:prerender",
+    "build:xote": "cd .. && npm run res:build && npm run build",
+    "build": "npm run build:xote && npm run res:build && npm run build:client && npm run build:server && npm run build:prerender",
     "build:client": "vite build",
     "build:server": "vite build --ssr src/EntryServer.res.mjs --outDir build/server",
     "build:prerender": "node scripts/prerender.mjs",
@@ -21,7 +22,7 @@
     "basefn": "^1.11.0",
     "highlight.js": "^11.11.1",
     "posthog-js": "^1.372.1",
-    "rescript-signals": "^2.1.0",
+    "rescript-signals": "^3.1.0",
     "xote": "file:.."
   },
   "devDependencies": {
