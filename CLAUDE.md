@@ -461,14 +461,6 @@ Hydration.hydrateById(app, "root")
 
 - **Technical deep-dive**: See `docs/TECHNICAL_OVERVIEW.md` for detailed architecture
 - **Changelog**: See `docs/CHANGELOG.md` for version history
-- **Example apps**:
-  - `docs-website/src/demos/TodoDemo.res` - Todo list with keyed lists and filtering
-  - `docs-website/src/demos/ColorMixerDemo.res` - Color mixer with reactive sliders
-  - `docs-website/src/demos/CounterDemo.res` - Basic counter
-  - `docs-website/src/demos/SnakeGameDemo.res` - Snake game
-  - `docs-website/src/demos/SolitaireDemo.res` - Solitaire card game
-  - `docs-website/src/demos/MatchGameDemo.res` - Memory match game
-  - `docs-website/src/demos/ReactionGameDemo.res` - Reaction time game
 - **SSR example**: `examples/ssr/` - Full SSR + hydration setup
 - **rescript-signals**: https://brnrdog.github.io/rescript-signals - The reactive primitives library
 - **TC39 Signals proposal**: https://github.com/tc39/proposal-signals
