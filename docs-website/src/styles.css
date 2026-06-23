@@ -14,7 +14,7 @@
   /* Text */
   --text: #f5f5f4;
   --text-muted: #a3a3a3;
-  --text-faint: #525252;
+  --text-faint: #8a8a8a;
 
   /* Functional (monochrome — same as text / inverse of bg) */
   --accent: #f5f5f4;
@@ -82,14 +82,14 @@
 
   --text: #0a0a0a;
   --text-muted: #525252;
-  --text-faint: #a3a3a3;
+  --text-faint: #6b6b6b;
 
   --accent: #0a0a0a;
   --mark: #0a0a0a;
 
   /* Syntax accent — warm brown, light mode */
   --syntax-warm: #8a6a2e;
-  --syntax-warm-soft: #a88a52;
+  --syntax-warm-soft: #7a5e28;
   --syntax-warm-deep: #6f5220;
   --syntax-green: #4f7f4f;
   --syntax-blue: #4f6797;
@@ -2122,7 +2122,7 @@ td strong {
   border-bottom: 1px solid var(--border);
 }
 
-.footer-brand h4 {
+.footer-brand h2 {
   font-family: var(--font-display);
   font-size: var(--fs-xl);
   font-weight: 400;
@@ -2146,7 +2146,7 @@ td strong {
   margin: 0;
 }
 
-.footer-col h4 {
+.footer-col h3 {
   font-family: var(--font-body);
   font-size: 11px;
   font-weight: 600;
