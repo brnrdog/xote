@@ -60,7 +60,7 @@ let suite = Zekr.suite(
     test("wraps keyed list items with key markers", () => {
       let html = SSR.renderToString(() => {
         let items = Signal.make(["a", "b"])
-        View.keyedList(items, item => item, item => Html.span(~children=[View.text(item)], ()))
+        View.eachWithKey(items, item => item, item => Html.span(~children=[View.text(item)], ()))
       })
       combineResults([
         assertContains(html, "<!--kl-->"),

@@ -7,11 +7,9 @@
       "subdirs": true,
       "public": [
         "View",
-        "Node",
         "Html",
         "XoteJSX",
         "Prop",
-        "ReactiveProp",
         "Route",
         "Router",
         "SSR",

@@ -157,7 +157,7 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let items = Signal.make(["Apple", "Banana"])
       let _ = mountTo(
-        Html.div(~children=[View.list(items, item => Html.p(~children=[View.text(item)], ()))], ()),
+        Html.div(~children=[View.each(items, item => Html.p(~children=[View.text(item)], ()))], ()),
         container,
       )
       let r1 = Dom.Assert.toHaveTextContent(container, "AppleBanana")

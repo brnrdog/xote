@@ -5,10 +5,10 @@
 
 /* Shared state factory - creates signals that sync between server and client */
 let makeAppState = () => {
-  /* Using SSRState.make creates the signal and syncs it automatically */
-  let count = SSRState.make("count", 0, SSRState.Codec.int)
+  /* Using SSRState.signal creates the signal and syncs it automatically */
+  let count = SSRState.signal("count", 0, SSRState.Codec.int)
 
-  let items = SSRState.make(
+  let items = SSRState.signal(
     "items",
     ["Apple", "Banana", "Cherry"],
     SSRState.Codec.array(SSRState.Codec.string),
@@ -106,7 +106,7 @@ let app = (count, items, inputValue) =>
             ),
             Html.ul(
               ~attrs=[View.attr("class", "item-list")],
-              ~children=[View.list(items, item => Html.li(~children=[View.text(item)], ()))],
+              ~children=[View.each(items, item => Html.li(~children=[View.text(item)], ()))],
               (),
             ),
           ],

@@ -18,11 +18,9 @@
       "default": "./dist/client.mjs"
     },
     "./view": "./src/View.res.mjs",
-    "./node": "./src/Node.res.mjs",
     "./html": "./src/Html.res.mjs",
     "./jsx": "./src/XoteJSX.res.mjs",
     "./prop": "./src/Prop.res.mjs",
-    "./reactive-prop": "./src/ReactiveProp.res.mjs",
     "./route": "./src/Route.res.mjs",
     "./router": {
       "import": "./dist/router.mjs",
