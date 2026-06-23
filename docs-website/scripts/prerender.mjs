@@ -45,6 +45,14 @@ const routes = [
     priority: '0.8',
   },
   {
+    path: '/docs/getting-started/javascript-typescript',
+    title: 'JavaScript Runtime - xote Docs',
+    description:
+      'Use xote from JavaScript projects with focused package entries and runtime view constructors.',
+    section: 'Getting Started',
+    priority: '0.8',
+  },
+  {
     path: '/docs/core-concepts/signals',
     title: 'Signals - xote Reactive State',
     description:

@@ -18,6 +18,10 @@ let docsNav: array<docCategory> = [
         title: "Learning ReScript",
         path: "/docs/getting-started/rescript",
       },
+      {
+        title: "JavaScript Runtime",
+        path: "/docs/getting-started/javascript-typescript",
+      },
     ],
   },
   {

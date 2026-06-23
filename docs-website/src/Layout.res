@@ -97,6 +97,11 @@ let searchItems: array<searchItem> = [
     path: "/docs/getting-started/rescript",
     section: "Getting Started",
   },
+  {
+    title: "JavaScript Runtime",
+    path: "/docs/getting-started/javascript-typescript",
+    section: "Getting Started",
+  },
   {title: "Signals", path: "/docs/core-concepts/signals", section: "Core Modules"},
   {title: "Computeds", path: "/docs/core-concepts/computed", section: "Core Modules"},
   {title: "Effects", path: "/docs/core-concepts/effects", section: "Core Modules"},
