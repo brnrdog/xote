@@ -1,5 +1,7 @@
 @module("./docs/IntroDoc.mdx") external introDoc: Mdx.document = "default"
 @module("./docs/LearningReScriptDoc.mdx") external learningReScriptDoc: Mdx.document = "default"
+@module("./docs/JavaScriptTypeScriptDoc.mdx") external javaScriptTypeScriptDoc: Mdx.document =
+  "default"
 @module("./docs/SignalsDoc.mdx") external signalsDoc: Mdx.document = "default"
 @module("./docs/ComputedDoc.mdx") external computedDoc: Mdx.document = "default"
 @module("./docs/EffectsDoc.mdx") external effectsDoc: Mdx.document = "default"
@@ -121,6 +123,7 @@ let render = document => Mdx.render(document, ~components, ())
 
 let intro = () => render(introDoc)
 let learningReScript = () => render(learningReScriptDoc)
+let javaScriptTypeScript = () => render(javaScriptTypeScriptDoc)
 let signals = () => render(signalsDoc)
 let computed = () => render(computedDoc)
 let effects = () => render(effectsDoc)
