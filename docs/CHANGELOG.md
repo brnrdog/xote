@@ -1,3 +1,42 @@
+# [7.0.0-beta.1](https://github.com/brnrdog/xote/compare/v6.4.0...v7.0.0-beta.1) (2026-07-04)
+
+
+* refactor!: remove deprecated modules and redundant API aliases ([6745b54](https://github.com/brnrdog/xote/commit/6745b54967f553014b753c35b03e8f3e3e7da82c))
+
+
+### Bug Fixes
+
+* **docs:** resolve accessibility issues ([c8f2b45](https://github.com/brnrdog/xote/commit/c8f2b4591476fc2e0a7caccf9d5dc9f6e6cfb9dc))
+* **router:** scroll hash targets after navigation ([8652f27](https://github.com/brnrdog/xote/commit/8652f27e877cc3cecfc8cd7d506cf89f5bcb6654))
+* **view:** handle empty value primitive props ([e9ccdb1](https://github.com/brnrdog/xote/commit/e9ccdb160ea322ce0bbdd67611864267762d1042))
+
+
+### Features
+
+* add focused package entries ([e2ee407](https://github.com/brnrdog/xote/commit/e2ee407ee6ff109f7b99a17380df14bf8244b8b4))
+* add mdx support to xote jsx runtime ([e09d13f](https://github.com/brnrdog/xote/commit/e09d13fa236b7a9652924bc3373b368efb2e1ba8))
+* **jsx:** add conditional rendering primitives ([ad7558f](https://github.com/brnrdog/xote/commit/ad7558f4bef4ebf65ef9572ccef6ba46dce96c50))
+* **jsx:** add list rendering primitives ([d6958ec](https://github.com/brnrdog/xote/commit/d6958ec867c65acf3af6d4ef65ee45652b525b58))
+* **view:** add JSX value primitives ([bc704c4](https://github.com/brnrdog/xote/commit/bc704c49c725b580647b458111196f4841a23c80))
+* **view:** render primitive children ([04305a3](https://github.com/brnrdog/xote/commit/04305a39f16b9a4feff4fcd510bcf0e951c6c6f9))
+* **view:** support keyed rendering in For ([46be19f](https://github.com/brnrdog/xote/commit/46be19fc7f1af89397708029d7892ffff4f59ad4))
+
+
+### BREAKING CHANGES
+
+* - Remove the deprecated `Node` module (use `View`)
+- Remove the deprecated `ReactiveProp` module (use `Prop`)
+- Remove `View.list` / `View.keyedList` aliases (use `View.each` /
+  `View.eachWithKey`)
+- Remove `SSRState.make` (use `SSRState.signal`) and `SSRState.syncSignal`
+  (use `SSRState.sync`)
+
+Also drops the `Node`/`ReactiveProp` entries from `rescript.json`
+`sources.public` and the `./node` / `./reactive-prop` package exports,
+migrates in-repo examples/tests to the canonical names, and refreshes the
+README (favouring the Router/Route/Link component APIs in the Router
+section), CLAUDE.md, AGENTS.md, and the technical overview.
+
 # [6.4.0](https://github.com/brnrdog/xote/compare/v6.3.0...v6.4.0) (2026-05-20)
 
 
