@@ -2205,6 +2205,9 @@ td strong {
   position: sticky;
   top: var(--header-height);
   align-self: flex-start;
+  max-height: calc(100vh - var(--header-height));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .sidebar-section {

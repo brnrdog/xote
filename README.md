@@ -34,43 +34,6 @@ This README uses the application-facing names for public code:
 - `Prop` is the static-or-reactive prop module.
 - `View.Text`, `View.Int`, `View.For`, `View.Show`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are the building blocks used throughout these examples.
 
-### JavaScript
-
-Xote is built for ReScript first, but the compiled package can also be used from JavaScript. Import the focused client entry and build nodes with `View` or `Html` helpers:
-
-```js
-import { Signal, Computed, Effect, View } from "xote/client";
-
-const count = Signal.make(0);
-const doubled = Computed.make(() => Signal.get(count) * 2);
-
-Effect.run(() => {
-  console.log("Count:", Signal.get(count));
-});
-
-const app = View.element("div", [], [], [
-  View.element("h1", [], [], [View.text("Counter")]),
-  View.element("p", [], [], [
-    View.text("Count: "),
-    View.signalText(() => String(Signal.get(count))),
-  ]),
-  View.element("p", [], [], [
-    View.text("Doubled: "),
-    View.signalText(() => String(Signal.get(doubled))),
-  ]),
-  View.element(
-    "button",
-    [],
-    [["click", () => Signal.update(count, n => n + 1)]],
-    [View.text("Increment")],
-  ),
-]);
-
-View.mountById(app, "app");
-```
-
-Use `xote/client` for browser UI, `xote/router` for routing, `xote/ssr` for server rendering, `xote/hydration` for hydrating server-rendered pages, and `xote/mdx` for MDX integration.
-
 ### Quick Example
 
 ```rescript
@@ -285,6 +248,43 @@ For server/client state transfer, prefer `SSRState.signal` when creating a synce
 ```rescript
 let count = SSRState.signal("count", 0, SSRState.Codec.int)
 ```
+
+### JavaScript Interop
+
+Xote is built for ReScript first, but the compiled package can also be used from JavaScript. Import the focused client entry and build nodes with `View` or `Html` helpers:
+
+```js
+import { Signal, Computed, Effect, View } from "xote/client";
+
+const count = Signal.make(0);
+const doubled = Computed.make(() => Signal.get(count) * 2);
+
+Effect.run(() => {
+  console.log("Count:", Signal.get(count));
+});
+
+const app = View.element("div", [], [], [
+  View.element("h1", [], [], [View.text("Counter")]),
+  View.element("p", [], [], [
+    View.text("Count: "),
+    View.signalText(() => String(Signal.get(count))),
+  ]),
+  View.element("p", [], [], [
+    View.text("Doubled: "),
+    View.signalText(() => String(Signal.get(doubled))),
+  ]),
+  View.element(
+    "button",
+    [],
+    [["click", () => Signal.update(count, n => n + 1)]],
+    [View.text("Increment")],
+  ),
+]);
+
+View.mountById(app, "app");
+```
+
+Use `xote/client` for browser UI, `xote/router` for routing, `xote/ssr` for server rendering, `xote/hydration` for hydrating server-rendered pages, and `xote/mdx` for MDX integration.
 
 Check the [website](https://brnrdog.github.io/xote/) for more comprehensive documentations about Xote and Signals.
 
