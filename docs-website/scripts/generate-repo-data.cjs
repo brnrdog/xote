@@ -114,22 +114,22 @@ function parseInlineMarkdown(text) {
 function inlinePartToRescript(part) {
   switch (part.type) {
     case 'text':
-      return `Node.text("${escapeForReScript(part.value)}")`
+      return `View.text("${escapeForReScript(part.value)}")`
     case 'strong':
-      return `<strong> {Node.text("${escapeForReScript(part.value)}")} </strong>`
+      return `<strong> {View.text("${escapeForReScript(part.value)}")} </strong>`
     case 'code':
-      return `<code> {Node.text("${escapeForReScript(part.value)}")} </code>`
+      return `<code> {View.text("${escapeForReScript(part.value)}")} </code>`
     case 'link':
-      return `<a href="${escapeForReScript(part.url)}" target="_blank"> {Node.text("${escapeForReScript(part.text)}")} </a>`
+      return `<a href="${escapeForReScript(part.url)}" target="_blank"> {View.text("${escapeForReScript(part.text)}")} </a>`
     default:
-      return 'Node.text("")'
+      return 'View.text("")'
   }
 }
 
 function inlineTextToRescript(text, indent) {
   const parts = parseInlineMarkdown(text)
   if (parts.length === 0) {
-    return `${indent}Node.text("")`
+    return `${indent}View.text("")`
   }
 
   return parts
@@ -249,7 +249,7 @@ function generateRepoData(releases) {
 // *   npm run generate-repo-data
 // ****************************************************
 
-type inlineNodes = array<Node.node>
+type inlineNodes = array<View.node>
 
 type releaseSection = {
   title: string,

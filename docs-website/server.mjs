@@ -9,8 +9,7 @@ const isProduction = process.env.NODE_ENV === 'production'
 const port = process.env.PORT || 4242
 const base = '/'
 
-// Handle async errors from SSR-rendered code that defers DOM access
-// (e.g., basefn Icon component uses setTimeout + document.getElementById)
+// Handle async errors from SSR-rendered code that defers DOM access.
 process.on('uncaughtException', (err) => {
   if (err.message?.includes('document is not defined') ||
       err.message?.includes('window is not defined')) {
@@ -85,7 +84,7 @@ async function createServer() {
       // 2. Load the server entry module
       let render
       if (isProduction) {
-        const serverModule = await import('./build/server/EntryServer.res.mjs')
+        const serverModule = await import('./build/server/EntryServer.res.js')
         render = serverModule.render
       } else {
         const serverModule = await vite.ssrLoadModule('/src/EntryServer.res.mjs')

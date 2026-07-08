@@ -13,7 +13,7 @@
     }
   ],
   "suffix": ".res.mjs",
-  "dependencies": ["@rescript/core", "rescript-signals", "xote", "basefn"],
+  "dependencies": ["@rescript/core", "rescript-signals", "xote"],
   "jsx": {
     "version": 4,
     "module": "XoteJSX"

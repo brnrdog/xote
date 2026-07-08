@@ -104,10 +104,6 @@
   box-sizing: border-box;
 }
 
-/* Neutralize basefn's injected `* { font-family: "Source Sans" }` rule.
-   `html *` has specificity 0,0,1 (type + universal), which beats basefn's
-   `*` (0,0,0), while `inherit` restores normal font-family inheritance so
-   our class-based rules below still take effect. */
 html *,
 html *::before,
 html *::after {

@@ -181,8 +181,7 @@ const routes = [
   },
 ]
 
-// Suppress expected SSR errors from client-only code (e.g., basefn Icon
-// component deferring document.getElementById via setTimeout)
+// Suppress expected SSR errors from client-only code that defers DOM access.
 process.on('uncaughtException', (err) => {
   if (err.message?.includes('document is not defined') ||
       err.message?.includes('window is not defined')) {

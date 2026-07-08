@@ -60,7 +60,6 @@ if SSRContext.isClient {
     let t = Signal.get(theme)
     setHtmlAttribute("data-theme", t)
     setItem("xote-theme", t)
-    Basefn.Theme.applyTheme(t == "dark" ? Basefn.Theme.Dark : Basefn.Theme.Light)
     None
   })
 }

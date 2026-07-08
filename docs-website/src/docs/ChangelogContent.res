@@ -32,21 +32,21 @@ let content = () => {
   <div class="changelog-doc">
     <section class="changelog-hero">
       <div class="changelog-hero-copy">
-        <p class="changelog-kicker"> {Node.text("Release history")} </p>
+        <p class="changelog-kicker"> {View.text("Release history")} </p>
         <p class="changelog-meta">
-          {Node.text("Scan every xote release, grouped by version with the release date visible on each entry. ")}
-          <a href={RepoData.sourceUrl} target="_blank"> {Node.text("View full changelog")} </a>
+          {View.text("Scan every xote release, grouped by version with the release date visible on each entry. ")}
+          <a href={RepoData.sourceUrl} target="_blank"> {View.text("View full changelog")} </a>
         </p>
       </div>
     </section>
 
     <nav class="changelog-index" ariaLabel="Jump to release">
       <div class="changelog-index-head">
-        <span class="changelog-index-title"> {Node.text("Versions")} </span>
-        <span class="changelog-index-hint"> {Node.text("Version · release date · changes")} </span>
+        <span class="changelog-index-title"> {View.text("Versions")} </span>
+        <span class="changelog-index-hint"> {View.text("Version · release date · changes")} </span>
       </div>
       <div class="changelog-index-list">
-        {Node.fragment(
+        {View.fragment(
           releases->Array.mapWithIndex((release, index) => {
             let count = releaseChangeCount(release)
             <a
@@ -56,14 +56,14 @@ let content = () => {
               } else {
                 "changelog-index-item"
               }}>
-              <span class="changelog-index-version"> {Node.text("v" ++ release.version)} </span>
+              <span class="changelog-index-version"> {View.text("v" ++ release.version)} </span>
               {if index == 0 {
-                <span class="changelog-index-latest"> {Node.text("Latest")} </span>
+                <span class="changelog-index-latest"> {View.text("Latest")} </span>
               } else {
-                Node.fragment([])
+                View.fragment([])
               }}
-              <span class="changelog-index-date"> {Node.text(release.formattedDate)} </span>
-              <span class="changelog-index-count"> {Node.text(changeLabel(count))} </span>
+              <span class="changelog-index-date"> {View.text(release.formattedDate)} </span>
+              <span class="changelog-index-count"> {View.text(changeLabel(count))} </span>
             </a>
           }),
         )}
@@ -71,7 +71,7 @@ let content = () => {
     </nav>
 
     <div class="changelog-releases">
-      {Node.fragment(
+      {View.fragment(
         releases->Array.mapWithIndex((release, index) => {
           let changeCount = releaseChangeCount(release)
 
@@ -80,37 +80,37 @@ let content = () => {
               <div class="changelog-version-block">
                 <h2 class="changelog-release-title">
                   <a href={release.url} target="_blank" class="changelog-release-link">
-                    {Node.text("v" ++ release.version)}
+                    {View.text("v" ++ release.version)}
                   </a>
                 </h2>
                 {if index == 0 {
-                  <span class="changelog-latest"> {Node.text("Latest")} </span>
+                  <span class="changelog-latest"> {View.text("Latest")} </span>
                 } else {
-                  Node.fragment([])
+                  View.fragment([])
                 }}
               </div>
               <div class="changelog-release-meta">
-                <time class="changelog-release-date"> {Node.text(release.formattedDate)} </time>
-                <span class="changelog-release-count"> {Node.text(changeLabel(changeCount))} </span>
+                <time class="changelog-release-date"> {View.text(release.formattedDate)} </time>
+                <span class="changelog-release-count"> {View.text(changeLabel(changeCount))} </span>
               </div>
             </header>
             <div class="changelog-release-body">
-              {Node.fragment(
+              {View.fragment(
                 release.sections->Array.map(section => {
                   let title = sectionTitle(section.title)
 
                   <section class={"changelog-section changelog-section-" ++ sectionTone(section.title)}>
                     <div class="changelog-section-head">
                       <h3 class="changelog-section-title">
-                        {Node.text(title)}
+                        {View.text(title)}
                       </h3>
                     </div>
                     <ul class="changelog-list">
-                      {Node.fragment(
+                      {View.fragment(
                         section.items->Array.map(item => {
                           <li class="changelog-item">
-                            <span class="changelog-item-marker" ariaHidden=true> {Node.text("")} </span>
-                            <span class="changelog-item-copy"> {Node.fragment(item)} </span>
+                            <span class="changelog-item-marker" ariaHidden=true> {View.text("")} </span>
+                            <span class="changelog-item-copy"> {View.fragment(item)} </span>
                           </li>
                         }),
                       )}
