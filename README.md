@@ -1,4 +1,4 @@
-<p align="center">
+<p>
   <a href="https://xote.dev/">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="docs/banner.svg">
