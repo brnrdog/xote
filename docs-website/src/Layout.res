@@ -415,6 +415,13 @@ module Header = {
   type props = {}
 
   let make = (_props: props) => {
+    let headerClass = () => {
+      let path = Signal.get(Router.location()).pathname
+      path == "/docs" || path->String.startsWith("/docs/")
+        ? "header-inner header-inner-docs"
+        : "header-inner"
+    }
+
     // Scroll listener (client-only)
     if SSRContext.isClient {
       Effect.run(() => {
@@ -428,7 +435,7 @@ module Header = {
     }
 
     <header class="site-header">
-      <div class="header-inner">
+      <div class={headerClass}>
         <div class="header-left">
           {Router.link(
             ~to="/",
@@ -624,9 +631,16 @@ if SSRContext.isClient {
 type props = {children: View.node}
 
 let make = (props: props) => {
+  let mainClass = () => {
+    let path = Signal.get(Router.location()).pathname
+    path == "/docs" || path->String.startsWith("/docs/")
+      ? "site-main site-main-docs"
+      : "site-main"
+  }
+
   <div>
     <Header />
-    <main id="main-content"> {props.children} </main>
+    <main id="main-content" class={mainClass}> {props.children} </main>
     <Footer />
     <SearchModal />
   </div>

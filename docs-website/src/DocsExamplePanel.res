@@ -1,6 +1,11 @@
 @jsx.component
 let make = (~filename, ~code, ~caption=?, ~children=?) => {
   let activeTab = Signal.make("code")
+  let hasDemo = switch children {
+  | Some(_) => true
+  | None => false
+  }
+  let exampleClass = hasDemo ? "docs-example-panel docs-example-panel-has-demo" : "docs-example-panel"
 
   let setTab = (tab, _evt: Dom.event) => Signal.set(activeTab, tab)
   let tabClass = tab =>
@@ -16,7 +21,7 @@ let make = (~filename, ~code, ~caption=?, ~children=?) => {
       "docs-example-view"
     }
 
-  <section class="docs-example-panel">
+  <section class={exampleClass}>
     <div class="docs-example-header">
       <div class="docs-example-tabs" role="tablist">
         <button
