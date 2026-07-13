@@ -492,7 +492,7 @@ module Hero = {
     <section class="hero">
       <HeroBackground />
       <h1 class="hero-display">
-        {View.text("A ReScript Library for Interactive User Interfaces")}
+        {View.text("A ReScript Library for Building User Interfaces")}
       </h1>
       <p class="hero-lead">
         {View.text(

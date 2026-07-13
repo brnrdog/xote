@@ -35,7 +35,7 @@
 
   /* Typography families */
   --font-display: "Domine", Georgia, serif;
-  --font-logo: "Fraunces", "Domine", Georgia, serif;
+  --font-logo: Georgia, "Times New Roman", serif;
   --font-body:
     "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono:
@@ -389,7 +389,7 @@ td strong {
 
 .header-left {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--s-4);
 }
 
@@ -404,20 +404,21 @@ td strong {
   letter-spacing: -0.01em;
 }
 
+.header-logo-link svg {
+  flex-shrink: 0;
+}
+
 .logo-text {
   display: inline-block;
   text-transform: lowercase;
   font-family: var(--font-logo);
-  font-weight: 800;
-  font-style: italic;
-  font-variation-settings: "opsz" 72, "wght" 800;
-  letter-spacing: -0.035em;
-  line-height: 0.95;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 
 .header-logo-link .logo-text {
-  font-size: 1.42em;
-  transform: translateY(1px);
+  font-size: 1.125rem;
 }
 
 .header-version {
@@ -2232,12 +2233,28 @@ td strong {
   margin: 0 0 var(--s-3) 0;
 }
 
-.footer-brand-name {
-  font-weight: 700 !important;
+.footer-brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
 }
 
-.footer-brand-name .logo-text {
-  font-size: 1em;
+.footer-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.footer-logo-text {
+  font-size: 24px;
+}
+
+.footer-tagline {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .footer-brand p {
