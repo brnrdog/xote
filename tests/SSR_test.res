@@ -1,9 +1,9 @@
-open! Zekr
+open! TestHelpers
 
 let snapshotDir = "tests/__snapshots__"
 let _ = setSnapshotDir(snapshotDir)
 
-let suite = Zekr.suite(
+let suite = Suite.make(
   "SSR",
   [
     test("renders static text", () => {

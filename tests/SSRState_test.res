@@ -1,4 +1,4 @@
-open! Zekr
+open! TestHelpers
 
 module Codec = SSRState.Codec
 
@@ -7,7 +7,7 @@ let roundTrip = (codec: Codec.t<'a>, value: 'a): option<'a> => {
   codec.decode(json)
 }
 
-let suite = Zekr.suite(
+let suite = Suite.make(
   "SSRState Codec",
   [
     test("int codec round-trips", () => {

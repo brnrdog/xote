@@ -1,4 +1,4 @@
-open! Zekr
+open! TestHelpers
 
 type item = {id: string, label: string}
 
@@ -8,11 +8,11 @@ let mountTo = (node, container) => {
 }
 
 let getItemTexts = (container): array<string> => {
-  let items = Zekr.Dom.Query.findAllByRole(container, "listitem")
-  items->Array.map(el => Zekr__DomBindings.textContent(el))
+  let items = Dom.Query.findAllByRole(container, "listitem")
+  items->Array.map(el => DomBindings.textContent(el))
 }
 
-let suite = Zekr.suite(
+let suite = Suite.make(
   "KeyedList",
   [
     test("renders initial items", () => {

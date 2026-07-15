@@ -1,6 +1,6 @@
-open! Zekr
+open! TestHelpers
 
-let suite = Zekr.suite(
+let suite = Suite.make(
   "Public API",
   [
     test("keeps documented modules and core entry points usable", () => {

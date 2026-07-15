@@ -1,6 +1,6 @@
-open! Zekr
+open! TestHelpers
 
-let suite = Zekr.suite(
+let suite = Suite.make(
   "Hydration",
   [
     test("static content is preserved after hydration", () => {

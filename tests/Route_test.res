@@ -1,4 +1,4 @@
-open! Zekr
+open! TestHelpers
 
 let getAttr = (el, key: string): string => {
   ignore(el)
@@ -62,7 +62,7 @@ let setScrollIntoView = (el, called: ref<bool>): unit => {
   let _: unit = %raw(`el.scrollIntoView = () => { called.contents = true }`)
 }
 
-let suite = Zekr.suite(
+let suite = Suite.make(
   "Route",
   [
     test("matches exact root path", () => {

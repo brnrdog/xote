@@ -1,4 +1,4 @@
-open! Zekr
+open! TestHelpers
 
 %%raw(`
 function __xoteTestDispatchEventByName(node, eventName) {
@@ -19,7 +19,7 @@ let mountTo = (node, container) => {
 
 type keyedForItem = {id: string, label: string}
 
-let suite = Zekr.suite(
+let suite = Suite.make(
   "JSX",
   [
     test("renders basic JSX element with class", () => {
@@ -92,7 +92,7 @@ let suite = Zekr.suite(
         container,
       )
       assertEqual(
-        Dom.Query.getAllByRole(container, "listitem")->Array.map(Zekr__DomBindings.textContent),
+        Dom.Query.getAllByRole(container, "listitem")->Array.map(DomBindings.textContent),
         ["One", "Two"],
       )
     }),
@@ -110,12 +110,12 @@ let suite = Zekr.suite(
       )
 
       let r1 = assertEqual(
-        Dom.Query.getAllByRole(container, "listitem")->Array.map(Zekr__DomBindings.textContent),
+        Dom.Query.getAllByRole(container, "listitem")->Array.map(DomBindings.textContent),
         ["One"],
       )
       Signal.set(items, ["Two", "Three"])
       let r2 = assertEqual(
-        Dom.Query.getAllByRole(container, "listitem")->Array.map(Zekr__DomBindings.textContent),
+        Dom.Query.getAllByRole(container, "listitem")->Array.map(DomBindings.textContent),
         ["Two", "Three"],
       )
 
@@ -584,13 +584,13 @@ let suite = Zekr.suite(
 
       combineResults([
         assertEqual(
-          reorderedNodes->Array.map(Zekr__DomBindings.textContent),
+          reorderedNodes->Array.map(DomBindings.textContent),
           ["Banana", "Apple"],
         ),
         assertTrue(objectIs(reorderedBanana, bananaNode)),
         assertTrue(objectIs(reorderedApple, appleNode)),
         assertEqual(
-          updatedNodes->Array.map(Zekr__DomBindings.textContent),
+          updatedNodes->Array.map(DomBindings.textContent),
           ["Blueberry", "Apple"],
         ),
         assertFalse(objectIs(updatedFirst, bananaNode)),
@@ -626,7 +626,7 @@ let suite = Zekr.suite(
 
       combineResults([
         assertEqual(
-          reorderedNodes->Array.map(Zekr__DomBindings.textContent),
+          reorderedNodes->Array.map(DomBindings.textContent),
           ["Banana", "Apple"],
         ),
         assertTrue(objectIs(reorderedBanana, bananaNode)),
@@ -650,7 +650,7 @@ let suite = Zekr.suite(
       )
 
       assertEqual(
-        Dom.Query.getAllByRole(container, "listitem")->Array.map(Zekr__DomBindings.textContent),
+        Dom.Query.getAllByRole(container, "listitem")->Array.map(DomBindings.textContent),
         ["Apple", "Banana"],
       )
     }),
@@ -685,7 +685,7 @@ let suite = Zekr.suite(
 
       combineResults([
         assertEqual(
-          updatedNodes->Array.map(Zekr__DomBindings.textContent),
+          updatedNodes->Array.map(DomBindings.textContent),
           ["Cherry", "Banana", "Apple"],
         ),
         assertFalse(objectIs(updatedCherry, appleNode)),

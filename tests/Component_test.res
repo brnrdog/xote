@@ -1,11 +1,11 @@
-open! Zekr
+open! TestHelpers
 
 let mountTo = (node, container) => {
   View.mount(node, container)
   container
 }
 
-let suite = Zekr.suite(
+let suite = Suite.make(
   "Component",
   [
     test("renders static text", () => {
