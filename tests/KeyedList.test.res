@@ -1,3 +1,5 @@
+%%raw(`import "./setup.mjs"`)
+
 open! Zekr
 
 type item = {id: string, label: string}
@@ -8,15 +10,15 @@ let mountTo = (node, container) => {
 }
 
 let getItemTexts = (container): array<string> => {
-  let items = Zekr.Dom.Query.findAllByRole(container, "listitem")
-  items->Array.map(el => Zekr__DomBindings.textContent(el))
+  let items = DomTesting.Query.findAllByRole(container, "listitem")
+  items->Array.map(el => DomBindings.textContent(el))
 }
 
-let suite = Zekr.suite(
+let suite = Suite.make(
   "KeyedList",
   [
-    test("renders initial items", () => {
-      let {container} = Dom.render("")
+    Test.make("renders initial items", () => {
+      let {container} = DomTesting.render("")
       let items = Signal.make([
         {id: "1", label: "Apple"},
         {id: "2", label: "Banana"},
@@ -40,10 +42,10 @@ let suite = Zekr.suite(
         ),
         container,
       )
-      assertEqual(getItemTexts(container), ["Apple", "Banana", "Cherry"])
+      Assert.equal(getItemTexts(container), ["Apple", "Banana", "Cherry"])
     }),
-    test("appends item at end", () => {
-      let {container} = Dom.render("")
+    Test.make("appends item at end", () => {
+      let {container} = DomTesting.render("")
       let items = Signal.make([{id: "1", label: "Apple"}, {id: "2", label: "Banana"}])
       let _ = mountTo(
         Html.div(
@@ -67,10 +69,10 @@ let suite = Zekr.suite(
         items,
         [{id: "1", label: "Apple"}, {id: "2", label: "Banana"}, {id: "3", label: "Cherry"}],
       )
-      assertEqual(getItemTexts(container), ["Apple", "Banana", "Cherry"])
+      Assert.equal(getItemTexts(container), ["Apple", "Banana", "Cherry"])
     }),
-    test("prepends item at start", () => {
-      let {container} = Dom.render("")
+    Test.make("prepends item at start", () => {
+      let {container} = DomTesting.render("")
       let items = Signal.make([{id: "2", label: "Banana"}, {id: "3", label: "Cherry"}])
       let _ = mountTo(
         Html.div(
@@ -94,10 +96,10 @@ let suite = Zekr.suite(
         items,
         [{id: "1", label: "Apple"}, {id: "2", label: "Banana"}, {id: "3", label: "Cherry"}],
       )
-      assertEqual(getItemTexts(container), ["Apple", "Banana", "Cherry"])
+      Assert.equal(getItemTexts(container), ["Apple", "Banana", "Cherry"])
     }),
-    test("removes item", () => {
-      let {container} = Dom.render("")
+    Test.make("removes item", () => {
+      let {container} = DomTesting.render("")
       let items = Signal.make([
         {id: "1", label: "Apple"},
         {id: "2", label: "Banana"},
@@ -122,13 +124,13 @@ let suite = Zekr.suite(
         container,
       )
       Signal.set(items, [{id: "1", label: "Apple"}, {id: "3", label: "Cherry"}])
-      combineResults([
-        assertEqual(getItemTexts(container), ["Apple", "Cherry"]),
-        Dom.Assert.toNotBeInTheDocument(Dom.Query.queryByText(container, "Banana")),
+      Assert.combineResults([
+        Assert.equal(getItemTexts(container), ["Apple", "Cherry"]),
+        DomTesting.Assert.toNotBeInTheDocument(DomTesting.Query.queryByText(container, "Banana")),
       ])
     }),
-    test("reorders items", () => {
-      let {container} = Dom.render("")
+    Test.make("reorders items", () => {
+      let {container} = DomTesting.render("")
       let items = Signal.make([
         {id: "1", label: "Apple"},
         {id: "2", label: "Banana"},
@@ -156,10 +158,10 @@ let suite = Zekr.suite(
         items,
         [{id: "3", label: "Cherry"}, {id: "1", label: "Apple"}, {id: "2", label: "Banana"}],
       )
-      assertEqual(getItemTexts(container), ["Cherry", "Apple", "Banana"])
+      Assert.equal(getItemTexts(container), ["Cherry", "Apple", "Banana"])
     }),
-    test("clears all items", () => {
-      let {container} = Dom.render("")
+    Test.make("clears all items", () => {
+      let {container} = DomTesting.render("")
       let items = Signal.make([{id: "1", label: "Apple"}, {id: "2", label: "Banana"}])
       let _ = mountTo(
         Html.div(
@@ -180,10 +182,10 @@ let suite = Zekr.suite(
         container,
       )
       Signal.set(items, [])
-      assertEqual(getItemTexts(container), [])
+      Assert.equal(getItemTexts(container), [])
     }),
-    test("handles rapid successive updates", () => {
-      let {container} = Dom.render("")
+    Test.make("handles rapid successive updates", () => {
+      let {container} = DomTesting.render("")
       let items = Signal.make([{id: "1", label: "A"}])
       let _ = mountTo(
         Html.div(
@@ -206,8 +208,8 @@ let suite = Zekr.suite(
       Signal.set(items, [{id: "1", label: "A"}, {id: "2", label: "B"}])
       Signal.set(items, [{id: "2", label: "B"}, {id: "3", label: "C"}])
       Signal.set(items, [{id: "3", label: "C"}, {id: "4", label: "D"}, {id: "5", label: "E"}])
-      assertEqual(getItemTexts(container), ["C", "D", "E"])
+      Assert.equal(getItemTexts(container), ["C", "D", "E"])
     }),
   ],
-  ~afterEach=() => Dom.cleanup(),
+  ~afterEach=() => DomTesting.cleanup(),
 )

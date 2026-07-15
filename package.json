@@ -75,7 +75,7 @@
     "docs:start": "cd docs-website && npm run dev",
     "docs:build": "cd docs-website && npm run build",
     "docs:serve": "cd docs-website && npm run preview",
-    "test": "npx rescript && node tests/Tests.res.mjs && node tests/JSXRuntime_test.mjs"
+    "test": "rescript && zekr && node tests/JSXRuntime_test.mjs"
   },
   "keywords": [
     "rescript",
@@ -127,7 +127,7 @@
     "rescript": "^12.0.0",
     "semantic-release": "^25.0.1",
     "vite": "^8.0.16",
-    "zekr": "^1.7.0"
+    "zekr": "2.1.0-beta.2"
   },
   "dependencies": {
     "@rescript/core": "^1.6.1",

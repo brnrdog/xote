@@ -1,4 +1,7 @@
+%%raw(`import "./setup.mjs"`)
+
 open! Zekr
+open Types
 
 let getAttr = (el, key: string): string => {
   ignore(el)
@@ -62,64 +65,64 @@ let setScrollIntoView = (el, called: ref<bool>): unit => {
   let _: unit = %raw(`el.scrollIntoView = () => { called.contents = true }`)
 }
 
-let suite = Zekr.suite(
+let suite = Suite.make(
   "Route",
   [
-    test("matches exact root path", () => {
+    Test.make("matches exact root path", () => {
       switch Route.match("/", "/") {
-      | Route.Match(params) => assertEqual(Dict.keysToArray(params)->Array.length, 0)
+      | Route.Match(params) => Assert.equal(Dict.keysToArray(params)->Array.length, 0)
       | Route.NoMatch => Fail("Expected Match for /")
       }
     }),
-    test("matches exact static path", () => {
+    Test.make("matches exact static path", () => {
       switch Route.match("/about", "/about") {
-      | Route.Match(params) => assertEqual(Dict.keysToArray(params)->Array.length, 0)
+      | Route.Match(params) => Assert.equal(Dict.keysToArray(params)->Array.length, 0)
       | Route.NoMatch => Fail("Expected Match for /about")
       }
     }),
-    test("returns NoMatch for different static paths", () => {
+    Test.make("returns NoMatch for different static paths", () => {
       switch Route.match("/about", "/contact") {
       | Route.Match(_) => Fail("Expected NoMatch")
       | Route.NoMatch => Pass
       }
     }),
-    test("returns NoMatch for different segment count", () => {
+    Test.make("returns NoMatch for different segment count", () => {
       switch Route.match("/users/:id", "/users") {
       | Route.Match(_) => Fail("Expected NoMatch for /users vs /users/:id")
       | Route.NoMatch => Pass
       }
     }),
-    test("extracts single route parameter", () => {
+    Test.make("extracts single route parameter", () => {
       switch Route.match("/users/:id", "/users/42") {
-      | Route.Match(params) => assertEqual(Dict.get(params, "id"), Some("42"))
+      | Route.Match(params) => Assert.equal(Dict.get(params, "id"), Some("42"))
       | Route.NoMatch => Fail("Expected Match for /users/42")
       }
     }),
-    test("extracts multiple route parameters", () => {
+    Test.make("extracts multiple route parameters", () => {
       switch Route.match("/users/:id/posts/:postId", "/users/1/posts/5") {
       | Route.Match(params) =>
-        combineResults([
-          assertEqual(Dict.get(params, "id"), Some("1")),
-          assertEqual(Dict.get(params, "postId"), Some("5")),
+        Assert.combineResults([
+          Assert.equal(Dict.get(params, "id"), Some("1")),
+          Assert.equal(Dict.get(params, "postId"), Some("5")),
         ])
       | Route.NoMatch => Fail("Expected Match for /users/1/posts/5")
       }
     }),
-    test("matches multi-segment static path", () => {
+    Test.make("matches multi-segment static path", () => {
       switch Route.match("/app/settings/profile", "/app/settings/profile") {
       | Route.Match(_) => Pass
       | Route.NoMatch => Fail("Expected Match for /app/settings/profile")
       }
     }),
-    test("does not match partial static path", () => {
+    Test.make("does not match partial static path", () => {
       switch Route.match("/app/settings", "/app/settings/profile") {
       | Route.Match(_) => Fail("Expected NoMatch for partial path")
       | Route.NoMatch => Pass
       }
     }),
-    test("Router.link keeps search and hash separate from pathname", () => {
+    Test.make("Router.link keeps search and hash separate from pathname", () => {
       Router.init()
-      let {container} = Dom.render("")
+      let {container} = DomTesting.render("")
       View.mount(
         Router.link(
           ~to="/docs/api/signal?tab=read#signal-get",
@@ -129,22 +132,22 @@ let suite = Zekr.suite(
         container,
       )
 
-      let link = Dom.Query.getByText(container, "Signal.get")
-      let hrefResult = assertEqual(getAttr(link, "href"), "/docs/api/signal?tab=read#signal-get")
+      let link = DomTesting.Query.getByText(container, "Signal.get")
+      let hrefResult = Assert.equal(getAttr(link, "href"), "/docs/api/signal?tab=read#signal-get")
 
-      Dom.Event.click(link)
+      DomTesting.Event.click(link)
       let current = Signal.peek(Router.location())
 
-      combineResults([
+      Assert.combineResults([
         hrefResult,
-        assertEqual(current.pathname, "/docs/api/signal"),
-        assertEqual(current.search, "?tab=read"),
-        assertEqual(current.hash, "#signal-get"),
+        Assert.equal(current.pathname, "/docs/api/signal"),
+        Assert.equal(current.search, "?tab=read"),
+        Assert.equal(current.hash, "#signal-get"),
       ])
     }),
-    test("Router.Link keeps search and hash separate from pathname", () => {
+    Test.make("Router.Link keeps search and hash separate from pathname", () => {
       Router.init()
-      let {container} = Dom.render("")
+      let {container} = DomTesting.render("")
       let clicked = ref(false)
 
       View.mount(
@@ -157,25 +160,25 @@ let suite = Zekr.suite(
         container,
       )
 
-      let link = Dom.Query.getByText(container, "Computed.make")
-      let hrefResult = assertEqual(
+      let link = DomTesting.Query.getByText(container, "Computed.make")
+      let hrefResult = Assert.equal(
         getAttr(link, "href"),
         "/docs/api/computed?tab=derive#computed-make",
       )
 
-      Dom.Event.click(link)
+      DomTesting.Event.click(link)
       let current = Signal.peek(Router.location())
 
-      combineResults([
+      Assert.combineResults([
         hrefResult,
-        assertEqual(getAttr(link, "class"), "api-link"),
-        assertTrue(clicked.contents),
-        assertEqual(current.pathname, "/docs/api/computed"),
-        assertEqual(current.search, "?tab=derive"),
-        assertEqual(current.hash, "#computed-make"),
+        Assert.equal(getAttr(link, "class"), "api-link"),
+        Assert.isTrue(clicked.contents),
+        Assert.equal(current.pathname, "/docs/api/computed"),
+        Assert.equal(current.search, "?tab=derive"),
+        Assert.equal(current.hash, "#computed-make"),
       ])
     }),
-    test("Router.link scrolls to hash targets after navigation", () => {
+    Test.make("Router.link scrolls to hash targets after navigation", () => {
       Router.init()
       useImmediateMicrotask()
       let container = makeGlobalContainer()
@@ -202,9 +205,9 @@ let suite = Zekr.suite(
       clickElement(link)
       restoreMicrotask()
 
-      assertTrue(called.contents)
+      Assert.isTrue(called.contents)
     }),
-    test("Router.Link scrolls to encoded hash targets after navigation", () => {
+    Test.make("Router.Link scrolls to encoded hash targets after navigation", () => {
       Router.init()
       useImmediateMicrotask()
       let container = makeGlobalContainer()
@@ -228,16 +231,16 @@ let suite = Zekr.suite(
 
       let current = Signal.peek(Router.location())
 
-      combineResults([
-        assertTrue(called.contents),
-        assertEqual(current.pathname, "/docs/api/view"),
-        assertEqual(current.hash, "#view%20text"),
+      Assert.combineResults([
+        Assert.isTrue(called.contents),
+        Assert.equal(current.pathname, "/docs/api/view"),
+        Assert.equal(current.hash, "#view%20text"),
       ])
     }),
   ],
   ~afterEach=() => {
     restoreMicrotask()
     cleanupGlobalContainers()
-    Dom.cleanup()
+    DomTesting.cleanup()
   },
 )
