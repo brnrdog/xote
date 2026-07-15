@@ -21,7 +21,7 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - `npm run preview` - Preview production build
 
 ### Testing
-- `npm run test` - Compile ReScript, then run the [zekr](https://www.npmjs.com/package/zekr) CLI (`zekr`) followed by `node tests/JSXRuntime_test.mjs`. There is no central runner file: zekr discovers every suite by filename pattern (configured in `zekr.json` as `_test.res` under `tests/`), each suite self-registers via `Suite.make`, and the CLI runs each compiled test module in its own process. Suites use the flat helpers re-exported from `tests/TestHelpers.res`, and snapshot fixtures live under `tests/__snapshots__/`.
+- `npm run test` - Compile ReScript, then run the [zekr](https://www.npmjs.com/package/zekr) CLI (`zekr`) followed by `node tests/JSXRuntime_test.mjs`. There is no central runner file: zekr discovers every suite by zekr's default `.test.res` filename pattern (scoped to `tests/` via `zekr.json`), each suite self-registers via `Suite.make`, and the CLI runs each compiled test module in its own process. Suites call zekr's API directly (`Suite.make`, `Test.make`, `Assert.*`, `Snapshot.*`, `DomTesting.*` under `open! Zekr`). DOM-touching suites import `tests/setup.mjs`, which mirrors zekr's jsdom onto the globals Xote's runtime reads. Snapshot fixtures live under `tests/__snapshots__/`.
 
 ### Documentation
 - `npm run docs:start` - Start documentation site
@@ -540,13 +540,13 @@ The project has a test suite using the [zekr](https://github.com/nicholasgasior/
 
 | File | Purpose |
 |------|---------|
-| `tests/Component_test.res` | Component rendering |
-| `tests/Hydration_test.res` | Hydration logic |
-| `tests/JSX_test.res` | JSX transform |
-| `tests/KeyedList_test.res` | Keyed list reconciliation |
-| `tests/Route_test.res` | Route matching and router navigation |
-| `tests/SSR_test.res` | Server-side rendering |
-| `tests/SSRState_test.res` | State serialization |
-| `tests/PublicApi_test.res` | Public module surface smoke test |
-| `tests/TestHelpers.res` | Flat helpers over zekr 2.x + shared jsdom setup (opened by every suite; not itself a suite) |
+| `tests/Component.test.res` | Component rendering |
+| `tests/Hydration.test.res` | Hydration logic |
+| `tests/JSX.test.res` | JSX transform |
+| `tests/KeyedList.test.res` | Keyed list reconciliation |
+| `tests/Route.test.res` | Route matching and router navigation |
+| `tests/SSR.test.res` | Server-side rendering |
+| `tests/SSRState.test.res` | State serialization |
+| `tests/PublicApi.test.res` | Public module surface smoke test |
+| `tests/setup.mjs` | Shared jsdom environment for DOM-touching suites (imported directly by those suites) |
 | `tests/JSXRuntime_test.mjs` | jsx-runtime/MDX integration (plain `node` assertions, run outside the zekr CLI) |

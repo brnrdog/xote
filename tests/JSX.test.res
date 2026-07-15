@@ -1,4 +1,6 @@
-open! TestHelpers
+%%raw(`import "./setup.mjs"`)
+
+open! Zekr
 
 %%raw(`
 function __xoteTestDispatchEventByName(node, eventName) {
@@ -22,25 +24,25 @@ type keyedForItem = {id: string, label: string}
 let suite = Suite.make(
   "JSX",
   [
-    test("renders basic JSX element with class", () => {
-      let {container} = Dom.render("")
+    Test.make("renders basic JSX element with class", () => {
+      let {container} = DomTesting.render("")
       let _ = mountTo(<div class="container"> {View.text("Hello JSX")} </div>, container)
-      let el = Dom.Query.getByText(container, "Hello JSX")
-      combineResults([Dom.Assert.toBeInTheDocument(el), Dom.Assert.toHaveClass(el, "container")])
+      let el = DomTesting.Query.getByText(container, "Hello JSX")
+      Assert.combineResults([DomTesting.Assert.toBeInTheDocument(el), DomTesting.Assert.toHaveClass(el, "container")])
     }),
-    test("handles click events in JSX", () => {
-      let {container} = Dom.render("")
+    Test.make("handles click events in JSX", () => {
+      let {container} = DomTesting.render("")
       let clicked = ref(false)
       let _ = mountTo(
         <button onClick={_evt => clicked := true}> {View.text("Press")} </button>,
         container,
       )
-      let btn = Dom.Query.getByRole(container, "button")
-      Dom.Event.click(btn)
-      assertTrue(clicked.contents)
+      let btn = DomTesting.Query.getByRole(container, "button")
+      DomTesting.Event.click(btn)
+      Assert.isTrue(clicked.contents)
     }),
-    test("handles pointer events in JSX", () => {
-      let {container} = Dom.render("")
+    Test.make("handles pointer events in JSX", () => {
+      let {container} = DomTesting.render("")
       let pointerDown = ref(false)
       let pointerUp = ref(false)
       let _ = mountTo(
@@ -51,24 +53,24 @@ let suite = Suite.make(
         </button>,
         container,
       )
-      let btn = Dom.Query.getByRole(container, "button")
+      let btn = DomTesting.Query.getByRole(container, "button")
 
       dispatchEventByName(btn, "pointerdown")
       dispatchEventByName(btn, "pointerup")
 
-      combineResults([
-        assertTrue(pointerDown.contents),
-        assertTrue(pointerUp.contents),
+      Assert.combineResults([
+        Assert.isTrue(pointerDown.contents),
+        Assert.isTrue(pointerUp.contents),
       ])
     }),
-    test("renders input with type and placeholder", () => {
-      let {container} = Dom.render("")
+    Test.make("renders input with type and placeholder", () => {
+      let {container} = DomTesting.render("")
       let _ = mountTo(<input type_="text" placeholder="Enter name" />, container)
-      let input = Dom.Query.getByPlaceholder(container, "Enter name")
-      Dom.Assert.toHaveAttribute(input, "type", ~value="text")
+      let input = DomTesting.Query.getByPlaceholder(container, "Enter name")
+      DomTesting.Assert.toHaveAttribute(input, "type", ~value="text")
     }),
-    test("renders multiple children in JSX", () => {
-      let {container} = Dom.render("")
+    Test.make("renders multiple children in JSX", () => {
+      let {container} = DomTesting.render("")
       let _ = mountTo(
         <ul>
           <li> {View.text("One")} </li>
@@ -77,11 +79,11 @@ let suite = Suite.make(
         </ul>,
         container,
       )
-      let items = Dom.Query.getAllByRole(container, "listitem")
-      assertEqual(Array.length(items), 3)
+      let items = DomTesting.Query.getAllByRole(container, "listitem")
+      Assert.equal(Array.length(items), 3)
     }),
-    test("View.For renders static data", () => {
-      let {container} = Dom.render("")
+    Test.make("View.For renders static data", () => {
+      let {container} = DomTesting.render("")
       let _ = mountTo(
         <ul>
           <View.For
@@ -91,13 +93,13 @@ let suite = Suite.make(
         </ul>,
         container,
       )
-      assertEqual(
-        Dom.Query.getAllByRole(container, "listitem")->Array.map(DomBindings.textContent),
+      Assert.equal(
+        DomTesting.Query.getAllByRole(container, "listitem")->Array.map(DomBindings.textContent),
         ["One", "Two"],
       )
     }),
-    test("View.For renders reactive data", () => {
-      let {container} = Dom.render("")
+    Test.make("View.For renders reactive data", () => {
+      let {container} = DomTesting.render("")
       let items = Signal.make(["One"])
       let _ = mountTo(
         <ul>
@@ -109,20 +111,20 @@ let suite = Suite.make(
         container,
       )
 
-      let r1 = assertEqual(
-        Dom.Query.getAllByRole(container, "listitem")->Array.map(DomBindings.textContent),
+      let r1 = Assert.equal(
+        DomTesting.Query.getAllByRole(container, "listitem")->Array.map(DomBindings.textContent),
         ["One"],
       )
       Signal.set(items, ["Two", "Three"])
-      let r2 = assertEqual(
-        Dom.Query.getAllByRole(container, "listitem")->Array.map(DomBindings.textContent),
+      let r2 = Assert.equal(
+        DomTesting.Query.getAllByRole(container, "listitem")->Array.map(DomBindings.textContent),
         ["Two", "Three"],
       )
 
-      combineResults([r1, r2])
+      Assert.combineResults([r1, r2])
     }),
-    test("View.Show renders conditional branches", () => {
-      let {container} = Dom.render("")
+    Test.make("View.Show renders conditional branches", () => {
+      let {container} = DomTesting.render("")
       let visible = Signal.make(false)
       let _ = mountTo(
         <View.Show when_={Prop.signal(visible)} fallback={<p> {View.text("Hidden")} </p>}>
@@ -131,16 +133,16 @@ let suite = Suite.make(
         container,
       )
 
-      let r1 = Dom.Assert.toHaveTextContent(container, "Hidden")
+      let r1 = DomTesting.Assert.toHaveTextContent(container, "Hidden")
       Signal.set(visible, true)
-      let r2 = Dom.Assert.toHaveTextContent(container, "Visible")
+      let r2 = DomTesting.Assert.toHaveTextContent(container, "Visible")
       Signal.set(visible, false)
-      let r3 = Dom.Assert.toHaveTextContent(container, "Hidden")
+      let r3 = DomTesting.Assert.toHaveTextContent(container, "Hidden")
 
-      combineResults([r1, r2, r3])
+      Assert.combineResults([r1, r2, r3])
     }),
-    test("View.Maybe renders option values and fallback", () => {
-      let {container} = Dom.render("")
+    Test.make("View.Maybe renders option values and fallback", () => {
+      let {container} = DomTesting.render("")
       let selected = Signal.make(None)
       let _ = mountTo(
         <View.Maybe
@@ -151,16 +153,16 @@ let suite = Suite.make(
         container,
       )
 
-      let r1 = Dom.Assert.toHaveTextContent(container, "None")
+      let r1 = DomTesting.Assert.toHaveTextContent(container, "None")
       Signal.set(selected, Some("Ada"))
-      let r2 = Dom.Assert.toHaveTextContent(container, "Selected: Ada")
+      let r2 = DomTesting.Assert.toHaveTextContent(container, "Selected: Ada")
       Signal.set(selected, None)
-      let r3 = Dom.Assert.toHaveTextContent(container, "None")
+      let r3 = DomTesting.Assert.toHaveTextContent(container, "None")
 
-      combineResults([r1, r2, r3])
+      Assert.combineResults([r1, r2, r3])
     }),
-    test("View.Value renders reactive values", () => {
-      let {container} = Dom.render("")
+    Test.make("View.Value renders reactive values", () => {
+      let {container} = DomTesting.render("")
       let count = Signal.make(1)
       let _ = mountTo(
         <View.Value
@@ -170,14 +172,14 @@ let suite = Suite.make(
         container,
       )
 
-      let r1 = Dom.Assert.toHaveTextContent(container, "Count: 1")
+      let r1 = DomTesting.Assert.toHaveTextContent(container, "Count: 1")
       Signal.set(count, 2)
-      let r2 = Dom.Assert.toHaveTextContent(container, "Count: 2")
+      let r2 = DomTesting.Assert.toHaveTextContent(container, "Count: 2")
 
-      combineResults([r1, r2])
+      Assert.combineResults([r1, r2])
     }),
-    test("View value primitives render static values", () => {
-      let {container} = Dom.render("")
+    Test.make("View value primitives render static values", () => {
+      let {container} = DomTesting.render("")
       let _ = mountTo(
         <p>
           <View.Text value={Prop.static("Items: ")} />
@@ -190,10 +192,10 @@ let suite = Suite.make(
         container,
       )
 
-      Dom.Assert.toHaveTextContent(container, "Items: 2, ratio: 1.5, ready: true")
+      DomTesting.Assert.toHaveTextContent(container, "Items: 2, ratio: 1.5, ready: true")
     }),
-    test("View value primitives render reactive values", () => {
-      let {container} = Dom.render("")
+    Test.make("View value primitives render reactive values", () => {
+      let {container} = DomTesting.render("")
       let label = Signal.make("Count: ")
       let count = Signal.make(1)
       let ready = Signal.make(false)
@@ -207,16 +209,16 @@ let suite = Suite.make(
         container,
       )
 
-      let r1 = Dom.Assert.toHaveTextContent(container, "Count: 1, ready: false")
+      let r1 = DomTesting.Assert.toHaveTextContent(container, "Count: 1, ready: false")
       Signal.set(label, "Total: ")
       Signal.set(count, 2)
       Signal.set(ready, true)
-      let r2 = Dom.Assert.toHaveTextContent(container, "Total: 2, ready: true")
+      let r2 = DomTesting.Assert.toHaveTextContent(container, "Total: 2, ready: true")
 
-      combineResults([r1, r2])
+      Assert.combineResults([r1, r2])
     }),
-    test("View value primitives render child values", () => {
-      let {container} = Dom.render("")
+    Test.make("View value primitives render child values", () => {
+      let {container} = DomTesting.render("")
       let _ = mountTo(
         <p>
           <View.Text> "Items: " </View.Text>
@@ -229,10 +231,10 @@ let suite = Suite.make(
         container,
       )
 
-      Dom.Assert.toHaveTextContent(container, "Items: 2, ratio: 1.5, ready: true")
+      DomTesting.Assert.toHaveTextContent(container, "Items: 2, ratio: 1.5, ready: true")
     }),
-    test("View value primitives render signal children", () => {
-      let {container} = Dom.render("")
+    Test.make("View value primitives render signal children", () => {
+      let {container} = DomTesting.render("")
       let label = Signal.make("Count: ")
       let count = Signal.make(1)
       let ready = Signal.make(false)
@@ -246,16 +248,16 @@ let suite = Suite.make(
         container,
       )
 
-      let r1 = Dom.Assert.toHaveTextContent(container, "Count: 1, ready: false")
+      let r1 = DomTesting.Assert.toHaveTextContent(container, "Count: 1, ready: false")
       Signal.set(label, "Total: ")
       Signal.set(count, 2)
       Signal.set(ready, true)
-      let r2 = Dom.Assert.toHaveTextContent(container, "Total: 2, ready: true")
+      let r2 = DomTesting.Assert.toHaveTextContent(container, "Total: 2, ready: true")
 
-      combineResults([r1, r2])
+      Assert.combineResults([r1, r2])
     }),
-    test("View value primitives render Prop children", () => {
-      let {container} = Dom.render("")
+    Test.make("View value primitives render Prop children", () => {
+      let {container} = DomTesting.render("")
       let count = Signal.make(1)
       let label: Prop.t<string> = Prop.static("Count: ")
       let value: Prop.t<int> = Prop.signal(count)
@@ -267,14 +269,14 @@ let suite = Suite.make(
         container,
       )
 
-      let r1 = Dom.Assert.toHaveTextContent(container, "Count: 1")
+      let r1 = DomTesting.Assert.toHaveTextContent(container, "Count: 1")
       Signal.set(count, 2)
-      let r2 = Dom.Assert.toHaveTextContent(container, "Count: 2")
+      let r2 = DomTesting.Assert.toHaveTextContent(container, "Count: 2")
 
-      combineResults([r1, r2])
+      Assert.combineResults([r1, r2])
     }),
-    test("View value primitives tolerate empty props", () => {
-      let {container} = Dom.render("")
+    Test.make("View value primitives tolerate empty props", () => {
+      let {container} = DomTesting.render("")
       let _ = mountTo(
         <p>
           <View.Text />
@@ -285,10 +287,10 @@ let suite = Suite.make(
         container,
       )
 
-      Dom.Assert.toHaveTextContent(container, "")
+      DomTesting.Assert.toHaveTextContent(container, "")
     }),
-    test("View value primitives treat null and undefined as empty output", () => {
-      let {container} = Dom.render("")
+    Test.make("View value primitives treat null and undefined as empty output", () => {
+      let {container} = DomTesting.render("")
       let nullText: string = %raw("null")
       let undefinedText: string = %raw("undefined")
       let nullInt: int = %raw("null")
@@ -312,10 +314,10 @@ let suite = Suite.make(
         container,
       )
 
-      Dom.Assert.toHaveTextContent(container, "")
+      DomTesting.Assert.toHaveTextContent(container, "")
     }),
-    test("View.Text renders formatted Prop children", () => {
-      let {container} = Dom.render("")
+    Test.make("View.Text renders formatted Prop children", () => {
+      let {container} = DomTesting.render("")
       let nameSignal = Signal.make("Ada")
       let reactiveName: Prop.t<string> = Prop.signal(nameSignal)
       let _ = mountTo(
@@ -325,14 +327,14 @@ let suite = Suite.make(
         container,
       )
 
-      let r1 = Dom.Assert.toHaveTextContent(container, "Hello, Ada")
+      let r1 = DomTesting.Assert.toHaveTextContent(container, "Hello, Ada")
       Signal.set(nameSignal, "Grace")
-      let r2 = Dom.Assert.toHaveTextContent(container, "Hello, Grace")
+      let r2 = DomTesting.Assert.toHaveTextContent(container, "Hello, Grace")
 
-      combineResults([r1, r2])
+      Assert.combineResults([r1, r2])
     }),
-    test("View.Value detaches previous reactive descendants after shape changes", () => {
-      let {container} = Dom.render("")
+    Test.make("View.Value detaches previous reactive descendants after shape changes", () => {
+      let {container} = DomTesting.render("")
       let selected = Signal.make(true)
       let first = Signal.make("First")
       let second = Signal.make("Second")
@@ -350,31 +352,31 @@ let suite = Suite.make(
         container,
       )
 
-      let r1 = Dom.Assert.toHaveTextContent(container, "First")
+      let r1 = DomTesting.Assert.toHaveTextContent(container, "First")
       Signal.set(selected, false)
-      let r2 = Dom.Assert.toHaveTextContent(container, "Second")
+      let r2 = DomTesting.Assert.toHaveTextContent(container, "Second")
       Signal.set(first, "Detached")
-      let r3 = Dom.Assert.toHaveTextContent(container, "Second")
+      let r3 = DomTesting.Assert.toHaveTextContent(container, "Second")
       Signal.set(second, "Current")
-      let r4 = Dom.Assert.toHaveTextContent(container, "Current")
+      let r4 = DomTesting.Assert.toHaveTextContent(container, "Current")
 
-      combineResults([r1, r2, r3, r4])
+      Assert.combineResults([r1, r2, r3, r4])
     }),
-    test("renders JSX with reactive class via Prop", () => {
-      let {container} = Dom.render("")
+    Test.make("renders JSX with reactive class via Prop", () => {
+      let {container} = DomTesting.render("")
       let cls = Signal.make("initial")
       let _ = mountTo(
         <div class={Prop.reactive(cls)}> {View.text("reactive")} </div>,
         container,
       )
-      let el = Dom.Query.getByText(container, "reactive")
-      let r1 = Dom.Assert.toHaveClass(el, "initial")
+      let el = DomTesting.Query.getByText(container, "reactive")
+      let r1 = DomTesting.Assert.toHaveClass(el, "initial")
       Signal.set(cls, "updated")
-      let r2 = Dom.Assert.toHaveClass(el, "updated")
-      combineResults([r1, r2])
+      let r2 = DomTesting.Assert.toHaveClass(el, "updated")
+      Assert.combineResults([r1, r2])
     }),
-    test("controlled select honors the initial reactive value", () => {
-      let {container} = Dom.render("")
+    Test.make("controlled select honors the initial reactive value", () => {
+      let {container} = DomTesting.render("")
       let selected = Signal.make("green")
 
       let _ = mountTo(
@@ -387,15 +389,15 @@ let suite = Suite.make(
 
       switch querySelector(container, "select")->Nullable.toOption {
       | Some(select) =>
-          combineResults([
-            assertEqual(valueOf(select), "green"),
-            assertEqual(selectedIndexOf(select), 1),
+          Assert.combineResults([
+            Assert.equal(valueOf(select), "green"),
+            Assert.equal(selectedIndexOf(select), 1),
           ])
-      | None => assertTrue(false)
+      | None => Assert.isTrue(false)
       }
     }),
-    test("renders SVG element with SVG-specific attributes via JSX", () => {
-      let {container} = Dom.render("")
+    Test.make("renders SVG element with SVG-specific attributes via JSX", () => {
+      let {container} = DomTesting.render("")
       let _ = mountTo(
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
           <circle cx="50" cy="50" r="40" fill="red" stroke="black" strokeWidth="2" />
@@ -411,24 +413,24 @@ let suite = Suite.make(
           querySelector(svg, "path")->Nullable.toOption,
         ) {
         | (Some(circle), Some(path)) =>
-          combineResults([
-            Dom.Assert.toHaveAttribute(svg, "viewBox", ~value="0 0 100 100"),
-            Dom.Assert.toHaveAttribute(circle, "cx", ~value="50"),
-            Dom.Assert.toHaveAttribute(circle, "cy", ~value="50"),
-            Dom.Assert.toHaveAttribute(circle, "r", ~value="40"),
-            Dom.Assert.toHaveAttribute(circle, "fill", ~value="red"),
-            Dom.Assert.toHaveAttribute(circle, "stroke", ~value="black"),
-            Dom.Assert.toHaveAttribute(circle, "stroke-width", ~value="2"),
-            Dom.Assert.toHaveAttribute(path, "d", ~value="M10 10 L90 90"),
-            Dom.Assert.toHaveAttribute(path, "stroke-linecap", ~value="round"),
+          Assert.combineResults([
+            DomTesting.Assert.toHaveAttribute(svg, "viewBox", ~value="0 0 100 100"),
+            DomTesting.Assert.toHaveAttribute(circle, "cx", ~value="50"),
+            DomTesting.Assert.toHaveAttribute(circle, "cy", ~value="50"),
+            DomTesting.Assert.toHaveAttribute(circle, "r", ~value="40"),
+            DomTesting.Assert.toHaveAttribute(circle, "fill", ~value="red"),
+            DomTesting.Assert.toHaveAttribute(circle, "stroke", ~value="black"),
+            DomTesting.Assert.toHaveAttribute(circle, "stroke-width", ~value="2"),
+            DomTesting.Assert.toHaveAttribute(path, "d", ~value="M10 10 L90 90"),
+            DomTesting.Assert.toHaveAttribute(path, "stroke-linecap", ~value="round"),
           ])
-        | _ => assertTrue(false)
+        | _ => Assert.isTrue(false)
         }
-      | None => assertTrue(false)
+      | None => Assert.isTrue(false)
       }
     }),
-    test("renders SVG element with reactive fill attribute", () => {
-      let {container} = Dom.render("")
+    Test.make("renders SVG element with reactive fill attribute", () => {
+      let {container} = DomTesting.render("")
       let color = Signal.make("red")
       let _ = mountTo(
         <svg viewBox="0 0 10 10">
@@ -439,24 +441,24 @@ let suite = Suite.make(
 
       switch querySelector(container, "rect")->Nullable.toOption {
       | Some(rect) =>
-        let r1 = Dom.Assert.toHaveAttribute(rect, "fill", ~value="red")
+        let r1 = DomTesting.Assert.toHaveAttribute(rect, "fill", ~value="red")
         Signal.set(color, "blue")
-        let r2 = Dom.Assert.toHaveAttribute(rect, "fill", ~value="blue")
-        combineResults([r1, r2])
-      | None => assertTrue(false)
+        let r2 = DomTesting.Assert.toHaveAttribute(rect, "fill", ~value="blue")
+        Assert.combineResults([r1, r2])
+      | None => Assert.isTrue(false)
       }
     }),
-    test("renders disabled input via JSX boolean attribute", () => {
-      let {container} = Dom.render("")
+    Test.make("renders disabled input via JSX boolean attribute", () => {
+      let {container} = DomTesting.render("")
       let _ = mountTo(
         <input type_="text" disabled={true} placeholder="disabled field" />,
         container,
       )
-      let input = Dom.Query.getByPlaceholder(container, "disabled field")
-      Dom.Assert.toBeDisabled(input)
+      let input = DomTesting.Query.getByPlaceholder(container, "disabled field")
+      DomTesting.Assert.toBeDisabled(input)
     }),
-    test("renders JSX heading elements with correct roles", () => {
-      let {container} = Dom.render("")
+    Test.make("renders JSX heading elements with correct roles", () => {
+      let {container} = DomTesting.render("")
       let _ = mountTo(
         <div>
           <h1> {View.text("Title")} </h1>
@@ -464,29 +466,29 @@ let suite = Suite.make(
         </div>,
         container,
       )
-      combineResults([
-        Dom.Assert.toBeInTheDocument(Dom.Query.getByRole(container, "heading", ~level=1)),
-        Dom.Assert.toBeInTheDocument(Dom.Query.getByRole(container, "heading", ~level=2)),
+      Assert.combineResults([
+        DomTesting.Assert.toBeInTheDocument(DomTesting.Query.getByRole(container, "heading", ~level=1)),
+        DomTesting.Assert.toBeInTheDocument(DomTesting.Query.getByRole(container, "heading", ~level=2)),
       ])
     }),
-    test("renders link with href", () => {
-      let {container} = Dom.render("")
+    Test.make("renders link with href", () => {
+      let {container} = DomTesting.render("")
       let _ = mountTo(<a href="/about"> {View.text("About")} </a>, container)
-      let link = Dom.Query.getByRole(container, "link")
-      Dom.Assert.toHaveAttribute(link, "href", ~value="/about")
+      let link = DomTesting.Query.getByRole(container, "link")
+      DomTesting.Assert.toHaveAttribute(link, "href", ~value="/about")
     }),
-    test("renders image with src and alt", () => {
-      let {container} = Dom.render("")
+    Test.make("renders image with src and alt", () => {
+      let {container} = DomTesting.render("")
       let _ = mountTo(<img src="/logo.png" alt="Logo" />, container)
-      let img = Dom.Query.getByAltText(container, "Logo")
-      Dom.Assert.toHaveAttribute(img, "src", ~value="/logo.png")
+      let img = DomTesting.Query.getByAltText(container, "Logo")
+      DomTesting.Assert.toHaveAttribute(img, "src", ~value="/logo.png")
     }),
-    test("component with effect inside computed does not leak dependencies", () => {
+    Test.make("component with effect inside computed does not leak dependencies", () => {
       // This test reproduces the timer example bug: when a JSX component
       // containing Effect.run is rendered inside a Computed.make (e.g. via
       // signalFragment for tab switching), the effect's Signal.get calls
       // must be tracked by the effect itself, not by the outer computed.
-      let {container} = Dom.render("")
+      let {container} = DomTesting.render("")
 
       module EffectComponent = {
         type props = {}
@@ -526,20 +528,20 @@ let suite = Suite.make(
 
       // Switch to the component with an effect
       Signal.set(tab, "effect")
-      let r1 = Dom.Assert.toHaveTextContent(container, "0Inc")
+      let r1 = DomTesting.Assert.toHaveTextContent(container, "0Inc")
 
       // Click the button - this should update the counter without
       // recreating the component (i.e. the outer computed should NOT re-run)
-      let btn = Dom.Query.getByRole(container, "button")
-      Dom.Event.click(btn)
-      let r2 = Dom.Assert.toHaveTextContent(container, "1Inc")
+      let btn = DomTesting.Query.getByRole(container, "button")
+      DomTesting.Event.click(btn)
+      let r2 = DomTesting.Assert.toHaveTextContent(container, "1Inc")
 
-      Dom.Event.click(btn)
-      let r3 = Dom.Assert.toHaveTextContent(container, "2Inc")
+      DomTesting.Event.click(btn)
+      let r3 = DomTesting.Assert.toHaveTextContent(container, "2Inc")
 
-      combineResults([r1, r2, r3])
+      Assert.combineResults([r1, r2, r3])
     }),
-    test("jsx keyed components reconcile by key inside signal fragments", () => {
+    Test.make("jsx keyed components reconcile by key inside signal fragments", () => {
       module Row = {
         type item = {id: string, label: string}
         type props = {item: item}
@@ -549,7 +551,7 @@ let suite = Suite.make(
         }
       }
 
-      let {container} = Dom.render("")
+      let {container} = DomTesting.render("")
       let apple: Row.item = {id: "1", label: "Apple"}
       let banana: Row.item = {id: "2", label: "Banana"}
       let items = Signal.make([apple, banana])
@@ -565,40 +567,40 @@ let suite = Suite.make(
         container,
       )
 
-      let initialNodes = Dom.Query.getAllByRole(container, "listitem")
+      let initialNodes = DomTesting.Query.getAllByRole(container, "listitem")
       let appleNode = initialNodes->Array.get(0)->Option.getUnsafe
       let bananaNode = initialNodes->Array.get(1)->Option.getUnsafe
 
       Signal.set(items, [banana, apple])
 
-      let reorderedNodes = Dom.Query.getAllByRole(container, "listitem")
+      let reorderedNodes = DomTesting.Query.getAllByRole(container, "listitem")
       let reorderedBanana = reorderedNodes->Array.get(0)->Option.getUnsafe
       let reorderedApple = reorderedNodes->Array.get(1)->Option.getUnsafe
 
       let updatedBanana: Row.item = {id: "2", label: "Blueberry"}
       Signal.set(items, [updatedBanana, apple])
 
-      let updatedNodes = Dom.Query.getAllByRole(container, "listitem")
+      let updatedNodes = DomTesting.Query.getAllByRole(container, "listitem")
       let updatedFirst = updatedNodes->Array.get(0)->Option.getUnsafe
       let updatedSecond = updatedNodes->Array.get(1)->Option.getUnsafe
 
-      combineResults([
-        assertEqual(
+      Assert.combineResults([
+        Assert.equal(
           reorderedNodes->Array.map(DomBindings.textContent),
           ["Banana", "Apple"],
         ),
-        assertTrue(objectIs(reorderedBanana, bananaNode)),
-        assertTrue(objectIs(reorderedApple, appleNode)),
-        assertEqual(
+        Assert.isTrue(objectIs(reorderedBanana, bananaNode)),
+        Assert.isTrue(objectIs(reorderedApple, appleNode)),
+        Assert.equal(
           updatedNodes->Array.map(DomBindings.textContent),
           ["Blueberry", "Apple"],
         ),
-        assertFalse(objectIs(updatedFirst, bananaNode)),
-        assertTrue(objectIs(updatedSecond, appleNode)),
+        Assert.isFalse(objectIs(updatedFirst, bananaNode)),
+        Assert.isTrue(objectIs(updatedSecond, appleNode)),
       ])
     }),
-    test("View.For reconciles reactive data when by is provided", () => {
-      let {container} = Dom.render("")
+    Test.make("View.For reconciles reactive data when by is provided", () => {
+      let {container} = DomTesting.render("")
       let apple: keyedForItem = {id: "1", label: "Apple"}
       let banana: keyedForItem = {id: "2", label: "Banana"}
       let items = Signal.make([apple, banana])
@@ -614,27 +616,27 @@ let suite = Suite.make(
         container,
       )
 
-      let initialNodes = Dom.Query.getAllByRole(container, "listitem")
+      let initialNodes = DomTesting.Query.getAllByRole(container, "listitem")
       let appleNode = initialNodes->Array.get(0)->Option.getUnsafe
       let bananaNode = initialNodes->Array.get(1)->Option.getUnsafe
 
       Signal.set(items, [banana, apple])
 
-      let reorderedNodes = Dom.Query.getAllByRole(container, "listitem")
+      let reorderedNodes = DomTesting.Query.getAllByRole(container, "listitem")
       let reorderedBanana = reorderedNodes->Array.get(0)->Option.getUnsafe
       let reorderedApple = reorderedNodes->Array.get(1)->Option.getUnsafe
 
-      combineResults([
-        assertEqual(
+      Assert.combineResults([
+        Assert.equal(
           reorderedNodes->Array.map(DomBindings.textContent),
           ["Banana", "Apple"],
         ),
-        assertTrue(objectIs(reorderedBanana, bananaNode)),
-        assertTrue(objectIs(reorderedApple, appleNode)),
+        Assert.isTrue(objectIs(reorderedBanana, bananaNode)),
+        Assert.isTrue(objectIs(reorderedApple, appleNode)),
       ])
     }),
-    test("View.KeyedFor renders static data", () => {
-      let {container} = Dom.render("")
+    Test.make("View.KeyedFor renders static data", () => {
+      let {container} = DomTesting.render("")
       let apple: keyedForItem = {id: "1", label: "Apple"}
       let banana: keyedForItem = {id: "2", label: "Banana"}
 
@@ -649,13 +651,13 @@ let suite = Suite.make(
         container,
       )
 
-      assertEqual(
-        Dom.Query.getAllByRole(container, "listitem")->Array.map(DomBindings.textContent),
+      Assert.equal(
+        DomTesting.Query.getAllByRole(container, "listitem")->Array.map(DomBindings.textContent),
         ["Apple", "Banana"],
       )
     }),
-    test("View.KeyedFor reconciles reactive data", () => {
-      let {container} = Dom.render("")
+    Test.make("View.KeyedFor reconciles reactive data", () => {
+      let {container} = DomTesting.render("")
       let apple: keyedForItem = {id: "1", label: "Apple"}
       let banana: keyedForItem = {id: "2", label: "Banana"}
       let cherry: keyedForItem = {id: "3", label: "Cherry"}
@@ -672,28 +674,28 @@ let suite = Suite.make(
         container,
       )
 
-      let initialNodes = Dom.Query.getAllByRole(container, "listitem")
+      let initialNodes = DomTesting.Query.getAllByRole(container, "listitem")
       let appleNode = initialNodes->Array.get(0)->Option.getUnsafe
       let bananaNode = initialNodes->Array.get(1)->Option.getUnsafe
 
       Signal.set(items, [cherry, banana, apple])
 
-      let updatedNodes = Dom.Query.getAllByRole(container, "listitem")
+      let updatedNodes = DomTesting.Query.getAllByRole(container, "listitem")
       let updatedCherry = updatedNodes->Array.get(0)->Option.getUnsafe
       let updatedBanana = updatedNodes->Array.get(1)->Option.getUnsafe
       let updatedApple = updatedNodes->Array.get(2)->Option.getUnsafe
 
-      combineResults([
-        assertEqual(
+      Assert.combineResults([
+        Assert.equal(
           updatedNodes->Array.map(DomBindings.textContent),
           ["Cherry", "Banana", "Apple"],
         ),
-        assertFalse(objectIs(updatedCherry, appleNode)),
-        assertFalse(objectIs(updatedCherry, bananaNode)),
-        assertTrue(objectIs(updatedBanana, bananaNode)),
-        assertTrue(objectIs(updatedApple, appleNode)),
+        Assert.isFalse(objectIs(updatedCherry, appleNode)),
+        Assert.isFalse(objectIs(updatedCherry, bananaNode)),
+        Assert.isTrue(objectIs(updatedBanana, bananaNode)),
+        Assert.isTrue(objectIs(updatedApple, appleNode)),
       ])
     }),
   ],
-  ~afterEach=() => Dom.cleanup(),
+  ~afterEach=() => DomTesting.cleanup(),
 )
