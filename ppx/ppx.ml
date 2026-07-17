@@ -1091,6 +1091,22 @@ let is_children_label = function
   | Labelled "children" | Optional "children" -> true
   | _ -> false
 
+(* A value already written as a function (`() => …`, i.e. a curried `Pexp_fun`
+   or the uncurried `Function$(fun …)`) is already reactive — the runtime treats
+   a function attribute/child as a computed. Re-thunking it would double-wrap it,
+   so leave it alone. This makes @xote.component a safe drop-in on existing
+   components that already use explicit `() => …` thunks. *)
+let is_function_expr (e : expression) : bool =
+  match e.pexp_desc with
+  | Pexp_fun _ -> true
+  | Pexp_construct ({ txt = Longident.Lident "Function$"; _ }, Some _) -> true
+  | _ -> false
+
+(* A value-position expression should be thunked iff it reads a signal, isn't
+   already JSX, and isn't already a function. *)
+let should_thunk (env : env) (v : expression) : bool =
+  reads_signal env v && jsx_parts v = None && not (is_function_expr v)
+
 (* ---- decomposition ------------------------------------------------------ *)
 let rec fine_node (env : env) (e : expression) : expression =
   match jsx_parts e with
@@ -1128,20 +1144,20 @@ and element_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * ex
     match lbl with
     | Labelled _ | Optional _ ->
       (* attribute: value position. Thunk it if reactive so it lowers to a
-         computed attribute; leave plain JSX/static values untouched. *)
-      if reads_signal env v && jsx_parts v = None then (lbl, thunk v) else (lbl, v)
+         computed attribute; leave plain JSX/static/already-function values. *)
+      if should_thunk env v then (lbl, thunk v) else (lbl, v)
     | Nolabel -> (lbl, v)
 
 and value_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
   if is_children_label lbl then (lbl, map_children (value_leaf env) v)
   else
     match lbl with
-    | Labelled "value" -> (lbl, if reads_signal env v then thunk v else v)
+    | Labelled "value" -> (lbl, if should_thunk env v then thunk v else v)
     | _ -> (lbl, v)
 
 (* child of a value component (View.Text ...): value position -> thunk. *)
 and value_leaf (env : env) (v : expression) : expression =
-  if reads_signal env v && jsx_parts v = None then thunk v else v
+  if should_thunk env v then thunk v else v
 
 (* Map [f] over a JSX children list (a `::`/`[]` spine); tolerate a bare
    single child that is not wrapped in a list. *)

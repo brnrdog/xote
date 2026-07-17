@@ -74,6 +74,17 @@ check('class leaf updated to "off"', document.querySelector('#labeled').classNam
 check('text leaf updated (Ada)', document.querySelector('#labeled').textContent.includes('Hits: Ada'));
 check('component element kept identity (fine-grained, no rebuild)', document.querySelector('#labeled').__marker === 'ORIGINAL');
 
+// Pre-existing () => … thunks must not be double-wrapped: class stays a real
+// string ("off"/"on"), not a function. active is currently false, name "Ada".
+console.log('pre-existing thunks (not double-wrapped):');
+const pre = mount(() => Demo.PreThunked.make({}));
+check('class is a plain string, not double-thunked', pre.className === 'off');
+check('text thunk resolves', pre.textContent.includes('T: Ada'));
+Signal.set(Demo.active, true);
+Signal.set(Demo.name, 'Zoe');
+check('class thunk still reactive ("on")', pre.className === 'on');
+check('text thunk still reactive (Zoe)', pre.textContent.includes('T: Zoe'));
+
 // --- Structural swap via View.tracked, outer element preserved -------------
 console.log('panel (structural swap, outer element preserved):');
 const panel = mount(c(Demo.Panel.make));

@@ -104,3 +104,14 @@ module Labeled = {
     </div>
   }
 }
+
+/* Case 8: pre-existing `() => …` thunks are left alone (not double-wrapped), so
+   @xote.component is a safe drop-in on components already written that way. */
+module PreThunked = {
+  @xote.component
+  let make = () => {
+    <div class={() => Signal.get(active) ? "on" : "off"} id="pre-thunked">
+      <View.Text> {() => `T: ${Signal.get(name)}`} </View.Text>
+    </div>
+  }
+}
