@@ -137,6 +137,16 @@ redistribute reactivity across attributes and children before they are lowered
 into `XoteJSX` calls. Thunks are emitted as `Function$(fun () -> …)` with a
 `res.arity` attribute (the uncurried-function encoding), matching PR #34.
 
+## License
+
+The vendored AST modules at the top of `ppx.ml` (`Location`, `Longident`,
+`Asttypes`, `Parsetree`) are copied verbatim from the OCaml 4.06 compiler,
+© 1996–2019 INRIA, distributed under **LGPL-2.1 with the OCaml linking
+exception**; they keep their original copyright headers. The `@tracked`
+rewriter below them is the project's own code. The full third-party notice
+and license text is in [`LICENSE.OCaml`](./LICENSE.OCaml), which ships in the
+npm tarball alongside `ppx.ml`.
+
 ## Build
 
 ```sh
