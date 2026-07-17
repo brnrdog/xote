@@ -70,5 +70,28 @@ check('swapped to <strong>', panel.querySelector('strong') !== null);
 check('shows "Done!"', panel.textContent.includes('Done!'));
 check('outer DIV kept identity (only inner region swapped)', panel.__pmarker === 'PANEL');
 
+// --- Branch leaf stays fine-grained (item 2) -------------------------------
+// The switch tracks only `status`; the Ready branch's class reads `theme`.
+// Changing `theme` must update the class leaf WITHOUT re-running the switch —
+// i.e. the <strong> keeps its identity. (Before branch decomposition, `theme`
+// was read eagerly during the tracked render, so the whole branch rebuilt.)
+console.log('switchLeaf (branch leaf reacts without re-running the switch):');
+Signal.set(Demo.status, { TAG: 'Ready', _0: 'Ready!' }); // select the Ready branch
+const outer = mount(Demo.switchLeaf);
+outer.__omarker = 'OUTER';
+const strong = outer.querySelector('#ready-strong');
+strong.__marker = 'STRONG';
+check('initial class = theme "light"', strong.className === 'light');
+
+Signal.set(Demo.theme, 'dark');
+check('class leaf updated to "dark"', outer.querySelector('#ready-strong').className === 'dark');
+check('<strong> kept identity (switch did NOT re-run)', outer.querySelector('#ready-strong').__marker === 'STRONG');
+check('outer div kept identity', outer.__omarker === 'OUTER');
+
+// Structural swap still works: changing the scrutinee rebuilds the branch.
+Signal.set(Demo.status, 'Loading');
+check('scrutinee change still swaps to <span>',
+  outer.querySelector('span') !== null && outer.querySelector('#ready-strong') === null);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

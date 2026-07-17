@@ -1100,10 +1100,27 @@ let rec fine_node (env : env) (e : expression) : expression =
     (* element or user component: attrs are value position, children nodes *)
     { e with pexp_desc = Pexp_apply (f, List.map (element_arg env) args) }
   | None ->
-    (* not a JSX element: a bare child expression in node position. If it
-       reads a signal (typically control flow selecting different nodes),
-       a structural swap is unavoidable -> View.tracked. *)
-    if reads_signal env e then wrap_tracked e else e
+    (* not a JSX element: a bare child expression in node position. A signal
+       read here means the *node structure* varies, which needs View.tracked.
+       But first recurse fine-grained into each branch body: that turns the
+       branches' leaves into thunks, so when the tracked scope runs a branch to
+       build its nodes the thunks are not invoked — the scope ends up tracking
+       only the condition/scrutinee (the eager reads), while a leaf inside a
+       branch keeps its own reactive scope. Net effect: changing a signal that
+       only a branch leaf reads updates just that leaf and does NOT re-run the
+       switch or rebuild the branch. *)
+    if reads_signal env e then wrap_tracked (decompose_branches env e) else e
+
+(* Recurse fine_node into the *node-position* bodies of control flow (the
+   condition/scrutinee and any guards stay untouched — they are value position
+   and should drive the structural swap). *)
+and decompose_branches (env : env) (e : expression) : expression =
+  match e.pexp_desc with
+  | Pexp_ifthenelse (c, t, eo) ->
+    { e with pexp_desc = Pexp_ifthenelse (c, fine_node env t, Option.map (fine_node env) eo) }
+  | Pexp_match (s, cases) ->
+    { e with pexp_desc = Pexp_match (s, List.map (fun cs -> { cs with pc_rhs = fine_node env cs.pc_rhs }) cases) }
+  | _ -> e
 
 and element_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
   if is_children_label lbl then (lbl, map_children (fine_node env) v)

@@ -3,6 +3,7 @@ type status = Loading | Ready(string)
 let name = Signal.make("Ada")
 let active = Signal.make(false)
 let status = Signal.make(Loading)
+let theme = Signal.make("light")
 
 /* Case 1: attribute + text leaves become fine-grained, static parts untouched */
 let card = () => {
@@ -20,6 +21,21 @@ let panel = () => {
     {switch Signal.get(status) {
     | Loading => <span> {View.text("Loading...")} </span>
     | Ready(msg) => <strong> {View.text(msg)} </strong>
+    }}
+  </div>
+}
+
+/* Case 2b: a branch whose leaf reads a *different* signal (theme) than the
+   scrutinee (status). Branch decomposition keeps that leaf fine-grained, so
+   the switch tracks only `status`: changing `theme` updates just the class and
+   leaves the <strong> element in place (no branch rebuild). */
+let switchLeaf = () => {
+  @tracked
+  <div id="switch-leaf">
+    {switch Signal.get(status) {
+    | Loading => <span> {View.text("Loading...")} </span>
+    | Ready(msg) =>
+      <strong id="ready-strong" class={Signal.get(theme)}> {View.text(msg)} </strong>
     }}
   </div>
 }

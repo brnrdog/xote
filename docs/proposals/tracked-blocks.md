@@ -155,13 +155,23 @@ keep DOM identity across updates; only the `class` attribute and the greeting
 text node re-run. `View.tracked` is emitted **only** where node *structure*
 varies (an `if`/`switch` in child position), never around the stable elements
 that enclose it. The prototype's `example/verify.mjs` proves this at runtime by
-tagging elements and asserting the tags survive signal changes (22 assertions,
+tagging elements and asserting the tags survive signal changes (27 assertions,
 all passing).
 
-Signal detection is alias-aware: beyond a literal `Signal.get`, the PPX threads
-a scoped alias environment that follows value aliases (`let g = Signal.get`),
-module aliases (`module S = Signal`), `open Signal`, and the pipe form
-(`sig->Signal.get`), while treating the untracked `Signal.peek` as a non-read.
+Two refinements make the output genuinely fine-grained rather than a thin
+sugar over `View.tracked`:
+
+- **Alias-aware detection.** Beyond a literal `Signal.get`, the PPX threads a
+  scoped alias environment that follows value aliases (`let g = Signal.get`),
+  module aliases (`module S = Signal`), `open Signal`, and the pipe form
+  (`sig->Signal.get`), while treating the untracked `Signal.peek` as a non-read.
+- **Control flow tracks only the condition.** Branch bodies are decomposed
+  before the `View.tracked` wrapper is applied, so their leaves become thunks
+  that the tracked scope does not invoke while building nodes. The scope
+  therefore subscribes only to the condition/scrutinee; a signal read by a leaf
+  *inside* a branch (e.g. a `class` in the chosen branch) updates that leaf
+  alone and does not re-run the switch or rebuild the branch element.
+
 Decomposition rules and limitations are documented in
 [`ppx/README.md`](../../ppx/README.md). The PPX runs before ReScript's JSX
 transform, so it sees JSX as `Apply @[JSX]` nodes with attributes as labelled
