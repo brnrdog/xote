@@ -39,7 +39,7 @@ Effect.run(() => {
   }
 })
 
-@jsx.component
+@xote.component
 let make = () => {
   let hasSavedDrafts = Computed.make(() => Signal.get(savedDrafts)->Array.length > 0)
 
