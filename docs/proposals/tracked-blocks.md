@@ -186,6 +186,11 @@ Notes:
 - 2b is self-contained in Xote (its own vendored-AST PPX). 2a would instead
   reuse rescript-signals' PPX with a configurable expansion target;
   `View.tracked` is already the stable target for that path.
+- Two annotation forms are implemented: expression-level `@tracked` (fine-grains
+  one JSX block — the escape hatch) and binding-level `@xote.component` (the
+  everyday form, which the PPX rewrites to `@jsx.component` so props still derive
+  *and* fine-grains the whole returned JSX, avoiding a `@tracked @jsx.component`
+  stack).
 
 ### Consumer-safety constraint (why it's opt-in, not in the library core)
 

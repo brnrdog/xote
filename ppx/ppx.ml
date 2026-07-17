@@ -1160,6 +1160,14 @@ and map_children f (v : expression) : expression =
 let is_tracked ((name, _) : attribute) = name.Location.txt = "tracked"
 let strip_tracked = List.filter (fun a -> not (is_tracked a))
 
+(* `@xote.component` is component-level sugar: it derives props exactly like
+   `@jsx.component` (which we emit for the JSX transform to expand) *and*
+   fine-grained-decomposes the returned JSX. So one attribute replaces
+   `@jsx.component` and turns the whole component tracked. *)
+let is_xote_component ((name, _) : attribute) = name.Location.txt = "xote.component"
+let strip_xote_component = List.filter (fun a -> not (is_xote_component a))
+let jsx_component_attr : attribute = (mkloc "jsx.component", PStr [])
+
 let rec map_expr (env : env) (e : expression) : expression =
   match List.find_opt is_tracked e.pexp_attributes with
   | Some _ -> fine_node env { e with pexp_attributes = strip_tracked e.pexp_attributes }
@@ -1196,7 +1204,40 @@ and map_children_expr (env : env) (e : expression) : expression =
   { e with pexp_desc = d }
 
 and map_vb (env : env) (vb : value_binding) : value_binding =
-  { vb with pvb_expr = map_expr env vb.pvb_expr }
+  match List.find_opt is_xote_component vb.pvb_attributes with
+  | Some _ ->
+    (* swap @xote.component -> @jsx.component and decompose the returned JSX *)
+    { vb with
+      pvb_attributes = jsx_component_attr :: strip_xote_component vb.pvb_attributes;
+      pvb_expr = decompose_component_body env vb.pvb_expr }
+  | None -> { vb with pvb_expr = map_expr env vb.pvb_expr }
+
+(* Walk to the component's tail (return) expression, threading the alias env
+   through lets/opens and running the normal traversal on non-tail parts (so a
+   nested @tracked still works), then fine-grain the returned JSX. *)
+and decompose_component_body (env : env) (e : expression) : expression =
+  match e.pexp_desc with
+  (* Uncurried function encoding: `Function$(fun … -> body)` (with res.arity on
+     the construct, preserved by the record-with). Unwrap to reach the fun. *)
+  | Pexp_construct (({ txt = Longident.Lident "Function$"; _ } as c), Some fn) ->
+    { e with pexp_desc = Pexp_construct (c, Some (decompose_component_body env fn)) }
+  | Pexp_fun (l, def, p, body) ->
+    { e with pexp_desc = Pexp_fun (l, def, p, decompose_component_body env body) }
+  | Pexp_let (r, vbs, body) ->
+    let vbs' = List.map (map_vb env) vbs in
+    let env' = collect_val_aliases env vbs in
+    { e with pexp_desc = Pexp_let (r, vbs', decompose_component_body env' body) }
+  | Pexp_letmodule (name, me, body) ->
+    let env' = collect_mod_alias env name me in
+    { e with pexp_desc = Pexp_letmodule (name, me, decompose_component_body env' body) }
+  | Pexp_open (o, l, x) ->
+    let env' = collect_open env l.Location.txt in
+    { e with pexp_desc = Pexp_open (o, l, decompose_component_body env' x) }
+  | Pexp_sequence (a, b) ->
+    { e with pexp_desc = Pexp_sequence (map_expr env a, decompose_component_body env b) }
+  | Pexp_constraint (x, t) ->
+    { e with pexp_desc = Pexp_constraint (decompose_component_body env x, t) }
+  | _ -> fine_node env e
 
 (* Structure items are threaded left-to-right so a top-level `let g = Signal.get`,
    `module S = Signal`, or `open Signal` is visible to later items. *)

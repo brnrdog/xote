@@ -74,3 +74,15 @@ let piped = () => {
     <View.Text> {`Pipe, ${name->Signal.get}`} </View.Text>
   </div>
 }
+
+/* Case 7: @xote.component — component-level sugar. One annotation derives
+   props (it emits @jsx.component) AND fine-grains the returned JSX, so `label`
+   (a prop) stays static while the signal reads become reactive leaves. */
+module Labeled = {
+  @xote.component
+  let make = (~label: string) => {
+    <div class={Signal.get(active) ? "on" : "off"} id="labeled">
+      <View.Text> {`${label}: ${Signal.get(name)}`} </View.Text>
+    </div>
+  }
+}
