@@ -17,6 +17,7 @@ This counter shows the core model: a signal stores state, an event updates it, a
 ### Using JSX Syntax
 
 ```rescript
+// Counter.res
 open Xote
 
 let count = Signal.make(0)
@@ -25,12 +26,13 @@ let increment = (_evt: Dom.event) => {
   Signal.update(count, n => n + 1)
 }
 
-let app = () => {
+@xote.component
+let make = () => {
   <div>
     <h1> <View.Text> "Counter" </View.Text> </h1>
     <p>
       <View.Text> "Count: " </View.Text>
-      <View.Int> {count} </View.Int>
+      <View.Int> {Signal.get(count)} </View.Int>
     </p>
     <button onClick={increment}>
       <View.Text> "Increment" </View.Text>
@@ -38,12 +40,12 @@ let app = () => {
   </div>
 }
 
-View.mountById(app(), "app")
+View.mountById(<Counter />, "app")
 ```
 
 When `count` changes, only the reactive view node updates. The component does not need a render loop or a dependency array.
 
-For real components, the recommended annotation is `@xote.component`, which lets you read signals **inline** (no `() => …` thunks) while keeping updates fine-grained — see [Views → JSX Configuration](/docs/view/overview#jsx-configuration) for the one-time setup.
+The `@xote.component` annotation is what lets you read signals **inline** (no `() => …` thunks) while keeping updates fine-grained. It needs a one-time setup (a small native PPX) — see [Views → JSX Configuration](/docs/view/overview#jsx-configuration).
 
 ## How the Docs Are Organized
 
