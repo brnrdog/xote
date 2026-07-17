@@ -1034,6 +1034,17 @@ let sub_exprs (e : expression) : expression list =
 let rec reads_signal (env : env) (e : expression) : bool =
   is_signal_get env e || List.exists (reads_signal env) (sub_exprs e)
 
+(* An *eager* read: a `Signal.get` that runs when this expression is evaluated,
+   not one deferred inside a nested lambda. Reads inside `() => …`,
+   `Computed.make(() => …)`, `Prop.reactive(Computed.make(() => …))`, etc. are
+   already reactive on their own, so a value that only reads inside a lambda
+   must NOT be re-wrapped in a thunk. Stops descending at function boundaries. *)
+let rec reads_signal_eager (env : env) (e : expression) : bool =
+  match e.pexp_desc with
+  | Pexp_fun _ -> false
+  | Pexp_construct ({ txt = Longident.Lident "Function$"; _ }, Some _) -> false
+  | _ -> is_signal_get env e || List.exists (reads_signal_eager env) (sub_exprs e)
+
 (* ---- alias collectors --------------------------------------------------- *)
 (* `let g = Signal.get` (or an already-known alias) binds `g` as a read;
    `let g = <not a read>` shadows away any previous alias named `g`. *)
@@ -1091,21 +1102,13 @@ let is_children_label = function
   | Labelled "children" | Optional "children" -> true
   | _ -> false
 
-(* A value already written as a function (`() => …`, i.e. a curried `Pexp_fun`
-   or the uncurried `Function$(fun …)`) is already reactive — the runtime treats
-   a function attribute/child as a computed. Re-thunking it would double-wrap it,
-   so leave it alone. This makes @xote.component a safe drop-in on existing
-   components that already use explicit `() => …` thunks. *)
-let is_function_expr (e : expression) : bool =
-  match e.pexp_desc with
-  | Pexp_fun _ -> true
-  | Pexp_construct ({ txt = Longident.Lident "Function$"; _ }, Some _) -> true
-  | _ -> false
-
-(* A value-position expression should be thunked iff it reads a signal, isn't
-   already JSX, and isn't already a function. *)
+(* A value-position expression should be thunked iff it *eagerly* reads a signal
+   and isn't already JSX. Using the eager check means values that are already
+   reactive on their own — a `() => …` thunk, a `Computed`, a `Prop.reactive(…)`
+   — are left untouched (their reads are deferred inside a lambda), so
+   @xote.component is a safe drop-in on components already written that way. *)
 let should_thunk (env : env) (v : expression) : bool =
-  reads_signal env v && jsx_parts v = None && not (is_function_expr v)
+  reads_signal_eager env v && jsx_parts v = None
 
 (* ---- decomposition ------------------------------------------------------ *)
 let rec fine_node (env : env) (e : expression) : expression =
@@ -1124,8 +1127,12 @@ let rec fine_node (env : env) (e : expression) : expression =
        only the condition/scrutinee (the eager reads), while a leaf inside a
        branch keeps its own reactive scope. Net effect: changing a signal that
        only a branch leaf reads updates just that leaf and does NOT re-run the
-       switch or rebuild the branch. *)
-    if reads_signal env e then wrap_tracked (decompose_branches env e) else e
+       switch or rebuild the branch.
+
+       The *eager* read check matters here too: a child that is already reactive
+       on its own (e.g. `View.signalText(() => Signal.get(x))`) reads only inside
+       a lambda, so it is left as-is rather than redundantly wrapped. *)
+    if reads_signal_eager env e then wrap_tracked (decompose_branches env e) else e
 
 (* Recurse fine_node into the *node-position* bodies of control flow (the
    condition/scrutinee and any guards stay untouched — they are value position
