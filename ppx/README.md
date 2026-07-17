@@ -70,11 +70,36 @@ Applied recursively to the annotated JSX expression:
 | `<View.Text/Int/Float/Bool>` child | yes | thunked → reactive text node (leaf) |
 | `<View.Text/…>` child | no | left as-is (static text) |
 | Element / nested JSX | — | recurse into attributes and children |
-| Bare child in node position (an `if`/`switch` selecting different nodes) | yes | wrapped in `View.tracked` — the one place a structural swap is unavoidable |
+| Bare child in node position (an `if`/`switch` selecting different nodes) | yes | branches decomposed fine-grained, then wrapped in `View.tracked` — see below |
 
 The result: reactivity lives at the leaves; `View.tracked` is emitted
 **surgically**, only around a child region whose node *structure* actually
 varies, and never around the stable elements that enclose it.
+
+### Control flow tracks only the condition
+
+When a branch body is decomposed *before* the `View.tracked` wrapper is applied,
+its leaves become thunks. So when the tracked scope runs the chosen branch to
+build its nodes, those thunks are not invoked — the scope ends up subscribed to
+only the **condition/scrutinee**, not to signals read by leaves inside the
+branches. Given:
+
+```rescript
+@tracked
+<div>
+  {switch Signal.get(status) {
+  | Loading => <span> {View.text("Loading...")} </span>
+  | Ready(msg) => <strong class={Signal.get(theme)}> {View.text(msg)} </strong>
+  }}
+</div>
+```
+
+the `class={Signal.get(theme)}` becomes a `computedAttr` **inside** the
+`View.tracked`. Changing `theme` updates just that class and leaves the
+`<strong>` in place; only a change to `status` (the scrutinee) re-runs the
+switch and rebuilds the branch. `example/verify.mjs` asserts both:
+the `<strong>` keeps its identity across a `theme` change, and a `status`
+change still swaps the branch.
 
 ## What counts as "reads a signal"
 
@@ -138,7 +163,7 @@ ln -sfn ../../../node_modules/jsdom node_modules/jsdom
 
 sh ../build.sh          # build the ppx
 npm run build           # compile Demo.res through the ppx
-npm run verify          # jsdom runtime check (22 assertions)
+npm run verify          # jsdom runtime check (27 assertions)
 ```
 
 ## Known limitations (it's a prototype)
@@ -153,8 +178,10 @@ npm run verify          # jsdom runtime check (22 assertions)
   only produces a harmless extra `computedAttr`.
 - **Value-component set is hard-coded** to `View.Text/Int/Float/Bool`. Other
   components are treated as elements (children recursed as nodes).
-- **`if`/`switch` in node position always falls back to `View.tracked`.** A
-  smarter version could track only the condition and keep leaves inside each
-  branch fine-grained; here the whole selected branch is re-rendered on change.
+- **A branch swap still rebuilds that branch's subtree.** Control flow tracks
+  only the condition (leaves inside branches stay fine-grained, see above), but
+  when the condition *does* change, the selected branch is built fresh — there
+  is no keyed diffing between the old and new branch. This matches Xote's own
+  `View.Show`/`View.tracked`; use `View.For` with `by` for lists.
 - **Not wired into the main build.** This lives outside `src/` and is not part
   of `npm run build`/`test`; it is a standalone proof of concept.
