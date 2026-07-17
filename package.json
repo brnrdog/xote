@@ -63,7 +63,8 @@
     "rescript.json",
     "ppx/ppx.ml",
     "ppx/build.sh",
-    "ppx/README.md"
+    "ppx/README.md",
+    "ppx/LICENSE.OCaml"
   ],
   "scripts": {
     "res:build": "rescript",
