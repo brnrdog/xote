@@ -1,7 +1,8 @@
 # xote-tracked-ppx
 
-A native ReScript PPX that expands a `@tracked` annotation on a JSX block into
-**fine-grained reactive leaves** — the compile-time counterpart to the runtime
+A native ReScript PPX that expands an `@xote.component` annotation into a
+props-deriving component whose returned JSX is decomposed into **fine-grained
+reactive leaves** — the compile-time counterpart to the runtime
 [`View.tracked`](../src/View.res) helper.
 
 > **Status:** experimental, opt-in. The PPX is exercised in CI and used by the
@@ -9,7 +10,7 @@ A native ReScript PPX that expands a `@tracked` annotation on a JSX block into
 > of the published npm package** — consumers who want it build it themselves
 > (see [Opt-in for consumers](#opt-in-for-consumers)). It demonstrates that the
 > [`rescript-signals` #34](https://github.com/brnrdog/rescript-signals/pull/34)
-> `@tracked` annotation can target Xote's view layer *and* compile away the
+> auto-tracking idea can target Xote's view layer *and* compile away the
 > wholesale-replacement tradeoff of `View.tracked`. See
 > [`docs/proposals/tracked-blocks.md`](../docs/proposals/tracked-blocks.md) for
 > the full design context (this is "Phase 2, fine-grained variant").
@@ -29,70 +30,57 @@ signals. The element structure is emitted once and never rebuilt.
 
 ## Example
 
-Input:
-
-```rescript
-@tracked
-<div class={Signal.get(active) ? "on" : "off"} id="card">
-  <span class="static-label"> {View.text("Name:")} </span>
-  <View.Text> {`Hello, ${Signal.get(name)}`} </View.Text>
-</div>
-```
-
-Compiles to (abbreviated):
-
-```js
-Elements.jsxs("div", {
-  id: "card",                                   // static — untouched
-  class: () => Signal.get(active) ? "on" : "off", // → View.computedAttr (reactive leaf)
-  children: [
-    Elements.jsx("span", {                      // static subtree — untouched
-      class: "static-label",
-      children: View.text("Name:"),
-    }),
-    jsx(View.Text.make, {
-      children: () => `Hello, ` + Signal.get(name), // → reactive text node (leaf)
-    }),
-  ],
-})
-```
-
-No `View.tracked`, no `SignalFragment`, no wholesale rebuild. The `<div>` and
-`<span>` keep their DOM identity across updates; only the `class` attribute and
-the greeting text node re-run. (`example/verify.mjs` asserts exactly this by
-tagging the elements and checking the tags survive a signal change.)
-
-## Two annotation forms
-
-| Attribute | Placement | Does |
-|---|---|---|
-| `@tracked` | on a **JSX expression** | fine-grains that one block; escape hatch for tracking part of a function |
-| `@xote.component` | on a **`let` binding** | the everyday form: derives props like `@jsx.component` **and** fine-grains the whole returned JSX |
-
-`@xote.component` is the component-level form. It reads cleaner than a `@tracked`
-that has to hug the returned JSX mid-body, and it's a single attribute:
+Input — one annotation replaces `@jsx.component` and makes the return
+fine-grained:
 
 ```rescript
 @xote.component
 let make = (~label: string) => {
   let count = Signal.make(0)
-  <div class={Signal.get(count) > 0 ? "on" : "off"}>
-    <View.Text> {`${label}: `} </View.Text>
+  <div class={Signal.get(count) > 0 ? "on" : "off"} id="card">
+    <span class="static-label"> {View.text(label)} </span>
     <View.Int> {Signal.get(count)} </View.Int>
   </div>
 }
 ```
 
-The PPX rewrites `@xote.component` to `@jsx.component` (so the JSX transform still
-derives the props record from the labeled args — `label` above) and fine-grains
-the returned JSX. So props stay static (`label`), signal reads become reactive
-leaves (`count`), and there is no `@tracked … @jsx.component` stacking. Use
-`@tracked` when you only want to track a sub-block inside a function; use
-`@xote.component` for a whole fine-grained component.
+Compiles to (abbreviated):
+
+```js
+function make(props) {
+  let label = props.label;                        // props derived (@jsx.component)
+  let count = Signal.make(0);
+  return Elements.jsxs("div", {
+    id: "card",                                   // static — untouched
+    class: () => Signal.get(count) > 0 ? "on" : "off", // → View.computedAttr (reactive leaf)
+    children: [
+      Elements.jsx("span", {                      // static subtree — untouched
+        class: "static-label",
+        children: View.text(label),
+      }),
+      jsx(View.Int.make, {
+        children: () => Signal.get(count),        // → reactive text node (leaf)
+      }),
+    ],
+  });
+}
+```
+
+Props derive from the labeled args (`label` stays static); no `View.tracked`,
+no `SignalFragment`, no wholesale rebuild. The `<div>` and `<span>` keep their
+DOM identity across updates; only the `class` attribute and the number re-run.
+(`example/verify.mjs` asserts exactly this by tagging the elements and checking
+the tags survive a signal change.)
+
+`@xote.component` is the single annotation. The PPX rewrites it to
+`@jsx.component` (so the JSX transform still derives the props record) and
+fine-grains the returned JSX — one attribute, no `@jsx.component` +
+tracking-annotation stacking. Because it emits `@jsx.component`, it inherits its
+rules: **one component per module** (each in its own file, or a submodule).
 
 ## Decomposition rules
 
-Applied recursively to the annotated JSX expression:
+Applied recursively to the component's returned JSX:
 
 | Position | Reads a signal? | Result |
 |---|---|---|
@@ -116,13 +104,14 @@ only the **condition/scrutinee**, not to signals read by leaves inside the
 branches. Given:
 
 ```rescript
-@tracked
-<div>
-  {switch Signal.get(status) {
-  | Loading => <span> {View.text("Loading...")} </span>
-  | Ready(msg) => <strong class={Signal.get(theme)}> {View.text(msg)} </strong>
-  }}
-</div>
+@xote.component
+let make = () =>
+  <div>
+    {switch Signal.get(status) {
+    | Loading => <span> {View.text("Loading...")} </span>
+    | Ready(msg) => <strong class={Signal.get(theme)}> {View.text(msg)} </strong>
+    }}
+  </div>
 ```
 
 the `class={Signal.get(theme)}` becomes a `computedAttr` **inside** the
@@ -156,22 +145,24 @@ as a plain string).
 Same mechanism as `rescript-tracked-ppx` in PR #34: ReScript 12 hands an
 external PPX an OCaml **4.06** parsetree (marshal magic `Caml1999M022`).
 `ppx.ml` vendors those exact AST types (so `Marshal` round-trips), implements
-the `ppx <infile> <outfile>` protocol, and rewrites expressions carrying the
-`tracked` attribute.
+the `ppx <infile> <outfile>` protocol, and rewrites bindings carrying the
+`xote.component` attribute (swapping in `jsx.component` and decomposing the
+returned JSX).
 
 The PPX runs **before** ReScript's JSX transform, so it sees JSX as
 `Apply @[JSX]` nodes with attributes as labelled arguments — the ideal layer to
 redistribute reactivity across attributes and children before they are lowered
 into `XoteJSX` calls. Thunks are emitted as `Function$(fun () -> …)` with a
-`res.arity` attribute (the uncurried-function encoding), matching PR #34.
+`res.arity` attribute (the uncurried-function encoding); the same encoding is
+unwrapped to reach the component body inside `Function$(fun ~props -> …)`.
 
 ## License
 
 The vendored AST modules at the top of `ppx.ml` (`Location`, `Longident`,
 `Asttypes`, `Parsetree`) are copied verbatim from the OCaml 4.06 compiler,
 © 1996–2019 INRIA, distributed under **LGPL-2.1 with the OCaml linking
-exception**; they keep their original copyright headers. The `@tracked`
-rewriter below them is the project's own code. The full third-party notice
+exception**; they keep their original copyright headers. The
+`@xote.component` rewriter below them is the project's own code. The full third-party notice
 and license text is in [`LICENSE.OCaml`](./LICENSE.OCaml), which ships in the
 npm tarball alongside `ppx.ml`.
 
@@ -196,8 +187,8 @@ recompiles a dependency's sources during its own build and applies that
 dependency's `ppx-flags`, so a PPX listed in Xote's published config would
 force `ocamlopt` on **every** Xote user. Instead the PPX is strictly opt-in.
 
-The `ppx.ml` source *is* published, so a consumer who wants `@tracked` can
-build it from the installed package and reference it from **their own**
+The `ppx.ml` source *is* published, so a consumer who wants `@xote.component`
+can build it from the installed package and reference it from **their own**
 `rescript.json`:
 
 ```sh
@@ -222,8 +213,8 @@ library config:
   runs `ppx:test` on every push/PR, so it can't silently rot.
 - The **docs site** (`docs-website/`) is a real consumer: its own
   `rescript.json` carries the `ppx-flags`, its `res:build` builds the PPX first,
-  and the Counter demo is authored with `@tracked`. The published Xote library
-  (`src/`, root `rescript.json`) stays PPX-free.
+  and the Counter demo is authored with `@xote.component`. The published Xote
+  library (`src/`, root `rescript.json`) stays PPX-free.
 
 ## Run the example
 

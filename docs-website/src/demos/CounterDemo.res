@@ -23,14 +23,13 @@ let statusLabel = value =>
     "Neutral"
   }
 
-/* The @tracked annotation lets the reactive parts read `count` inline — no
-   `() => ...` thunks, no `View.signalText`. The fine-grained ppx turns each
-   attribute/text that reads a signal into its own reactive leaf, so only the
-   class and the number update when `count` changes; the surrounding markup is
-   built once. */
-@jsx.component
+/* The @xote.component annotation lets the reactive parts read `count` inline —
+   no `() => ...` thunks, no `View.signalText`. It derives props like
+   @jsx.component and the fine-grained ppx turns each attribute/text that reads
+   a signal into its own reactive leaf, so only the class and the number update
+   when `count` changes; the surrounding markup is built once. */
+@xote.component
 let make = () => {
-  @tracked
   <div class="counter-demo">
     <div class="counter-demo-panel">
       <div class="counter-demo-head">
