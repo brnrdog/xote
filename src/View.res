@@ -552,6 +552,12 @@ let fragment = (children: array<node>): node => Fragment(children)
 
 let signalFragment = (signal: Signal.t<array<node>>): node => SignalFragment(signal)
 
+/* Auto-tracked reactive block: every signal read while `body` runs subscribes
+   the block, which re-evaluates `body` and replaces its children wholesale
+   (no diffing) whenever a dependency changes. Prefer `eachWithKey`/`For` for
+   lists and keep tracked blocks small. */
+let tracked = (body: unit => node): node => SignalFragment(Computed.make(() => [body()]))
+
 let childrenToArray = (child: option<node>): array<node> => {
   switch child {
   | Some(Fragment(children)) => children
