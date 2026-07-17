@@ -62,7 +62,7 @@ The root `xote` entry is client-focused and does not export router, SSR, hydrati
 These three are thin shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.res`) that `include` the corresponding modules from `rescript-signals`.
 
 **Xote Modules:**
-- **`Xote.View`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `Keyed`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `int`, `float`, `bool`, `fragment`, `signalFragment`, `each`, `eachWithKey`, `element`), the JSX rendering components (`For`, `Show`, `Maybe`, `Value`, `Text`, `Int`, `Float`, `Bool`), attribute helpers (`attr`, `signalAttr`, `computedAttr`, `Attr`), the `null`/`empty` placeholders, and `mount`/`mountById`. The owner-based reactivity system for resource cleanup also lives here.
+- **`Xote.View`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `Keyed`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `int`, `float`, `bool`, `fragment`, `signalFragment`, `tracked`, `each`, `eachWithKey`, `element`), the JSX rendering components (`For`, `Show`, `Maybe`, `Value`, `Text`, `Int`, `Float`, `Bool`), attribute helpers (`attr`, `signalAttr`, `computedAttr`, `Attr`), the `null`/`empty` placeholders, and `mount`/`mountById`. The owner-based reactivity system for resource cleanup also lives here.
 - **`Xote.Html`**: Convenience constructors for common HTML tags (`div`, `span`, `button`, `input`, `h1`-`h3`, `p`, `ul`, `li`, `a`). Thin wrappers over `View.element`. For tags not listed, call `View.element(tag, ...)` directly or use JSX.
 - **`Xote.XoteJSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with a broad set of supported attributes (standard, form/input, link, media, accessibility, drag-and-drop, and data attributes). Named `XoteJSX` (not `JSX`) to avoid colliding with unrelated modules when consumers use `open Xote`. Note: to defer side-effecting component evaluation out of any surrounding `Computed` context, `XoteJSX.jsx` wraps user-defined components in `View.LazyComponent`.
 - **`Xote.Prop`**: Static-or-reactive prop module exposing the type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` plus the `static`, `reactive`, `signal` (alias of `reactive`), and `get` helpers. Lets props accept either static values or reactive signals in JSX.
@@ -362,6 +362,22 @@ Html.button(
   ()
 )
 ```
+
+### Auto-tracked blocks
+```rescript
+/* Every signal read inside the body subscribes the block automatically —
+   no thunk-per-binding. The block re-evaluates and replaces its children
+   wholesale (no diffing) when any dependency changes, so keep tracked
+   blocks small and use eachWithKey/For for lists. */
+View.tracked(() =>
+  if Signal.get(loggedIn) {
+    Html.p(~children=[View.text("Hello, " ++ Signal.get(name))], ())
+  } else {
+    View.text("Please log in")
+  }
+)
+```
+Dependencies are re-discovered on every run, so conditional reads work: above, `name` is only tracked while `loggedIn` is true. `tracked` lowers to `SignalFragment` + `Computed`, so SSR markers and hydration work unchanged.
 
 ### Lists
 ```rescript
