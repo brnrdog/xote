@@ -59,6 +59,20 @@ forms.forEach(([label, , sel, expectedText], i) => {
 check('card static <span> class intact', document.querySelector('#card .static-label') !== null);
 check('card static label text intact', document.querySelector('#card').textContent.includes('Name:'));
 
+// --- @xote.component: derives props AND fine-grains the returned JSX --------
+console.log('@xote.component (props derived + fine-grained):');
+const labeled = mount(() => Demo.Labeled.make({ label: 'Hits' }));
+labeled.__marker = 'ORIGINAL';
+check('prop rendered (label "Hits")', labeled.textContent.includes('Hits:'));
+check('reads current signal via props form', labeled.textContent.includes('Grace')); // name already Grace
+check('class is reactive ("on")', labeled.className === 'on');
+
+Signal.set(Demo.active, false);
+Signal.set(Demo.name, 'Ada');
+check('class leaf updated to "off"', document.querySelector('#labeled').className === 'off');
+check('text leaf updated (Ada)', document.querySelector('#labeled').textContent.includes('Hits: Ada'));
+check('component element kept identity (fine-grained, no rebuild)', document.querySelector('#labeled').__marker === 'ORIGINAL');
+
 // --- Structural swap via View.tracked, outer element preserved -------------
 console.log('panel (structural swap, outer element preserved):');
 const panel = mount(Demo.panel);

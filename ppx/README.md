@@ -62,6 +62,34 @@ No `View.tracked`, no `SignalFragment`, no wholesale rebuild. The `<div>` and
 the greeting text node re-run. (`example/verify.mjs` asserts exactly this by
 tagging the elements and checking the tags survive a signal change.)
 
+## Two annotation forms
+
+| Attribute | Placement | Does |
+|---|---|---|
+| `@tracked` | on a **JSX expression** | fine-grains that one block; escape hatch for tracking part of a function |
+| `@xote.component` | on a **`let` binding** | the everyday form: derives props like `@jsx.component` **and** fine-grains the whole returned JSX |
+
+`@xote.component` is the component-level form. It reads cleaner than a `@tracked`
+that has to hug the returned JSX mid-body, and it's a single attribute:
+
+```rescript
+@xote.component
+let make = (~label: string) => {
+  let count = Signal.make(0)
+  <div class={Signal.get(count) > 0 ? "on" : "off"}>
+    <View.Text> {`${label}: `} </View.Text>
+    <View.Int> {Signal.get(count)} </View.Int>
+  </div>
+}
+```
+
+The PPX rewrites `@xote.component` to `@jsx.component` (so the JSX transform still
+derives the props record from the labeled args — `label` above) and fine-grains
+the returned JSX. So props stay static (`label`), signal reads become reactive
+leaves (`count`), and there is no `@tracked … @jsx.component` stacking. Use
+`@tracked` when you only want to track a sub-block inside a function; use
+`@xote.component` for a whole fine-grained component.
+
 ## Decomposition rules
 
 Applied recursively to the annotated JSX expression:
