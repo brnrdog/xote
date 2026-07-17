@@ -32,12 +32,13 @@ const mount = (factory) => {
 // Cases 1/3/4/5/6 all read `active` (class) and `name` (text), each via a
 // different read form. If the ppx failed to recognise the read, the leaf
 // would be static and the assertions below would fail.
+const c = (m) => () => m({}); // call a propless @xote.component
 const forms = [
-  ['card    (Signal.get direct)',       Demo.card,        '#card',        'Hello, Grace'],
-  ['aliased (let g = Signal.get)',      Demo.aliased,     '#aliased',     'Hi, Grace'],
-  ['modAlias(module S = Signal)',       Demo.modAliased,  '#mod-aliased', 'Yo, Grace'],
-  ['open    (open Signal; get)',        Demo.openAliased, '#open-aliased','Hey, Grace'],
-  ['piped   (active->Signal.get)',      Demo.piped,       '#piped',       'Pipe, Grace'],
+  ['card    (Signal.get direct)',       c(Demo.Card.make),        '#card',        'Hello, Grace'],
+  ['aliased (let g = Signal.get)',      c(Demo.Aliased.make),     '#aliased',     'Hi, Grace'],
+  ['modAlias(module S = Signal)',       c(Demo.ModAliased.make),  '#mod-aliased', 'Yo, Grace'],
+  ['open    (open Signal; get)',        c(Demo.OpenAliased.make), '#open-aliased','Hey, Grace'],
+  ['piped   (active->Signal.get)',      c(Demo.Piped.make),       '#piped',       'Pipe, Grace'],
 ];
 
 console.log('fine-grained reactive leaves (each read form):');
@@ -75,7 +76,7 @@ check('component element kept identity (fine-grained, no rebuild)', document.que
 
 // --- Structural swap via View.tracked, outer element preserved -------------
 console.log('panel (structural swap, outer element preserved):');
-const panel = mount(Demo.panel);
+const panel = mount(c(Demo.Panel.make));
 panel.__pmarker = 'PANEL';
 check('initial Loading <span>', panel.querySelector('span') !== null && panel.textContent.includes('Loading'));
 
@@ -91,7 +92,7 @@ check('outer DIV kept identity (only inner region swapped)', panel.__pmarker ===
 // was read eagerly during the tracked render, so the whole branch rebuilt.)
 console.log('switchLeaf (branch leaf reacts without re-running the switch):');
 Signal.set(Demo.status, { TAG: 'Ready', _0: 'Ready!' }); // select the Ready branch
-const outer = mount(Demo.switchLeaf);
+const outer = mount(c(Demo.SwitchLeaf.make));
 outer.__omarker = 'OUTER';
 const strong = outer.querySelector('#ready-strong');
 strong.__marker = 'STRONG';

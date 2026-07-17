@@ -946,9 +946,9 @@ and directive_argument =
 end
 
 
-(* ---- @tracked fine-grained rewriter -------------------------------------
-   Decomposes a @tracked JSX block into fine-grained reactive leaves instead
-   of wrapping the whole block in one computed:
+(* ---- @xote.component fine-grained rewriter ------------------------------
+   Decomposes the JSX returned by an @xote.component into fine-grained reactive
+   leaves instead of wrapping the whole block in one computed:
 
      - an attribute value that reads a Signal  ->  thunked, so JSX lowers it
        to `View.computedAttr` (only that attribute re-runs);
@@ -1156,22 +1156,16 @@ and map_children f (v : expression) : expression =
   | Pexp_construct ({ txt = Longident.Lident "[]"; _ }, None) -> v
   | _ -> f v
 
-(* ---- traversal: find @tracked and decompose ----------------------------- *)
-let is_tracked ((name, _) : attribute) = name.Location.txt = "tracked"
-let strip_tracked = List.filter (fun a -> not (is_tracked a))
-
-(* `@xote.component` is component-level sugar: it derives props exactly like
+(* ---- traversal: find @xote.component and decompose ----------------------- *)
+(* `@xote.component` is the single annotation: it derives props exactly like
    `@jsx.component` (which we emit for the JSX transform to expand) *and*
-   fine-grained-decomposes the returned JSX. So one attribute replaces
-   `@jsx.component` and turns the whole component tracked. *)
+   fine-grained-decomposes the returned JSX. One attribute replaces
+   `@jsx.component` and makes the whole component tracked. *)
 let is_xote_component ((name, _) : attribute) = name.Location.txt = "xote.component"
 let strip_xote_component = List.filter (fun a -> not (is_xote_component a))
 let jsx_component_attr : attribute = (mkloc "jsx.component", PStr [])
 
-let rec map_expr (env : env) (e : expression) : expression =
-  match List.find_opt is_tracked e.pexp_attributes with
-  | Some _ -> fine_node env { e with pexp_attributes = strip_tracked e.pexp_attributes }
-  | None -> map_children_expr env e
+let rec map_expr (env : env) (e : expression) : expression = map_children_expr env e
 
 and map_children_expr (env : env) (e : expression) : expression =
   let d =
@@ -1214,7 +1208,7 @@ and map_vb (env : env) (vb : value_binding) : value_binding =
 
 (* Walk to the component's tail (return) expression, threading the alias env
    through lets/opens and running the normal traversal on non-tail parts (so a
-   nested @tracked still works), then fine-grain the returned JSX. *)
+   nested reactive leaves still work), then fine-grain the returned JSX. *)
 and decompose_component_body (env : env) (e : expression) : expression =
   match e.pexp_desc with
   (* Uncurried function encoding: `Function$(fun … -> body)` (with res.arity on

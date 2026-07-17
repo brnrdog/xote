@@ -123,31 +123,36 @@ The mechanical option: expand the annotated block to a single
 wholesale-replacement semantics — any dependency change rebuilds the whole
 block. This is what PR #34's PPX does for React, retargeted.
 
-### 2b. Fine-grained expansion (prototyped in [`ppx/`](../../ppx/))
+### 2b. Fine-grained expansion (implemented in [`ppx/`](../../ppx/))
 
-The better option, and the one implemented as a proof of concept: instead of
-one coarse computed, **decompose the block** and push reactivity to the leaves
-that actually read signals. Given:
+The better option, and the one implemented: instead of one coarse computed,
+**decompose the returned JSX** and push reactivity to the leaves that actually
+read signals. The annotation is `@xote.component` (which also emits
+`@jsx.component`, so props derive). Given:
 
 ```rescript
-@tracked
-<div class={Signal.get(active) ? "on" : "off"} id="card">
-  <span class="static-label"> {View.text("Name:")} </span>
-  <View.Text> {`Hello, ${Signal.get(name)}`} </View.Text>
-</div>
+@xote.component
+let make = () => {
+  <div class={Signal.get(active) ? "on" : "off"} id="card">
+    <span class="static-label"> {View.text("Name:")} </span>
+    <View.Text> {`Hello, ${Signal.get(name)}`} </View.Text>
+  </div>
+}
 ```
 
 the PPX emits (abbreviated):
 
 ```js
-Elements.jsxs("div", {
-  id: "card",                                     // static — untouched
-  class: () => Signal.get(active) ? "on" : "off", // → View.computedAttr (leaf)
-  children: [
-    Elements.jsx("span", { class: "static-label", children: View.text("Name:") }), // untouched
-    jsx(View.Text.make, { children: () => `Hello, ` + Signal.get(name) }),          // reactive text leaf
-  ],
-})
+function make(props) {
+  return Elements.jsxs("div", {
+    id: "card",                                     // static — untouched
+    class: () => Signal.get(active) ? "on" : "off", // → View.computedAttr (leaf)
+    children: [
+      Elements.jsx("span", { class: "static-label", children: View.text("Name:") }), // untouched
+      jsx(View.Text.make, { children: () => `Hello, ` + Signal.get(name) }),          // reactive text leaf
+    ],
+  });
+}
 ```
 
 No `View.tracked`, no `SignalFragment`, no rebuild — the `<div>` and `<span>`
@@ -179,18 +184,19 @@ arguments — the ideal layer to redistribute reactivity before lowering.
 
 Notes:
 
-- Only the automatic form (`@tracked()` / bare `@tracked`) is useful in Xote.
-  The explicit-deps form (`@tracked([a, b])`) exists in React to avoid
-  re-render subscriptions, but inside fine-grained leaves every read
-  auto-tracks — a dependency list adds nothing here.
+- PR #34's React annotation forms don't carry over. Its explicit-deps form
+  (`@tracked([a, b])`) exists to avoid re-render subscriptions, but inside
+  fine-grained leaves every read auto-tracks — a dependency list adds nothing.
+  Xote needs only automatic discovery, which `@xote.component` provides.
 - 2b is self-contained in Xote (its own vendored-AST PPX). 2a would instead
   reuse rescript-signals' PPX with a configurable expansion target;
   `View.tracked` is already the stable target for that path.
-- Two annotation forms are implemented: expression-level `@tracked` (fine-grains
-  one JSX block — the escape hatch) and binding-level `@xote.component` (the
-  everyday form, which the PPX rewrites to `@jsx.component` so props still derive
-  *and* fine-grains the whole returned JSX, avoiding a `@tracked @jsx.component`
-  stack).
+- The implemented annotation is a single binding-level `@xote.component`: the
+  PPX rewrites it to `@jsx.component` so props still derive *and* fine-grains
+  the whole returned JSX — one attribute, no separate tracking annotation to
+  stack. (An earlier expression-level `@tracked` form was dropped in favour of
+  the one component-level annotation; `@xote.component` inherits
+  `@jsx.component`'s one-component-per-module rule.)
 
 ### Consumer-safety constraint (why it's opt-in, not in the library core)
 
@@ -204,12 +210,12 @@ config entirely:
 - The published library (`src/`, root `rescript.json`) has **no** `ppx-flags`;
   consumers who don't opt in are unaffected.
 - The `ppx.ml` source ships in the npm tarball, so a consumer who *wants*
-  `@tracked` builds it (`sh node_modules/xote/ppx/build.sh`) and lists it in
-  **their own** `rescript.json` (`"ppx-flags": ["xote/ppx/ppx"]`).
+  `@xote.component` builds it (`sh node_modules/xote/ppx/build.sh`) and lists it
+  in **their own** `rescript.json` (`"ppx-flags": ["xote/ppx/ppx"]`).
 - In-repo, the PPX is real: `ci.yml` builds and runs its end-to-end test on
   every push/PR, and the docs site (`docs-website/`, its own non-published
-  config) authors the Counter demo with `@tracked` and builds the PPX in its
-  `res:build`. This proves it through SSR + hydration without touching the
+  config) authors the Counter demo with `@xote.component` and builds the PPX in
+  its `res:build`. This proves it through SSR + hydration without touching the
   publish path.
 
 ## Phase 3 — notify-only scheduling (exploratory)
