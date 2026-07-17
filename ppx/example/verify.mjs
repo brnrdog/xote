@@ -6,10 +6,7 @@
 //   sh ../build.sh && npm run build && npm run verify
 import { JSDOM } from 'jsdom';
 
-const dom = new JSDOM(
-  '<!DOCTYPE html><html><body><div id="a"></div><div id="b"></div></body></html>',
-  { url: 'https://xote.test/' },
-);
+const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', { url: 'https://xote.test/' });
 globalThis.window = dom.window;
 globalThis.document = dom.window.document;
 globalThis.HTMLElement = dom.window.HTMLElement;
@@ -24,28 +21,47 @@ const check = (name, cond) => {
   if (cond) { pass++; console.log('  ✓', name); }
   else { fail++; console.log('  ✗', name); }
 };
+const mount = (factory) => {
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  View.mount(factory(), host);
+  return host.firstElementChild;
+};
 
-// --- Case 1: attribute + text compile to fine-grained leaves ---------------
-console.log('card (fine-grained attribute + text leaves):');
-View.mountById(Demo.card(), 'a');
-const card = document.querySelector('#card');
-card.__marker = 'ORIGINAL';                          // tag the element
-card.querySelector('.static-label').__smarker = 'SPAN';
-check('initial class "off"', card.className === 'off');
-check('initial text "Hello, Ada"', card.textContent.includes('Hello, Ada'));
+// --- Fine-grained leaves: attribute + text update, structure preserved -----
+// Cases 1/3/4/5/6 all read `active` (class) and `name` (text), each via a
+// different read form. If the ppx failed to recognise the read, the leaf
+// would be static and the assertions below would fail.
+const forms = [
+  ['card    (Signal.get direct)',       Demo.card,        '#card',        'Hello, Grace'],
+  ['aliased (let g = Signal.get)',      Demo.aliased,     '#aliased',     'Hi, Grace'],
+  ['modAlias(module S = Signal)',       Demo.modAliased,  '#mod-aliased', 'Yo, Grace'],
+  ['open    (open Signal; get)',        Demo.openAliased, '#open-aliased','Hey, Grace'],
+  ['piped   (active->Signal.get)',      Demo.piped,       '#piped',       'Pipe, Grace'],
+];
+
+console.log('fine-grained reactive leaves (each read form):');
+const mounted = forms.map(([, factory]) => mount(factory));
+mounted.forEach((el) => { el.__marker = 'ORIGINAL'; });
+check('all start class "off"', mounted.every((el) => el.className === 'off'));
 
 Signal.set(Demo.active, true);
 Signal.set(Demo.name, 'Grace');
-check('class updated to "on"', card.className === 'on');
-check('text updated to "Grace"', card.textContent.includes('Hello, Grace'));
-check('DIV kept identity (not rebuilt)', document.querySelector('#card').__marker === 'ORIGINAL');
-check('static SPAN kept identity', card.querySelector('.static-label').__smarker === 'SPAN');
-check('static label text intact', card.textContent.includes('Name:'));
 
-// --- Case 2: node-position control flow uses View.tracked surgically -------
+forms.forEach(([label, , sel, expectedText], i) => {
+  const el = document.querySelector(sel);
+  check(`${label}: class -> "on"`, el.className === 'on');
+  check(`${label}: text updated`, el.textContent.includes(expectedText));
+  check(`${label}: element kept identity (not rebuilt)`, mounted[i].__marker === 'ORIGINAL' && el === mounted[i]);
+});
+
+// Case 1 also has a static sibling span that must never be touched.
+check('card static <span> class intact', document.querySelector('#card .static-label') !== null);
+check('card static label text intact', document.querySelector('#card').textContent.includes('Name:'));
+
+// --- Structural swap via View.tracked, outer element preserved -------------
 console.log('panel (structural swap, outer element preserved):');
-View.mountById(Demo.panel(), 'b');
-const panel = document.querySelector('#b').firstElementChild;
+const panel = mount(Demo.panel);
 panel.__pmarker = 'PANEL';
 check('initial Loading <span>', panel.querySelector('span') !== null && panel.textContent.includes('Loading'));
 

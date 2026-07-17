@@ -76,6 +76,25 @@ The result: reactivity lives at the leaves; `View.tracked` is emitted
 **surgically**, only around a child region whose node *structure* actually
 varies, and never around the stable elements that enclose it.
 
+## What counts as "reads a signal"
+
+Detection is more than a literal `Signal.get`. An alias environment threaded
+through the traversal (scoped: an alias is visible only *after* its binding, and
+shadowing it with a non-alias removes it) recognises all of these:
+
+| Form | Example | Detected via |
+|---|---|---|
+| Direct | `Signal.get(sig)` / `X.Signal.get(sig)` | literal match |
+| Pipe | `sig->Signal.get` | desugars to `Signal.get(sig)` before the PPX |
+| Value alias | `let g = Signal.get` … `g(sig)` | binding tracked in scope |
+| Module alias | `module S = Signal` … `S.get(sig)` | binding tracked in scope |
+| Open | `open Signal` … `get(sig)` | bare `get` under an open |
+
+`Signal.peek` is intentionally **not** a read — it is an untracked read, so a
+value that only peeks stays static (verified by the shadowing case, where an
+alias rebound to a `peek`-based function is dropped and its attribute is left
+as a plain string).
+
 ## How it works
 
 Same mechanism as `rescript-tracked-ppx` in PR #34: ReScript 12 hands an
@@ -119,15 +138,19 @@ ln -sfn ../../../node_modules/jsdom node_modules/jsdom
 
 sh ../build.sh          # build the ppx
 npm run build           # compile Demo.res through the ppx
-npm run verify          # jsdom runtime check (11 assertions)
+npm run verify          # jsdom runtime check (22 assertions)
 ```
 
 ## Known limitations (it's a prototype)
 
-- **Signal detection is syntactic.** A read is recognised as
-  `Signal.get(…)` / `X.Signal.get(…)`. An aliased or indirect read
-  (`let g = Signal.get; g(sig)`) is not detected. `Signal.peek` is
-  intentionally ignored (it is an untracked read).
+- **Signal detection is syntactic** (though alias-aware — see the table above).
+  It follows `let`/`module`/`open` aliases of `Signal`/`Signal.get`, but not
+  arbitrarily deep indirection: a signal read behind a helper function
+  (`let read = () => Signal.get(x)` called elsewhere) or reached through a
+  data structure is not seen. Scoping is approximate — aliases are tracked
+  down the traversal but a few exotic shadowing patterns may be imprecise.
+  A missed read is a silent bug (the leaf never updates); an over-eager match
+  only produces a harmless extra `computedAttr`.
 - **Value-component set is hard-coded** to `View.Text/Int/Float/Bool`. Other
   components are treated as elements (children recursed as nodes).
 - **`if`/`switch` in node position always falls back to `View.tracked`.** A
