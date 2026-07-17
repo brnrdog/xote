@@ -173,6 +173,27 @@ Use [`View.Show`](/docs/api/view#view-show) for boolean branches, [`View.Maybe`]
 </p>
 ```
 
+### Auto-tracked Blocks
+
+When one block of UI depends on several signals at once, the primitives above require you to wire each dependency explicitly — a `Prop.signal` here, a computed there. [`View.tracked`](/docs/api/view#view-tracked) is the escape hatch for those cases: every signal read while its body runs subscribes the block automatically, and the block re-renders when any of them changes.
+
+```rescript
+let loggedIn = Signal.make(false)
+let name = Signal.make("Ada")
+
+{View.tracked(() =>
+  if Signal.get(loggedIn) {
+    <p> <View.Text> {`Hello, ${Signal.get(name)}`} </View.Text> </p>
+  } else {
+    <p> <View.Text> "Please log in" </View.Text> </p>
+  }
+)}
+```
+
+Dependencies are re-discovered on every run, so conditional reads work: above, `name` is only tracked while `loggedIn` is true.
+
+The tradeoff is granularity. A tracked block replaces its children wholesale when a dependency changes — there is no diffing, and local DOM state inside the block (like input focus) does not survive an update. Keep tracked blocks small, and reach for [`View.Show`](/docs/api/view#view-show), [`View.Value`](/docs/api/view#view-value), or [`View.For`](/docs/api/view#view-for) with `by` when a more targeted primitive fits.
+
 ### Mounting
 
 Use [`View.mount`](/docs/api/view#view-mount) when you already have a DOM element, or [`View.mountById`](/docs/api/view#view-mountbyid) when you want to look one up by id.

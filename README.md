@@ -204,6 +204,25 @@ let todos = Signal.make([
 </p>
 ```
 
+### Auto-tracked Blocks
+
+When a block of UI depends on several signals at once, `View.tracked` lets you read them inline — every signal read while the body runs subscribes the block automatically, and the block re-renders when any of them changes:
+
+```rescript
+let loggedIn = Signal.make(false)
+let name = Signal.make("Ada")
+
+{View.tracked(() =>
+  if Signal.get(loggedIn) {
+    <p> <View.Text> {`Hello, ${Signal.get(name)}`} </View.Text> </p>
+  } else {
+    <p> <View.Text> "Please log in" </View.Text> </p>
+  }
+)}
+```
+
+Dependencies are re-discovered on every run, so conditional reads work: above, `name` is only tracked while `loggedIn` is true. The tradeoff is granularity — a tracked block replaces its children wholesale (no diffing) when a dependency changes, so keep tracked blocks small and prefer `View.For` with `by` for lists.
+
 ### Static or Reactive Props
 
 Use `Prop` when a component prop can accept either a static value or a signal:
