@@ -155,9 +155,13 @@ keep DOM identity across updates; only the `class` attribute and the greeting
 text node re-run. `View.tracked` is emitted **only** where node *structure*
 varies (an `if`/`switch` in child position), never around the stable elements
 that enclose it. The prototype's `example/verify.mjs` proves this at runtime by
-tagging elements and asserting the tags survive signal changes (11 assertions,
+tagging elements and asserting the tags survive signal changes (22 assertions,
 all passing).
 
+Signal detection is alias-aware: beyond a literal `Signal.get`, the PPX threads
+a scoped alias environment that follows value aliases (`let g = Signal.get`),
+module aliases (`module S = Signal`), `open Signal`, and the pipe form
+(`sig->Signal.get`), while treating the untracked `Signal.peek` as a non-read.
 Decomposition rules and limitations are documented in
 [`ppx/README.md`](../../ppx/README.md). The PPX runs before ReScript's JSX
 transform, so it sees JSX as `Apply @[JSX]` nodes with attributes as labelled

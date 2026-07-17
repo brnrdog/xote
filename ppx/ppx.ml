@@ -988,14 +988,28 @@ let thunk body =
 let view_tracked = Longident.Ldot (Longident.Lident "View", "tracked")
 let wrap_tracked e = apply (ident view_tracked) [ thunk e ]
 
-(* ---- signal-read detection ---------------------------------------------- *)
-let is_signal_get (e : expression) : bool =
+(* ---- signal-read detection ----------------------------------------------
+   A read is any occurrence of `Signal.get` (applied or not). Beyond the
+   literal `Signal.get` / `X.Signal.get`, an alias environment threaded through
+   the traversal also recognises indirect reads:
+     - a value alias:  `let g = Signal.get` then `g(sig)`
+     - a module alias: `module S = Signal` then `S.get(sig)`
+     - an open:        `open Signal` then a bare `get(sig)`
+   The environment is scoped by the traversal (aliases visible only after their
+   binding); shadowing an alias with a non-alias removes it. *)
+type env = { vals : string list; mods : string list; open_signal : bool }
+let empty_env = { vals = []; mods = []; open_signal = false }
+
+let is_signal_get (env : env) (e : expression) : bool =
   match e.pexp_desc with
   | Pexp_ident { txt = Longident.Ldot (m, "get"); _ } ->
     (match m with
      | Longident.Lident "Signal" -> true
      | Longident.Ldot (_, "Signal") -> true
+     | Longident.Lident name -> List.mem name env.mods
      | _ -> false)
+  | Pexp_ident { txt = Longident.Lident name; _ } ->
+    List.mem name env.vals || (env.open_signal && name = "get")
   | _ -> false
 
 let sub_exprs (e : expression) : expression list =
@@ -1017,8 +1031,38 @@ let sub_exprs (e : expression) : expression list =
   | Pexp_assert x | Pexp_lazy x -> [ x ]
   | _ -> []
 
-let rec reads_signal (e : expression) : bool =
-  is_signal_get e || List.exists reads_signal (sub_exprs e)
+let rec reads_signal (env : env) (e : expression) : bool =
+  is_signal_get env e || List.exists (reads_signal env) (sub_exprs e)
+
+(* ---- alias collectors --------------------------------------------------- *)
+(* `let g = Signal.get` (or an already-known alias) binds `g` as a read;
+   `let g = <not a read>` shadows away any previous alias named `g`. *)
+let collect_val_aliases (env : env) (vbs : value_binding list) : env =
+  List.fold_left
+    (fun env vb ->
+      match vb.pvb_pat.ppat_desc with
+      | Ppat_var { txt = name; _ } ->
+        if is_signal_get env vb.pvb_expr then { env with vals = name :: env.vals }
+        else { env with vals = List.filter (fun n -> n <> name) env.vals }
+      | _ -> env)
+    env vbs
+
+let is_signal_module (me : module_expr) : bool =
+  match me.pmod_desc with
+  | Pmod_ident { txt = Longident.Lident "Signal"; _ } -> true
+  | Pmod_ident { txt = Longident.Ldot (_, "Signal"); _ } -> true
+  | _ -> false
+
+let collect_mod_alias (env : env) (name : string Location.loc) (me : module_expr) : env =
+  if is_signal_module me then { env with mods = name.Location.txt :: env.mods } else env
+
+let is_signal_lid = function
+  | Longident.Lident "Signal" -> true
+  | Longident.Ldot (_, "Signal") -> true
+  | _ -> false
+
+let collect_open (env : env) (lid : Longident.t) : env =
+  if is_signal_lid lid then { env with open_signal = true } else env
 
 (* ---- JSX shape helpers -------------------------------------------------- *)
 let has_jsx (e : expression) : bool =
@@ -1048,39 +1092,39 @@ let is_children_label = function
   | _ -> false
 
 (* ---- decomposition ------------------------------------------------------ *)
-let rec fine_node (e : expression) : expression =
+let rec fine_node (env : env) (e : expression) : expression =
   match jsx_parts e with
   | Some (f, args) when is_value_component f ->
-    { e with pexp_desc = Pexp_apply (f, List.map value_arg args) }
+    { e with pexp_desc = Pexp_apply (f, List.map (value_arg env) args) }
   | Some (f, args) ->
     (* element or user component: attrs are value position, children nodes *)
-    { e with pexp_desc = Pexp_apply (f, List.map element_arg args) }
+    { e with pexp_desc = Pexp_apply (f, List.map (element_arg env) args) }
   | None ->
     (* not a JSX element: a bare child expression in node position. If it
        reads a signal (typically control flow selecting different nodes),
        a structural swap is unavoidable -> View.tracked. *)
-    if reads_signal e then wrap_tracked e else e
+    if reads_signal env e then wrap_tracked e else e
 
-and element_arg ((lbl, v) : arg_label * expression) : arg_label * expression =
-  if is_children_label lbl then (lbl, map_children fine_node v)
+and element_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
+  if is_children_label lbl then (lbl, map_children (fine_node env) v)
   else
     match lbl with
     | Labelled _ | Optional _ ->
       (* attribute: value position. Thunk it if reactive so it lowers to a
          computed attribute; leave plain JSX/static values untouched. *)
-      if reads_signal v && jsx_parts v = None then (lbl, thunk v) else (lbl, v)
+      if reads_signal env v && jsx_parts v = None then (lbl, thunk v) else (lbl, v)
     | Nolabel -> (lbl, v)
 
-and value_arg ((lbl, v) : arg_label * expression) : arg_label * expression =
-  if is_children_label lbl then (lbl, map_children value_leaf v)
+and value_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
+  if is_children_label lbl then (lbl, map_children (value_leaf env) v)
   else
     match lbl with
-    | Labelled "value" -> (lbl, if reads_signal v then thunk v else v)
+    | Labelled "value" -> (lbl, if reads_signal env v then thunk v else v)
     | _ -> (lbl, v)
 
 (* child of a value component (View.Text ...): value position -> thunk. *)
-and value_leaf (v : expression) : expression =
-  if reads_signal v && jsx_parts v = None then thunk v else v
+and value_leaf (env : env) (v : expression) : expression =
+  if reads_signal env v && jsx_parts v = None then thunk v else v
 
 (* Map [f] over a JSX children list (a `::`/`[]` spine); tolerate a bare
    single child that is not wrapped in a list. *)
@@ -1099,43 +1143,72 @@ and map_children f (v : expression) : expression =
 let is_tracked ((name, _) : attribute) = name.Location.txt = "tracked"
 let strip_tracked = List.filter (fun a -> not (is_tracked a))
 
-let rec map_expr (e : expression) : expression =
+let rec map_expr (env : env) (e : expression) : expression =
   match List.find_opt is_tracked e.pexp_attributes with
-  | Some _ -> fine_node { e with pexp_attributes = strip_tracked e.pexp_attributes }
-  | None -> map_children_expr e
+  | Some _ -> fine_node env { e with pexp_attributes = strip_tracked e.pexp_attributes }
+  | None -> map_children_expr env e
 
-and map_children_expr (e : expression) : expression =
+and map_children_expr (env : env) (e : expression) : expression =
   let d =
     match e.pexp_desc with
-    | Pexp_fun (l, def, p, body) -> Pexp_fun (l, def, p, map_expr body)
-    | Pexp_let (r, vbs, body) -> Pexp_let (r, List.map map_vb vbs, map_expr body)
-    | Pexp_sequence (a, b) -> Pexp_sequence (map_expr a, map_expr b)
-    | Pexp_apply (f, args) -> Pexp_apply (map_expr f, List.map (fun (l, a) -> (l, map_expr a)) args)
-    | Pexp_ifthenelse (c, t, eo) -> Pexp_ifthenelse (map_expr c, map_expr t, Option.map map_expr eo)
+    | Pexp_fun (l, def, p, body) -> Pexp_fun (l, def, p, map_expr env body)
+    | Pexp_let (r, vbs, body) ->
+      (* aliases bound here are visible in the body, not in the RHSs *)
+      let vbs' = List.map (map_vb env) vbs in
+      let env' = collect_val_aliases env vbs in
+      Pexp_let (r, vbs', map_expr env' body)
+    | Pexp_letmodule (name, me, body) ->
+      let env' = collect_mod_alias env name me in
+      Pexp_letmodule (name, me, map_expr env' body)
+    | Pexp_open (o, l, x) ->
+      let env' = collect_open env l.Location.txt in
+      Pexp_open (o, l, map_expr env' x)
+    | Pexp_sequence (a, b) -> Pexp_sequence (map_expr env a, map_expr env b)
+    | Pexp_apply (f, args) ->
+      Pexp_apply (map_expr env f, List.map (fun (l, a) -> (l, map_expr env a)) args)
+    | Pexp_ifthenelse (c, t, eo) ->
+      Pexp_ifthenelse (map_expr env c, map_expr env t, Option.map (map_expr env) eo)
     | Pexp_match (x, cases) ->
-      Pexp_match (map_expr x, List.map (fun cs -> { cs with pc_rhs = map_expr cs.pc_rhs }) cases)
-    | Pexp_constraint (x, t) -> Pexp_constraint (map_expr x, t)
-    | Pexp_open (o, l, x) -> Pexp_open (o, l, map_expr x)
-    | Pexp_tuple xs -> Pexp_tuple (List.map map_expr xs)
-    | Pexp_array xs -> Pexp_array (List.map map_expr xs)
-    | Pexp_construct (l, eo) -> Pexp_construct (l, Option.map map_expr eo)
+      Pexp_match (map_expr env x, List.map (fun cs -> { cs with pc_rhs = map_expr env cs.pc_rhs }) cases)
+    | Pexp_constraint (x, t) -> Pexp_constraint (map_expr env x, t)
+    | Pexp_tuple xs -> Pexp_tuple (List.map (map_expr env) xs)
+    | Pexp_array xs -> Pexp_array (List.map (map_expr env) xs)
+    | Pexp_construct (l, eo) -> Pexp_construct (l, Option.map (map_expr env) eo)
     | other -> other
   in
   { e with pexp_desc = d }
 
-and map_vb (vb : value_binding) : value_binding = { vb with pvb_expr = map_expr vb.pvb_expr }
+and map_vb (env : env) (vb : value_binding) : value_binding =
+  { vb with pvb_expr = map_expr env vb.pvb_expr }
 
-let rec map_structure s = List.map map_si s
-and map_si si =
+(* Structure items are threaded left-to-right so a top-level `let g = Signal.get`,
+   `module S = Signal`, or `open Signal` is visible to later items. *)
+let rec map_structure (env : env) (s : structure) : structure =
+  let _, rev =
+    List.fold_left
+      (fun (env, acc) si -> (update_env_si env si, map_si env si :: acc))
+      (env, []) s
+  in
+  List.rev rev
+
+and update_env_si (env : env) si =
   match si.pstr_desc with
-  | Pstr_value (r, vbs) -> { si with pstr_desc = Pstr_value (r, List.map map_vb vbs) }
-  | Pstr_module mb -> { si with pstr_desc = Pstr_module (map_mb mb) }
-  | Pstr_eval (e, attrs) -> { si with pstr_desc = Pstr_eval (map_expr e, attrs) }
+  | Pstr_value (_, vbs) -> collect_val_aliases env vbs
+  | Pstr_module mb -> collect_mod_alias env mb.pmb_name mb.pmb_expr
+  | Pstr_open od -> collect_open env od.popen_lid.Location.txt
+  | _ -> env
+
+and map_si (env : env) si =
+  match si.pstr_desc with
+  | Pstr_value (r, vbs) -> { si with pstr_desc = Pstr_value (r, List.map (map_vb env) vbs) }
+  | Pstr_module mb -> { si with pstr_desc = Pstr_module (map_mb env mb) }
+  | Pstr_eval (e, attrs) -> { si with pstr_desc = Pstr_eval (map_expr env e, attrs) }
   | _ -> si
-and map_mb mb = { mb with pmb_expr = map_mod mb.pmb_expr }
-and map_mod me =
+
+and map_mb (env : env) mb = { mb with pmb_expr = map_mod env mb.pmb_expr }
+and map_mod (env : env) me =
   match me.pmod_desc with
-  | Pmod_structure s -> { me with pmod_desc = Pmod_structure (map_structure s) }
+  | Pmod_structure s -> { me with pmod_desc = Pmod_structure (map_structure env s) }
   | _ -> me
 
 (* ---- ReScript -ppx binary protocol: `ppx <infile> <outfile>` ------------ *)
@@ -1151,6 +1224,6 @@ let () =
   let oc = open_out_bin outfile in
   output_string oc magic;
   output_value oc name;
-  (if magic = impl_magic then output_value oc (map_structure (Obj.magic payload : structure))
+  (if magic = impl_magic then output_value oc (map_structure empty_env (Obj.magic payload : structure))
    else output_value oc payload);
   close_out oc
