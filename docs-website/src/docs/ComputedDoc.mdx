@@ -104,19 +104,20 @@ let total = Computed.make(() =>
   Signal.get(subtotal) + Signal.get(shippingCost)
 )
 
-let app = () => {
+@xote.component
+let make = () => {
   <div>
     <p>
       <View.Text> "Subtotal: $" </View.Text>
-      <View.Int> {subtotal} </View.Int>
+      <View.Int> {Signal.get(subtotal)} </View.Int>
     </p>
     <p>
       <View.Text> "Shipping: $" </View.Text>
-      <View.Int> {shippingCost} </View.Int>
+      <View.Int> {Signal.get(shippingCost)} </View.Int>
     </p>
     <p>
       <View.Text> "Total: $" </View.Text>
-      <View.Int> {total} </View.Int>
+      <View.Int> {Signal.get(total)} </View.Int>
     </p>
   </div>
 }`}
