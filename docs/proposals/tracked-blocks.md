@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Phase 1 implemented (`View.tracked`); Phase 2 prototyped (fine-grained PPX, see [`ppx/`](../../ppx/)); Phase 3 exploratory |
+| **Status** | Phase 1 implemented (`View.tracked`); Phase 2 fine-grained PPX built, opt-in, CI-exercised and used by the docs site (see [`ppx/`](../../ppx/)); Phase 3 exploratory |
 | **Related** | [brnrdog/rescript-signals#34](https://github.com/brnrdog/rescript-signals/pull/34) — auto-tracking for React and the `@tracked` annotation |
 
 ## Summary
@@ -186,6 +186,26 @@ Notes:
 - 2b is self-contained in Xote (its own vendored-AST PPX). 2a would instead
   reuse rescript-signals' PPX with a configurable expansion target;
   `View.tracked` is already the stable target for that path.
+
+### Consumer-safety constraint (why it's opt-in, not in the library core)
+
+A ReScript consumer recompiles a dependency's sources during its own build and
+applies that dependency's `ppx-flags` (verified: a cold consumer build fails
+with "ppx not found" when the dependency lists a PPX the consumer lacks). So a
+`ppx-flags` entry in Xote's *published* `rescript.json` would force `ocamlopt`
+on every Xote user. The PPX is therefore kept out of the published library
+config entirely:
+
+- The published library (`src/`, root `rescript.json`) has **no** `ppx-flags`;
+  consumers who don't opt in are unaffected.
+- The `ppx.ml` source ships in the npm tarball, so a consumer who *wants*
+  `@tracked` builds it (`sh node_modules/xote/ppx/build.sh`) and lists it in
+  **their own** `rescript.json` (`"ppx-flags": ["xote/ppx/ppx"]`).
+- In-repo, the PPX is real: `ci.yml` builds and runs its end-to-end test on
+  every push/PR, and the docs site (`docs-website/`, its own non-published
+  config) authors the Counter demo with `@tracked` and builds the PPX in its
+  `res:build`. This proves it through SSR + hydration without touching the
+  publish path.
 
 ## Phase 3 — notify-only scheduling (exploratory)
 

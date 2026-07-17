@@ -39,6 +39,11 @@ jobs:
           cd docs-website
           npm ci
 
+      # The docs site uses the @tracked ppx (a native binary built from
+      # ppx/ppx.ml during its res:build); ocamlopt is the only build dep.
+      - name: Set up OCaml (for @tracked ppx)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ocaml-nox
+
       - name: Build website
         env:
           SITE_URL: https://xote.dev
