@@ -536,7 +536,7 @@ let symbolFor = u =>
   | Kelvin => "K"
   }
 
-@jsx.component
+@xote.component
 let make = (~value: float, ~unit: tempUnit) =>
   <div class="temp-display">
     <span class="temp-value">
@@ -556,7 +556,7 @@ let kelvin = Computed.make(() =>
   Signal.get(celsius) +. 273.15
 )
 
-@jsx.component
+@xote.component
 let make = () =>
   <div class="temp-row">
     <TemperatureDisplay
