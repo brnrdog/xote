@@ -43,6 +43,8 @@ View.mountById(app(), "app")
 
 When `count` changes, only the reactive view node updates. The component does not need a render loop or a dependency array.
 
+For real components, the recommended annotation is `@xote.component`, which lets you read signals **inline** (no `() => …` thunks) while keeping updates fine-grained — see [Views → JSX Configuration](/docs/view/overview#jsx-configuration) for the one-time setup.
+
 ## How the Docs Are Organized
 
 The docs make more sense if you move from the reactive core outward into UI, routing, and server rendering.

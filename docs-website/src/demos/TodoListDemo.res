@@ -55,7 +55,7 @@ let removeTodo = id => {
 }
 
 module TodoComposer = {
-  @jsx.component
+  @xote.component
   let make = () => {
     <div class="todo-demo-form">
       <input
@@ -73,7 +73,7 @@ module TodoComposer = {
 }
 
 module TodoSummary = {
-  @jsx.component
+  @xote.component
   let make = () => {
     <div class="todo-list-demo-toolbar">
       <div class="todo-demo-summary">
@@ -95,7 +95,7 @@ module TodoSummary = {
 }
 
 module TodoRow = {
-  @jsx.component
+  @xote.component
   let make = (~todo: todo) => {
     let itemClass =
       "todo-demo-item" ++
@@ -121,7 +121,7 @@ module TodoRow = {
 }
 
 module TodoList = {
-  @jsx.component
+  @xote.component
   let make = () => {
     <ul class="todo-demo-list">
       <View.For
@@ -133,7 +133,7 @@ module TodoList = {
   }
 }
 
-@jsx.component
+@xote.component
 let make = () => {
   <div class="todo-list-demo">
     <div class="todo-list-demo-hero">

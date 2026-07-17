@@ -27,7 +27,7 @@ let unitLabel = u =>
 // Takes a thunk so the value can be driven by signals or computeds.
 
 module TemperatureDisplay = {
-  @jsx.component
+  @xote.component
   let make = (~value: unit => float, ~unit: tempUnit) =>
     <div class={unitClass(unit)}>
       <span class="temp-value">
@@ -41,7 +41,7 @@ module TemperatureDisplay = {
 // ---- Step 1: static display ----
 
 module Step1 = {
-  @jsx.component
+  @xote.component
   let make = () =>
     <div class="temp-row">
       <TemperatureDisplay value={() => 22.0} unit=Celsius />
@@ -83,7 +83,7 @@ module DomInspector = {
     }
   }
 
-  @jsx.component
+  @xote.component
   let make = (~stageId: string) => {
     let entries = Signal.make([])
 
@@ -201,7 +201,7 @@ module Step2 = {
 
   let stageId = "tutorial-step2-stage"
 
-  @jsx.component
+  @xote.component
   let make = () =>
     <div class="tutorial-step2">
       <div class="tutorial-stage" id=stageId>
@@ -314,7 +314,7 @@ module Step3 = {
     | Ready(_) => " "
     }
 
-  @jsx.component
+  @xote.component
   let make = () =>
     <div class="tutorial-stage">
       <div class="tutorial-capital">

@@ -13,7 +13,7 @@ Think in two layers:
 
 ### JSX Configuration
 
-To use JSX with Xote, point ReScript at `XoteJSX`.
+To use JSX with Xote, point ReScript at `XoteJSX`. The recommended setup also enables the `@xote.component` annotation — fine-grained reactive components — via Xote's opt-in native PPX:
 
 ```rescript
 {
@@ -22,32 +22,43 @@ To use JSX with Xote, point ReScript at `XoteJSX`.
     "version": 4,
     "module": "XoteJSX"
   },
+  "ppx-flags": ["xote/ppx/ppx"],
   "compiler-flags": ["-open Xote"]
 }
 ```
+
+Build the PPX once after installing — its only dependency is `ocamlopt`:
+
+```sh
+sh node_modules/xote/ppx/build.sh
+```
+
+Prefer not to add a build step? Omit `ppx-flags` and use `@jsx.component` instead of `@xote.component` — everything below still works, you just write reactive attributes/text with explicit `() => …` thunks.
 
 ### Writing Components
 
 #### Recommended Pattern
 
-Use a module with a `make` function and annotate it with `@jsx.component`. ReScript derives the props shape from labeled arguments.
+Use a module with a `make` function and annotate it with `@xote.component`. It derives the props shape from labeled arguments (exactly like `@jsx.component`) **and** fine-grains the returned JSX, so you read signals inline — no `() => …` thunks.
 
 ```rescript
 open Xote
 
 module Greeting = {
-  @jsx.component
-  let make = (~name: string, ~emphasis=false) => {
-    <div class={emphasis ? "greeting strong" : "greeting"}>
+  @xote.component
+  let make = (~name: string) => {
+    <div class={Signal.get(highlight) ? "greeting strong" : "greeting"}>
       <h1> <View.Text> {`Hello, ${name}`} </View.Text> </h1>
     </div>
   }
 }
 
 let app = () => {
-  <Greeting name="World" emphasis />
+  <Greeting name="World" />
 }
 ```
+
+Only one component per module (inherited from `@jsx.component`) — put each in its own file, or a submodule.
 
 #### JSX Components
 
@@ -55,7 +66,7 @@ let app = () => {
 open Xote
 
 module Greeting = {
-  @jsx.component
+  @xote.component
   let make = (~name: string) => {
     <section class="greeting-card">
       <h2> <View.Text> {`Hello, ${name}`} </View.Text> </h2>
@@ -194,9 +205,9 @@ Dependencies are re-discovered on every run, so conditional reads work: above, `
 
 The tradeoff is granularity. A tracked block replaces its children wholesale when a dependency changes — there is no diffing, and local DOM state inside the block (like input focus) does not survive an update. Keep tracked blocks small, and reach for [`View.Show`](/docs/api/view#view-show), [`View.Value`](/docs/api/view#view-value), or [`View.For`](/docs/api/view#view-for) with `by` when a more targeted primitive fits.
 
-### The `@xote.component` annotation (experimental, opt-in)
+### How `@xote.component` stays fine-grained
 
-There is an experimental compile-time alternative that removes the wholesale-replacement tradeoff. An optional native PPX lets you annotate a component with `@xote.component` and read signals **inline** — no `() => …` thunks, no `View.signalText`:
+`@xote.component` (set up in [JSX Configuration](#jsx-configuration) above) is how the demos on this site are written, and the recommended way to write reactive components. It replaces `@jsx.component`: it derives props from the labeled args **and** fine-grains the returned JSX.
 
 ```rescript
 @xote.component
@@ -207,22 +218,9 @@ let make = () => {
 }
 ```
 
-`@xote.component` replaces `@jsx.component`: it derives props from the labeled args **and** fine-grains the returned JSX. Rather than wrapping the whole block in one computed, the PPX **decomposes** it: each attribute or text that reads a signal becomes its own reactive leaf (a `computedAttr` / reactive text node), and `View.tracked` is emitted only around a child region whose node *structure* varies (an `if`/`switch`), tracking just the condition. The enclosing elements are built once and keep their DOM identity — so it stays fine-grained even for large components. This is what the Counter demo above is written with.
+Rather than wrapping the whole block in one computed, the PPX **decomposes** it: each attribute or text that reads a signal becomes its own reactive leaf (a `computedAttr` / reactive text node), and `View.tracked` is emitted only around a child region whose node *structure* varies (an `if`/`switch`), tracking just the condition. The enclosing elements are built once and keep their DOM identity — so it stays fine-grained even for large components.
 
-It is **opt-in** and not part of the published package — it requires a small native binary you build yourself (the only dependency is `ocamlopt`):
-
-```sh
-npm install xote
-sh node_modules/xote/ppx/build.sh
-```
-
-then add it to *your* project's `rescript.json`:
-
-```json
-{ "ppx-flags": ["xote/ppx/ppx"] }
-```
-
-Consumers who don't opt in are unaffected — xote's own published config carries no PPX. See [`ppx/README.md`](https://github.com/brnrdog/xote/blob/main/ppx/README.md) for the decomposition rules, signal-detection details, and limitations.
+It is **opt-in** at the tooling level — a small native binary (`ocamlopt` only) you build with `sh node_modules/xote/ppx/build.sh`, not part of the published npm package. Xote's own published config carries no PPX, so libraries that depend on Xote are unaffected whether or not they use it. See [`ppx/README.md`](https://github.com/brnrdog/xote/blob/main/ppx/README.md) for the decomposition rules, signal-detection details, and limitations.
 
 ### Mounting
 
