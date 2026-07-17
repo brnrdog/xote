@@ -194,6 +194,34 @@ Dependencies are re-discovered on every run, so conditional reads work: above, `
 
 The tradeoff is granularity. A tracked block replaces its children wholesale when a dependency changes — there is no diffing, and local DOM state inside the block (like input focus) does not survive an update. Keep tracked blocks small, and reach for [`View.Show`](/docs/api/view#view-show), [`View.Value`](/docs/api/view#view-value), or [`View.For`](/docs/api/view#view-for) with `by` when a more targeted primitive fits.
 
+### The `@tracked` annotation (experimental, opt-in)
+
+There is an experimental compile-time alternative that removes the wholesale-replacement tradeoff. An optional native PPX lets you annotate a JSX block with `@tracked` and read signals **inline** — no `() => …` thunks, no `View.signalText`:
+
+```rescript
+@tracked
+<div class={Signal.get(active) ? "on" : "off"}>
+  <View.Text> {`Hello, ${Signal.get(name)}`} </View.Text>
+</div>
+```
+
+Rather than wrapping the whole block in one computed, the PPX **decomposes** it: each attribute or text that reads a signal becomes its own reactive leaf (a `computedAttr` / reactive text node), and `View.tracked` is emitted only around a child region whose node *structure* varies (an `if`/`switch`), tracking just the condition. The enclosing elements are built once and keep their DOM identity — so it stays fine-grained even for large blocks. This is what the Counter demo above is written with.
+
+It is **opt-in** and not part of the published package — it requires a small native binary you build yourself (the only dependency is `ocamlopt`):
+
+```sh
+npm install xote
+sh node_modules/xote/ppx/build.sh
+```
+
+then add it to *your* project's `rescript.json`:
+
+```json
+{ "ppx-flags": ["xote/ppx/ppx"] }
+```
+
+Consumers who don't opt in are unaffected — xote's own published config carries no PPX. See [`ppx/README.md`](https://github.com/brnrdog/xote/blob/main/ppx/README.md) for the decomposition rules, signal-detection details, and limitations.
+
 ### Mounting
 
 Use [`View.mount`](/docs/api/view#view-mount) when you already have a DOM element, or [`View.mountById`](/docs/api/view#view-mountbyid) when you want to look one up by id.

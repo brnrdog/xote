@@ -1,10 +1,13 @@
-# xote-tracked-ppx (prototype)
+# xote-tracked-ppx
 
 A native ReScript PPX that expands a `@tracked` annotation on a JSX block into
 **fine-grained reactive leaves** — the compile-time counterpart to the runtime
 [`View.tracked`](../src/View.res) helper.
 
-> **Status:** prototype / proof of concept. It demonstrates that the
+> **Status:** experimental, opt-in. The PPX is exercised in CI and used by the
+> [docs site](../docs-website) itself (the Counter demo), but it is **not part
+> of the published npm package** — consumers who want it build it themselves
+> (see [Opt-in for consumers](#opt-in-for-consumers)). It demonstrates that the
 > [`rescript-signals` #34](https://github.com/brnrdog/rescript-signals/pull/34)
 > `@tracked` annotation can target Xote's view layer *and* compile away the
 > wholesale-replacement tradeoff of `View.tracked`. See
@@ -146,21 +149,57 @@ Wire it into a project's `rescript.json`:
 { "ppx-flags": ["xote-tracked-ppx/ppx"] }
 ```
 
-## Run the example
+## Opt-in for consumers
 
-The example is a standalone mini-project. From `example/`, link the toolchain
-and Xote from the repo root, then build and verify:
+The compiled binary is platform-specific and is **not** shipped in the npm
+package, and — deliberately — neither is a `ppx-flags` entry in Xote's own
+published `rescript.json`. That last point matters: a ReScript consumer
+recompiles a dependency's sources during its own build and applies that
+dependency's `ppx-flags`, so a PPX listed in Xote's published config would
+force `ocamlopt` on **every** Xote user. Instead the PPX is strictly opt-in.
+
+The `ppx.ml` source *is* published, so a consumer who wants `@tracked` can
+build it from the installed package and reference it from **their own**
+`rescript.json`:
 
 ```sh
-cd example
-mkdir -p node_modules
-ln -sfn ../../.. node_modules/xote
-ln -sfn ../.. node_modules/xote-tracked-ppx
-ln -sfn ../../../node_modules/rescript node_modules/rescript
-ln -sfn ../../../node_modules/@rescript node_modules/@rescript
-ln -sfn ../../../node_modules/rescript-signals node_modules/rescript-signals
-ln -sfn ../../../node_modules/jsdom node_modules/jsdom
+npm install xote
+sh node_modules/xote/ppx/build.sh      # needs ocamlopt
+```
 
+```json
+{ "ppx-flags": ["xote/ppx/ppx"] }
+```
+
+Consumers who don't do this are entirely unaffected.
+
+## In this repo
+
+The PPX is developed and exercised in-repo without touching the published
+library config:
+
+- **`npm run ppx:build`** / **`npm run ppx:test`** (repo root) build the binary
+  and run the end-to-end example verification.
+- **CI** (`.github/workflows/ci.yml`) installs `ocaml-nox`, builds the PPX, and
+  runs `ppx:test` on every push/PR, so it can't silently rot.
+- The **docs site** (`docs-website/`) is a real consumer: its own
+  `rescript.json` carries the `ppx-flags`, its `res:build` builds the PPX first,
+  and the Counter demo is authored with `@tracked`. The published Xote library
+  (`src/`, root `rescript.json`) stays PPX-free.
+
+## Run the example
+
+The example is a standalone mini-project. The whole flow is wrapped in a single
+script — from the repo root:
+
+```sh
+npm run ppx:test        # setup + build ppx + compile Demo.res + jsdom verify
+```
+
+Or step by step from `example/`:
+
+```sh
+sh setup.sh             # link toolchain + Xote from the repo root (idempotent)
 sh ../build.sh          # build the ppx
 npm run build           # compile Demo.res through the ppx
 npm run verify          # jsdom runtime check (27 assertions)
