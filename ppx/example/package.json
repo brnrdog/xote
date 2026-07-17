@@ -1,0 +1,9 @@
+{
+  "name": "xote-tracked-ppx-example",
+  "private": true,
+  "description": "Demonstrates the fine-grained @tracked ppx. See ../README.md.",
+  "scripts": {
+    "build": "rescript build",
+    "verify": "node verify.mjs"
+  }
+}

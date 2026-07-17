@@ -1,0 +1,11 @@
+# Compiled ppx binary and OCaml build artifacts (platform-specific)
+ppx
+*.cmi
+*.cmx
+*.cmo
+*.o
+
+# Example build output
+example/lib/
+example/node_modules/
+example/**/*.res.mjs
