@@ -92,7 +92,7 @@ let count = Signal.make(0)
 When a formatted string depends on a value that can be static or reactive, keep the prop as `Prop.t` and read it inside a function child.
 
 ```rescript
-@jsx.component
+@xote.component
 let make = (~name: Prop.t<string>) => {
   <View.Text> {() => `Hello, ${Prop.get(name)}`} </View.Text>
 }
@@ -258,7 +258,7 @@ let todos = Signal.make([
 let draft = Signal.make("")
 
 module TodoComposer = {
-  @jsx.component
+  @xote.component
   let make = () => {
     <div>
       <input onInput={handleInput} value={() => Signal.get(draft)} />
@@ -268,7 +268,7 @@ module TodoComposer = {
 }
 
 module TodoRow = {
-  @jsx.component
+  @xote.component
   let make = (~todo: todo) => {
     <li>
       <span> <View.Text> {todo.title} </View.Text> </span>
@@ -277,7 +277,7 @@ module TodoRow = {
   }
 }
 
-@jsx.component
+@xote.component
 let make = () => {
   <div>
     <TodoComposer />
