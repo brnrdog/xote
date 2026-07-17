@@ -115,3 +115,17 @@ module PreThunked = {
     </div>
   }
 }
+
+/* Case 9: a value already reactive on its own — `Prop.reactive(Computed…)` —
+   reads a signal only inside a nested lambda, so it must NOT be thunked (that
+   would wrap a Prop.t in a function and break attribute rendering). */
+module PropWrapped = {
+  @xote.component
+  let make = () => {
+    <div
+      class={Prop.reactive(Computed.make(() => Signal.get(active) ? "on" : "off"))}
+      id="prop-wrapped">
+      <View.Text> {"x"} </View.Text>
+    </div>
+  }
+}

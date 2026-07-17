@@ -85,6 +85,14 @@ Signal.set(Demo.name, 'Zoe');
 check('class thunk still reactive ("on")', pre.className === 'on');
 check('text thunk still reactive (Zoe)', pre.textContent.includes('T: Zoe'));
 
+// A Prop.reactive(Computed) class reads only inside a lambda -> not thunked;
+// the class must be a real string and stay reactive. active is currently true.
+console.log('already-reactive value (Prop.reactive not thunked):');
+const pw = mount(() => Demo.PropWrapped.make({}));
+check('Prop.reactive class is a real string ("on")', pw.className === 'on');
+Signal.set(Demo.active, false);
+check('Prop.reactive class still reactive ("off")', document.querySelector('#prop-wrapped').className === 'off');
+
 // --- Structural swap via View.tracked, outer element preserved -------------
 console.log('panel (structural swap, outer element preserved):');
 const panel = mount(c(Demo.Panel.make));
