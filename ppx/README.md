@@ -89,6 +89,7 @@ Applied recursively to the component's returned JSX:
 | `<View.Text/Int/Float/Bool>` child | yes | thunked → reactive text node (leaf) |
 | `<View.Text/…>` child | no | left as-is (static text) |
 | Element / nested JSX | — | recurse into attributes and children |
+| Fragment (`<>…</>`) | — | recurse into each child independently (so nested reactive regions stay separate — not collapsed into one thunk) |
 | Bare child, control flow (`if`/`switch` selecting different nodes) | yes | branches decomposed fine-grained, then wrapped in `View.tracked` — see below |
 | Bare child, otherwise (`{Signal.get(x)}`, `{"lit"}`, `{someNode}`) | — | wrapped in `View.child` — see [Bare value children](#bare-value-children) |
 
@@ -271,7 +272,7 @@ Or step by step from `example/`:
 sh setup.sh             # link toolchain + Xote from the repo root (idempotent)
 sh ../build.sh          # build the ppx
 npm run build           # compile Demo.res through the ppx
-npm run verify          # jsdom runtime check (52 assertions)
+npm run verify          # jsdom runtime check (60 assertions)
 ```
 
 ## Known limitations (it's a prototype)
