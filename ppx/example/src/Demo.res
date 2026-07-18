@@ -5,6 +5,8 @@ let active = Signal.make(false)
 let status = Signal.make(Loading)
 let theme = Signal.make("light")
 let count = Signal.make(0)
+let mobileOpen = Signal.make(false)
+let canvas = Signal.make("canvas-a")
 module S = Signal
 
 /* Every case is an @xote.component: one annotation derives props (it emits
@@ -191,5 +193,26 @@ module ScalarSwitch = {
       | Ready(msg) => msg
       }}
     </div>
+  }
+}
+
+/* Case 16: a make whose body is a *fragment* holding two independent reactive
+   regions — a canvas element (reads `canvas`) and a nested mobile-backdrop `if`
+   (reads `mobileOpen`). Each fragment child is decomposed on its own, so the
+   backdrop toggle re-runs only its own View.tracked and leaves the canvas (and
+   its content leaf) in place. A regression guard: before fragments were recursed
+   into, the whole fragment collapsed into one coarse thunk and toggling the panel
+   rebuilt every sibling. */
+module Workspace = {
+  @xote.component
+  let make = () => {
+    <>
+      <div id="ws-canvas"> {Signal.get(canvas)} </div>
+      {if Signal.get(mobileOpen) {
+        <div id="ws-backdrop" />
+      } else {
+        View.null()
+      }}
+    </>
   }
 }

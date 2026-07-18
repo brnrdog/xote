@@ -190,5 +190,34 @@ Signal.set(Demo.status, { TAG: 'Ready', _0: 'done' });
 check('scalar switch swaps to "done"', document.querySelector('#scalar-switch').textContent === 'done');
 check('scalar switch outer <div> kept identity', document.querySelector('#scalar-switch').__marker === 'SS');
 
+// --- Fragment body: nested regions stay independent ------------------------
+// A make whose body is a <>…</> fragment with two reactive regions: a canvas
+// element and a mobile-backdrop `if`. Each fragment child is decomposed on its
+// own, so toggling the backdrop must NOT rebuild the canvas. (Regression: before
+// fragments were recursed into, the whole fragment was one coarse thunk and a
+// panel toggle rebuilt every sibling, losing DOM state.)
+console.log('fragment body: independent reactive regions (no coarse collapse):');
+Signal.set(Demo.mobileOpen, false);
+Signal.set(Demo.canvas, 'canvas-a');
+const wsHost = document.createElement('div');
+document.body.appendChild(wsHost);
+View.mount(Demo.Workspace.make({}), wsHost);
+const canvasEl = wsHost.querySelector('#ws-canvas');
+canvasEl.__marker = 'CANVAS';
+check('canvas renders "canvas-a"', canvasEl.textContent === 'canvas-a');
+check('backdrop absent initially', wsHost.querySelector('#ws-backdrop') === null);
+
+Signal.set(Demo.mobileOpen, true);
+check('backdrop appears on panel toggle', wsHost.querySelector('#ws-backdrop') !== null);
+check('canvas kept identity across panel toggle (NOT rebuilt)', wsHost.querySelector('#ws-canvas').__marker === 'CANVAS');
+
+Signal.set(Demo.canvas, 'canvas-b');
+check('canvas content updates on its own', wsHost.querySelector('#ws-canvas').textContent === 'canvas-b');
+check('canvas still same element after its own update', wsHost.querySelector('#ws-canvas').__marker === 'CANVAS');
+
+Signal.set(Demo.mobileOpen, false);
+check('backdrop removed on toggle off', wsHost.querySelector('#ws-backdrop') === null);
+check('canvas kept identity across second toggle (regions independent)', wsHost.querySelector('#ws-canvas').__marker === 'CANVAS');
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
