@@ -38,8 +38,8 @@ fine-grained:
 let make = (~label: string) => {
   let count = Signal.make(0)
   <div class={Signal.get(count) > 0 ? "on" : "off"} id="card">
-    <span class="static-label"> {View.text(label)} </span>
-    <View.Int> {Signal.get(count)} </View.Int>
+    <span class="static-label"> {label} </span>
+    {Signal.get(count)}
   </div>
 }
 ```
@@ -56,21 +56,21 @@ function make(props) {
     children: [
       Elements.jsx("span", {                      // static subtree — untouched
         class: "static-label",
-        children: View.text(label),
+        children: View.child(label),              // static text (passthrough/coerce)
       }),
-      jsx(View.Int.make, {
-        children: () => Signal.get(count),        // → reactive text node (leaf)
-      }),
+      View.child(() => Signal.get(count)),        // → reactive text node (leaf)
     ],
   });
 }
 ```
 
 Props derive from the labeled args (`label` stays static); no `View.tracked`,
-no `SignalFragment`, no wholesale rebuild. The `<div>` and `<span>` keep their
-DOM identity across updates; only the `class` attribute and the number re-run.
-(`example/verify.mjs` asserts exactly this by tagging the elements and checking
-the tags survive a signal change.)
+no `SignalFragment`, no `<View.Int>` wrapper, no wholesale rebuild. The bare
+`{Signal.get(count)}` child is coerced by `View.child` into a reactive text
+leaf; the `<div>` and `<span>` keep their DOM identity across updates, and only
+the `class` attribute and the number re-run. (`example/verify.mjs` asserts
+exactly this by tagging the elements and checking the tags survive a signal
+change.)
 
 `@xote.component` is the single annotation. The PPX rewrites it to
 `@jsx.component` (so the JSX transform still derives the props record) and
@@ -89,11 +89,44 @@ Applied recursively to the component's returned JSX:
 | `<View.Text/Int/Float/Bool>` child | yes | thunked → reactive text node (leaf) |
 | `<View.Text/…>` child | no | left as-is (static text) |
 | Element / nested JSX | — | recurse into attributes and children |
-| Bare child in node position (an `if`/`switch` selecting different nodes) | yes | branches decomposed fine-grained, then wrapped in `View.tracked` — see below |
+| Bare child, control flow (`if`/`switch` selecting different nodes) | yes | branches decomposed fine-grained, then wrapped in `View.tracked` — see below |
+| Bare child, otherwise (`{Signal.get(x)}`, `{"lit"}`, `{someNode}`) | — | wrapped in `View.child` — see [Bare value children](#bare-value-children) |
 
 The result: reactivity lives at the leaves; `View.tracked` is emitted
 **surgically**, only around a child region whose node *structure* actually
 varies, and never around the stable elements that enclose it.
+
+### Bare value children
+
+You don't need an explicit `<View.Int>`/`<View.Text>` value primitive under the
+annotation — a **bare `{…}` child** in element position works directly:
+
+```rescript
+@xote.component
+let make = () =>
+  <div>
+    {"Count: "}          // static text
+    {Signal.get(count)}  // reactive text leaf
+  </div>
+```
+
+Every bare non-control-flow child is wrapped in the runtime helper
+[`View.child`](../src/View.res), which coerces at runtime:
+
+- an eager signal read is thunked first, so it becomes a **reactive text** leaf;
+- a static scalar (`{"lit"}`, `{42}`) becomes a **static text** node — previously
+  a *compile error* (a scalar in node position), now it just works;
+- a value that is **already a node** (`{View.text(x)}`, a component call, a list)
+  passes through untouched (detected by its runtime tag);
+- `null`/`undefined` render nothing.
+
+This also covers control flow whose **branches are scalars** — the `switch` is
+still tracked for the structural swap, but each scalar branch is coerced by
+`View.child`, so `| Loading => "…"` no longer needs a value primitive either.
+
+The explicit `View.Text/Int/Float/Bool` primitives remain available (they are
+what non-PPX code uses, and give stronger `int`/`float` typing on the child);
+`View.child` is just the zero-ceremony default under `@xote.component`.
 
 ### Control flow tracks only the condition
 
@@ -238,7 +271,7 @@ Or step by step from `example/`:
 sh setup.sh             # link toolchain + Xote from the repo root (idempotent)
 sh ../build.sh          # build the ppx
 npm run build           # compile Demo.res through the ppx
-npm run verify          # jsdom runtime check (41 assertions)
+npm run verify          # jsdom runtime check (52 assertions)
 ```
 
 ## Known limitations (it's a prototype)
@@ -252,11 +285,13 @@ npm run verify          # jsdom runtime check (41 assertions)
   hatch is reliable: wrap it in `() =>` yourself and it becomes reactive (the
   eager check leaves your thunk alone, so it is never double-wrapped). An
   over-eager match only produces a harmless extra `computedAttr`.
-- **Value-component set is hard-coded** to `View.Text/Int/Float/Bool`. An
-  aliased or opened `View` (`module V = View` → `<V.Text>`, `open View` → bare
-  `<Text>`) is treated as an ordinary element, so a bare value child is put in
-  node position — which is a **compile error** (`string` where `View.node` is
-  expected), not a silent bug. Use the qualified `View.Text` form.
+- **Value-component detection is hard-coded** to the qualified
+  `View.Text/Int/Float/Bool`. An aliased or opened `View` (`module V = View` →
+  `<V.Text>`, `open View` → bare `<Text>`) is not recognized as a value
+  component. This is **not silent** — the value child lands in node position and
+  is a **compile error** (`string` where `View.node` is expected), so it fails
+  loudly at build time. Simplest fix: drop the wrapper and use a **bare `{…}`
+  child** (`View.child` coerces it), or use the qualified `View.Text` form.
 - **Coupled to ReScript's ppx ABI.** The vendored OCaml 4.06 parsetree, the
   `Caml1999M022` marshal magic, and the uncurried `Function$` construct name are
   compiler internals. A ReScript release that bumps the ppx AST version fails

@@ -143,5 +143,52 @@ Signal.set(Demo.status, 'Loading');
 check('scrutinee change still swaps to <span>',
   outer.querySelector('span') !== null && outer.querySelector('#ready-strong') === null);
 
+// --- Bare children coerced by View.child (no <View.Int>/<View.Text> needed) --
+// <div>{Signal.get(count)}</div> — a bare *reactive scalar* becomes reactive
+// text; the <div> keeps its identity across the change (fine-grained leaf).
+console.log('bare reactive int child (View.child):');
+Signal.set(Demo.count, 0);
+const bi = mount(() => Demo.BareInt.make({}));
+bi.__marker = 'BI';
+check('bare int renders "0"', bi.textContent === '0');
+Signal.set(Demo.count, 7);
+check('bare int updates to "7"', document.querySelector('#bare-int').textContent === '7');
+check('bare int <div> kept identity (reactive leaf, not rebuilt)', document.querySelector('#bare-int').__marker === 'BI');
+
+// <div><span>…</span>{Signal.get(name)}</div> — bare reactive string alongside a
+// static sibling; only the text leaf reacts, the <span> keeps its identity.
+console.log('bare reactive string child + static sibling:');
+Signal.set(Demo.name, 'Ada');
+const bs = mount(() => Demo.BareString.make({}));
+const bsSpan = bs.querySelector('.lbl');
+bsSpan.__marker = 'SPAN';
+check('bare string shows "n: Ada"', bs.textContent === 'n: Ada');
+Signal.set(Demo.name, 'Bo');
+check('bare string updates to "n: Bo"', document.querySelector('#bare-string').textContent === 'n: Bo');
+check('static <span> sibling kept identity', document.querySelector('#bare-string .lbl').__marker === 'SPAN');
+
+// <div>{"literal"}</div> — a bare *static* scalar (a type error before View.child)
+// becomes a static text node.
+console.log('bare static scalar child:');
+const bst = mount(() => Demo.BareStatic.make({}));
+check('bare static renders "literal"', bst.textContent === 'literal');
+
+// <div>{View.text("noded")}</div> — a bare child that is *already a node* passes
+// through View.child untouched.
+console.log('bare already-a-node child (passthrough):');
+const bn = mount(() => Demo.BareNode.make({}));
+check('bare node renders "noded"', bn.textContent === 'noded');
+
+// Control flow with *scalar* branches: still a tracked structural swap on
+// `status`, but each scalar branch is coerced by View.child (no value primitive).
+console.log('scalar switch branches (tracked + View.child):');
+Signal.set(Demo.status, 'Loading');
+const ss = mount(() => Demo.ScalarSwitch.make({}));
+ss.__marker = 'SS';
+check('scalar switch shows "…loading"', ss.textContent === '…loading');
+Signal.set(Demo.status, { TAG: 'Ready', _0: 'done' });
+check('scalar switch swaps to "done"', document.querySelector('#scalar-switch').textContent === 'done');
+check('scalar switch outer <div> kept identity', document.querySelector('#scalar-switch').__marker === 'SS');
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

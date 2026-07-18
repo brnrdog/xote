@@ -78,11 +78,25 @@ module Greeting = {
 
 ### Reactive Output
 
-JSX expressions are just nodes. For direct value output, use primitives such as [`View.Text`](/docs/api/view#view-text-component), [`View.Int`](/docs/api/view#view-int-component), [`View.Float`](/docs/api/view#view-float-component), and [`View.Bool`](/docs/api/view#view-bool-component). Their children can be raw values, signals, `Prop.t` values, or computed functions. For arrays and lists, use [`View.For`](/docs/api/view#view-for); pass `by` when item identity matters.
+Under [`@xote.component`](#jsx-configuration), a **bare `{…}` child** — a string, a number, or a signal read — is the ergonomic default. The annotation coerces it to a reactive text node (via `View.child`), so no value-primitive wrapper is needed:
 
 ```rescript
 let count = Signal.make(0)
 
+@xote.component
+let make = () =>
+  <div>
+    {"Count: "}
+    {Signal.get(count)}
+  </div>
+```
+
+Only the number re-renders when `count` changes; the `<div>` and the static `"Count: "` text are built once.
+
+The explicit primitives — [`View.Text`](/docs/api/view#view-text-component), [`View.Int`](/docs/api/view#view-int-component), [`View.Float`](/docs/api/view#view-float-component), [`View.Bool`](/docs/api/view#view-bool-component) — remain available and are what you use **without** the PPX (or when you want the stronger `int`/`float` typing on the child). Their children can be raw values, signals, `Prop.t` values, or computed functions. For arrays and lists, use [`View.For`](/docs/api/view#view-for); pass `by` when item identity matters.
+
+```rescript
+// equivalent, without the annotation:
 <div>
   <View.Text> "Count: " </View.Text>
   <View.Int> {count} </View.Int>

@@ -4,6 +4,7 @@ let name = Signal.make("Ada")
 let active = Signal.make(false)
 let status = Signal.make(Loading)
 let theme = Signal.make("light")
+let count = Signal.make(0)
 module S = Signal
 
 /* Every case is an @xote.component: one annotation derives props (it emits
@@ -138,5 +139,57 @@ module HelperHidden = {
   @xote.component
   let make = () => {
     <div class={statusClass()} id="helper-hidden"> <View.Text> {"hh"} </View.Text> </div>
+  }
+}
+
+/* Case 11: a *bare* reactive scalar child — no <View.Int>/<View.Text> wrapper.
+   The ppx wraps it in View.child, which coerces the eager signal read into a
+   reactive text node. This is the value-primitive-free ergonomic default. */
+module BareInt = {
+  @xote.component
+  let make = () => {
+    <div id="bare-int"> {Signal.get(count)} </div>
+  }
+}
+
+/* Case 12: a bare reactive *string* child alongside a static sibling — only the
+   text leaf is reactive, the <span> and surrounding element keep their identity. */
+module BareString = {
+  @xote.component
+  let make = () => {
+    <div id="bare-string"> <span class="lbl"> {View.text("n: ")} </span> {Signal.get(name)} </div>
+  }
+}
+
+/* Case 13: a bare *static* scalar child — previously a type error (string in node
+   position); View.child now makes it a static text node. */
+module BareStatic = {
+  @xote.component
+  let make = () => {
+    <div id="bare-static"> {"literal"} </div>
+  }
+}
+
+/* Case 14: a bare child that is *already a node* — View.child detects it at
+   runtime and passes it through untouched (no double wrapping). */
+module BareNode = {
+  @xote.component
+  let make = () => {
+    <div id="bare-node"> {View.text("noded")} </div>
+  }
+}
+
+/* Case 15: control flow whose branches are bare *scalars* (not nodes). The switch
+   is still tracked (structural swap on `status`), but each branch is coerced by
+   View.child, so scalar branches no longer need a value primitive. */
+module ScalarSwitch = {
+  @xote.component
+  let make = () => {
+    <div id="scalar-switch">
+      {switch Signal.get(status) {
+      | Loading => "…loading"
+      | Ready(msg) => msg
+      }}
+    </div>
   }
 }
