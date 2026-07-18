@@ -272,7 +272,7 @@ Or step by step from `example/`:
 sh setup.sh             # link toolchain + Xote from the repo root (idempotent)
 sh ../build.sh          # build the ppx
 npm run build           # compile Demo.res through the ppx
-npm run verify          # jsdom runtime check (60 assertions)
+npm run verify          # jsdom runtime check (71 assertions)
 ```
 
 ## Known limitations (it's a prototype)
