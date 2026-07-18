@@ -1117,6 +1117,14 @@ let jsx_parts (e : expression) =
   | Pexp_apply (f, args) when has_jsx e -> Some (f, args)
   | _ -> None
 
+(* A JSX fragment `<>…</>` is a `::`/`[]` list carrying the JSX attribute (not a
+   Pexp_apply, so jsx_parts misses it). Its children are node position. *)
+let is_jsx_fragment (e : expression) : bool =
+  has_jsx e
+  && (match e.pexp_desc with
+      | Pexp_construct ({ txt = Longident.Lident ("::" | "[]"); _ }, _) -> true
+      | _ -> false)
+
 (* Lowercase leading char => intrinsic HTML/SVG element (children are nodes). *)
 let is_element (f : expression) : bool =
   match f.pexp_desc with
@@ -1151,6 +1159,15 @@ let rec fine_node (env : env) (e : expression) : expression =
   | Some (f, args) ->
     (* element or user component: attrs are value position, children nodes *)
     { e with pexp_desc = Pexp_apply (f, List.map (element_arg env) args) }
+  | None when is_jsx_fragment e ->
+    (* A fragment `<>…</>` is a JSX-tagged `::`/`[]` list, not a Pexp_apply, so
+       jsx_parts misses it. Recurse fine_node into each child exactly like an
+       element's children (map_children preserves the outer @JSX attribute), so
+       nested reactive regions stay *independent*. Without this the whole fragment
+       would be wrapped in one coarse thunk and any nested `if`/`switch` inside it
+       would collapse into that single tracked scope — rebuilding every sibling on
+       one signal change. *)
+    map_children (fine_node env) e
   | None ->
     (match e.pexp_desc with
      | Pexp_ifthenelse _ | Pexp_match _ ->
