@@ -988,6 +988,9 @@ let thunk body =
 let view_tracked = Longident.Ldot (Longident.Lident "View", "tracked")
 let wrap_tracked e = apply (ident view_tracked) [ thunk e ]
 
+let view_child = Longident.Ldot (Longident.Lident "View", "child")
+let wrap_child e = apply (ident view_child) [ e ]
+
 (* ---- signal-read detection ----------------------------------------------
    A read is any occurrence of `Signal.get` (applied or not). Beyond the
    literal `Signal.get` / `X.Signal.get`, an alias environment threaded through
@@ -1149,20 +1152,29 @@ let rec fine_node (env : env) (e : expression) : expression =
     (* element or user component: attrs are value position, children nodes *)
     { e with pexp_desc = Pexp_apply (f, List.map (element_arg env) args) }
   | None ->
-    (* not a JSX element: a bare child expression in node position. A signal
-       read here means the *node structure* varies, which needs View.tracked.
-       But first recurse fine-grained into each branch body: that turns the
-       branches' leaves into thunks, so when the tracked scope runs a branch to
-       build its nodes the thunks are not invoked — the scope ends up tracking
-       only the condition/scrutinee (the eager reads), while a leaf inside a
-       branch keeps its own reactive scope. Net effect: changing a signal that
-       only a branch leaf reads updates just that leaf and does NOT re-run the
-       switch or rebuild the branch.
+    (match e.pexp_desc with
+     | Pexp_ifthenelse _ | Pexp_match _ ->
+       (* Control flow in node position: the *node structure* varies, which needs
+          View.tracked. First recurse fine-grained into each branch body: that
+          turns the branches' leaves into thunks, so when the tracked scope runs
+          a branch to build its nodes the thunks are not invoked — the scope ends
+          up tracking only the condition/scrutinee (the eager reads), while a leaf
+          inside a branch keeps its own reactive scope. Net effect: changing a
+          signal that only a branch leaf reads updates just that leaf and does NOT
+          re-run the switch or rebuild the branch.
 
-       The *eager* read check matters here too: a child that is already reactive
-       on its own (e.g. `View.signalText(() => Signal.get(x))`) reads only inside
-       a lambda, so it is left as-is rather than redundantly wrapped. *)
-    if reads_signal_eager env e then wrap_tracked (decompose_branches env e) else e
+          The *eager* read check matters here too: a control-flow child that is
+          already reactive on its own reads only inside a lambda, so it is left
+          as-is rather than redundantly wrapped. *)
+       if reads_signal_eager env e then wrap_tracked (decompose_branches env e) else e
+     | _ ->
+       (* A bare value child — `<div>{Signal.get(count)}</div>` — with no explicit
+          <View.Int>/<View.Text> wrapper. Coerce it to a node with View.child:
+          an eager signal read is thunked so it re-runs as reactive text; a static
+          scalar becomes static text; a value that is already a node passes through
+          untouched (View.child detects nodes at runtime). This removes the value-
+          primitive ceremony under the annotation. *)
+       wrap_child (if should_thunk env e then thunk e else e))
 
 (* Recurse fine_node into the *node-position* bodies of control flow (the
    condition/scrutinee and any guards stay untouched — they are value position
