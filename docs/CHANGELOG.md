@@ -1,3 +1,10 @@
+# [7.1.0-beta.2](https://github.com/brnrdog/xote/compare/v7.1.0-beta.1...v7.1.0-beta.2) (2026-07-18)
+
+
+### Bug Fixes
+
+* **ppx:** decompose fragment bodies so nested reactive regions stay independent ([8dc4455](https://github.com/brnrdog/xote/commit/8dc44553c355cb188b947f14b3dec8c5f4b972f0))
+
 # [7.1.0-beta.1](https://github.com/brnrdog/xote/compare/v7.0.0...v7.1.0-beta.1) (2026-07-18)
 
 
