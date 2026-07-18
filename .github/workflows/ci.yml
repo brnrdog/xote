@@ -36,6 +36,15 @@ jobs:
       - name: Run tests
         run: node tests/Tests.res.mjs
 
+      # The @tracked ppx (ppx/) is an opt-in native binary, not part of the
+      # published package. Build and exercise it here so it can't rot; needs
+      # only ocamlopt (no opam).
+      - name: Set up OCaml (for @tracked ppx)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ocaml-nox
+
+      - name: Build & verify @tracked ppx
+        run: npm run ppx:test
+
       - name: Vite Build
         run: npm run build
 

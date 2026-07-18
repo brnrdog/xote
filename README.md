@@ -1,7 +1,18 @@
-# [xote](https://xote.dev/)
-![NPM Version](https://img.shields.io/npm/v/xote)
-![npm bundle size](https://badgen.net/bundlephobia/min/xote)
-![npm bundle size](https://badgen.net/bundlephobia/minzip/xote)
+<p>
+  <a href="https://xote.dev/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/banner.svg">
+      <source media="(prefers-color-scheme: light)" srcset="docs/banner-light.svg">
+      <img src="docs/banner.svg" alt="xote - Fine-grained reactivity for ReScript" width="400" />
+    </picture>
+  </a>
+</p>
+
+<p>
+  <a href="https://www.npmjs.com/package/xote"><img src="https://img.shields.io/npm/v/xote" alt="NPM Version" /></a>
+  <a href="https://bundlephobia.com/package/xote"><img src="https://badgen.net/bundlephobia/min/xote" alt="Bundle size" /></a>
+  <a href="https://bundlephobia.com/package/xote"><img src="https://badgen.net/bundlephobia/minzip/xote" alt="Bundle size (gzip)" /></a>
+</p>
 
 xote is a lightweight [ReScript](https://rescript-lang.org/) library that combines fine-grained reactivity and a declarative component system for building user interfaces for the web.
 
@@ -33,43 +44,6 @@ This README uses the application-facing names for public code:
 - `View` is the module for building and mounting DOM nodes.
 - `Prop` is the static-or-reactive prop module.
 - `View.Text`, `View.Int`, `View.For`, `View.Show`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are the building blocks used throughout these examples.
-
-### JavaScript
-
-Xote is built for ReScript first, but the compiled package can also be used from JavaScript. Import the focused client entry and build nodes with `View` or `Html` helpers:
-
-```js
-import { Signal, Computed, Effect, View } from "xote/client";
-
-const count = Signal.make(0);
-const doubled = Computed.make(() => Signal.get(count) * 2);
-
-Effect.run(() => {
-  console.log("Count:", Signal.get(count));
-});
-
-const app = View.element("div", [], [], [
-  View.element("h1", [], [], [View.text("Counter")]),
-  View.element("p", [], [], [
-    View.text("Count: "),
-    View.signalText(() => String(Signal.get(count))),
-  ]),
-  View.element("p", [], [], [
-    View.text("Doubled: "),
-    View.signalText(() => String(Signal.get(doubled))),
-  ]),
-  View.element(
-    "button",
-    [],
-    [["click", () => Signal.update(count, n => n + 1)]],
-    [View.text("Increment")],
-  ),
-]);
-
-View.mountById(app, "app");
-```
-
-Use `xote/client` for browser UI, `xote/router` for routing, `xote/ssr` for server rendering, `xote/hydration` for hydrating server-rendered pages, and `xote/mdx` for MDX integration.
 
 ### Quick Example
 
@@ -230,6 +204,25 @@ let todos = Signal.make([
 </p>
 ```
 
+### Auto-tracked Blocks
+
+When a block of UI depends on several signals at once, `View.tracked` lets you read them inline — every signal read while the body runs subscribes the block automatically, and the block re-renders when any of them changes:
+
+```rescript
+let loggedIn = Signal.make(false)
+let name = Signal.make("Ada")
+
+{View.tracked(() =>
+  if Signal.get(loggedIn) {
+    <p> <View.Text> {`Hello, ${Signal.get(name)}`} </View.Text> </p>
+  } else {
+    <p> <View.Text> "Please log in" </View.Text> </p>
+  }
+)}
+```
+
+Dependencies are re-discovered on every run, so conditional reads work: above, `name` is only tracked while `loggedIn` is true. The tradeoff is granularity — a tracked block replaces its children wholesale (no diffing) when a dependency changes, so keep tracked blocks small and prefer `View.For` with `by` for lists.
+
 ### Static or Reactive Props
 
 Use `Prop` when a component prop can accept either a static value or a signal:
@@ -285,6 +278,43 @@ For server/client state transfer, prefer `SSRState.signal` when creating a synce
 ```rescript
 let count = SSRState.signal("count", 0, SSRState.Codec.int)
 ```
+
+### JavaScript Interop
+
+Xote is built for ReScript first, but the compiled package can also be used from JavaScript. Import the focused client entry and build nodes with `View` or `Html` helpers:
+
+```js
+import { Signal, Computed, Effect, View } from "xote/client";
+
+const count = Signal.make(0);
+const doubled = Computed.make(() => Signal.get(count) * 2);
+
+Effect.run(() => {
+  console.log("Count:", Signal.get(count));
+});
+
+const app = View.element("div", [], [], [
+  View.element("h1", [], [], [View.text("Counter")]),
+  View.element("p", [], [], [
+    View.text("Count: "),
+    View.signalText(() => String(Signal.get(count))),
+  ]),
+  View.element("p", [], [], [
+    View.text("Doubled: "),
+    View.signalText(() => String(Signal.get(doubled))),
+  ]),
+  View.element(
+    "button",
+    [],
+    [["click", () => Signal.update(count, n => n + 1)]],
+    [View.text("Increment")],
+  ),
+]);
+
+View.mountById(app, "app");
+```
+
+Use `xote/client` for browser UI, `xote/router` for routing, `xote/ssr` for server rendering, `xote/hydration` for hydrating server-rendered pages, and `xote/mdx` for MDX integration.
 
 Check the [website](https://brnrdog.github.io/xote/) for more comprehensive documentations about Xote and Signals.
 

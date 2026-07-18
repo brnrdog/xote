@@ -1,4 +1,4 @@
-# [7.0.0-beta.1](https://github.com/brnrdog/xote/compare/v6.4.0...v7.0.0-beta.1) (2026-07-04)
+# [7.0.0](https://github.com/brnrdog/xote/compare/v6.4.0...v7.0.0) (2026-07-13)
 
 
 * refactor!: remove deprecated modules and redundant API aliases ([6745b54](https://github.com/brnrdog/xote/commit/6745b54967f553014b753c35b03e8f3e3e7da82c))

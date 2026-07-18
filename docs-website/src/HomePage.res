@@ -492,7 +492,7 @@ module Hero = {
     <section class="hero">
       <HeroBackground />
       <h1 class="hero-display">
-        {View.text("A ReScript Library for Interactive User Interfaces")}
+        {View.text("A ReScript Library for Building User Interfaces")}
       </h1>
       <p class="hero-lead">
         {View.text(
@@ -536,7 +536,7 @@ let symbolFor = u =>
   | Kelvin => "K"
   }
 
-@jsx.component
+@xote.component
 let make = (~value: float, ~unit: tempUnit) =>
   <div class="temp-display">
     <span class="temp-value">
@@ -556,7 +556,7 @@ let kelvin = Computed.make(() =>
   Signal.get(celsius) +. 273.15
 )
 
-@jsx.component
+@xote.component
 let make = () =>
   <div class="temp-row">
     <TemperatureDisplay
@@ -617,6 +617,12 @@ Effect.run(() => {
       </pre>
     </div>
 
+  let stage = (~caption, ~children) =>
+    <figure class="tutorial-figure">
+      <div class="tutorial-figure-stage"> {children} </div>
+      <figcaption class="tutorial-figure-caption"> {View.text(caption)} </figcaption>
+    </figure>
+
   let make = (_props: props) => {
     <section class="tutorial-section">
       <div class="tutorial-step">
@@ -627,6 +633,10 @@ Effect.run(() => {
         )}
         <div class="tutorial-step-body">
           {codeBlock(~filename="TemperatureDisplay.res", ~code=step1Code)}
+          {stage(
+            ~caption="Preview: TemperatureDisplay with a static value of 22 °C",
+            ~children=<TutorialDemos.Step1 />,
+          )}
         </div>
       </div>
       <div class="tutorial-step">
@@ -637,6 +647,10 @@ Effect.run(() => {
         )}
         <div class="tutorial-step-body">
           {codeBlock(~filename="TemperatureDashboard.res", ~code=step2Code)}
+          {stage(
+            ~caption="Preview: one signal drives three synchronized readouts",
+            ~children=<TutorialDemos.Step2 />,
+          )}
         </div>
       </div>
       <div class="tutorial-step">
@@ -647,6 +661,10 @@ Effect.run(() => {
         )}
         <div class="tutorial-step-body">
           {codeBlock(~filename="CapitalWeather.res", ~code=step3Code)}
+          {stage(
+            ~caption="Preview: real weather from a random world capital",
+            ~children=<TutorialDemos.Step3 />,
+          )}
         </div>
       </div>
     </section>

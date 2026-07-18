@@ -60,7 +60,6 @@ if SSRContext.isClient {
     let t = Signal.get(theme)
     setHtmlAttribute("data-theme", t)
     setItem("xote-theme", t)
-    Basefn.Theme.applyTheme(t == "dark" ? Basefn.Theme.Dark : Basefn.Theme.Light)
     None
   })
 }
@@ -411,11 +410,73 @@ module SearchModal = {
   }
 }
 
+// ---- Logo Mark ----
+module LogoMark = {
+  type props = {size: option<int>}
+
+  let make = (props: props) => {
+    let s = props.size->Option.getOr(24)
+    let sizeStr = Int.toString(s)
+    View.element(
+      "svg",
+      ~attrs=[
+        View.attr("width", sizeStr),
+        View.attr("height", sizeStr),
+        View.attr("viewBox", "0 0 100 100"),
+        View.attr("fill", "none"),
+      ],
+      ~children=[
+        // Outer silver ring (faint)
+        View.element("circle", ~attrs=[
+          View.attr("cx", "50"),
+          View.attr("cy", "50"),
+          View.attr("r", "40"),
+          View.attr("stroke", "#c3c1b8"),
+          View.attr("stroke-width", "2.2"),
+          View.attr("opacity", "0.2"),
+        ], ()),
+        // Middle silver ring
+        View.element("circle", ~attrs=[
+          View.attr("cx", "50"),
+          View.attr("cy", "50"),
+          View.attr("r", "27"),
+          View.attr("stroke", "#c3c1b8"),
+          View.attr("stroke-width", "2.6"),
+          View.attr("opacity", "0.48"),
+        ], ()),
+        // Inner gold ring
+        View.element("circle", ~attrs=[
+          View.attr("cx", "50"),
+          View.attr("cy", "50"),
+          View.attr("r", "15"),
+          View.attr("stroke", "#c9a169"),
+          View.attr("stroke-width", "3.4"),
+        ], ()),
+        // Center gold dot
+        View.element("circle", ~attrs=[
+          View.attr("cx", "50"),
+          View.attr("cy", "50"),
+          View.attr("r", "6.5"),
+          View.attr("fill", "#c9a169"),
+        ], ()),
+      ],
+      (),
+    )
+  }
+}
+
 // ---- Header ----
 module Header = {
   type props = {}
 
   let make = (_props: props) => {
+    let headerClass = () => {
+      let path = Signal.get(Router.location()).pathname
+      path == "/docs" || path->String.startsWith("/docs/")
+        ? "header-inner header-inner-docs"
+        : "header-inner"
+    }
+
     // Scroll listener (client-only)
     if SSRContext.isClient {
       Effect.run(() => {
@@ -429,12 +490,15 @@ module Header = {
     }
 
     <header class="site-header">
-      <div class="header-inner">
+      <div class={headerClass}>
         <div class="header-left">
           {Router.link(
             ~to="/",
             ~attrs=[View.attr("class", "header-logo-link")],
-            ~children=[<span class="logo-text"> {View.text("xote")} </span>],
+            ~children=[
+              <LogoMark size={Some(26)} />,
+              <span class="logo-text"> {View.text("xote")} </span>,
+            ],
             (),
           )}
           {Router.link(
@@ -522,14 +586,13 @@ module Footer = {
       <div class="footer-inner">
         <div class="footer-grid">
           <div class="footer-brand">
-            <h2 class="footer-brand-name">
-              <span class="logo-text"> {View.text("xote")} </span>
-            </h2>
-            <p>
-              {View.text(
-                "A ReScript Library for Interactive User Interfaces",
-              )}
-            </p>
+            <div class="footer-brand-lockup">
+              <LogoMark size={Some(48)} />
+              <div class="footer-brand-text">
+                <span class="logo-text footer-logo-text"> {View.text("xote")} </span>
+                <span class="footer-tagline"> {View.text("Sound Reactivity UI Library")} </span>
+              </div>
+            </div>
           </div>
           <div class="footer-col">
             <h3> {View.text("Docs")} </h3>
@@ -625,9 +688,16 @@ if SSRContext.isClient {
 type props = {children: View.node}
 
 let make = (props: props) => {
+  let mainClass = () => {
+    let path = Signal.get(Router.location()).pathname
+    path == "/docs" || path->String.startsWith("/docs/")
+      ? "site-main site-main-docs"
+      : "site-main"
+  }
+
   <div>
     <Header />
-    <main id="main-content"> {props.children} </main>
+    <main id="main-content" class={mainClass}> {props.children} </main>
     <Footer />
     <SearchModal />
   </div>

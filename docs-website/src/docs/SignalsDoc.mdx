@@ -152,11 +152,12 @@ let reset = (_evt: Dom.event) => {
   Signal.set(count, 0)
 }
 
-let app = () => {
+@xote.component
+let make = () => {
   <div>
     <h1>
       <View.Text> "Count: " </View.Text>
-      <View.Int> {count} </View.Int>
+      <View.Int> {Signal.get(count)} </View.Int>
     </h1>
     <button onClick={increment}>
       <View.Text> "+" </View.Text>
@@ -170,8 +171,10 @@ let app = () => {
   </div>
 }
 
-View.mountById(app(), "app")`}
-    />
+View.mountById(<Counter />, "app")`}
+    >
+      <CounterDemo />
+    </DocsExamplePanel>
 
 ## Working Style
 

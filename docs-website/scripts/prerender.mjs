@@ -22,7 +22,7 @@ const defaultDescription =
 const routes = [
   {
     path: '/',
-    title: 'xote - A ReScript Library for Interactive User Interfaces',
+    title: 'xote - A ReScript Library for Building User Interfaces',
     description:
       'Build small ReScript interfaces with fine-grained signals, JSX views, routing, server-side rendering, and hydration.',
     type: 'website',
@@ -181,8 +181,7 @@ const routes = [
   },
 ]
 
-// Suppress expected SSR errors from client-only code (e.g., basefn Icon
-// component deferring document.getElementById via setTimeout)
+// Suppress expected SSR errors from client-only code that defers DOM access.
 process.on('uncaughtException', (err) => {
   if (err.message?.includes('document is not defined') ||
       err.message?.includes('window is not defined')) {
@@ -250,7 +249,7 @@ function escapeHtml(value) {
 
 function injectSeoHead(html, route) {
   const canonical = routeUrl(route.path)
-  const title = route.title || 'xote - A ReScript Library for Interactive User Interfaces'
+  const title = route.title || 'xote - A ReScript Library for Building User Interfaces'
   const description = route.description || defaultDescription
   const structuredData = makeStructuredData(route, canonical, title, description)
   const tags = `

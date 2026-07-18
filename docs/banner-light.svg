@@ -1,0 +1,15 @@
+<svg width="400" height="100" viewBox="0 0 400 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Logo mark -->
+  <g transform="translate(10, 10)">
+    <circle cx="40" cy="40" r="32" stroke="#0e0e0e" stroke-width="1.8" opacity="0.16"/>
+    <circle cx="40" cy="40" r="21.6" stroke="#0e0e0e" stroke-width="2.1" opacity="0.36"/>
+    <circle cx="40" cy="40" r="12" stroke="#c9a169" stroke-width="2.7"/>
+    <circle cx="40" cy="40" r="5.2" fill="#c9a169"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="108" y="56" font-family="Georgia, 'Times New Roman', serif" font-size="44" font-weight="600" fill="#0e0e0e" letter-spacing="-0.02em">xote</text>
+
+  <!-- Tagline -->
+  <text x="108" y="78" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, monospace" font-size="11" fill="#6f6d65" letter-spacing="0.1em">SOUND REACTIVITY UI LIBRARY</text>
+</svg>
