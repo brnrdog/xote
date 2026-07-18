@@ -1,3 +1,23 @@
+# [7.1.0-beta.1](https://github.com/brnrdog/xote/compare/v7.0.0...v7.1.0-beta.1) (2026-07-18)
+
+
+### Bug Fixes
+
+* **ppx:** don't double-thunk values already written as functions ([eb0df5b](https://github.com/brnrdog/xote/commit/eb0df5b420594473b59125f5d1a147752ed025c2))
+* **ppx:** only thunk eager signal reads, not reads deferred in lambdas ([92143c1](https://github.com/brnrdog/xote/commit/92143c186e44cd5a35d42a148012b80fa42961f1))
+* **ppx:** track local reactive helpers so hidden reads stay fine-grained ([000469b](https://github.com/brnrdog/xote/commit/000469bc1856eba7eb121b1506458b42a046ac33))
+
+
+### Features
+
+* **ppx:** add [@xote](https://github.com/xote).component component-level annotation ([27901b8](https://github.com/brnrdog/xote/commit/27901b81feaabed698183d939e1a1b3c9f419924))
+* **ppx:** alias-aware signal detection in tracked-block ppx ([cc4bd62](https://github.com/brnrdog/xote/commit/cc4bd62557afaade6aef6568655970d89168d928))
+* **ppx:** make the tracked ppx production-ready and opt-in ([f052ee9](https://github.com/brnrdog/xote/commit/f052ee975233910d92c5033a4dc8a1606f20cfc2))
+* **ppx:** prototype fine-grained tracked-block compilation ([d1e9ee0](https://github.com/brnrdog/xote/commit/d1e9ee04245a5d2cde7e6aec92b00bd7e39301db))
+* **ppx:** track only the condition in tracked control flow ([de16550](https://github.com/brnrdog/xote/commit/de16550fd93c43a420958dffafcfc09f0c67f542))
+* **view:** add tracked() auto-tracked reactive block ([239c93f](https://github.com/brnrdog/xote/commit/239c93fa2ae99f2a388c988ccb9d07aea4e53d1e)), closes [brnrdog/rescript-signals#34](https://github.com/brnrdog/rescript-signals/issues/34)
+* **view:** coerce bare JSX children so value primitives are optional ([832ff3d](https://github.com/brnrdog/xote/commit/832ff3de85d58e1f0fd62b44b5de20e624ef17c5))
+
 # [7.0.0](https://github.com/brnrdog/xote/compare/v6.4.0...v7.0.0) (2026-07-13)
 
 
