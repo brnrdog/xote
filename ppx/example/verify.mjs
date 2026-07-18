@@ -219,5 +219,44 @@ Signal.set(Demo.mobileOpen, false);
 check('backdrop removed on toggle off', wsHost.querySelector('#ws-backdrop') === null);
 check('canvas kept identity across second toggle (regions independent)', wsHost.querySelector('#ws-canvas').__marker === 'CANVAS');
 
+// --- Bare children directly in a fragment return ---------------------------
+// A dropdown-style fragment whose labels sit at the top level next to a static
+// anchor. Each bare read must be coerced in place (no display:contents root).
+console.log('bare children directly in a fragment return:');
+Signal.set(Demo.name, 'Ada');
+Signal.set(Demo.count, 3);
+const dfHost = document.createElement('div');
+document.body.appendChild(dfHost);
+View.mount(Demo.DropdownFragment.make({}), dfHost);
+const dfAnchor = dfHost.querySelector('#df-anchor');
+dfAnchor.__marker = 'ANCHOR';
+check('fragment bare label renders (name)', dfHost.textContent.includes('Ada'));
+check('fragment bare thunk renders (#count)', dfHost.textContent.includes('#3'));
+Signal.set(Demo.name, 'Bo');
+Signal.set(Demo.count, 9);
+check('fragment bare label updates', dfHost.textContent.includes('Bo'));
+check('fragment bare thunk updates', dfHost.textContent.includes('#9'));
+check('fragment static anchor kept identity', dfHost.querySelector('#df-anchor').__marker === 'ANCHOR');
+
+// --- Fragment as a control-flow branch body --------------------------------
+// The dropdown's labels live inside CanvasMenu's `{if …}` as a fragment, not in
+// their own component. The branch is decomposed so its bare labels are coerced;
+// the anchor outside the `if` keeps its identity across toggles.
+console.log('fragment as a control-flow branch body:');
+Signal.set(Demo.active, false);
+Signal.set(Demo.name, 'Ada');
+Signal.set(Demo.count, 5);
+const mb = mount(() => Demo.MenuBranch.make({}));
+const mbAnchor = mb.querySelector('#mb-anchor');
+mbAnchor.__marker = 'MB';
+check('branch closed: no labels yet', !mb.textContent.includes('Ada'));
+Signal.set(Demo.active, true);
+check('branch open: bare label coerced (name)', document.querySelector('#mb-host').textContent.includes('Ada'));
+check('branch open: bare int coerced (count)', document.querySelector('#mb-host').textContent.includes('5'));
+check('anchor outside the if kept identity', document.querySelector('#mb-anchor').__marker === 'MB');
+Signal.set(Demo.active, false);
+check('branch closed again: labels gone', !document.querySelector('#mb-host').textContent.includes('Ada'));
+check('anchor still same element after toggle', document.querySelector('#mb-anchor').__marker === 'MB');
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
