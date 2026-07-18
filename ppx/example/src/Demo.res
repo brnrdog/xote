@@ -129,3 +129,14 @@ module PropWrapped = {
     </div>
   }
 }
+
+/* Case 10: a read hidden behind a local helper. The helper's body eagerly reads
+   a signal, so it is tracked as reactive and calling it inline stays fine-grained
+   (rather than silently compiling to a static, once-evaluated attribute). */
+let statusClass = () => Signal.get(active) ? "on" : "off"
+module HelperHidden = {
+  @xote.component
+  let make = () => {
+    <div class={statusClass()} id="helper-hidden"> <View.Text> {"hh"} </View.Text> </div>
+  }
+}

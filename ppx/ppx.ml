@@ -992,13 +992,15 @@ let wrap_tracked e = apply (ident view_tracked) [ thunk e ]
    A read is any occurrence of `Signal.get` (applied or not). Beyond the
    literal `Signal.get` / `X.Signal.get`, an alias environment threaded through
    the traversal also recognises indirect reads:
-     - a value alias:  `let g = Signal.get` then `g(sig)`
-     - a module alias: `module S = Signal` then `S.get(sig)`
-     - an open:        `open Signal` then a bare `get(sig)`
-   The environment is scoped by the traversal (aliases visible only after their
-   binding); shadowing an alias with a non-alias removes it. *)
-type env = { vals : string list; mods : string list; open_signal : bool }
-let empty_env = { vals = []; mods = []; open_signal = false }
+     - a value alias:    `let g = Signal.get` then `g(sig)`
+     - a module alias:   `module S = Signal` then `S.get(sig)`
+     - an open:          `open Signal` then a bare `get(sig)`
+     - a reactive helper: `let cls = () => Signal.get(x) ? …` then `cls()` —
+       a local function whose body eagerly reads a signal; calling it is a read.
+   The environment is scoped by the traversal (bindings visible only after they
+   appear); shadowing a name with a non-reactive binding removes it. *)
+type env = { vals : string list; mods : string list; funcs : string list; open_signal : bool }
+let empty_env = { vals = []; mods = []; funcs = []; open_signal = false }
 
 let is_signal_get (env : env) (e : expression) : bool =
   match e.pexp_desc with
@@ -1031,30 +1033,58 @@ let sub_exprs (e : expression) : expression list =
   | Pexp_assert x | Pexp_lazy x -> [ x ]
   | _ -> []
 
-let rec reads_signal (env : env) (e : expression) : bool =
-  is_signal_get env e || List.exists (reads_signal env) (sub_exprs e)
+(* A reactive-helper *call*: `f(...)` where `f` is a local function whose body
+   eagerly reads a signal (tracked in env.funcs). A *bare* `f` (passed, not
+   called) is left alone — the runtime already treats a function attribute/child
+   as a computed. *)
+let is_reactive_call (env : env) (e : expression) : bool =
+  match e.pexp_desc with
+  | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Longident.Lident f; _ }; _ }, _) ->
+    List.mem f env.funcs
+  | _ -> false
 
-(* An *eager* read: a `Signal.get` that runs when this expression is evaluated,
-   not one deferred inside a nested lambda. Reads inside `() => …`,
-   `Computed.make(() => …)`, `Prop.reactive(Computed.make(() => …))`, etc. are
-   already reactive on their own, so a value that only reads inside a lambda
-   must NOT be re-wrapped in a thunk. Stops descending at function boundaries. *)
+(* An *eager* read: a `Signal.get` (or reactive-helper call) that runs when this
+   expression is evaluated, not one deferred inside a nested lambda. Reads inside
+   `() => …`, `Computed.make(() => …)`, `Prop.reactive(Computed.make(() => …))`,
+   etc. are already reactive on their own, so a value that only reads inside a
+   lambda must NOT be re-wrapped in a thunk. Stops descending at fn boundaries. *)
 let rec reads_signal_eager (env : env) (e : expression) : bool =
   match e.pexp_desc with
   | Pexp_fun _ -> false
   | Pexp_construct ({ txt = Longident.Lident "Function$"; _ }, Some _) -> false
-  | _ -> is_signal_get env e || List.exists (reads_signal_eager env) (sub_exprs e)
+  | _ ->
+    is_reactive_call env e || is_signal_get env e
+    || List.exists (reads_signal_eager env) (sub_exprs e)
 
-(* ---- alias collectors --------------------------------------------------- *)
-(* `let g = Signal.get` (or an already-known alias) binds `g` as a read;
-   `let g = <not a read>` shadows away any previous alias named `g`. *)
+(* Does `e` denote a function whose body eagerly reads a signal? Strip the
+   function's own parameters (its uncurried `Function$` wrapper and `fun`s),
+   then check the immediate body — reads_signal_eager stops at any further nested
+   lambda, so a helper that merely *returns* a thunk is correctly not counted. *)
+let func_reads (env : env) (e : expression) : bool =
+  let rec strip_params b =
+    match b.pexp_desc with Pexp_fun (_, _, _, body) -> strip_params body | _ -> b
+  in
+  match e.pexp_desc with
+  | Pexp_construct ({ txt = Longident.Lident "Function$"; _ }, Some fn) ->
+    reads_signal_eager env (strip_params fn)
+  | Pexp_fun _ -> reads_signal_eager env (strip_params e)
+  | _ -> false
+
+(* ---- binding collectors ------------------------------------------------- *)
+(* `let g = Signal.get` binds `g` as a value alias; `let cls = () => …Signal.get…`
+   binds `cls` as a reactive helper; anything else shadows away a prior binding
+   of that name. *)
 let collect_val_aliases (env : env) (vbs : value_binding list) : env =
   List.fold_left
     (fun env vb ->
       match vb.pvb_pat.ppat_desc with
       | Ppat_var { txt = name; _ } ->
-        if is_signal_get env vb.pvb_expr then { env with vals = name :: env.vals }
-        else { env with vals = List.filter (fun n -> n <> name) env.vals }
+        let drop = List.filter (fun n -> n <> name) in
+        if is_signal_get env vb.pvb_expr then
+          { env with vals = name :: env.vals; funcs = drop env.funcs }
+        else if func_reads env vb.pvb_expr then
+          { env with funcs = name :: env.funcs; vals = drop env.vals }
+        else { env with vals = drop env.vals; funcs = drop env.funcs }
       | _ -> env)
     env vbs
 

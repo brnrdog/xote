@@ -134,11 +134,18 @@ shadowing it with a non-alias removes it) recognises all of these:
 | Value alias | `let g = Signal.get` … `g(sig)` | binding tracked in scope |
 | Module alias | `module S = Signal` … `S.get(sig)` | binding tracked in scope |
 | Open | `open Signal` … `get(sig)` | bare `get` under an open |
+| Local reactive helper | `let cls = () => Signal.get(x) ? …` … `cls()` | function binding whose body eagerly reads a signal; its *call* counts |
 
 `Signal.peek` is intentionally **not** a read — it is an untracked read, so a
 value that only peeks stays static (verified by the shadowing case, where an
 alias rebound to a `peek`-based function is dropped and its attribute is left
 as a plain string).
+
+Only *eager* reads trigger a thunk. A read deferred inside a nested lambda — a
+`() => …` you wrote yourself, a `Computed`, a `Prop.reactive(Computed.make(…))`,
+or a helper that merely *returns* a thunk — is already reactive and left as-is.
+Because of that, when detection can't see a read (below), the safe fix is always
+to wrap the value in `() =>` yourself: it will not be double-wrapped.
 
 ## How it works
 
@@ -231,21 +238,31 @@ Or step by step from `example/`:
 sh setup.sh             # link toolchain + Xote from the repo root (idempotent)
 sh ../build.sh          # build the ppx
 npm run build           # compile Demo.res through the ppx
-npm run verify          # jsdom runtime check (27 assertions)
+npm run verify          # jsdom runtime check (41 assertions)
 ```
 
 ## Known limitations (it's a prototype)
 
-- **Signal detection is syntactic** (though alias-aware — see the table above).
-  It follows `let`/`module`/`open` aliases of `Signal`/`Signal.get`, but not
-  arbitrarily deep indirection: a signal read behind a helper function
-  (`let read = () => Signal.get(x)` called elsewhere) or reached through a
-  data structure is not seen. Scoping is approximate — aliases are tracked
-  down the traversal but a few exotic shadowing patterns may be imprecise.
-  A missed read is a silent bug (the leaf never updates); an over-eager match
-  only produces a harmless extra `computedAttr`.
-- **Value-component set is hard-coded** to `View.Text/Int/Float/Bool`. Other
-  components are treated as elements (children recursed as nodes).
+- **Signal detection is syntactic** (though alias- and helper-aware — see the
+  table above). It follows `let`/`module`/`open` aliases and *local* reactive
+  helpers, but not indirection it cannot see the definition of: a signal read
+  behind an **imported / cross-module** helper, or reached through a data
+  structure, is not detected. Such a value compiles to a **static, once-evaluated
+  attribute/text with no error** — the one genuinely silent failure. The escape
+  hatch is reliable: wrap it in `() =>` yourself and it becomes reactive (the
+  eager check leaves your thunk alone, so it is never double-wrapped). An
+  over-eager match only produces a harmless extra `computedAttr`.
+- **Value-component set is hard-coded** to `View.Text/Int/Float/Bool`. An
+  aliased or opened `View` (`module V = View` → `<V.Text>`, `open View` → bare
+  `<Text>`) is treated as an ordinary element, so a bare value child is put in
+  node position — which is a **compile error** (`string` where `View.node` is
+  expected), not a silent bug. Use the qualified `View.Text` form.
+- **Coupled to ReScript's ppx ABI.** The vendored OCaml 4.06 parsetree, the
+  `Caml1999M022` marshal magic, and the uncurried `Function$` construct name are
+  compiler internals. A ReScript release that bumps the ppx AST version fails
+  loudly (magic mismatch); one that renamed `Function$` could fail *quietly*.
+  Validated against ReScript 12; CI building the docs site through the PPX is the
+  canary on upgrade.
 - **A branch swap still rebuilds that branch's subtree.** Control flow tracks
   only the condition (leaves inside branches stay fine-grained, see above), but
   when the condition *does* change, the selected branch is built fresh — there
