@@ -93,6 +93,22 @@ check('Prop.reactive class is a real string ("on")', pw.className === 'on');
 Signal.set(Demo.active, false);
 check('Prop.reactive class still reactive ("off")', document.querySelector('#prop-wrapped').className === 'off');
 
+// A read hidden behind a local helper (statusClass) must still be reactive —
+// the helper is tracked, so class={statusClass()} is thunked, not static.
+// active is currently false.
+//
+// NOTE: only *local* helpers are covered. A read behind an imported /
+// cross-module helper is invisible to the (single-file) PPX and compiles to a
+// static attribute with no error — a limitation this jsdom suite cannot catch
+// structurally, since the missed read produces valid code that simply never
+// updates. See ppx/README.md "Known limitations"; the escape hatch is to wrap
+// the value in `() =>` yourself.
+console.log('helper-hidden read (local reactive helper tracked):');
+const hh = mount(() => Demo.HelperHidden.make({}));
+check('helper class reactive ("off")', hh.className === 'off');
+Signal.set(Demo.active, true);
+check('helper class updates ("on") — not a silent static bug', document.querySelector('#helper-hidden').className === 'on');
+
 // --- Structural swap via View.tracked, outer element preserved -------------
 console.log('panel (structural swap, outer element preserved):');
 const panel = mount(c(Demo.Panel.make));
