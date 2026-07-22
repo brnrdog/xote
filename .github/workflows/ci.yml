@@ -12,6 +12,11 @@ permissions:
   pull-requests: write
 
 jobs:
+  # Compile the @xote.component ppx for every platform the npm package ships
+  # binaries for, so a breakage in any target surfaces before release.
+  ppx-binaries:
+    uses: ./.github/workflows/ppx-binaries.yml
+
   test:
     runs-on: ubuntu-latest
 

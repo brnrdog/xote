@@ -1,5 +1,7 @@
 # Compiled ppx binary and OCaml build artifacts (platform-specific)
 ppx
+ppx.exe
+bin/
 *.cmi
 *.cmx
 *.cmo

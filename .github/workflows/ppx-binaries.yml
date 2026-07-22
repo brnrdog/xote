@@ -1,0 +1,50 @@
+name: PPX binaries
+
+# Builds the @xote.component ppx as a native binary for every supported
+# platform. Called from ci.yml (to keep the pipeline from rotting) and from
+# release.yml (the binaries are downloaded into ppx/bin/ and shipped in the
+# npm tarball; ppx/postinstall.js selects the right one at install time).
+
+on:
+  workflow_call: {}
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+          - os: ubuntu-24.04-arm
+            target: linux-arm64
+          - os: macos-13
+            target: darwin-x64
+          - os: macos-latest
+            target: darwin-arm64
+          - os: windows-latest
+            target: win32-x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: "4.14"
+
+      # Same invocation as ppx/build.sh, with the target-specific output path.
+      - name: Compile ppx binary
+        shell: bash
+        run: |
+          mkdir -p ppx/bin
+          opam exec -- ocamlopt -w -a-31 ppx/ppx.ml -o "ppx/bin/ppx-${{ matrix.target }}.exe"
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ppx-${{ matrix.target }}
+          path: ppx/bin/ppx-*.exe
+          if-no-files-found: error

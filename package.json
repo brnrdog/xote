@@ -63,10 +63,13 @@
     "rescript.json",
     "ppx/ppx.ml",
     "ppx/build.sh",
+    "ppx/postinstall.js",
+    "ppx/bin",
     "ppx/README.md",
     "ppx/LICENSE.OCaml"
   ],
   "scripts": {
+    "postinstall": "node ppx/postinstall.js",
     "res:build": "rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript -w",
