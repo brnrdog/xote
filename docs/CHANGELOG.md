@@ -1,3 +1,10 @@
+# [7.1.0-beta.3](https://github.com/brnrdog/xote/compare/v7.1.0-beta.2...v7.1.0-beta.3) (2026-07-23)
+
+
+### Features
+
+* **ppx:** ship prebuilt per-platform binaries and make [@xote](https://github.com/xote).component the standard setup ([cdff1e3](https://github.com/brnrdog/xote/commit/cdff1e3d8073bb4b5f70a97e8f4cdea7c2fc5162))
+
 # [7.1.0-beta.2](https://github.com/brnrdog/xote/compare/v7.1.0-beta.1...v7.1.0-beta.2) (2026-07-18)
 
 
