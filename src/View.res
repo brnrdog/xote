@@ -552,6 +552,12 @@ let fragment = (children: array<node>): node => Fragment(children)
 
 let signalFragment = (signal: Signal.t<array<node>>): node => SignalFragment(signal)
 
+/* Auto-tracked reactive block: every signal read while `body` runs subscribes
+   the block, which re-evaluates `body` and replaces its children wholesale
+   (no diffing) whenever a dependency changes. Prefer `eachWithKey`/`For` for
+   lists and keep tracked blocks small. */
+let tracked = (body: unit => node): node => SignalFragment(Computed.make(() => [body()]))
+
 let childrenToArray = (child: option<node>): array<node> => {
   switch child {
   | Some(Fragment(children)) => children
@@ -743,6 +749,69 @@ let renderValuePrimitiveProps = (props: 'props, stringify: 'scalar => string): n
   | (Some(children), _) => valuePrimitive(children, stringify)
   | (None, Some(value)) => valuePrimitive(value, stringify)
   | (None, None) => null()
+  }
+}
+
+/* Is this runtime value already a `node`? Nodes are ReScript variants compiled
+   to objects carrying a string `TAG` in the set below; Signals, Props, scalars
+   and functions are not, so a value already built into a node passes straight
+   through `child`. */
+let isNode: 'a => bool = %raw(`function (v) {
+  if (v === null || typeof v !== "object" || typeof v.TAG !== "string") { return false }
+  switch (v.TAG) {
+    case "Element":
+    case "Text":
+    case "SignalText":
+    case "Fragment":
+    case "SignalFragment":
+    case "Keyed":
+    case "LazyComponent":
+    case "KeyedList":
+      return true
+    default:
+      return false
+  }
+}`)
+
+/* Stringify any scalar child (int/float/string/bool) without knowing its type
+   at compile time; null/undefined render as empty. */
+let stringifyChild: 'a => string = %raw(`function (v) { return v == null ? "" : String(v) }`)
+
+/* Coerce an arbitrary JSX child into a node. This is what `@xote.component`
+   emits for a *bare* child in element position — `<div>{Signal.get(count)}</div>`
+   — so a value primitive (`<View.Int>`) is no longer required:
+
+     - an already-built node passes through untouched;
+     - a reactive thunk (what the ppx emits for an eager signal read) re-runs on
+       change — a scalar result becomes reactive text, a node result a tracked
+       fragment;
+     - a bare `Signal.t` becomes reactive text; a plain scalar, static text;
+     - null/undefined render nothing.
+
+   The explicit `View.Text`/`Int`/`Float`/`Bool` value primitives still work for
+   non-ppx code and for stronger typing; this is the ergonomic default under the
+   annotation. */
+let child = (value: 'a): node => {
+  if isNode(value) {
+    (Obj.magic(value): node)
+  } else {
+    switch value->Core.Type.Classify.classify {
+    | Function(_) => {
+        let compute: unit => 'b = Obj.magic(value)
+        let signal = Computed.make(compute)
+        if isNode(Signal.peek(signal)) {
+          SignalFragment(Computed.make(() => [(Obj.magic(Signal.get(signal)): node)]))
+        } else {
+          SignalText(Computed.make(() => stringifyChild(Signal.get(signal))))
+        }
+      }
+    | Object(_) => {
+        let signal: Signal.t<'b> = Obj.magic(value)
+        SignalText(Computed.make(() => stringifyChild(Signal.get(signal))))
+      }
+    | Null | Undefined => null()
+    | _ => text(stringifyChild(value))
+    }
   }
 }
 

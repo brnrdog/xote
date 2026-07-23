@@ -19,7 +19,7 @@ let setPremium = (_evt: Dom.event) => Signal.set(unitPrice, 42)
 let setStandardShipping = (_evt: Dom.event) => Signal.set(expressShipping, false)
 let setExpressShipping = (_evt: Dom.event) => Signal.set(expressShipping, true)
 
-@jsx.component
+@xote.component
 let make = () => {
   <div class="computed-order-demo">
     <div class="computed-order-demo-section">
@@ -50,7 +50,7 @@ let make = () => {
           <div class="computed-order-demo-label"> {View.text("Plan")} </div>
           <div class="computed-order-demo-choice-row">
             <button
-              class={() =>
+              class={
                 if Signal.get(unitPrice) == 24 {
                   "computed-order-demo-choice active"
                 } else {
@@ -60,7 +60,7 @@ let make = () => {
               {View.text("Standard")}
             </button>
             <button
-              class={() =>
+              class={
                 if Signal.get(unitPrice) == 42 {
                   "computed-order-demo-choice active"
                 } else {
@@ -76,7 +76,7 @@ let make = () => {
           <div class="computed-order-demo-label"> {View.text("Shipping")} </div>
           <div class="computed-order-demo-choice-row">
             <button
-              class={() =>
+              class={
                 if !Signal.get(expressShipping) {
                   "computed-order-demo-choice active"
                 } else {
@@ -86,7 +86,7 @@ let make = () => {
               {View.text("Standard")}
             </button>
             <button
-              class={() =>
+              class={
                 if Signal.get(expressShipping) {
                   "computed-order-demo-choice active"
                 } else {

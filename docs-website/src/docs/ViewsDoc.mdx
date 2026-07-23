@@ -13,7 +13,7 @@ Think in two layers:
 
 ### JSX Configuration
 
-To use JSX with Xote, point ReScript at `XoteJSX`.
+To use JSX with Xote, point ReScript at `XoteJSX`. The standard setup also enables the `@xote.component` annotation — fine-grained reactive components — via Xote's native PPX:
 
 ```rescript
 {
@@ -22,32 +22,42 @@ To use JSX with Xote, point ReScript at `XoteJSX`.
     "version": 4,
     "module": "XoteJSX"
   },
+  "ppx-flags": ["xote/ppx/ppx"],
   "compiler-flags": ["-open Xote"]
 }
 ```
+
+No toolchain or build step is needed: the npm package ships the PPX as a prebuilt binary for linux-x64, linux-arm64, darwin-x64, darwin-arm64 and win32-x64, and Xote's install script selects the one for your platform. Two situations need a manual step:
+
+- If your package manager skips dependency install scripts (pnpm does by default), allow them for `xote` (for pnpm, `pnpm approve-builds`) or run `node node_modules/xote/ppx/postinstall.js` once after installing.
+- On a platform without a prebuilt binary, the install script compiles the PPX from its bundled source instead, which needs `ocamlopt` (`sh node_modules/xote/ppx/build.sh` runs it manually).
+
+Prefer no PPX at all? Omit `ppx-flags` and use `@jsx.component` instead of `@xote.component` — everything below still works, you just write reactive attributes/text with explicit `() => …` thunks.
 
 ### Writing Components
 
 #### Recommended Pattern
 
-Use a module with a `make` function and annotate it with `@jsx.component`. ReScript derives the props shape from labeled arguments.
+Use a module with a `make` function and annotate it with `@xote.component`. It derives the props shape from labeled arguments (exactly like `@jsx.component`) **and** fine-grains the returned JSX, so you read signals inline — no `() => …` thunks.
 
 ```rescript
 open Xote
 
 module Greeting = {
-  @jsx.component
-  let make = (~name: string, ~emphasis=false) => {
-    <div class={emphasis ? "greeting strong" : "greeting"}>
+  @xote.component
+  let make = (~name: string) => {
+    <div class={Signal.get(highlight) ? "greeting strong" : "greeting"}>
       <h1> <View.Text> {`Hello, ${name}`} </View.Text> </h1>
     </div>
   }
 }
 
 let app = () => {
-  <Greeting name="World" emphasis />
+  <Greeting name="World" />
 }
 ```
+
+Only one component per module (inherited from `@jsx.component`) — put each in its own file, or a submodule.
 
 #### JSX Components
 
@@ -55,7 +65,7 @@ let app = () => {
 open Xote
 
 module Greeting = {
-  @jsx.component
+  @xote.component
   let make = (~name: string) => {
     <section class="greeting-card">
       <h2> <View.Text> {`Hello, ${name}`} </View.Text> </h2>
@@ -67,11 +77,25 @@ module Greeting = {
 
 ### Reactive Output
 
-JSX expressions are just nodes. For direct value output, use primitives such as [`View.Text`](/docs/api/view#view-text-component), [`View.Int`](/docs/api/view#view-int-component), [`View.Float`](/docs/api/view#view-float-component), and [`View.Bool`](/docs/api/view#view-bool-component). Their children can be raw values, signals, `Prop.t` values, or computed functions. For arrays and lists, use [`View.For`](/docs/api/view#view-for); pass `by` when item identity matters.
+Under [`@xote.component`](#jsx-configuration), a **bare `{…}` child** — a string, a number, or a signal read — is the ergonomic default. The annotation coerces it to a reactive text node (via `View.child`), so no value-primitive wrapper is needed:
 
 ```rescript
 let count = Signal.make(0)
 
+@xote.component
+let make = () =>
+  <div>
+    {"Count: "}
+    {Signal.get(count)}
+  </div>
+```
+
+Only the number re-renders when `count` changes; the `<div>` and the static `"Count: "` text are built once.
+
+The explicit primitives — [`View.Text`](/docs/api/view#view-text-component), [`View.Int`](/docs/api/view#view-int-component), [`View.Float`](/docs/api/view#view-float-component), [`View.Bool`](/docs/api/view#view-bool-component) — remain available and are what you use **without** the PPX (or when you want the stronger `int`/`float` typing on the child). Their children can be raw values, signals, `Prop.t` values, or computed functions. For arrays and lists, use [`View.For`](/docs/api/view#view-for); pass `by` when item identity matters.
+
+```rescript
+// equivalent, without the annotation:
 <div>
   <View.Text> "Count: " </View.Text>
   <View.Int> {count} </View.Int>
@@ -81,7 +105,7 @@ let count = Signal.make(0)
 When a formatted string depends on a value that can be static or reactive, keep the prop as `Prop.t` and read it inside a function child.
 
 ```rescript
-@jsx.component
+@xote.component
 let make = (~name: Prop.t<string>) => {
   <View.Text> {() => `Hello, ${Prop.get(name)}`} </View.Text>
 }
@@ -173,6 +197,44 @@ Use [`View.Show`](/docs/api/view#view-show) for boolean branches, [`View.Maybe`]
 </p>
 ```
 
+### Auto-tracked Blocks
+
+When one block of UI depends on several signals at once, the primitives above require you to wire each dependency explicitly — a `Prop.signal` here, a computed there. [`View.tracked`](/docs/api/view#view-tracked) is the escape hatch for those cases: every signal read while its body runs subscribes the block automatically, and the block re-renders when any of them changes.
+
+```rescript
+let loggedIn = Signal.make(false)
+let name = Signal.make("Ada")
+
+{View.tracked(() =>
+  if Signal.get(loggedIn) {
+    <p> <View.Text> {`Hello, ${Signal.get(name)}`} </View.Text> </p>
+  } else {
+    <p> <View.Text> "Please log in" </View.Text> </p>
+  }
+)}
+```
+
+Dependencies are re-discovered on every run, so conditional reads work: above, `name` is only tracked while `loggedIn` is true.
+
+The tradeoff is granularity. A tracked block replaces its children wholesale when a dependency changes — there is no diffing, and local DOM state inside the block (like input focus) does not survive an update. Keep tracked blocks small, and reach for [`View.Show`](/docs/api/view#view-show), [`View.Value`](/docs/api/view#view-value), or [`View.For`](/docs/api/view#view-for) with `by` when a more targeted primitive fits.
+
+### How `@xote.component` stays fine-grained
+
+`@xote.component` (set up in [JSX Configuration](#jsx-configuration) above) is how the demos on this site are written, and the recommended way to write reactive components. It replaces `@jsx.component`: it derives props from the labeled args **and** fine-grains the returned JSX.
+
+```rescript
+@xote.component
+let make = () => {
+  <div class={Signal.get(active) ? "on" : "off"}>
+    <View.Text> {`Hello, ${Signal.get(name)}`} </View.Text>
+  </div>
+}
+```
+
+Rather than wrapping the whole block in one computed, the PPX **decomposes** it: each attribute or text that reads a signal becomes its own reactive leaf (a `computedAttr` / reactive text node), and `View.tracked` is emitted only around a child region whose node *structure* varies (an `if`/`switch`), tracking just the condition. The enclosing elements are built once and keep their DOM identity — so it stays fine-grained even for large components.
+
+The PPX is a small native binary that ships prebuilt in the npm package; enabling it is one `ppx-flags` line in your `rescript.json` (see [JSX Configuration](#jsx-configuration) above). Projects that do not add the flag are unaffected — Xote's own published sources compile without it. See [`ppx/README.md`](https://github.com/brnrdog/xote/blob/main/ppx/README.md) for the decomposition rules, signal-detection details, and limitations.
+
 ### Mounting
 
 Use [`View.mount`](/docs/api/view#view-mount) when you already have a DOM element, or [`View.mountById`](/docs/api/view#view-mountbyid) when you want to look one up by id.
@@ -209,7 +271,7 @@ let todos = Signal.make([
 let draft = Signal.make("")
 
 module TodoComposer = {
-  @jsx.component
+  @xote.component
   let make = () => {
     <div>
       <input onInput={handleInput} value={() => Signal.get(draft)} />
@@ -219,7 +281,7 @@ module TodoComposer = {
 }
 
 module TodoRow = {
-  @jsx.component
+  @xote.component
   let make = (~todo: todo) => {
     <li>
       <span> <View.Text> {todo.title} </View.Text> </span>
@@ -228,7 +290,7 @@ module TodoRow = {
   }
 }
 
-@jsx.component
+@xote.component
 let make = () => {
   <div>
     <TodoComposer />

@@ -1,0 +1,13 @@
+# OCaml build artifacts. The compiled binaries (ppx, ppx.exe, bin/) are
+# ignored from the ROOT .gitignore instead: npm honors nested ignore files
+# when packing even inside directories whitelisted in package.json "files",
+# so a bin/ rule here would strip the prebuilt binaries from the tarball.
+*.cmi
+*.cmx
+*.cmo
+*.o
+
+# Example build output
+example/lib/
+example/node_modules/
+example/**/*.res.mjs

@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "generate-repo-data": "node scripts/generate-repo-data.cjs",
-    "res:build": "npm run generate-repo-data && rescript",
+    "ppx:build": "sh ../ppx/build.sh",
+  "res:build": "npm run ppx:build && npm run generate-repo-data && rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript -w",
     "dev": "node server.mjs",
@@ -28,6 +29,7 @@
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "rescript": "^12.2.0",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "xote-tracked-ppx": "file:../ppx"
   }
 }
