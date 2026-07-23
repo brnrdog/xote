@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Phase 1 implemented (`View.tracked`); Phase 2 fine-grained PPX built, opt-in, CI-exercised and used by the docs site (see [`ppx/`](../../ppx/)); Phase 3 exploratory |
-| **Related** | [brnrdog/rescript-signals#34](https://github.com/brnrdog/rescript-signals/pull/34) — auto-tracking for React and the `@tracked` annotation |
+| **Status** | Phase 1 implemented (`View.tracked`); Phase 2 fine-grained PPX built, CI-exercised, used by the docs site, and distributed as prebuilt binaries in the npm package (see [`ppx/`](../../ppx/) and [RFC #141](https://github.com/brnrdog/xote/issues/141)); Phase 3 exploratory |
+| **Related** | [brnrdog/rescript-signals#34](https://github.com/brnrdog/rescript-signals/pull/34) — auto-tracking for React and the `@tracked` annotation; [RFC #141](https://github.com/brnrdog/xote/issues/141) — adoption and distribution decision |
 
 ## Summary
 
@@ -198,25 +198,33 @@ Notes:
   the one component-level annotation; `@xote.component` inherits
   `@jsx.component`'s one-component-per-module rule.)
 
-### Consumer-safety constraint (why it's opt-in, not in the library core)
+### Distribution (prebuilt binaries — see RFC #141)
 
 A ReScript consumer recompiles a dependency's sources during its own build and
 applies that dependency's `ppx-flags` (verified: a cold consumer build fails
-with "ppx not found" when the dependency lists a PPX the consumer lacks). So a
-`ppx-flags` entry in Xote's *published* `rescript.json` would force `ocamlopt`
-on every Xote user. The PPX is therefore kept out of the published library
-config entirely:
+with "ppx not found" when the dependency lists a PPX the consumer lacks). Two
+consequences shape the distribution model, decided in
+[RFC #141](https://github.com/brnrdog/xote/issues/141):
 
-- The published library (`src/`, root `rescript.json`) has **no** `ppx-flags`;
-  consumers who don't opt in are unaffected.
-- The `ppx.ml` source ships in the npm tarball, so a consumer who *wants*
-  `@xote.component` builds it (`sh node_modules/xote/ppx/build.sh`) and lists it
-  in **their own** `rescript.json` (`"ppx-flags": ["xote/ppx/ppx"]`).
-- In-repo, the PPX is real: `ci.yml` builds and runs its end-to-end test on
-  every push/PR, and the docs site (`docs-website/`, its own non-published
-  config) authors the Counter demo with `@xote.component` and builds the PPX in
-  its `res:build`. This proves it through SSR + hydration without touching the
-  publish path.
+- **The binary ships prebuilt.** The npm package carries one native binary per
+  supported platform (linux-x64, linux-arm64, darwin-x64, darwin-arm64,
+  win32-x64) under `ppx/bin/`, built by
+  `.github/workflows/ppx-binaries.yml` and packed by the release workflow.
+  `ppx/postinstall.js` selects the matching one at install time, so enabling
+  `@xote.component` is a single line in the consumer's `rescript.json`
+  (`"ppx-flags": ["xote/ppx/ppx"]`) with no OCaml toolchain required. Where no
+  prebuilt binary matches, the install script falls back to compiling the
+  bundled `ppx.ml` when `ocamlopt` is available.
+- **Xote's own published `rescript.json` still carries no `ppx-flags`.**
+  `src/` contains no `@xote.component` annotations, so a flag there would make
+  every consumer build depend on the binary for no benefit (and break under
+  package managers that skip install scripts). The annotation applies to the
+  consumer's components, so the flag belongs in the consumer's config — the
+  same way the `jsx` configuration is already mirrored.
+- In-repo, the PPX is exercised end to end: `ci.yml` compiles the full binary
+  matrix and runs the e2e test on every push/PR, and the docs site
+  (`docs-website/`) authors its components with `@xote.component` and builds
+  the PPX in its `res:build`, proving it through SSR + hydration.
 
 ## Phase 3 — notify-only scheduling (exploratory)
 

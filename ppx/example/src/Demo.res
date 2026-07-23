@@ -216,3 +216,40 @@ module Workspace = {
     </>
   }
 }
+
+/* Case 17: bare children *directly* in a fragment return (no wrapping element).
+   A dropdown-style component whose labels sit next to a static anchor at the
+   fragment's top level — each bare read is coerced by View.child in place, so
+   the component needs no display:contents root just to make them type. */
+module DropdownFragment = {
+  @xote.component
+  let make = () => {
+    <>
+      <span id="df-anchor" />
+      {Signal.get(name)}
+      {() => `#${Signal.get(count)->Int.toString}`}
+    </>
+  }
+}
+
+/* Case 18: a control-flow *branch body* that is itself a fragment of bare labels
+   (a dropdown inlined into an `if`, not extracted into its own component). The
+   switch is tracked on the toggle, and the fragment branch is decomposed so its
+   bare labels are coerced — the anchor outside the `if` keeps its identity. */
+module MenuBranch = {
+  @xote.component
+  let make = () => {
+    <div id="mb-host">
+      <span id="mb-anchor" />
+      {if Signal.get(active) {
+        <>
+          {Signal.get(name)}
+          {View.text(" / ")}
+          {Signal.get(count)}
+        </>
+      } else {
+        View.null()
+      }}
+    </div>
+  }
+}

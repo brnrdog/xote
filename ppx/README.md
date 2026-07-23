@@ -5,15 +5,18 @@ props-deriving component whose returned JSX is decomposed into **fine-grained
 reactive leaves** — the compile-time counterpart to the runtime
 [`View.tracked`](../src/View.res) helper.
 
-> **Status:** experimental, opt-in. The PPX is exercised in CI and used by the
-> [docs site](../docs-website) itself (the Counter demo), but it is **not part
-> of the published npm package** — consumers who want it build it themselves
-> (see [Opt-in for consumers](#opt-in-for-consumers)). It demonstrates that the
+> **Status:** the standard authoring model. The npm package ships the PPX as a
+> prebuilt binary per platform, selected at install time (see
+> [Distribution](#distribution)), so enabling `@xote.component` is a single
+> `ppx-flags` line with no toolchain requirement. The PPX is exercised in CI
+> and used by the [docs site](../docs-website) itself. It grew out of the
 > [`rescript-signals` #34](https://github.com/brnrdog/rescript-signals/pull/34)
-> auto-tracking idea can target Xote's view layer *and* compile away the
+> auto-tracking idea, targeting Xote's view layer *and* compiling away the
 > wholesale-replacement tradeoff of `View.tracked`. See
 > [`docs/proposals/tracked-blocks.md`](../docs/proposals/tracked-blocks.md) for
-> the full design context (this is "Phase 2, fine-grained variant").
+> the full design context, and
+> [RFC #141](https://github.com/brnrdog/xote/issues/141) for the decision to
+> distribute prebuilt binaries and make this the primary model.
 
 ## What problem it solves
 
@@ -207,41 +210,58 @@ exception**; they keep their original copyright headers. The
 and license text is in [`LICENSE.OCaml`](./LICENSE.OCaml), which ships in the
 npm tarball alongside `ppx.ml`.
 
-## Build
+## Distribution
 
-```sh
-sh build.sh   # produces ./ppx (needs ocamlopt; any recent OCaml, tested 4.14)
-```
+The npm package ships the PPX **prebuilt** for the common platforms, under
+`ppx/bin/`:
 
-Wire it into a project's `rescript.json`:
+| Platform | Binary |
+|---|---|
+| Linux x64 | `ppx-linux-x64.exe` |
+| Linux arm64 | `ppx-linux-arm64.exe` |
+| macOS x64 (Intel) | `ppx-darwin-x64.exe` |
+| macOS arm64 (Apple Silicon) | `ppx-darwin-arm64.exe` |
+| Windows x64 | `ppx-win32-x64.exe` |
 
-```json
-{ "ppx-flags": ["xote-tracked-ppx/ppx"] }
-```
-
-## Opt-in for consumers
-
-The compiled binary is platform-specific and is **not** shipped in the npm
-package, and — deliberately — neither is a `ppx-flags` entry in Xote's own
-published `rescript.json`. That last point matters: a ReScript consumer
-recompiles a dependency's sources during its own build and applies that
-dependency's `ppx-flags`, so a PPX listed in Xote's published config would
-force `ocamlopt` on **every** Xote user. Instead the PPX is strictly opt-in.
-
-The `ppx.ml` source *is* published, so a consumer who wants `@xote.component`
-can build it from the installed package and reference it from **their own**
-`rescript.json`:
-
-```sh
-npm install xote
-sh node_modules/xote/ppx/build.sh      # needs ocamlopt
-```
+The binaries are compiled in CI by
+[`.github/workflows/ppx-binaries.yml`](../.github/workflows/ppx-binaries.yml)
+and injected into the tarball by the release workflow. On install, Xote's
+`postinstall` script ([`postinstall.js`](./postinstall.js)) copies the binary
+matching `process.platform`-`process.arch` to `ppx/ppx` (`ppx/ppx.exe` on
+Windows), which is the path consumers reference:
 
 ```json
 { "ppx-flags": ["xote/ppx/ppx"] }
 ```
 
-Consumers who don't do this are entirely unaffected.
+That one line in your `rescript.json` is the whole setup — no OCaml toolchain
+required. Two edge cases:
+
+- **Install scripts disabled.** Some package managers skip dependency install
+  scripts (pnpm does by default). Approve them for `xote`
+  (`pnpm approve-builds`) or run `node node_modules/xote/ppx/postinstall.js`
+  once.
+- **Unsupported platform.** If no prebuilt binary matches, the install script
+  falls back to compiling `ppx.ml` from source when `ocamlopt` is on the
+  `PATH`, and otherwise prints instructions without failing the install.
+
+A `ppx-flags` entry is deliberately **not** in Xote's own published
+`rescript.json`: a ReScript consumer recompiles a dependency's sources during
+its own build and applies that dependency's `ppx-flags`, and Xote's `src/`
+carries no `@xote.component` annotations, so listing the PPX there would make
+every build depend on the binary for no benefit. The annotation applies to
+*your* components, which is why the flag lives in *your* `rescript.json` —
+exactly like the `jsx` configuration you already mirror.
+
+## Build from source
+
+```sh
+sh build.sh   # produces ./ppx (needs ocamlopt; any recent OCaml, tested 4.14)
+```
+
+`build.sh` also accepts an output path relative to `ppx/`
+(`sh build.sh bin/ppx-linux-x64.exe`), which is how the CI matrix produces
+the prebuilt binaries.
 
 ## In this repo
 
@@ -272,7 +292,7 @@ Or step by step from `example/`:
 sh setup.sh             # link toolchain + Xote from the repo root (idempotent)
 sh ../build.sh          # build the ppx
 npm run build           # compile Demo.res through the ppx
-npm run verify          # jsdom runtime check (60 assertions)
+npm run verify          # jsdom runtime check (71 assertions)
 ```
 
 ## Known limitations (it's a prototype)
