@@ -63,6 +63,18 @@ jobs:
           chmod +x ppx/bin/*.exe
           ls -l ppx/bin
 
+      # Binaries present on disk is not enough: ignore rules can silently
+      # strip them from the tarball (nested .gitignore files are honored by
+      # npm pack even inside "files"-whitelisted directories). Assert the
+      # packed file list itself.
+      - name: Verify ppx binaries are packed
+        run: |
+          pack="$(npm pack --dry-run 2>&1)"
+          for target in linux-x64 linux-arm64 darwin-x64 darwin-arm64 win32-x64; do
+            echo "$pack" | grep -q "ppx/bin/ppx-$target.exe" \
+              || { echo "ppx binary for $target missing from npm tarball"; exit 1; }
+          done
+
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
