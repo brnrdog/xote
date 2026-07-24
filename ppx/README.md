@@ -120,9 +120,16 @@ Every bare non-control-flow child is wrapped in the runtime helper
 - an eager signal read is thunked first, so it becomes a **reactive text** leaf;
 - a static scalar (`{"lit"}`, `{42}`) becomes a **static text** node — previously
   a *compile error* (a scalar in node position), now it just works;
-- a value that is **already a node** (`{View.text(x)}`, a component call, a list)
+- a value that is **already a node** (`{View.text(x)}`, a component call)
   passes through untouched (detected by its runtime tag);
-- `null`/`undefined` render nothing.
+- a bare **signal** (`{count}` where `count: Signal.t<_>`) becomes reactive
+  text — signals are detected positively by their runtime shape, so an
+  arbitrary record is never mistaken for one;
+- an **array** is coerced element-wise into a fragment (an array of nodes
+  renders each node; an array of scalars renders their text);
+- `null`/`undefined` render nothing;
+- any **other object** (a record, a dict) cannot be rendered as a node: it is
+  stringified with a console warning pointing at the value.
 
 This also covers control flow whose **branches are scalars** — the `switch` is
 still tracked for the structural swap, but each scalar branch is coerced by
@@ -315,10 +322,12 @@ npm run verify          # jsdom runtime check (71 assertions)
   child** (`View.child` coerces it), or use the qualified `View.Text` form.
 - **Coupled to ReScript's ppx ABI.** The vendored OCaml 4.06 parsetree, the
   `Caml1999M022` marshal magic, and the uncurried `Function$` construct name are
-  compiler internals. A ReScript release that bumps the ppx AST version fails
-  loudly (magic mismatch); one that renamed `Function$` could fail *quietly*.
-  Validated against ReScript 12; CI building the docs site through the PPX is the
-  canary on upgrade.
+  compiler internals. A ReScript release that bumps the ppx AST version makes
+  the ppx print a warning to stderr naming the mismatched magic and pass the
+  AST through unexpanded (the build then fails on the unexpanded annotation);
+  a release that renamed `Function$` could fail *quietly*. Validated against
+  ReScript 12; CI building the docs site through the PPX is the early warning
+  on upgrade.
 - **A branch swap still rebuilds that branch's subtree.** Control flow tracks
   only the condition (leaves inside branches stay fine-grained, see above), but
   when the condition *does* change, the selected branch is built fresh — there
