@@ -253,3 +253,20 @@ module MenuBranch = {
     </div>
   }
 }
+
+/* Case 19: a signal read inside a *polymorphic variant* payload in attribute
+   position — `#tone(Signal.get(theme))`. Exercises the Pexp_variant case of
+   the eager-read traversal: before it was added, this class compiled to a
+   static, once-evaluated attribute with no error. */
+module VariantAttr = {
+  @xote.component
+  let make = () => {
+    <div
+      id="variant-attr"
+      class={switch #tone(Signal.get(theme)) {
+      | #tone(t) => "tone-" ++ t
+      }}>
+      <span id="va-anchor" />
+    </div>
+  }
+}

@@ -258,5 +258,21 @@ Signal.set(Demo.active, false);
 check('branch closed again: labels gone', !document.querySelector('#mb-host').textContent.includes('Ada'));
 check('anchor still same element after toggle', document.querySelector('#mb-anchor').__marker === 'MB');
 
+// --- Poly-variant payload in attribute position -----------------------------
+// `class={switch #tone(Signal.get(theme)) { ... }}`: the read sits inside a
+// polymorphic variant payload (Pexp_variant), which the eager-read traversal
+// must descend into — previously this attribute silently stayed static.
+console.log('poly-variant payload in attribute position:');
+Signal.set(Demo.theme, 'light');
+const vaHost = document.createElement('div');
+document.body.appendChild(vaHost);
+View.mount(Demo.VariantAttr.make({}), vaHost);
+const vaEl = vaHost.querySelector('#variant-attr');
+vaEl.__marker = 'VA';
+check('variant payload read renders initial class', vaEl.className === 'tone-light');
+Signal.set(Demo.theme, 'dark');
+check('variant payload read is reactive (class updates)', vaHost.querySelector('#variant-attr').className === 'tone-dark');
+check('element kept identity across class update', vaHost.querySelector('#variant-attr').__marker === 'VA');
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

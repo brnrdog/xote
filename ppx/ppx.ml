@@ -1023,8 +1023,11 @@ let sub_exprs (e : expression) : expression list =
   | Pexp_ifthenelse (c, t, eo) -> c :: t :: (match eo with Some x -> [ x ] | None -> [])
   | Pexp_match (x, cases) | Pexp_try (x, cases) -> x :: List.map (fun c -> c.pc_rhs) cases
   | Pexp_construct (_, Some x) -> [ x ]
+  | Pexp_variant (_, Some x) -> [ x ]
   | Pexp_tuple xs | Pexp_array xs -> xs
   | Pexp_field (x, _) -> [ x ]
+  | Pexp_setfield (a, _, b) -> [ a; b ]
+  | Pexp_send (x, _) -> [ x ]
   | Pexp_record (fields, base) ->
     List.map snd fields @ (match base with Some b -> [ b ] | None -> [])
   | Pexp_constraint (x, _) -> [ x ]
@@ -1359,5 +1362,16 @@ let () =
   output_string oc magic;
   output_value oc name;
   (if magic = impl_magic then output_value oc (map_structure empty_env (Obj.magic payload : structure))
-   else output_value oc payload);
+   else begin
+     (* Interface ASTs (Caml1999N…) legitimately pass through untouched. A
+        different *implementation* magic means the compiler's ppx ABI moved
+        and @xote.component was NOT expanded — say so instead of letting the
+        build die later on a confusing type error. *)
+     if String.length magic >= 9 && String.sub magic 0 9 = "Caml1999M" then
+       prerr_endline
+         ("xote ppx: unsupported AST magic " ^ magic ^ " (this ppx expects " ^ impl_magic
+          ^ "); @xote.component was NOT expanded in " ^ name
+          ^ ". The installed ReScript version is likely newer than this ppx supports; check for a Xote update.");
+     output_value oc payload
+   end);
   close_out oc

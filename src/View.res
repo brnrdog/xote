@@ -777,6 +777,27 @@ let isNode: 'a => bool = %raw(`function (v) {
    at compile time; null/undefined render as empty. */
 let stringifyChild: 'a => string = %raw(`function (v) { return v == null ? "" : String(v) }`)
 
+/* Is this runtime value a rescript-signals signal/computed? Positive shape
+   check against `Signal.t` ({id: int, value, equals: fn, subs: object}) —
+   detecting by shape rather than assuming any non-node object is a signal
+   keeps records/dicts that land in `child` from reaching `Signal.get`. */
+let isSignal: 'a => bool = %raw(`function (v) {
+  return v !== null && typeof v === "object"
+    && typeof v.id === "number"
+    && typeof v.equals === "function"
+    && typeof v.subs === "object" && v.subs !== null
+    && "value" in v
+}`)
+
+let isArray: 'a => bool = %raw(`function (v) { return Array.isArray(v) }`)
+
+let warnUnrenderable: 'a => unit = %raw(`function (v) {
+  console.warn(
+    "[Xote] View.child: this value is not a node, signal, array, function or scalar and cannot be rendered; it was stringified. Build a node from it (View.text, JSX, ...) instead:",
+    v
+  )
+}`)
+
 /* Coerce an arbitrary JSX child into a node. This is what `@xote.component`
    emits for a *bare* child in element position — `<div>{Signal.get(count)}</div>`
    — so a value primitive (`<View.Int>`) is no longer required:
@@ -785,13 +806,21 @@ let stringifyChild: 'a => string = %raw(`function (v) { return v == null ? "" : 
      - a reactive thunk (what the ppx emits for an eager signal read) re-runs on
        change — a scalar result becomes reactive text, a node result a tracked
        fragment;
-     - a bare `Signal.t` becomes reactive text; a plain scalar, static text;
-     - null/undefined render nothing.
+     - a bare `Signal.t` (detected by shape) becomes reactive text; a plain
+       scalar, static text;
+     - an array is coerced element-wise into a `Fragment`;
+     - null/undefined render nothing;
+     - any other object cannot be rendered: it is stringified with a console
+       warning rather than treated as a signal.
+
+   The reactive-thunk mode (scalar text vs node fragment) is decided once, from
+   the first evaluation — safe for ppx-emitted thunks because ReScript types
+   make the result shape stable; hand-written thunks must be shape-stable too.
 
    The explicit `View.Text`/`Int`/`Float`/`Bool` value primitives still work for
    non-ppx code and for stronger typing; this is the ergonomic default under the
    annotation. */
-let child = (value: 'a): node => {
+let rec child = (value: 'a): node => {
   if isNode(value) {
     (Obj.magic(value): node)
   } else {
@@ -805,9 +834,16 @@ let child = (value: 'a): node => {
           SignalText(Computed.make(() => stringifyChild(Signal.get(signal))))
         }
       }
-    | Object(_) => {
+    | Object(_) =>
+      if isSignal(value) {
         let signal: Signal.t<'b> = Obj.magic(value)
         SignalText(Computed.make(() => stringifyChild(Signal.get(signal))))
+      } else if isArray(value) {
+        let items: array<'b> = Obj.magic(value)
+        Fragment(items->Core.Array.map(item => child(item)))
+      } else {
+        warnUnrenderable(value)
+        text(stringifyChild(value))
       }
     | Null | Undefined => null()
     | _ => text(stringifyChild(value))
