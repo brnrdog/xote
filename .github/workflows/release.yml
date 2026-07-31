@@ -37,7 +37,7 @@ jobs:
         run: npm run res:build
 
       - name: Run tests
-        run: node tests/Tests.res.mjs
+        run: npm test
 
       - name: Vite Build
         run: npm run build

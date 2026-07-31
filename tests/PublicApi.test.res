@@ -1,9 +1,9 @@
 open! Zekr
 
-let suite = Zekr.suite(
+let suite = Suite.make(
   "Public API",
   [
-    test("keeps documented modules and core entry points usable", () => {
+    Test.make("keeps documented modules and core entry points usable", () => {
       let name = Signal.make("xote")
       let greeting = Computed.make(() => "hello " ++ Signal.get(name))
 
@@ -36,10 +36,10 @@ let suite = Zekr.suite(
       let html = SSR.renderToString(() => View.fragment([node, emptyView]))
       let mdxHtml = SSR.renderToString(() => Mdx.render(mdxDoc, ()))
 
-      combineResults([
-        assertEqual(Signal.peek(greeting), "hello xote"),
-        assertEqual(html, `<div class="app">xote</div>`),
-        assertEqual(mdxHtml, "mdx"),
+      Assert.combineResults([
+        Assert.equal(Signal.peek(greeting), "hello xote"),
+        Assert.equal(html, `<div class="app">xote</div>`),
+        Assert.equal(mdxHtml, "mdx"),
       ])
     }),
   ],
