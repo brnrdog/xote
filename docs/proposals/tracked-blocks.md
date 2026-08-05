@@ -109,12 +109,12 @@ One thunk for the whole block; the reads inside are plain `Signal.get`:
 | Lists | `View.For` with `by` (keyed reconciliation) |
 | Block over **several signals + control flow** | `View.tracked` |
 
-## Phase 2 — the `tracked` annotation (prototyped)
+## Phase 2 — the component annotation (implemented as `@xote.component`)
 
 PR #34 ships `rescript-tracked-ppx`, which expands a `@tracked` attribute at
 compile time (hardcoded to the React hook `SignalsReactAuto.useTracked`). Two
-expansions are possible for Xote, and a prototype of the more ambitious one
-lives in [`ppx/`](../../ppx/).
+expansions are possible for Xote; the more ambitious one is implemented in
+[`ppx/`](../../ppx/) and ships with the npm package.
 
 ### 2a. Coarse expansion (`@tracked()` → `View.tracked`)
 
@@ -159,9 +159,9 @@ No `View.tracked`, no `SignalFragment`, no rebuild — the `<div>` and `<span>`
 keep DOM identity across updates; only the `class` attribute and the greeting
 text node re-run. `View.tracked` is emitted **only** where node *structure*
 varies (an `if`/`switch` in child position), never around the stable elements
-that enclose it. The prototype's `example/verify.mjs` proves this at runtime by
-tagging elements and asserting the tags survive signal changes (27 assertions,
-all passing).
+that enclose it. `ppx/example/verify.mjs` proves this at runtime by tagging
+elements and asserting the tags survive signal changes; it runs in CI on every
+push.
 
 Two refinements make the output genuinely fine-grained rather than a thin
 sugar over `View.tracked`:
@@ -244,7 +244,7 @@ noting that adopting `Tracking` keeps the door open.
 
 - **Compiler-granular tracking (Solid-style).** Compile JSX so each inline
   read becomes its own leaf binding, avoiding the wholesale-replacement
-  tradeoff entirely. This is precisely what Phase 2b prototypes — see
+  tradeoff entirely. This is precisely what Phase 2b implements — see
   [`ppx/`](../../ppx/). It turned out to be tractable as a local expansion
   over the pre-JSX-transform AST rather than a full custom JSX transform,
   because Xote's runtime already accepts thunked attribute/child values and

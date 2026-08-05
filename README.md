@@ -33,11 +33,14 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
     "version": 4,
     "module": "XoteJSX"
   },
+  "ppx-flags": ["xote/ppx/ppx"],
   "compiler-flags": ["-open Xote"]
 }
 ```
 
 The compiler flag `-open Xote` is optional, it makes the Xote modules available unqualified inside your source files.
+
+The `ppx-flags` line enables the **`@xote.component`** annotation — the standard authoring model. It derives props from labeled arguments (like `@jsx.component`) and additionally lets you read signals **inline** in JSX with fine-grained updates: no `() => …` thunks, no value-primitive wrappers. The npm package ships the PPX prebuilt for linux-x64/arm64, macOS x64/arm64, and Windows x64, selected automatically at install time — no OCaml toolchain needed. See [`ppx/README.md`](ppx/README.md) for how it works and the (few) limitations; to skip the PPX entirely, omit `ppx-flags` and use `@jsx.component` with explicit thunks and `<View.Text>`/`<View.Int>` primitives, as shown further below.
 
 This README uses the application-facing names for public code:
 
@@ -49,7 +52,7 @@ This README uses the application-facing names for public code:
 
 ```rescript
 module App = {
-  @jsx.component
+  @xote.component
   let make = () => {
     // Create reactive state
     let count = Signal.make(0)
@@ -64,19 +67,13 @@ module App = {
       None // Optional clean up function
     })
 
-    // Build the UI with JSX
+    // Build the UI with JSX — signal reads inline, only the leaves re-run
     <div>
-      <h1> <View.Text> "Counter" </View.Text> </h1>
-      <p>
-        <View.Text> "Count: " </View.Text>
-        <View.Int> {count} </View.Int>
-      </p>
-      <p>
-        <View.Text> "Doubled: " </View.Text>
-        <View.Int> {doubled} </View.Int>
-      </p>
+      <h1> {"Counter"} </h1>
+      <p> {"Count: "} {Signal.get(count)} </p>
+      <p> {"Doubled: "} {Signal.get(doubled)} </p>
       <button onClick={(_evt: Dom.event) => Signal.update(count, n => n + 1)}>
-        <View.Text> "Increment" </View.Text>
+        {"Increment"}
       </button>
     </div>
   }
@@ -86,15 +83,17 @@ module App = {
 View.mountById(<App />, "app")
 ```
 
+When `count` changes, only the two text leaves that read it update — the elements are built once and keep their DOM identity.
+
 Since in ReScript each file is its own module, you can define a reusable component by exporting a `make` function from that file. The file name becomes the component name: `Counter.res` gives you `<Counter />`. 
 
-The `@jsx.component` attribute instructs the compiler to derive a props type from the function's labeled arguments, enabling JSX usage without boilerplate. 
+The `@xote.component` attribute derives a props type from the function's labeled arguments (exactly like ReScript's `@jsx.component`, which it emits under the hood) and fine-grains the returned JSX. 
 
 Here's an example of a reusable component with properties:
 
 ```res
 // Greeting.res
-@jsx.component
+@xote.component
 let make = (~name: string, ~greeting: string="Hello") => {
   <p>
     <View.Text> {`${greeting}, ${name}!`} </View.Text>
@@ -223,12 +222,14 @@ let name = Signal.make("Ada")
 
 Dependencies are re-discovered on every run, so conditional reads work: above, `name` is only tracked while `loggedIn` is true. The tradeoff is granularity — a tracked block replaces its children wholesale (no diffing) when a dependency changes, so keep tracked blocks small and prefer `View.For` with `by` for lists.
 
+Under `@xote.component` you rarely write `View.tracked` yourself: an `if`/`switch` in child position is wrapped in it automatically, tracking only the condition — reactive leaves inside the branches stay fine-grained.
+
 ### Static or Reactive Props
 
 Use `Prop` when a component prop can accept either a static value or a signal:
 
 ```rescript
-@jsx.component
+@xote.component
 let make = (~className: Prop.t<string>=Prop.static("badge"), ~children) => {
   <span class={className}> {children} </span>
 }
