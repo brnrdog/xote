@@ -1021,7 +1021,13 @@ let sub_exprs (e : expression) : expression list =
   match e.pexp_desc with
   | Pexp_apply (f, args) -> f :: List.map snd args
   | Pexp_ifthenelse (c, t, eo) -> c :: t :: (match eo with Some x -> [ x ] | None -> [])
-  | Pexp_match (x, cases) | Pexp_try (x, cases) -> x :: List.map (fun c -> c.pc_rhs) cases
+  | Pexp_match (x, cases) | Pexp_try (x, cases) ->
+    (* guards are evaluated eagerly alongside the scrutinee — a signal read in
+       `| _ if Signal.get(flag) => …` must count, or the switch is never tracked *)
+    x
+    :: List.concat_map
+         (fun c -> (match c.pc_guard with Some g -> [ g ] | None -> []) @ [ c.pc_rhs ])
+         cases
   | Pexp_construct (_, Some x) -> [ x ]
   | Pexp_variant (_, Some x) -> [ x ]
   | Pexp_tuple xs | Pexp_array xs -> xs
@@ -1154,14 +1160,29 @@ let is_children_label = function
 let should_thunk (env : env) (v : expression) : bool =
   reads_signal_eager env v && jsx_parts v = None
 
+(* `@xote.component` is the single annotation: it derives props exactly like
+   `@jsx.component` (which we emit for the JSX transform to expand) *and*
+   fine-grained-decomposes the returned JSX. One attribute replaces
+   `@jsx.component` and makes the whole component tracked. *)
+let is_xote_component ((name, _) : attribute) = name.Location.txt = "xote.component"
+let strip_xote_component = List.filter (fun a -> not (is_xote_component a))
+let jsx_component_attr : attribute = (mkloc "jsx.component", PStr [])
+
 (* ---- decomposition ------------------------------------------------------ *)
 let rec fine_node (env : env) (e : expression) : expression =
   match jsx_parts e with
   | Some (f, args) when is_value_component f ->
     { e with pexp_desc = Pexp_apply (f, List.map (value_arg env) args) }
-  | Some (f, args) ->
-    (* element or user component: attrs are value position, children nodes *)
+  | Some (f, args) when is_element f ->
+    (* intrinsic HTML/SVG element: attrs are value position (thunked when they
+       eagerly read a signal, so they lower to computed attributes), children
+       are node position *)
     { e with pexp_desc = Pexp_apply (f, List.map (element_arg env) args) }
+  | Some (f, args) ->
+    (* user component: children are node position, but its labelled props land
+       in the component's *typed props record*, so thunking them would change
+       their type and break compilation with a baffling error *)
+    { e with pexp_desc = Pexp_apply (f, List.map (component_arg env) args) }
   | None when is_jsx_fragment e ->
     (* A fragment `<>…</>` is a JSX-tagged `::`/`[]` list, not a Pexp_apply, so
        jsx_parts misses it. Recurse fine_node into each child exactly like an
@@ -1187,6 +1208,24 @@ let rec fine_node (env : env) (e : expression) : expression =
           already reactive on its own reads only inside a lambda, so it is left
           as-is rather than redundantly wrapped. *)
        if reads_signal_eager env e then wrap_tracked (decompose_branches env e) else e
+     | Pexp_let (r, vbs, body) ->
+       (* A block expression in node position — `{let x = …; <span/>}`. Recurse
+          into the tail so the JSX inside keeps fine-grained leaves instead of
+          the whole block collapsing into one coarse View.child thunk (which
+          would rebuild the subtree — and lose element identity — on every
+          dependency change). Bindings scope exactly like the component body. *)
+       let vbs' = List.map (map_vb env) vbs in
+       let env' = collect_val_aliases env vbs in
+       { e with pexp_desc = Pexp_let (r, vbs', fine_node env' body) }
+     | Pexp_letmodule (name, me, body) ->
+       let env' = collect_mod_alias env name me in
+       { e with pexp_desc = Pexp_letmodule (name, me, fine_node env' body) }
+     | Pexp_open (o, l, x) ->
+       let env' = collect_open env l.Location.txt in
+       { e with pexp_desc = Pexp_open (o, l, fine_node env' x) }
+     | Pexp_sequence (a, b) ->
+       { e with pexp_desc = Pexp_sequence (map_expr env a, fine_node env b) }
+     | Pexp_constraint (x, t) -> { e with pexp_desc = Pexp_constraint (fine_node env x, t) }
      | _ ->
        (* A bare value child — `<div>{Signal.get(count)}</div>` — with no explicit
           <View.Int>/<View.Text> wrapper. Coerce it to a node with View.child:
@@ -1217,6 +1256,16 @@ and element_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * ex
       if should_thunk env v then (lbl, thunk v) else (lbl, v)
     | Nolabel -> (lbl, v)
 
+and component_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
+  (* User-component props are left untouched: an eager `Signal.get(x)` prop is a
+     legitimate one-shot read of a plain-typed prop (pass the signal itself when
+     the prop should be reactive). The exceptions are node-shaped values, which
+     are node position wherever they appear: children, and any prop whose value
+     is itself JSX — recurse so their reactive leaves stay fine-grained. *)
+  if is_children_label lbl then (lbl, map_children (fine_node env) v)
+  else if jsx_parts v <> None || is_jsx_fragment v then (lbl, fine_node env v)
+  else (lbl, v)
+
 and value_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
   if is_children_label lbl then (lbl, map_children (value_leaf env) v)
   else
@@ -1242,15 +1291,7 @@ and map_children f (v : expression) : expression =
   | _ -> f v
 
 (* ---- traversal: find @xote.component and decompose ----------------------- *)
-(* `@xote.component` is the single annotation: it derives props exactly like
-   `@jsx.component` (which we emit for the JSX transform to expand) *and*
-   fine-grained-decomposes the returned JSX. One attribute replaces
-   `@jsx.component` and makes the whole component tracked. *)
-let is_xote_component ((name, _) : attribute) = name.Location.txt = "xote.component"
-let strip_xote_component = List.filter (fun a -> not (is_xote_component a))
-let jsx_component_attr : attribute = (mkloc "jsx.component", PStr [])
-
-let rec map_expr (env : env) (e : expression) : expression = map_children_expr env e
+and map_expr (env : env) (e : expression) : expression = map_children_expr env e
 
 and map_children_expr (env : env) (e : expression) : expression =
   let d =
@@ -1339,6 +1380,9 @@ and map_si (env : env) si =
   match si.pstr_desc with
   | Pstr_value (r, vbs) -> { si with pstr_desc = Pstr_value (r, List.map (map_vb env) vbs) }
   | Pstr_module mb -> { si with pstr_desc = Pstr_module (map_mb env mb) }
+  | Pstr_recmodule mbs -> { si with pstr_desc = Pstr_recmodule (List.map (map_mb env) mbs) }
+  | Pstr_include incl ->
+    { si with pstr_desc = Pstr_include { incl with pincl_mod = map_mod env incl.pincl_mod } }
   | Pstr_eval (e, attrs) -> { si with pstr_desc = Pstr_eval (map_expr env e, attrs) }
   | _ -> si
 
@@ -1346,32 +1390,55 @@ and map_mb (env : env) mb = { mb with pmb_expr = map_mod env mb.pmb_expr }
 and map_mod (env : env) me =
   match me.pmod_desc with
   | Pmod_structure s -> { me with pmod_desc = Pmod_structure (map_structure env s) }
+  (* `module Widget: Sig = { … }` and functor bodies still contain components;
+     skipping them would leave @xote.component silently unexpanded *)
+  | Pmod_constraint (m, mt) -> { me with pmod_desc = Pmod_constraint (map_mod env m, mt) }
+  | Pmod_functor (name, mt, body) ->
+    { me with pmod_desc = Pmod_functor (name, mt, map_mod env body) }
   | _ -> me
 
 (* ---- ReScript -ppx binary protocol: `ppx <infile> <outfile>` ------------ *)
 let impl_magic = "Caml1999M022"
+let usage =
+  "xote ppx: fine-grained @xote.component rewriter for ReScript.\n\
+   Invoked by the compiler via rescript.json ppx-flags as `ppx <ast-in> <ast-out>`."
+
 let () =
   let n = Array.length Sys.argv in
+  (* `--help` doubles as the postinstall/CI smoke test: it proves the binary
+     loads and executes on the host (right libc, right arch) without an AST. *)
+  if n = 2 && (Sys.argv.(1) = "--help" || Sys.argv.(1) = "-h") then begin
+    print_endline usage;
+    exit 0
+  end;
+  if n < 3 then begin
+    prerr_endline usage;
+    exit 2
+  end;
   let infile = Sys.argv.(n - 2) and outfile = Sys.argv.(n - 1) in
   let ic = open_in_bin infile in
   let magic = really_input_string ic (String.length impl_magic) in
   let name : string = input_value ic in
   let payload : Obj.t = input_value ic in
   close_in ic;
+  (* Interface ASTs (Caml1999N…) legitimately pass through untouched. A
+     different *implementation* magic means the compiler's ppx ABI moved and
+     @xote.component cannot be expanded — fail the build here with a clear
+     message rather than passing the AST through and letting it die later on
+     a confusing type error. *)
+  let is_impl = String.length magic >= 9 && String.sub magic 0 9 = "Caml1999M" in
+  if is_impl && magic <> impl_magic then begin
+    prerr_endline
+      ("xote ppx: unsupported AST magic " ^ magic ^ " (this ppx expects " ^ impl_magic
+       ^ "), so @xote.component cannot be expanded in " ^ name
+       ^ ". The installed ReScript version's ppx ABI is newer than this ppx supports; "
+       ^ "upgrade xote, or remove it from ppx-flags.");
+    exit 2
+  end;
   let oc = open_out_bin outfile in
   output_string oc magic;
   output_value oc name;
-  (if magic = impl_magic then output_value oc (map_structure empty_env (Obj.magic payload : structure))
-   else begin
-     (* Interface ASTs (Caml1999N…) legitimately pass through untouched. A
-        different *implementation* magic means the compiler's ppx ABI moved
-        and @xote.component was NOT expanded — say so instead of letting the
-        build die later on a confusing type error. *)
-     if String.length magic >= 9 && String.sub magic 0 9 = "Caml1999M" then
-       prerr_endline
-         ("xote ppx: unsupported AST magic " ^ magic ^ " (this ppx expects " ^ impl_magic
-          ^ "); @xote.component was NOT expanded in " ^ name
-          ^ ". The installed ReScript version is likely newer than this ppx supports; check for a Xote update.");
-     output_value oc payload
-   end);
+  (if magic = impl_magic then
+     output_value oc (map_structure empty_env (Obj.magic payload : structure))
+   else output_value oc payload);
   close_out oc
