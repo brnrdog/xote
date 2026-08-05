@@ -171,7 +171,9 @@ let make = () => {
   </div>
 }
 
-View.mountById(<Counter />, "app")`}
+// in App.res (the entry point — a module can't reference
+// itself by its own file name):
+// View.mountById(<Counter />, "app")`}
     >
       <CounterDemo />
     </DocsExamplePanel>

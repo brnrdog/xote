@@ -93,12 +93,30 @@ Applied recursively to the component's returned JSX:
 | `<View.Text/…>` child | no | left as-is (static text) |
 | Element / nested JSX | — | recurse into attributes and children |
 | Fragment (`<>…</>`) | — | recurse into each child independently (so nested reactive regions stay separate — not collapsed into one thunk) |
-| Bare child, control flow (`if`/`switch` selecting different nodes) | yes | branches decomposed fine-grained, then wrapped in `View.tracked` — see below |
+| User-component prop (`<Card label={…}>`) | — | left untouched — see [User-component props](#user-component-props) |
+| Bare child, control flow (`if`/`switch` selecting different nodes) | yes | branches decomposed fine-grained, then wrapped in `View.tracked` — see below. Signal reads in `when` guards count: they are evaluated with the scrutinee |
+| Bare child, block expression (`{let x = …; <span/>}`) | — | recurse into the tail, threading `let`-bound aliases — the inner JSX keeps fine-grained leaves |
 | Bare child, otherwise (`{Signal.get(x)}`, `{"lit"}`, `{someNode}`) | — | wrapped in `View.child` — see [Bare value children](#bare-value-children) |
 
 The result: reactivity lives at the leaves; `View.tracked` is emitted
 **surgically**, only around a child region whose node *structure* actually
 varies, and never around the stable elements that enclose it.
+
+### User-component props
+
+Props of a **user component** land in that component's typed props record, so
+the PPX never thunks them — `<Card label={Signal.get(name)} />` compiles as
+written and is a deliberate **one-shot read** (the component function runs
+once; a reactive-looking scalar prop cannot be reactive anyway). For a prop
+that should react, pass the signal itself (`<Card count={count} />`) or a
+thunk, and have the component read it.
+
+The two node-shaped exceptions are still decomposed: **children**, and any
+prop whose value is **itself JSX** (`<Layout header={<span
+class={Signal.get(theme)} />} />` — the header's class stays a fine-grained
+reactive leaf). Intrinsic elements (`<div>`, …) are different: their attributes
+accept thunks at runtime, which is why *their* reactive attributes are thunked
+into `computedAttr`s.
 
 ### Bare value children
 
@@ -181,9 +199,10 @@ shadowing it with a non-alias removes it) recognises all of these:
 | Local reactive helper | `let cls = () => Signal.get(x) ? …` … `cls()` | function binding whose body eagerly reads a signal; its *call* counts |
 
 `Signal.peek` is intentionally **not** a read — it is an untracked read, so a
-value that only peeks stays static (verified by the shadowing case, where an
-alias rebound to a `peek`-based function is dropped and its attribute is left
-as a plain string).
+value that only peeks stays static (verified by the example's `PeekShadow`
+case, where a reactive helper rebound to a `peek`-based function is dropped
+from the alias environment and its attribute is left as a plain, once-evaluated
+string).
 
 Only *eager* reads trigger a thunk. A read deferred inside a nested lambda — a
 `() => …` you wrote yourself, a `Computed`, a `Prop.reactive(Computed.make(…))`,
@@ -248,9 +267,12 @@ required. Two edge cases:
   scripts (pnpm does by default). Approve them for `xote`
   (`pnpm approve-builds`) or run `node node_modules/xote/ppx/postinstall.js`
   once.
-- **Unsupported platform.** If no prebuilt binary matches, the install script
-  falls back to compiling `ppx.ml` from source when `ocamlopt` is on the
-  `PATH`, and otherwise prints instructions without failing the install.
+- **Unsupported platform.** If no prebuilt binary matches — or the matching
+  one does not execute on the host (the install script smoke-runs it; the
+  Linux prebuilts are glibc-linked, so musl systems like Alpine fall through
+  here) — the script falls back to compiling `ppx.ml` from source when
+  `ocamlopt` is on the `PATH`, and otherwise prints instructions without
+  failing the install.
 
 A `ppx-flags` entry is deliberately **not** in Xote's own published
 `rescript.json`: a ReScript consumer recompiles a dependency's sources during
@@ -299,10 +321,10 @@ Or step by step from `example/`:
 sh setup.sh             # link toolchain + Xote from the repo root (idempotent)
 sh ../build.sh          # build the ppx
 npm run build           # compile Demo.res through the ppx
-npm run verify          # jsdom runtime check (71 assertions)
+npm run verify          # jsdom runtime check (every case above, asserted on real DOM)
 ```
 
-## Known limitations (it's a prototype)
+## Known limitations
 
 - **Signal detection is syntactic** (though alias- and helper-aware — see the
   table above). It follows `let`/`module`/`open` aliases and *local* reactive
@@ -313,6 +335,21 @@ npm run verify          # jsdom runtime check (71 assertions)
   hatch is reliable: wrap it in `() =>` yourself and it becomes reactive (the
   eager check leaves your thunk alone, so it is never double-wrapped). An
   over-eager match only produces a harmless extra `computedAttr`.
+- **Hoisting a read into a `let` makes it a one-shot read.** Reactivity follows
+  the *expression in JSX position*: `<div> {Signal.get(count)} </div>` is a
+  reactive leaf, but
+
+  ```rescript
+  let label = Signal.get(count)->Int.toString
+  <div> {label} </div>
+  ```
+
+  reads `count` once, at component setup, and renders a static value — the
+  binding is an ordinary eager evaluation, exactly as it would be in any
+  signals library without a compiler. When extracting a reactive expression
+  into a binding, bind a *thunk* instead: `let label = () =>
+  Signal.get(count)->Int.toString` and use `{label()}` (a tracked reactive
+  helper) or `{label}` (coerced by `View.child`).
 - **Value-component detection is hard-coded** to the qualified
   `View.Text/Int/Float/Bool`. An aliased or opened `View` (`module V = View` →
   `<V.Text>`, `open View` → bare `<Text>`) is not recognized as a value
@@ -323,15 +360,16 @@ npm run verify          # jsdom runtime check (71 assertions)
 - **Coupled to ReScript's ppx ABI.** The vendored OCaml 4.06 parsetree, the
   `Caml1999M022` marshal magic, and the uncurried `Function$` construct name are
   compiler internals. A ReScript release that bumps the ppx AST version makes
-  the ppx print a warning to stderr naming the mismatched magic and pass the
-  AST through unexpanded (the build then fails on the unexpanded annotation);
-  a release that renamed `Function$` could fail *quietly*. Validated against
-  ReScript 12; CI building the docs site through the PPX is the early warning
-  on upgrade.
+  the ppx **fail the build immediately** with an error naming the mismatched
+  magic (interface ASTs still pass through untouched); a release that renamed
+  `Function$` could fail *quietly*. Validated against ReScript 12; CI building
+  the docs site through the PPX is the early warning on upgrade.
 - **A branch swap still rebuilds that branch's subtree.** Control flow tracks
   only the condition (leaves inside branches stay fine-grained, see above), but
   when the condition *does* change, the selected branch is built fresh — there
   is no keyed diffing between the old and new branch. This matches Xote's own
   `View.Show`/`View.tracked`; use `View.For` with `by` for lists.
-- **Not wired into the main build.** This lives outside `src/` and is not part
-  of `npm run build`/`test`; it is a standalone proof of concept.
+- **Separate from the library build.** The PPX is never needed to build or use
+  Xote itself (`npm run build`/`npm run test` don't involve it). It is compiled
+  per platform in CI, shipped prebuilt in the npm tarball, and exercised
+  end-to-end by `npm run ppx:test` on every push.

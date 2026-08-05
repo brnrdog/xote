@@ -32,7 +32,7 @@ No toolchain or build step is needed: the npm package ships the PPX as a prebuil
 - If your package manager skips dependency install scripts (pnpm does by default), allow them for `xote` (for pnpm, `pnpm approve-builds`) or run `node node_modules/xote/ppx/postinstall.js` once after installing.
 - On a platform without a prebuilt binary, the install script compiles the PPX from its bundled source instead, which needs `ocamlopt` (`sh node_modules/xote/ppx/build.sh` runs it manually).
 
-Prefer no PPX at all? Omit `ppx-flags` and use `@jsx.component` instead of `@xote.component` — everything below still works, you just write reactive attributes/text with explicit `() => …` thunks.
+Prefer no PPX at all? Omit `ppx-flags` and use `@jsx.component` instead of `@xote.component`. You then write reactive attributes/text with explicit `() => …` thunks, and bare `{…}` children (a PPX feature) become the explicit value primitives (`<View.Text>`, `<View.Int>`, …) shown under [Reactive Output](#reactive-output).
 
 ### Writing Components
 
@@ -42,6 +42,8 @@ Use a module with a `make` function and annotate it with `@xote.component`. It d
 
 ```rescript
 open Xote
+
+let highlight = Signal.make(false)
 
 module Greeting = {
   @xote.component

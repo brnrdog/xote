@@ -34,6 +34,13 @@ let make = () => {
     <button onClick={increment}> {"Increment"} </button>
   </div>
 }
+```
+
+Mount it from your entry file (a module can't reference itself by its file name, so the mount lives one file up):
+
+```rescript
+// App.res
+open Xote
 
 View.mountById(<Counter />, "app")
 ```
