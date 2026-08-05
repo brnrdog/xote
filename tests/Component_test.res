@@ -201,6 +201,54 @@ let suite = Zekr.suite(
       let r2 = Dom.Assert.toHaveTextContent(container, "11")
       combineResults([r1, r2])
     }),
+    test("child turns a node-returning thunk into a tracked fragment", () => {
+      let {container} = Dom.render("")
+      let count = Signal.make(0)
+      let _ = mountTo(
+        View.child(() =>
+          Html.p(~children=[View.text("n=" ++ Signal.get(count)->Int.toString)], ())
+        ),
+        container,
+      )
+      let r1 = Dom.Assert.toHaveTextContent(container, "n=0")
+      Signal.set(count, 7)
+      let r2 = Dom.Assert.toHaveTextContent(container, "n=7")
+      combineResults([r1, r2])
+    }),
+    test("child thunk over option<node> survives None -> Some(node)", () => {
+      let {container} = Dom.render("")
+      let show = Signal.make(false)
+      let _ = mountTo(
+        Html.div(
+          ~children=[
+            View.child(() =>
+              Signal.get(show) ? Some(Html.p(~children=[View.text("shown")], ())) : None
+            ),
+            View.text("|end"),
+          ],
+          (),
+        ),
+        container,
+      )
+      let r1 = Dom.Assert.toHaveTextContent(container, "|end")
+      Signal.set(show, true)
+      let r2 = Dom.Assert.toHaveTextContent(container, "shown|end")
+      Signal.set(show, false)
+      let r3 = Dom.Assert.toHaveTextContent(container, "|end")
+      combineResults([r1, r2, r3])
+    }),
+    test("child thunk returning an array of nodes renders and updates", () => {
+      let {container} = Dom.render("")
+      let items = Signal.make(["a", "b"])
+      let _ = mountTo(
+        View.child(() => Signal.get(items)->Array.map(item => View.text(item))),
+        container,
+      )
+      let r1 = Dom.Assert.toHaveTextContent(container, "ab")
+      Signal.set(items, ["a", "b", "c"])
+      let r2 = Dom.Assert.toHaveTextContent(container, "abc")
+      combineResults([r1, r2])
+    }),
     test("child coerces an array element-wise into a fragment", () => {
       let {container} = Dom.render("")
       let _ = mountTo(
