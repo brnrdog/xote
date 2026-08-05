@@ -42,6 +42,14 @@ jobs:
           mkdir -p ppx/bin
           opam exec -- ocamlopt -w -a-31 ppx/ppx.ml -o "ppx/bin/ppx-${{ matrix.target }}.exe"
 
+      # The binary must actually *run* on its host platform — `--help` proves
+      # the executable loads (right arch, libc, DLLs), which the release
+      # workflow's size check cannot. This is the only step that executes the
+      # exact artifact that ships.
+      - name: Smoke-test binary
+        shell: bash
+        run: ./ppx/bin/ppx-${{ matrix.target }}.exe --help
+
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:

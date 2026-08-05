@@ -62,6 +62,9 @@ jobs:
           done
           chmod +x ppx/bin/*.exe
           ls -l ppx/bin
+          # execute the one binary this runner can run (the per-platform
+          # smoke test lives in ppx-binaries.yml, on each native runner)
+          ./ppx/bin/ppx-linux-x64.exe --help
 
       # Binaries present on disk is not enough: ignore rules can silently
       # strip them from the tarball (nested .gitignore files are honored by
