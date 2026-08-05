@@ -1,3 +1,10 @@
+# [7.1.0-beta.4](https://github.com/brnrdog/xote/compare/v7.1.0-beta.3...v7.1.0-beta.4) (2026-08-05)
+
+
+### Bug Fixes
+
+* **ppx:** harden install path and CI for the prebuilt binaries ([e814d2c](https://github.com/brnrdog/xote/commit/e814d2cc2ab3a1986b918a17d9c5edd01fa1c9b5))
+
 # [7.1.0-beta.3](https://github.com/brnrdog/xote/compare/v7.1.0-beta.2...v7.1.0-beta.3) (2026-07-23)
 
 
