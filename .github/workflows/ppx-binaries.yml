@@ -1,12 +1,29 @@
 name: PPX binaries
 
 # Builds the @xote.component ppx as a native binary for every supported
-# platform. Called from ci.yml (to keep the pipeline from rotting) and from
-# release.yml (the binaries are downloaded into ppx/bin/ and shipped in the
-# npm tarball; ppx/postinstall.js selects the right one at install time).
+# platform. Runs where it can actually catch something, not on every push:
+#   - called from release.yml (the binaries are downloaded into ppx/bin/ and
+#     shipped in the npm tarball; ppx/postinstall.js selects one at install);
+#   - on PRs/pushes that touch the ppx source or this workflow;
+#   - weekly, as a canary for environment drift (runner retirements,
+#     setup-ocaml changes) so a broken target surfaces before release day.
+# The regular CI test job still compiles and e2e-tests the ppx on Linux on
+# every push.
 
 on:
   workflow_call: {}
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - "ppx/**"
+      - ".github/workflows/ppx-binaries.yml"
+  push:
+    branches: [main]
+    paths:
+      - "ppx/**"
+      - ".github/workflows/ppx-binaries.yml"
+  schedule:
+    - cron: "0 6 * * 1"
 
 jobs:
   build:
