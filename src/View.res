@@ -813,9 +813,12 @@ let warnUnrenderable: 'a => unit = %raw(`function (v) {
      - any other object cannot be rendered: it is stringified with a console
        warning rather than treated as a signal.
 
-   The reactive-thunk mode (scalar text vs node fragment) is decided once, from
-   the first evaluation — safe for ppx-emitted thunks because ReScript types
-   make the result shape stable; hand-written thunks must be shape-stable too.
+   A thunk whose first evaluation is a *scalar* locks into reactive-text mode
+   (safe: ReScript typing keeps scalar thunks scalar). Any other first value —
+   node, array, option<node>, null — gets a tracked fragment that re-coerces
+   the result on every run, so shape changes like `None -> Some(node)` render
+   correctly. The one unsupported shape change is scalar-first-then-node from
+   an untyped hand-written thunk.
 
    The explicit `View.Text`/`Int`/`Float`/`Bool` value primitives still work for
    non-ppx code and for stronger typing; this is the ergonomic default under the
@@ -828,10 +831,18 @@ let rec child = (value: 'a): node => {
     | Function(_) => {
         let compute: unit => 'b = Obj.magic(value)
         let signal = Computed.make(compute)
-        if isNode(Signal.peek(signal)) {
-          SignalFragment(Computed.make(() => [(Obj.magic(Signal.get(signal)): node)]))
-        } else {
+        switch Signal.peek(signal)->Core.Type.Classify.classify {
+        | String(_) | Number(_) | Bool(_) =>
+          /* scalar-first thunk: a reactive text node. ReScript typing keeps a
+             scalar thunk scalar, so locking text mode here is safe. */
           SignalText(Computed.make(() => stringifyChild(Signal.get(signal))))
+        | _ =>
+          /* node-, array-, option- or otherwise object-first thunk: a tracked
+             fragment that re-coerces the result on *every* run, so thunks over
+             `option<node>` (None first, Some(node) later) and array-returning
+             thunks stay correct instead of being locked into text mode by
+             their first value. */
+          SignalFragment(Computed.make(() => [child(Obj.magic(Signal.get(signal)))]))
         }
       }
     | Object(_) =>
