@@ -7,6 +7,7 @@ let theme = Signal.make("light")
 let count = Signal.make(0)
 let mobileOpen = Signal.make(false)
 let canvas = Signal.make("canvas-a")
+let items = Signal.make(["a", "b"])
 module S = Signal
 
 /* Every case is an @xote.component: one annotation derives props (it emits
@@ -268,5 +269,102 @@ module VariantAttr = {
       }}>
       <span id="va-anchor" />
     </div>
+  }
+}
+
+/* Case 20: a switch whose ONLY signal read sits in a `when` guard. Guards are
+   evaluated eagerly alongside the scrutinee, so the switch must still become a
+   View.tracked region — before guards were visited by the eager-read traversal,
+   this compiled to a once-evaluated static branch with no error. */
+module GuardSwitch = {
+  @xote.component
+  let make = () => {
+    let v = 1
+    <div id="guard-switch">
+      {switch v {
+      | _ if Signal.get(active) => <span id="gs-on"> {View.text("on")} </span>
+      | _ => <span id="gs-off"> {View.text("off")} </span>
+      }}
+    </div>
+  }
+}
+
+/* Case 21: a component inside a signature-constrained module. The structure
+   traversal must descend through `module X: Sig = { … }` (Pmod_constraint) —
+   before it did, @xote.component was silently left unexpanded there. */
+module ConstrainedPanel: {
+  @res.jsxComponentProps
+  type props = {}
+  let make: props => View.node
+} = {
+  @xote.component
+  let make = () => {
+    <div id="constrained" class={Signal.get(theme)}> {Signal.get(count)} </div>
+  }
+}
+
+/* Case 22: a block expression (`{let … ; <span/>}`) in node position. The tail
+   JSX must keep fine-grained leaves — before blocks were recursed into, the
+   whole block collapsed into one coarse View.child thunk that rebuilt the
+   subtree (and lost element identity) on every dependency change. */
+module LetBlockChild = {
+  @xote.component
+  let make = () => {
+    <div id="lb-host">
+      {
+        let label = "L"
+        <span id="lb-span" class={Signal.get(theme)}> {View.text(label)} </span>
+      }
+    </div>
+  }
+}
+
+/* Cases 23/24: user-component props. A scalar prop that eagerly reads a signal
+   is passed through untouched — a deliberate one-shot read into the component's
+   typed props record (thunking it would be a type error; pass the signal itself
+   for a reactive prop). A prop whose value is itself JSX is node position, so
+   its own reactive leaves are decomposed and stay fine-grained. */
+module TitleCard = {
+  @xote.component
+  let make = (~label: string, ~header: View.node) => {
+    <div id="title-card">
+      <em id="tc-label"> {View.text(label)} </em>
+      {header}
+    </div>
+  }
+}
+
+module UseTitleCard = {
+  @xote.component
+  let make = () => {
+    <TitleCard
+      label={Signal.get(name)}
+      header={<span id="tc-header" class={Signal.get(theme)} />}
+    />
+  }
+}
+
+/* Case 25: shadowing removes a reactive helper. `toneClass` (top level) eagerly
+   reads a signal, but the local rebind below is peek-based — the rebind drops
+   the name from the reactive-helper set, so `class={toneClass()}` is left as a
+   plain, intentionally-static one-shot string. */
+let toneClass = () => Signal.get(active) ? "on" : "off"
+module PeekShadow = {
+  @xote.component
+  let make = () => {
+    let toneClass = () => Signal.peek(active) ? "peek-on" : "peek-off"
+    <div id="peek-shadow" class={toneClass()}> <span id="ps-anchor" /> </div>
+  }
+}
+
+/* Case 26: a bare mapped-list child — `{Signal.get(items)->Array.map(…)}`. The
+   eager read is thunked and View.child re-coerces the *array* result on every
+   run (an array-returning thunk must not lock into reactive-text mode). */
+module MappedList = {
+  @xote.component
+  let make = () => {
+    <ul id="mapped-list">
+      {Signal.get(items)->Array.map(item => <li class="ml-item"> {View.text(item)} </li>)}
+    </ul>
   }
 }
