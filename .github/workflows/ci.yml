@@ -12,11 +12,10 @@ permissions:
   pull-requests: write
 
 jobs:
-  # Compile the @xote.component ppx for every platform the npm package ships
-  # binaries for, so a breakage in any target surfaces before release.
-  ppx-binaries:
-    uses: ./.github/workflows/ppx-binaries.yml
-
+  # The five-platform ppx binary matrix does NOT run here on every push: it
+  # lives in ppx-binaries.yml, triggered by release.yml, by changes to
+  # ppx/** or that workflow, and by a weekly drift-canary schedule. The test
+  # job below still builds and e2e-tests the ppx on Linux each run.
   test:
     # Pinned (not -latest) so apt's OCaml stays 4.14, matching the compiler
     # ppx-binaries.yml pins for the shipped binaries. Bump both together.
