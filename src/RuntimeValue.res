@@ -6,7 +6,9 @@ let objectHasTag = (obj: {..}, tag: string): bool =>
   | None => false
   }
 
-let isReactiveProp = (value: 'value): bool => {
+/* Detects a `MaybeSignal.t` at runtime by its variant tag. Used where JSX hands
+ us untyped values that may be raw, a signal, a function, or a `MaybeSignal.t`. */
+let isMaybeSignal = (value: 'value): bool => {
   switch value->Core.Type.Classify.classify {
   | Object(obj) => {
       let obj: {..} = Obj.magic(obj)

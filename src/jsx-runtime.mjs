@@ -78,7 +78,8 @@ function isXoteNode(value) {
   return value && typeof value === "object" && nodeTags.has(value.TAG);
 }
 
-function isReactiveProp(value) {
+// Detects a MaybeSignal.t (Static / Reactive) handed to us as an untyped prop.
+function isMaybeSignal(value) {
   return (
     value &&
     typeof value === "object" &&
@@ -136,7 +137,7 @@ function stringifyAttrValue(name, value) {
 }
 
 function attrFromValue(name, value) {
-  if (isReactiveProp(value)) {
+  if (isMaybeSignal(value)) {
     if (value.TAG === "Static") {
       return View.attr(name, stringifyAttrValue(name, value._0));
     }

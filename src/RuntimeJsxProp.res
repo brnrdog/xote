@@ -1,9 +1,9 @@
-let isReactiveProp = RuntimeValue.isReactiveProp
+let isMaybeSignal = RuntimeValue.isMaybeSignal
 
 let toStringAttr = (key: string, value: 'a): (string, View.attrValue) => {
-  if isReactiveProp(value) {
-    let prop: Prop.t<string> = Obj.magic(value)
-    switch prop {
+  if isMaybeSignal(value) {
+    let maybeSignal: MaybeSignal.t<string> = Obj.magic(value)
+    switch maybeSignal {
     | Static(value) => View.attr(key, value)
     | Reactive(signal) => View.signalAttr(key, signal)
     }
@@ -20,9 +20,9 @@ let toStringAttr = (key: string, value: 'a): (string, View.attrValue) => {
 }
 
 let toBoolAttr = (key: string, value: 'a): (string, View.attrValue) => {
-  if isReactiveProp(value) {
-    let prop: Prop.t<bool> = Obj.magic(value)
-    switch prop {
+  if isMaybeSignal(value) {
+    let maybeSignal: MaybeSignal.t<bool> = Obj.magic(value)
+    switch maybeSignal {
     | Static(value) => View.attr(key, RuntimeAttr.boolToString(value))
     | Reactive(signal) => {
         let stringSignal = Computed.make(() => RuntimeAttr.boolToString(Signal.get(signal)))

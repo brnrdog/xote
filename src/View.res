@@ -583,7 +583,7 @@ let eachWithKey = (
 /* JSX rendering primitives */
 module For = {
   type props<'item> = {
-    each: Prop.t<array<'item>>,
+    each: MaybeSignal.t<array<'item>>,
     by?: 'item => string,
     render: 'item => node,
   }
@@ -605,7 +605,7 @@ module For = {
 
 module KeyedFor = {
   type props<'item> = {
-    each: Prop.t<array<'item>>,
+    each: MaybeSignal.t<array<'item>>,
     by: 'item => string,
     render: 'item => node,
   }
@@ -625,7 +625,7 @@ module KeyedFor = {
 
 module Show = {
   type props = {
-    when_: Prop.t<bool>,
+    when_: MaybeSignal.t<bool>,
     children?: node,
     fallback?: node,
   }
@@ -650,7 +650,7 @@ module Show = {
 
 module Maybe = {
   type props<'value> = {
-    value: Prop.t<option<'value>>,
+    value: MaybeSignal.t<option<'value>>,
     render: 'value => node,
     fallback?: node,
   }
@@ -672,7 +672,7 @@ module Maybe = {
 
 module Value = {
   type props<'value> = {
-    value: Prop.t<'value>,
+    value: MaybeSignal.t<'value>,
     render: 'value => node,
   }
 
@@ -710,12 +710,15 @@ let mountById = (node: node, containerId: string): unit => {
   }
 }
 
-let isReactiveProp = RuntimeValue.isReactiveProp
+let isMaybeSignal = RuntimeValue.isMaybeSignal
+
+@deprecated("Use View.isMaybeSignal instead.")
+let isReactiveProp = isMaybeSignal
 
 let valuePrimitive = (value: 'input, stringify: 'value => string): node => {
-  if isReactiveProp(value) {
-    let prop: Prop.t<'value> = Obj.magic(value)
-    switch prop {
+  if isMaybeSignal(value) {
+    let maybeSignal: MaybeSignal.t<'value> = Obj.magic(value)
+    switch maybeSignal {
     | Static(value) => text(stringify(value))
     | Reactive(signal) => SignalText(Computed.make(() => stringify(Signal.get(signal))))
     }

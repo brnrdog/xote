@@ -9,6 +9,7 @@
         "View",
         "Html",
         "XoteJSX",
+        "MaybeSignal",
         "Prop",
         "Route",
         "Router",

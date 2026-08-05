@@ -42,13 +42,13 @@ View.fragment : array<node> => node
 <View.Int>{value}</View.Int>
 <View.Float>{value}</View.Float>
 <View.Bool>{value}</View.Bool>
-<View.For each={Prop.t<array<'a>>} by={('a => string)=?} render={'a => node} />
-<View.Show when_={Prop.t<bool>} fallback={node=?}>...</View.Show>
-<View.Maybe value={Prop.t<option<'a>>} render={'a => node} fallback={node=?} />
-<View.Value value={Prop.t<'a>} render={'a => node} />
+<View.For each={MaybeSignal.t<array<'a>>} by={('a => string)=?} render={'a => node} />
+<View.Show when_={MaybeSignal.t<bool>} fallback={node=?}>...</View.Show>
+<View.Maybe value={MaybeSignal.t<option<'a>>} render={'a => node} fallback={node=?} />
+<View.Value value={MaybeSignal.t<'a>} render={'a => node} />
 ```
 
-For value primitives, `value` can be a raw value, a signal, a `Prop.t`, or a `unit => value` function.
+For value primitives, `value` can be a raw value, a signal, a `MaybeSignal.t`, or a `unit => value` function.
 
 ### Router Architecture
 

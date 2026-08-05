@@ -171,7 +171,7 @@ module DomInspector = {
         )}
       </ol>
       <p
-        class={Prop.reactive(
+        class={MaybeSignal.reactive(
           Computed.make(() =>
             Array.length(Signal.get(entries)) > 0
               ? "dom-inspector-empty is-hidden"

@@ -1,4 +1,7 @@
-module Prop = Prop
+module MaybeSignal = MaybeSignal
+
+/* Deprecated alias — use `MaybeSignal` */
+module Prop = MaybeSignal
 
 /* ReScript JSX transform type aliases */
 type element = View.node
@@ -48,8 +51,9 @@ let null = (): element => View.text("")
 
 /* Elements module for lowercase HTML tags */
 module Elements = {
-  /* Props type for HTML elements - accepts both raw values and Prop.t for flexibility
-   * This allows ergonomic JSX like class="foo" while also supporting class={Prop.reactive(signal)}
+  /* Props type for HTML elements - accepts both raw values and MaybeSignal.t for
+   * flexibility. This allows ergonomic JSX like class="foo" while also supporting
+   * class={MaybeSignal.reactive(signal)}
    */
   type props<
     'id,
