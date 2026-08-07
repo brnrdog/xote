@@ -397,5 +397,27 @@ check('leaf class updates inside a plain-cond branch', sbrl.querySelector('#sbrl
 check('leaf text updates inside a plain-cond branch', sbrl.querySelector('#sbrl-tag').textContent.includes('Bo'));
 check('branch element kept identity (built once, not rebuilt)', sbrl.querySelector('#sbrl-tag').__marker === 'SBRL');
 
+
+// --- Bare children inside a render callback ---------------------------------
+// `render={row => …}` is a function returning JSX: node position once applied,
+// but not JSX itself, so the traversal used to stop at the callback boundary.
+console.log('bare children inside a render callback:');
+Signal.set(Demo.theme, 'light');
+Signal.set(Demo.count, 7);
+const cb = mount(() => Demo.CallbackRows.make({}));
+const cbFirst = cb.querySelector('#cb-rows li');
+cbFirst.__marker = 'ROW1';
+check('callback bare child renders (author)', cb.textContent.includes('Ada'));
+check('callback bare literal renders (separator)', cb.textContent.includes('·'));
+check('callback bare signal read renders (count)', cb.textContent.includes('7'));
+check('callback leaf attribute rendered', cbFirst.className === 'light');
+// The leaves inside the callback are fine-grained: updating a signal they read
+// changes them in place instead of rebuilding the row.
+Signal.set(Demo.count, 8);
+check('callback bare signal read updates', document.querySelector('#cb-rows').textContent.includes('8'));
+Signal.set(Demo.theme, 'dark');
+check('callback leaf attribute updates', document.querySelector('#cb-rows li').className === 'dark');
+check('row kept identity across leaf updates', document.querySelector('#cb-rows li').__marker === 'ROW1');
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

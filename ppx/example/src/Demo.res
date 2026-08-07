@@ -403,3 +403,31 @@ module StaticBranchReactiveLeaf = {
       }}
     </div>
 }
+
+/* Case 22: bare children inside a *render callback*. A prop whose value is a
+   function returning JSX (View.For/Value/Maybe's `render`, or any user
+   component's callback) is node position once applied, but it is not itself
+   JSX, so the traversal used to stop at the callback boundary: nothing inside
+   was decomposed and `<span> {item.author} </span>` failed to compile with
+   "This has type: string". List rendering is written this way, so the shape is
+   everywhere. The reactive leaf below also proves decomposition really happens
+   inside the callback rather than the body being left alone. */
+type row = {id: string, author: string}
+let rows = Signal.make([{id: "r1", author: "Ada"}, {id: "r2", author: "Bo"}])
+
+module CallbackRows = {
+  @xote.component
+  let make = () =>
+    <ul id="cb-rows">
+      <View.For
+        each={Prop.signal(rows)}
+        by={row => row.id}
+        render={row =>
+          <li class={Signal.get(theme)}>
+            <span class="author"> {row.author} </span>
+            <span> {" · "} </span>
+            {Signal.get(count)}
+          </li>}
+      />
+    </ul>
+}

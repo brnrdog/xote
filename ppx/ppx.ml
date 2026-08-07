@@ -1148,6 +1148,40 @@ let is_value_component (f : expression) : bool =
     true
   | _ -> false
 
+(* ---- render callbacks ----------------------------------------------------
+   A prop whose value is a *function returning JSX* — `render={item => <li>…}`
+   on View.For/Value/Maybe, or any user component taking a render callback.
+   The lambda's body is node position, so it must be decomposed like any other
+   node: without this, a bare child inside a render callback is never coerced
+   and `<span> {item.name} </span>` fails to compile with "This has type:
+   string". Only bodies that actually reach JSX qualify, so event handlers and
+   other function props (`by={p => p.id}`, `onClick={…}`) are left alone. *)
+
+(* The expression a block finally evaluates to (past lets/opens/sequences). *)
+let rec tail_expr (e : expression) : expression =
+  match e.pexp_desc with
+  | Pexp_let (_, _, body) -> tail_expr body
+  | Pexp_letmodule (_, _, body) -> tail_expr body
+  | Pexp_open (_, _, x) -> tail_expr x
+  | Pexp_sequence (_, b) -> tail_expr b
+  | Pexp_constraint (x, _) -> tail_expr x
+  | _ -> e
+
+(* The body of a (possibly uncurried, possibly multi-parameter) function. *)
+let rec fun_body (e : expression) : expression option =
+  match e.pexp_desc with
+  | Pexp_construct ({ txt = Longident.Lident "Function$"; _ }, Some fn) -> fun_body fn
+  | Pexp_fun (_, _, _, body) ->
+    (match fun_body body with Some inner -> Some inner | None -> Some body)
+  | _ -> None
+
+let returns_jsx (e : expression) : bool =
+  let t = tail_expr e in
+  jsx_parts t <> None || is_jsx_fragment t
+
+let is_render_callback (e : expression) : bool =
+  match fun_body e with Some body -> returns_jsx body | None -> false
+
 let is_children_label = function
   | Labelled "children" | Optional "children" -> true
   | _ -> false
@@ -1271,11 +1305,24 @@ and component_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * 
   (* User-component props are left untouched: an eager `Signal.get(x)` prop is a
      legitimate one-shot read of a plain-typed prop (pass the signal itself when
      the prop should be reactive). The exceptions are node-shaped values, which
-     are node position wherever they appear: children, and any prop whose value
-     is itself JSX — recurse so their reactive leaves stay fine-grained. *)
+     are node position wherever they appear: children, any prop whose value is
+     itself JSX, and any prop whose value is a *function returning* JSX (a
+     render callback) — recurse so their reactive leaves stay fine-grained and
+     their bare children are coerced. *)
   if is_children_label lbl then (lbl, map_children (fine_node env) v)
   else if jsx_parts v <> None || is_jsx_fragment v then (lbl, fine_node env v)
+  else if is_render_callback v then (lbl, fine_callback env v)
   else (lbl, v)
+
+(* Decompose the body of a render callback, walking past its parameters (and
+   the uncurried `Function$` wrapper) to the node-position body. *)
+and fine_callback (env : env) (e : expression) : expression =
+  match e.pexp_desc with
+  | Pexp_construct (({ txt = Longident.Lident "Function$"; _ } as c), Some fn) ->
+    { e with pexp_desc = Pexp_construct (c, Some (fine_callback env fn)) }
+  | Pexp_fun (l, def, p, body) ->
+    { e with pexp_desc = Pexp_fun (l, def, p, fine_callback env body) }
+  | _ -> fine_node env e
 
 and value_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
   if is_children_label lbl then (lbl, map_children (value_leaf env) v)
