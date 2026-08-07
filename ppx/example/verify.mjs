@@ -362,5 +362,40 @@ Signal.set(Demo.items, ['a', 'b', 'c']);
 check('mapped list updates', document.querySelector('#mapped-list').textContent === 'abc');
 check('mapped list outer <ul> kept identity', document.querySelector('#mapped-list').__marker === 'ML');
 
+
+// --- Control flow on a plain (non-signal) condition -------------------------
+// The conditional is built once, but its branches are node position: bare
+// children inside them must still be coerced by View.child. This is the shape
+// that failed to compile before the branches were decomposed on this path.
+console.log('control flow on a plain condition:');
+const sbTrue = document.createElement('div');
+document.body.appendChild(sbTrue);
+View.mount(Demo.StaticBranch.make({ flag: true }), sbTrue);
+check('plain-cond branch renders bare literal child', sbTrue.querySelector('#sb-yes').textContent === 'yes');
+check('plain-cond ternary over strings renders', sbTrue.textContent.includes('on'));
+
+const sbFalse = document.createElement('div');
+document.body.appendChild(sbFalse);
+View.mount(Demo.StaticBranch.make({ flag: false }), sbFalse);
+check('plain-cond else branch renders bare literal child', sbFalse.querySelector('#sb-no').textContent === 'no');
+check('plain-cond ternary takes the else value', sbFalse.textContent.includes('off'));
+
+// A reactive leaf inside a statically-chosen branch stays fine-grained: the
+// branch element keeps its identity while the leaf updates.
+Signal.set(Demo.theme, 'light');
+Signal.set(Demo.name, 'Ada');
+const sbrl = document.createElement('div');
+document.body.appendChild(sbrl);
+View.mount(Demo.StaticBranchReactiveLeaf.make({ flag: true }), sbrl);
+const sbrlTag = sbrl.querySelector('#sbrl-tag');
+sbrlTag.__marker = 'SBRL';
+check('plain-cond branch leaf renders initial class', sbrlTag.className === 'light');
+check('plain-cond branch leaf renders bare signal read', sbrlTag.textContent.includes('Ada'));
+Signal.set(Demo.theme, 'dark');
+Signal.set(Demo.name, 'Bo');
+check('leaf class updates inside a plain-cond branch', sbrl.querySelector('#sbrl-tag').className === 'dark');
+check('leaf text updates inside a plain-cond branch', sbrl.querySelector('#sbrl-tag').textContent.includes('Bo'));
+check('branch element kept identity (built once, not rebuilt)', sbrl.querySelector('#sbrl-tag').__marker === 'SBRL');
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -368,3 +368,38 @@ module MappedList = {
     </ul>
   }
 }
+
+/* Case 20: control flow on a *plain* condition (a bool prop or local, no signal
+   read anywhere in the condition). No View.tracked is needed since the
+   structure cannot change, but the branches are still node position: their bare
+   children must be coerced. Before the branches were decomposed on this path,
+   `{if flag { <b> {"yes"} </b> } else { … }}` failed to compile with
+   "This has type: string", pointing at the literal rather than the
+   conditional. */
+module StaticBranch = {
+  @xote.component
+  let make = (~flag: bool) =>
+    <div id="static-branch">
+      {if flag {
+        <b id="sb-yes"> {"yes"} </b>
+      } else {
+        <i id="sb-no"> {"no"} </i>
+      }}
+      {flag ? "on" : "off"}
+    </div>
+}
+
+/* Case 21: a plain-condition branch that also holds a reactive leaf. The
+   conditional itself is built once; the leaf inside keeps its own reactive
+   scope, so changing the signal updates the class without rebuilding. */
+module StaticBranchReactiveLeaf = {
+  @xote.component
+  let make = (~flag: bool) =>
+    <div id="sbrl">
+      {if flag {
+        <b id="sbrl-tag" class={Signal.get(theme)}> {Signal.get(name)} </b>
+      } else {
+        <i> {"none"} </i>
+      }}
+    </div>
+}
