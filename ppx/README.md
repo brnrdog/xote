@@ -95,6 +95,7 @@ Applied recursively to the component's returned JSX:
 | Fragment (`<>…</>`) | — | recurse into each child independently (so nested reactive regions stay separate — not collapsed into one thunk) |
 | User-component prop (`<Card label={…}>`) | — | left untouched — see [User-component props](#user-component-props) |
 | Bare child, control flow (`if`/`switch` selecting different nodes) | yes | branches decomposed fine-grained, then wrapped in `View.tracked` — see below. Signal reads in `when` guards count: they are evaluated with the scrutinee |
+| Bare child, control flow | no | branches decomposed fine-grained, **no** `View.tracked` — a condition that cannot change needs no reactive scope, but its branches are still node position, so their bare children are coerced and their leaves stay fine-grained |
 | Bare child, block expression (`{let x = …; <span/>}`) | — | recurse into the tail, threading `let`-bound aliases — the inner JSX keeps fine-grained leaves |
 | Bare child, otherwise (`{Signal.get(x)}`, `{"lit"}`, `{someNode}`) | — | wrapped in `View.child` — see [Bare value children](#bare-value-children) |
 

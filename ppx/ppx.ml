@@ -1206,8 +1206,19 @@ let rec fine_node (env : env) (e : expression) : expression =
 
           The *eager* read check matters here too: a control-flow child that is
           already reactive on its own reads only inside a lambda, so it is left
-          as-is rather than redundantly wrapped. *)
-       if reads_signal_eager env e then wrap_tracked (decompose_branches env e) else e
+          as-is rather than redundantly wrapped.
+
+          A condition with no eager read needs no View.tracked — its structure
+          cannot change — but its branches are still node position and must be
+          decomposed all the same. Skipping them (as this did) meant a bare
+          child inside a statically-conditioned branch never reached
+          View.child, so `{if isActive { <b> {"yes"} </b> } else { … }}` failed
+          to compile with "This has type: string" pointing at the literal
+          rather than at the conditional. Conditioning on a plain bool (a prop,
+          a local) is ordinary UI code, so this path matters as much as the
+          reactive one. *)
+       let branches = decompose_branches env e in
+       if reads_signal_eager env e then wrap_tracked branches else branches
      | Pexp_let (r, vbs, body) ->
        (* A block expression in node position — `{let x = …; <span/>}`. Recurse
           into the tail so the JSX inside keeps fine-grained leaves instead of
