@@ -1,3 +1,11 @@
+# [7.1.0-beta.5](https://github.com/brnrdog/xote/compare/v7.1.0-beta.4...v7.1.0-beta.5) (2026-08-07)
+
+
+### Bug Fixes
+
+* **ppx:** decompose control-flow branches when the condition is not reactive ([5628084](https://github.com/brnrdog/xote/commit/5628084eb36663c9606c584f5f80fd61a9bfcea7))
+* **ppx:** decompose render callbacks so their bodies are treated as node position ([cd48499](https://github.com/brnrdog/xote/commit/cd4849907089696282eb31dc6a67263a2e89a692))
+
 # [7.1.0-beta.4](https://github.com/brnrdog/xote/compare/v7.1.0-beta.3...v7.1.0-beta.4) (2026-08-05)
 
 
