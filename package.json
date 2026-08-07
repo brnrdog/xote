@@ -75,7 +75,8 @@
     "docs:start": "cd docs-website && npm run dev",
     "docs:build": "cd docs-website && npm run build",
     "docs:serve": "cd docs-website && npm run preview",
-    "test": "npx rescript && node tests/Tests.res.mjs && node tests/JSXRuntime_test.mjs"
+    "test": "npx rescript && node tests/Tests.res.mjs && node tests/JSXRuntime_test.mjs",
+    "test:consumer": "sh tests/consumer/setup.sh && cd tests/consumer && npx rescript build"
   },
   "keywords": [
     "rescript",

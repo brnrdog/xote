@@ -1,0 +1,9 @@
+{
+  "name": "xote-consumer-surface",
+  "sources": [{ "dir": "src", "subdirs": false }],
+  "package-specs": { "module": "esmodule", "in-source": true },
+  "suffix": ".res.mjs",
+  "dependencies": ["xote"],
+  "jsx": { "version": 4, "module": "XoteJSX" },
+  "compiler-flags": ["-open Xote"]
+}

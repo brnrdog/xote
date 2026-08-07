@@ -11,6 +11,10 @@ bundle-size-report.md
 bundle-size-*.json
 .vite
 
+# Consumer surface fixture (linked toolchain + build output)
+/tests/consumer/node_modules/
+/tests/consumer/lib/
+
 # Documentation site
 /docs-website/node_modules/
 /docs-website/build/

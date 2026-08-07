@@ -36,6 +36,13 @@ jobs:
       - name: Run tests
         run: node tests/Tests.res.mjs
 
+      # Compiles a fixture whose rescript.json declares only ["xote"], as the
+      # README tells consumers to. Catches public signatures that leak a type
+      # owned by a transitive dependency; the other in-repo consumers declare
+      # rescript-signals and so cannot catch it.
+      - name: Consumer surface check
+        run: npm run test:consumer
+
       - name: Vite Build
         run: npm run build
 

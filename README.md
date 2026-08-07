@@ -39,6 +39,8 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
 
 The compiler flag `-open Xote` is optional, it makes the Xote modules available unqualified inside your source files.
 
+`xote` is the only dependency you need to declare. Xote's reactive primitives come from [rescript-signals](https://github.com/brnrdog/rescript-signals), but `Signal`, `Computed`, and `Effect` are re-exported under `Xote`, so declare `rescript-signals` yourself only if you want to use it directly.
+
 This README uses the application-facing names for public code:
 
 - `View` is the module for building and mounting DOM nodes.
