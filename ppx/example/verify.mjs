@@ -443,5 +443,28 @@ check('tracked callback: bare read updates', document.querySelector('#hc-on').te
 check('tracked callback: leaf attribute updates', document.querySelector('#hc-on').className === 'dark');
 check('tracked callback: element kept identity', document.querySelector('#hc-on').__marker === 'HC');
 
+
+// --- Plain helper functions returning markup --------------------------------
+// The file opts in via its @xote.component bindings, so helper bodies are
+// decomposed too: bare child coerced, class a reactive leaf.
+console.log('helper function returning markup:');
+Signal.set(Demo.theme, 'light');
+const hb = mount(() => Demo.HelperHost.make({}));
+const hbBtn = hb.querySelector('#helper-btn');
+hbBtn.__marker = 'HB';
+check('helper bare child rendered', hbBtn.textContent.includes('Press'));
+check('helper leaf attribute rendered', hbBtn.className === 'light');
+Signal.set(Demo.theme, 'dark');
+check('helper leaf attribute updates (reactive, not static)', document.querySelector('#helper-btn').className === 'dark');
+check('helper element kept identity', document.querySelector('#helper-btn').__marker === 'HB');
+
+// --- JSX reached through arrays, applications, pipes, local bindings --------
+console.log('JSX nested in non-child positions:');
+const ns = mount(() => Demo.NestedShapes.make({}));
+check('let-bound JSX renders bare child', ns.querySelector('#ns-heading').textContent.includes('Nested'));
+check('array literal inside View.fragment', ns.querySelector('#ns-arr').textContent.includes('array'));
+check('pipe + map callback decomposed', ns.querySelectorAll('.ns-map').length === 2);
+check('local helper items rendered', ns.textContent.includes('one') && ns.textContent.includes('two'));
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

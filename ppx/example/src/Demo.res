@@ -453,3 +453,36 @@ module HelperCallbacks = {
       {View.each(labels, label => <span class="hc-item"> {label} </span>)}
     </div>
 }
+
+/* Case 24: JSX reached through something other than a child slot. Any JSX the
+   component's markup contains is node position, however it is nested: inside an
+   array, an application (including the pipe form), a `try`, or bound to a local
+   name. Special-casing containers one at a time kept missing the next one, so
+   the traversal now walks the whole expression. */
+module NestedShapes = {
+  @xote.component
+  let make = () => {
+    /* JSX bound to a local name, and a local helper returning JSX */
+    let heading = <h4 id="ns-heading"> {"Nested"} </h4>
+    let item = (label: string) => <li class={Signal.get(theme)}> {label} </li>
+
+    <div id="nested-shapes">
+      {heading}
+      {View.fragment([<span id="ns-arr"> {"array"} </span>])}
+      {View.fragment(["a", "b"]->Array.map(a => <em class="ns-map"> {a} </em>))}
+      <ul> {View.fragment([item("one"), item("two")])} </ul>
+    </div>
+  }
+}
+
+/* Case 25: a plain helper function that returns markup — a component in all but
+   name. In a file that opts in (it contains an @xote.component), helper bodies
+   are decomposed like inline markup: bare children are coerced and reads become
+   leaves, so a helper needs no value primitives and no manual thunks. */
+let helperButton = (label: string) =>
+  <button id="helper-btn" class={Signal.get(theme)}> {label} </button>
+
+module HelperHost = {
+  @xote.component
+  let make = () => <div id="helper-host"> {helperButton("Press")} </div>
+}

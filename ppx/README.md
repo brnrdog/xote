@@ -98,7 +98,7 @@ Applied recursively to the component's returned JSX:
 | Bare child, control flow (`if`/`switch` selecting different nodes) | yes | branches decomposed fine-grained, then wrapped in `View.tracked` — see below. Signal reads in `when` guards count: they are evaluated with the scrutinee |
 | Bare child, control flow | no | branches decomposed fine-grained, **no** `View.tracked` — a condition that cannot change needs no reactive scope, but its branches are still node position, so their bare children are coerced and their leaves stay fine-grained |
 | Bare child, block expression (`{let x = …; <span/>}`) | — | recurse into the tail, threading `let`-bound aliases — the inner JSX keeps fine-grained leaves |
-| Bare child, function application (`{View.tracked(() => …)}`, `{View.each(xs, x => …)}`) | — | arguments that are JSX, or functions returning JSX, are node position: decomposed like any other node, then the result is wrapped in `View.child` |
+| Bare child, anything containing JSX (`{View.tracked(() => …)}`, `{View.fragment([<p/>])}`, `{xs->Array.map(x => <li/>)}`, `{try {<p/>} catch {…}}`) | — | the whole expression is walked: JSX inside it, and functions returning JSX, are node position and get decomposed; the result is then wrapped in `View.child` |
 | Bare child, otherwise (`{Signal.get(x)}`, `{"lit"}`, `{someNode}`) | — | wrapped in `View.child` — see [Bare value children](#bare-value-children) |
 
 The result: reactivity lives at the leaves; `View.tracked` is emitted
@@ -129,6 +129,32 @@ The node-shaped exceptions are still decomposed:
 Intrinsic elements (`<div>`, …) are different: their attributes accept thunks
 at runtime, which is why *their* reactive attributes are thunked into
 `computedAttr`s.
+
+### Where the annotation reaches
+
+`@xote.component` marks a *file* as written in the fine-grained style, not just
+one binding. In a file containing at least one annotated component, JSX is
+decomposed wherever it appears:
+
+- the annotated component's returned markup, and everything nested in it;
+- JSX bound to a name (`let row = <p> {"x"} </p>`);
+- **plain helper functions that return markup**, at the top level or in a
+  sibling module:
+
+```rescript
+/* no annotation needed: helpers that return markup are components in all but
+   name, and are decomposed like inline JSX */
+let filterButton = (label: string, value: filter, current: filter) =>
+  <button
+    class={value === current ? "active" : "idle"}
+    onClick={_ => Signal.set(filter, value)}>
+    {label}
+  </button>
+```
+
+A file with **no** `@xote.component` anywhere is left completely untouched, so a
+project that mixes `@jsx.component` code with explicit thunks keeps its current
+semantics. That is the opt-in boundary: per file, by annotation.
 
 ### Bare value children
 
