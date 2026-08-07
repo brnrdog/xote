@@ -6,6 +6,7 @@ let status = Signal.make(Loading)
 let theme = Signal.make("light")
 let count = Signal.make(0)
 let mobileOpen = Signal.make(false)
+let labels = Signal.make(["one", "two"])
 let canvas = Signal.make("canvas-a")
 let items = Signal.make(["a", "b"])
 module S = Signal
@@ -430,4 +431,25 @@ module CallbackRows = {
           </li>}
       />
     </ul>
+}
+
+/* Case 23: node-taking runtime helpers called as plain functions. An explicit
+   `View.tracked(() => …)` or `View.each(xs, x => …)` is an ordinary
+   application, not JSX, so the traversal used to stop at the call: bare
+   children inside the callback were never coerced, even though the identical
+   markup works when the ppx emits `View.tracked` itself for an `if`/`switch`.
+   The callback body is node position, so it is decomposed like any other. */
+module HelperCallbacks = {
+  @xote.component
+  let make = () =>
+    <div id="helper-callbacks">
+      {View.tracked(() =>
+        if Signal.get(active) {
+          <p id="hc-on" class={Signal.get(theme)}> {Signal.get(name)} </p>
+        } else {
+          <p id="hc-off"> {"inactive"} </p>
+        }
+      )}
+      {View.each(labels, label => <span class="hc-item"> {label} </span>)}
+    </div>
 }

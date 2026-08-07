@@ -46,7 +46,8 @@ This README uses the application-facing names for public code:
 
 - `View` is the module for building and mounting DOM nodes.
 - `Prop` is the static-or-reactive prop module.
-- `View.Text`, `View.Int`, `View.For`, `View.Show`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are the building blocks used throughout these examples.
+- `View.For`, `View.Show`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are the building blocks used throughout these examples.
+- `View.Text`, `View.Int`, `View.Float`, and `View.Bool` turn a value into a node. Under `@xote.component` you do not need them: a bare `{…}` child works directly (see [Bare children](#bare-children)). They stay available for code that does not use the PPX, and for the stronger `int`/`float` typing on the child.
 
 ### Quick Example
 
@@ -95,9 +96,7 @@ Here's an example of a reusable component with properties:
 // Greeting.res
 @xote.component
 let make = (~name: string, ~greeting: string="Hello") => {
-  <p>
-    <View.Text> {`${greeting}, ${name}!`} </View.Text>
-  </p>
+  <p> {`${greeting}, ${name}!`} </p>
 }
 
 // Usage from another file:
@@ -137,8 +136,33 @@ On top of the reactive primitives with signals, Xote provides a declarative view
 let className = Signal.make("card")
 
 <div class={Prop.signal(className)}>
-  <View.Text> "Status: " </View.Text>
-  <View.Text> {className} </View.Text>
+  {"Status: "}
+  {Signal.get(className)}
+</div>
+```
+
+#### Bare children
+
+Under `@xote.component`, any `{…}` child works directly in element position. The annotation wraps it in the runtime helper `View.child`, which coerces it at runtime:
+
+```rescript
+<div>
+  {"Count: "}            // static text
+  {Signal.get(count)}    // reactive text leaf, re-runs on its own
+  {View.text("node")}    // already a node, passes through
+  {someOption}           // None renders nothing
+</div>
+```
+
+An eager signal read becomes a reactive leaf; a static scalar becomes static text; a value that is already a node passes through; `null`/`undefined` render nothing; an array is coerced element-wise.
+
+The explicit value primitives are still there for code that does not use the PPX, and when you want the stronger `int`/`float` typing:
+
+```rescript
+// equivalent, without the annotation
+<div>
+  <View.Text> "Count: " </View.Text>
+  <View.Int> {count} </View.Int>
 </div>
 ```
 
@@ -155,52 +179,32 @@ let todos = Signal.make([
 <View.For
   each={Prop.signal(todos)}
   by={todo => todo.id}
-  render={todo => <li> <View.Text> {todo.title} </View.Text> </li>}
+  render={todo => <li> {todo.title} </li>}
 />
 ```
 
-`View` also provides component primitives for static or reactive values. Their children can be raw values, signals, `Prop.t` values, or functions.
+The other view components take static or reactive values through `Prop.t`, and their render callbacks are fine-grained too:
 
 ```rescript
 <View.For
   each={Prop.static(["Draft", "Review", "Ship"])}
-  render={label => <span> <View.Text> {label} </View.Text> </span>}
+  render={label => <span> {label} </span>}
 />
 
-<ul>
-  <View.For
-    each={Prop.signal(todos)}
-    by={todo => todo.id}
-    render={todo => <li> <View.Text> {todo.title} </View.Text> </li>}
-  />
-</ul>
-
-<View.Show when_={Prop.signal(isReady)} fallback={<p> <View.Text> "Loading" </View.Text> </p>}>
-  <p> <View.Text> "Ready" </View.Text> </p>
+<View.Show when_={Prop.signal(isReady)} fallback={<p> {"Loading"} </p>}>
+  <p> {"Ready"} </p>
 </View.Show>
 
 <View.Maybe
   value={Prop.signal(selectedTodo)}
-  fallback={<p> <View.Text> "No selection" </View.Text> </p>}
-  render={todo => <p> <View.Text> {todo.title} </View.Text> </p>}
+  fallback={<p> {"No selection"} </p>}
+  render={todo => <p> {todo.title} </p>}
 />
 
 <View.Value
   value={Prop.signal(count)}
-  render={count =>
-    <p>
-      <View.Text> "Count: " </View.Text>
-      <View.Int> {count} </View.Int>
-    </p>
-  }
+  render={count => <p> {"Count: "} {count} </p>}
 />
-
-<p>
-  <View.Text> "Count: " </View.Text>
-  <View.Int> {count} </View.Int>
-  <View.Text> ", ready: " </View.Text>
-  <View.Bool> {isReady} </View.Bool>
-</p>
 ```
 
 ### Auto-tracked Blocks
@@ -213,9 +217,9 @@ let name = Signal.make("Ada")
 
 {View.tracked(() =>
   if Signal.get(loggedIn) {
-    <p> <View.Text> {`Hello, ${Signal.get(name)}`} </View.Text> </p>
+    <p> {`Hello, ${Signal.get(name)}`} </p>
   } else {
-    <p> <View.Text> "Please log in" </View.Text> </p>
+    <p> {"Please log in"} </p>
   }
 )}
 ```
@@ -237,7 +241,7 @@ let make = (~className: Prop.t<string>=Prop.static("badge"), ~children) => {
 let tone = Signal.make("badge badge-info")
 
 <Badge className={Prop.signal(tone)}>
-  <View.Text> "Live" </View.Text>
+  {"Live"}
 </Badge>
 ```
 
@@ -269,8 +273,8 @@ reload:
 
 ```rescript
 <nav>
-  <Router.Link to="/"> <View.Text> "Home" </View.Text> </Router.Link>
-  <Router.Link to="/about" class="nav-link"> <View.Text> "About" </View.Text> </Router.Link>
+  <Router.Link to="/"> {"Home"} </Router.Link>
+  <Router.Link to="/about" class="nav-link"> {"About"} </Router.Link>
 </nav>
 ```
 
