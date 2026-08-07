@@ -419,5 +419,29 @@ Signal.set(Demo.theme, 'dark');
 check('callback leaf attribute updates', document.querySelector('#cb-rows li').className === 'dark');
 check('row kept identity across leaf updates', document.querySelector('#cb-rows li').__marker === 'ROW1');
 
+
+// --- Node-taking helpers called as plain functions --------------------------
+// `View.tracked(() => …)` / `View.each(xs, x => …)` are applications, not JSX,
+// so the traversal used to stop at the call and leave their callback bodies
+// undecomposed.
+console.log('bare children inside node-taking helper callbacks:');
+Signal.set(Demo.active, false);
+Signal.set(Demo.theme, 'light');
+Signal.set(Demo.name, 'Ada');
+const hc = mount(() => Demo.HelperCallbacks.make({}));
+check('tracked callback: else branch bare literal', hc.textContent.includes('inactive'));
+check('each callback: bare item rendered', hc.textContent.includes('one') && hc.textContent.includes('two'));
+Signal.set(Demo.active, true);
+const hcOn = document.querySelector('#hc-on');
+hcOn.__marker = 'HC';
+check('tracked callback: branch bare signal read', hcOn.textContent.includes('Ada'));
+check('tracked callback: branch leaf attribute', hcOn.className === 'light');
+// Leaves inside the tracked callback stay fine-grained: the element survives.
+Signal.set(Demo.name, 'Bo');
+Signal.set(Demo.theme, 'dark');
+check('tracked callback: bare read updates', document.querySelector('#hc-on').textContent.includes('Bo'));
+check('tracked callback: leaf attribute updates', document.querySelector('#hc-on').className === 'dark');
+check('tracked callback: element kept identity', document.querySelector('#hc-on').__marker === 'HC');
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

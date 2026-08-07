@@ -1175,9 +1175,18 @@ let rec fun_body (e : expression) : expression option =
     (match fun_body body with Some inner -> Some inner | None -> Some body)
   | _ -> None
 
-let returns_jsx (e : expression) : bool =
+(* Does this expression produce JSX? Directly, or through control flow whose
+   branches do — `() => if cond { <p/> } else { <span/> }` is as much a node
+   producer as `() => <p/>`. *)
+let rec returns_jsx (e : expression) : bool =
   let t = tail_expr e in
-  jsx_parts t <> None || is_jsx_fragment t
+  if jsx_parts t <> None || is_jsx_fragment t then true
+  else
+    match t.pexp_desc with
+    | Pexp_ifthenelse (_, a, b) ->
+      returns_jsx a || (match b with Some x -> returns_jsx x | None -> false)
+    | Pexp_match (_, cases) -> List.exists (fun c -> returns_jsx c.pc_rhs) cases
+    | _ -> false
 
 let is_render_callback (e : expression) : bool =
   match fun_body e with Some body -> returns_jsx body | None -> false
@@ -1277,8 +1286,32 @@ let rec fine_node (env : env) (e : expression) : expression =
           an eager signal read is thunked so it re-runs as reactive text; a static
           scalar becomes static text; a value that is already a node passes through
           untouched (View.child detects nodes at runtime). This removes the value-
-          primitive ceremony under the annotation. *)
+          primitive ceremony under the annotation.
+
+          A plain function application in node position gets one extra pass
+          first: any argument that is JSX, or a function *returning* JSX, is
+          node position too and must be decomposed. That covers the node-taking
+          runtime helpers — `View.tracked(() => <p> {"hi"} </p>)`,
+          `View.each(xs, x => <li> {x} </li>)` — and any user helper taking a
+          render callback. Without it, a bare child inside such a callback was
+          never coerced, even though the identical markup works when the ppx
+          emits `View.tracked` itself for an `if`/`switch`. *)
+       let e = decompose_apply_args env e in
        wrap_child (if should_thunk env e then thunk e else e))
+
+(* Decompose the node-shaped arguments of a plain (non-JSX) application. Other
+   arguments are left exactly as written: only values that are JSX, or produce
+   JSX, are node position. *)
+and decompose_apply_args (env : env) (e : expression) : expression =
+  match e.pexp_desc with
+  | Pexp_apply (f, args) when jsx_parts e = None ->
+    let arg (lbl, v) =
+      if jsx_parts v <> None || is_jsx_fragment v then (lbl, fine_node env v)
+      else if is_render_callback v then (lbl, fine_callback env v)
+      else (lbl, v)
+    in
+    { e with pexp_desc = Pexp_apply (f, List.map arg args) }
+  | _ -> e
 
 (* Recurse fine_node into the *node-position* bodies of control flow (the
    condition/scrutinee and any guards stay untouched — they are value position

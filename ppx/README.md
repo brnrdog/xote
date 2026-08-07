@@ -98,6 +98,7 @@ Applied recursively to the component's returned JSX:
 | Bare child, control flow (`if`/`switch` selecting different nodes) | yes | branches decomposed fine-grained, then wrapped in `View.tracked` — see below. Signal reads in `when` guards count: they are evaluated with the scrutinee |
 | Bare child, control flow | no | branches decomposed fine-grained, **no** `View.tracked` — a condition that cannot change needs no reactive scope, but its branches are still node position, so their bare children are coerced and their leaves stay fine-grained |
 | Bare child, block expression (`{let x = …; <span/>}`) | — | recurse into the tail, threading `let`-bound aliases — the inner JSX keeps fine-grained leaves |
+| Bare child, function application (`{View.tracked(() => …)}`, `{View.each(xs, x => …)}`) | — | arguments that are JSX, or functions returning JSX, are node position: decomposed like any other node, then the result is wrapped in `View.child` |
 | Bare child, otherwise (`{Signal.get(x)}`, `{"lit"}`, `{someNode}`) | — | wrapped in `View.child` — see [Bare value children](#bare-value-children) |
 
 The result: reactivity lives at the leaves; `View.tracked` is emitted
