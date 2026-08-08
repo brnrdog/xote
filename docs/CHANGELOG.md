@@ -1,3 +1,10 @@
+# [7.1.0-beta.6](https://github.com/brnrdog/xote/compare/v7.1.0-beta.5...v7.1.0-beta.6) (2026-08-08)
+
+
+### Bug Fixes
+
+* **ppx:** reach JSX wherever it appears, including helper functions ([b7855de](https://github.com/brnrdog/xote/commit/b7855de109995cb534fbf184df01770459f1c9fc))
+
 # [7.1.0-beta.5](https://github.com/brnrdog/xote/compare/v7.1.0-beta.4...v7.1.0-beta.5) (2026-08-07)
 
 
