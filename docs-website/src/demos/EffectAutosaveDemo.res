@@ -83,7 +83,7 @@ let make = () => {
       </div>
 
       <View.Show
-        when_={MaybeSignal.signal(hasSavedDrafts)}
+        when_={MaybeSignal.reactive(hasSavedDrafts)}
         fallback={
           <div class="effect-autosave-demo-empty">
             {View.text("No saves yet. Type, pause, and the latest draft will be recorded here.")}
@@ -91,7 +91,7 @@ let make = () => {
         }>
         <ol class="effect-autosave-demo-list">
           <View.For
-            each={MaybeSignal.signal(savedDrafts)}
+            each={MaybeSignal.reactive(savedDrafts)}
             by={entry => Int.toString(entry.id)}
             render={entry =>
               <li class="effect-autosave-demo-item">

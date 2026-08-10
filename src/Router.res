@@ -424,10 +424,9 @@ let link = (
 
 // JSX Link component
 module Link = {
-  module MaybeSignal = MaybeSignal
-
-  /* Deprecated alias — use `MaybeSignal` */
-  module Prop = MaybeSignal
+  /* Deprecated re-export, kept for existing `Router.Link.Prop.*` call sites.
+   Use `MaybeSignal` directly. */
+  module Prop = Prop
 
   type props<'class, 'id, 'style, 'target, 'ariaLabel> = {
     /* Required navigation prop */

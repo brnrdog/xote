@@ -710,36 +710,18 @@ let mountById = (node: node, containerId: string): unit => {
   }
 }
 
-let isMaybeSignal = RuntimeValue.isMaybeSignal
+@deprecated("Internal helper. Use MaybeSignal.ofUnknown to normalize an untyped value.")
+let isReactiveProp = RuntimeValue.isMaybeSignal
 
-@deprecated("Use View.isMaybeSignal instead.")
-let isReactiveProp = isMaybeSignal
-
-let valuePrimitive = (value: 'input, stringify: 'value => string): node => {
-  if isMaybeSignal(value) {
-    let maybeSignal: MaybeSignal.t<'value> = Obj.magic(value)
-    switch maybeSignal {
-    | Static(value) => text(stringify(value))
-    | Reactive(signal) => SignalText(Computed.make(() => stringify(Signal.get(signal))))
-    }
-  } else {
-    switch value->Core.Type.Classify.classify {
-    | Function(_) => {
-        let compute: unit => 'value = Obj.magic(value)
-        signalText(() => stringify(compute()))
-      }
-    | Object(_) => {
-        let signal: Signal.t<'value> = Obj.magic(value)
-        SignalText(Computed.make(() => stringify(Signal.get(signal))))
-      }
-    | Null | Undefined => null()
-    | _ => {
-        let value: 'value = Obj.magic(value)
-        text(stringify(value))
-      }
+let valuePrimitive = (value: 'input, stringify: 'value => string): node =>
+  switch value->Core.Type.Classify.classify {
+  | Null | Undefined => null()
+  | _ =>
+    switch MaybeSignal.ofUnknown(value)->MaybeSignal.map(stringify) {
+    | Static(value) => text(value)
+    | Reactive(signal) => SignalText(signal)
     }
   }
-}
 
 let renderValuePrimitiveProps = (props: 'props, stringify: 'scalar => string): node => {
   switch (props->RuntimeValue.getField("children"), props->RuntimeValue.getField("value")) {

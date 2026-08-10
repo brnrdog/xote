@@ -102,7 +102,7 @@ let suite = Zekr.suite(
       let _ = mountTo(
         <ul>
           <View.For
-            each={MaybeSignal.signal(items)}
+            each={MaybeSignal.reactive(items)}
             render={label => <li> {View.text(label)} </li>}
           />
         </ul>,
@@ -125,7 +125,7 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let visible = Signal.make(false)
       let _ = mountTo(
-        <View.Show when_={MaybeSignal.signal(visible)} fallback={<p> {View.text("Hidden")} </p>}>
+        <View.Show when_={MaybeSignal.reactive(visible)} fallback={<p> {View.text("Hidden")} </p>}>
           <p> {View.text("Visible")} </p>
         </View.Show>,
         container,
@@ -144,7 +144,7 @@ let suite = Zekr.suite(
       let selected = Signal.make(None)
       let _ = mountTo(
         <View.Maybe
-          value={MaybeSignal.signal(selected)}
+          value={MaybeSignal.reactive(selected)}
           fallback={<p> {View.text("None")} </p>}
           render={value => <p> {View.text("Selected: " ++ value)} </p>}
         />,
@@ -164,7 +164,7 @@ let suite = Zekr.suite(
       let count = Signal.make(1)
       let _ = mountTo(
         <View.Value
-          value={MaybeSignal.signal(count)}
+          value={MaybeSignal.reactive(count)}
           render={value => <p> {View.text("Count: " ++ value->Int.toString)} </p>}
         />,
         container,
@@ -199,10 +199,10 @@ let suite = Zekr.suite(
       let ready = Signal.make(false)
       let _ = mountTo(
         <p>
-          <View.Text value={MaybeSignal.signal(label)} />
-          <View.Int value={MaybeSignal.signal(count)} />
+          <View.Text value={MaybeSignal.reactive(label)} />
+          <View.Int value={MaybeSignal.reactive(count)} />
           <View.Text value={MaybeSignal.static(", ready: ")} />
-          <View.Bool value={MaybeSignal.signal(ready)} />
+          <View.Bool value={MaybeSignal.reactive(ready)} />
         </p>,
         container,
       )
@@ -258,7 +258,7 @@ let suite = Zekr.suite(
       let {container} = Dom.render("")
       let count = Signal.make(1)
       let label: MaybeSignal.t<string> = MaybeSignal.static("Count: ")
-      let value: MaybeSignal.t<int> = MaybeSignal.signal(count)
+      let value: MaybeSignal.t<int> = MaybeSignal.reactive(count)
       let _ = mountTo(
         <p>
           <View.Text> {label} </View.Text>
@@ -317,7 +317,7 @@ let suite = Zekr.suite(
     test("View.Text renders formatted MaybeSignal children", () => {
       let {container} = Dom.render("")
       let nameSignal = Signal.make("Ada")
-      let reactiveName: MaybeSignal.t<string> = MaybeSignal.signal(nameSignal)
+      let reactiveName: MaybeSignal.t<string> = MaybeSignal.reactive(nameSignal)
       let _ = mountTo(
         <p>
           <View.Text> {() => `Hello, ${MaybeSignal.get(reactiveName)}`} </View.Text>
@@ -339,7 +339,7 @@ let suite = Zekr.suite(
 
       let _ = mountTo(
         <View.Value
-          value={MaybeSignal.signal(selected)}
+          value={MaybeSignal.reactive(selected)}
           render={isFirst =>
             if isFirst {
               <p> <View.Text> {first} </View.Text> </p>
@@ -606,7 +606,7 @@ let suite = Zekr.suite(
       let _ = mountTo(
         <ul>
           <View.For
-            each={MaybeSignal.signal(items)}
+            each={MaybeSignal.reactive(items)}
             by={item => item.id}
             render={item => <li> {View.text(item.label)} </li>}
           />
@@ -664,7 +664,7 @@ let suite = Zekr.suite(
       let _ = mountTo(
         <ul>
           <View.KeyedFor
-            each={MaybeSignal.signal(items)}
+            each={MaybeSignal.reactive(items)}
             by={item => item.id}
             render={item => <li> {View.text(item.label)} </li>}
           />

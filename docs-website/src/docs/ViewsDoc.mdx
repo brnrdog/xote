@@ -89,7 +89,7 @@ let make = (~name: MaybeSignal.t<string>) => {
 
 ### Attributes and Events
 
-In JSX, common HTML props are exposed directly. Pass functions for reactive attributes when the value should be recomputed.
+In JSX, common HTML props are exposed directly. An attribute accepts a plain value, a signal, or a `unit => 'a` function — no wrapper needed. Pass a function when the value is derived from one or more signals; a bare expression like `Signal.get(isActive) ? "a" : "b"` is read once at construction and never updates.
 
 ```rescript
 let isActive = Signal.make(false)
@@ -99,24 +99,32 @@ let toggle = (_evt: Dom.event) => {
 }
 
 <button
-  class={Signal.get(isActive) ? "btn active" : "btn"}
+  class={() => Signal.get(isActive) ? "btn active" : "btn"}
   onClick={toggle}>
   <View.Text> "Toggle" </View.Text>
 </button>
+```
+
+A signal can also be passed straight through when no formatting is needed:
+
+```rescript
+let theme = Signal.make("dark")
+
+<div class={theme}> <View.Text> "Themed" </View.Text> </div>
 ```
 
 In JSX, use `class`, not `className`. Use `type_` for the HTML `type` attribute because `type` is reserved in ReScript.
 
 ### Lists
 
-Use [`View.For`](/docs/api/view#view-for) for simple arrays that can be fully re-rendered. Add `by` when item identity matters. [`View.For`](/docs/api/view#view-for) accepts `MaybeSignal.static(value)` for plain data and `MaybeSignal.signal(signal)` for reactive data.
+Use [`View.For`](/docs/api/view#view-for) for simple arrays that can be fully re-rendered. Add `by` when item identity matters. Unlike element attributes, `each` has a declared type, so it takes a `MaybeSignal.t`: `MaybeSignal.static(value)` for plain data and `MaybeSignal.reactive(signal)` for reactive data. The same is true of every prop with a declared type, including the ones on components you write.
 
 ```rescript
 let items = Signal.make(["Apple", "Banana", "Cherry"])
 
 <ul>
   <View.For
-    each={MaybeSignal.signal(items)}
+    each={MaybeSignal.reactive(items)}
     render={item => <li> <View.Text> {item} </View.Text> </li>}
   />
 </ul>
@@ -131,7 +139,7 @@ let todos = Signal.make([
 
 <ul>
   <View.For
-    each={MaybeSignal.signal(todos)}
+    each={MaybeSignal.reactive(todos)}
     by={todo => todo.id}
     render={todo => <li> <View.Text> {todo.text} </View.Text> </li>}
   />
@@ -145,18 +153,18 @@ Choose stable keys. Database IDs and route slugs are good. Array indexes are not
 Use [`View.Show`](/docs/api/view#view-show) for boolean branches, [`View.Maybe`](/docs/api/view#view-maybe) for option values, and [`View.Value`](/docs/api/view#view-value) when a whole node should be re-rendered from one static or reactive value. Use [`View.Text`](/docs/api/view#view-text-component), [`View.Int`](/docs/api/view#view-int-component), [`View.Float`](/docs/api/view#view-float-component), and [`View.Bool`](/docs/api/view#view-bool-component) for direct value output.
 
 ```rescript
-<View.Show when_={MaybeSignal.signal(isReady)} fallback={<p> <View.Text> "Loading" </View.Text> </p>}>
+<View.Show when_={MaybeSignal.reactive(isReady)} fallback={<p> <View.Text> "Loading" </View.Text> </p>}>
   <p> <View.Text> "Ready" </View.Text> </p>
 </View.Show>
 
 <View.Maybe
-  value={MaybeSignal.signal(selectedTodo)}
+  value={MaybeSignal.reactive(selectedTodo)}
   fallback={<p> <View.Text> "No todo selected" </View.Text> </p>}
   render={todo => <p> <View.Text> {todo.text} </View.Text> </p>}
 />
 
 <View.Value
-  value={MaybeSignal.signal(count)}
+  value={MaybeSignal.reactive(count)}
   render={count =>
     <p>
       <View.Text> "Count: " </View.Text>
@@ -234,7 +242,7 @@ let make = () => {
     <TodoComposer />
     <ul>
       <View.For
-        each={MaybeSignal.signal(todos)}
+        each={MaybeSignal.reactive(todos)}
         by={todo => todo.id}
         render={todo => <TodoRow todo />}
       />

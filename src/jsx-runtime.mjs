@@ -1,5 +1,4 @@
-import * as Computed from "./Computed.res.mjs";
-import * as Signal from "./Signal.res.mjs";
+import * as MaybeSignal from "./MaybeSignal.res.mjs";
 import * as View from "./View.res.mjs";
 
 export const Fragment = Symbol.for("xote.fragment");
@@ -78,25 +77,6 @@ function isXoteNode(value) {
   return value && typeof value === "object" && nodeTags.has(value.TAG);
 }
 
-// Detects a MaybeSignal.t (Static / Reactive) handed to us as an untyped prop.
-function isMaybeSignal(value) {
-  return (
-    value &&
-    typeof value === "object" &&
-    (value.TAG === "Static" || value.TAG === "Reactive")
-  );
-}
-
-function isSignal(value) {
-  return (
-    value &&
-    typeof value === "object" &&
-    "subs" in value &&
-    "value" in value &&
-    typeof value.equals === "function"
-  );
-}
-
 function toKebab(name) {
   return name.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`);
 }
@@ -136,31 +116,21 @@ function stringifyAttrValue(name, value) {
   return String(value);
 }
 
+// Thunks stay lazy as a `Compute` attribute; everything else (raw value, signal,
+// MaybeSignal.t) is classified by MaybeSignal.ofUnknown so this runtime and the
+// ReScript one agree on what counts as reactive.
 function attrFromValue(name, value) {
-  if (isMaybeSignal(value)) {
-    if (value.TAG === "Static") {
-      return View.attr(name, stringifyAttrValue(name, value._0));
-    }
-
-    const signal = value._0;
-    return View.signalAttr(
-      name,
-      Computed.make(() => stringifyAttrValue(name, Signal.get(signal)), undefined, undefined),
-    );
-  }
-
-  if (isSignal(value)) {
-    return View.signalAttr(
-      name,
-      Computed.make(() => stringifyAttrValue(name, Signal.get(value)), undefined, undefined),
-    );
-  }
-
   if (typeof value === "function") {
     return View.computedAttr(name, () => stringifyAttrValue(name, value()));
   }
 
-  return View.attr(name, stringifyAttrValue(name, value));
+  const normalized = MaybeSignal.map(MaybeSignal.ofUnknown(value), inner =>
+    stringifyAttrValue(name, inner),
+  );
+
+  return normalized.TAG === "Static"
+    ? View.attr(name, normalized._0)
+    : View.signalAttr(name, normalized._0);
 }
 
 function eventNameFromProp(name, value) {
