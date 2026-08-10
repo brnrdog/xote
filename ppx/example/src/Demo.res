@@ -6,6 +6,7 @@ let status = Signal.make(Loading)
 let theme = Signal.make("light")
 let count = Signal.make(0)
 let mobileOpen = Signal.make(false)
+let labels = Signal.make(["one", "two"])
 let canvas = Signal.make("canvas-a")
 let items = Signal.make(["a", "b"])
 module S = Signal
@@ -120,14 +121,14 @@ module PreThunked = {
   }
 }
 
-/* Case 9: a value already reactive on its own — `Prop.reactive(Computed…)` —
+/* Case 9: a value already reactive on its own — `MaybeSignal.reactive(Computed…)` —
    reads a signal only inside a nested lambda, so it must NOT be thunked (that
-   would wrap a Prop.t in a function and break attribute rendering). */
+   would wrap a MaybeSignal.t in a function and break attribute rendering). */
 module PropWrapped = {
   @xote.component
   let make = () => {
     <div
-      class={Prop.reactive(Computed.make(() => Signal.get(active) ? "on" : "off"))}
+      class={MaybeSignal.reactive(Computed.make(() => Signal.get(active) ? "on" : "off"))}
       id="prop-wrapped">
       <View.Text> {"x"} </View.Text>
     </div>
@@ -367,4 +368,121 @@ module MappedList = {
       {Signal.get(items)->Array.map(item => <li class="ml-item"> {View.text(item)} </li>)}
     </ul>
   }
+}
+
+/* Case 20: control flow on a *plain* condition (a bool prop or local, no signal
+   read anywhere in the condition). No View.tracked is needed since the
+   structure cannot change, but the branches are still node position: their bare
+   children must be coerced. Before the branches were decomposed on this path,
+   `{if flag { <b> {"yes"} </b> } else { … }}` failed to compile with
+   "This has type: string", pointing at the literal rather than the
+   conditional. */
+module StaticBranch = {
+  @xote.component
+  let make = (~flag: bool) =>
+    <div id="static-branch">
+      {if flag {
+        <b id="sb-yes"> {"yes"} </b>
+      } else {
+        <i id="sb-no"> {"no"} </i>
+      }}
+      {flag ? "on" : "off"}
+    </div>
+}
+
+/* Case 21: a plain-condition branch that also holds a reactive leaf. The
+   conditional itself is built once; the leaf inside keeps its own reactive
+   scope, so changing the signal updates the class without rebuilding. */
+module StaticBranchReactiveLeaf = {
+  @xote.component
+  let make = (~flag: bool) =>
+    <div id="sbrl">
+      {if flag {
+        <b id="sbrl-tag" class={Signal.get(theme)}> {Signal.get(name)} </b>
+      } else {
+        <i> {"none"} </i>
+      }}
+    </div>
+}
+
+/* Case 22: bare children inside a *render callback*. A prop whose value is a
+   function returning JSX (View.For/Value/Maybe's `render`, or any user
+   component's callback) is node position once applied, but it is not itself
+   JSX, so the traversal used to stop at the callback boundary: nothing inside
+   was decomposed and `<span> {item.author} </span>` failed to compile with
+   "This has type: string". List rendering is written this way, so the shape is
+   everywhere. The reactive leaf below also proves decomposition really happens
+   inside the callback rather than the body being left alone. */
+type row = {id: string, author: string}
+let rows = Signal.make([{id: "r1", author: "Ada"}, {id: "r2", author: "Bo"}])
+
+module CallbackRows = {
+  @xote.component
+  let make = () =>
+    <ul id="cb-rows">
+      <View.For
+        each={MaybeSignal.reactive(rows)}
+        by={row => row.id}
+        render={row =>
+          <li class={Signal.get(theme)}>
+            <span class="author"> {row.author} </span>
+            <span> {" · "} </span>
+            {Signal.get(count)}
+          </li>}
+      />
+    </ul>
+}
+
+/* Case 23: node-taking runtime helpers called as plain functions. An explicit
+   `View.tracked(() => …)` or `View.each(xs, x => …)` is an ordinary
+   application, not JSX, so the traversal used to stop at the call: bare
+   children inside the callback were never coerced, even though the identical
+   markup works when the ppx emits `View.tracked` itself for an `if`/`switch`.
+   The callback body is node position, so it is decomposed like any other. */
+module HelperCallbacks = {
+  @xote.component
+  let make = () =>
+    <div id="helper-callbacks">
+      {View.tracked(() =>
+        if Signal.get(active) {
+          <p id="hc-on" class={Signal.get(theme)}> {Signal.get(name)} </p>
+        } else {
+          <p id="hc-off"> {"inactive"} </p>
+        }
+      )}
+      {View.each(labels, label => <span class="hc-item"> {label} </span>)}
+    </div>
+}
+
+/* Case 24: JSX reached through something other than a child slot. Any JSX the
+   component's markup contains is node position, however it is nested: inside an
+   array, an application (including the pipe form), a `try`, or bound to a local
+   name. Special-casing containers one at a time kept missing the next one, so
+   the traversal now walks the whole expression. */
+module NestedShapes = {
+  @xote.component
+  let make = () => {
+    /* JSX bound to a local name, and a local helper returning JSX */
+    let heading = <h4 id="ns-heading"> {"Nested"} </h4>
+    let item = (label: string) => <li class={Signal.get(theme)}> {label} </li>
+
+    <div id="nested-shapes">
+      {heading}
+      {View.fragment([<span id="ns-arr"> {"array"} </span>])}
+      {View.fragment(["a", "b"]->Array.map(a => <em class="ns-map"> {a} </em>))}
+      <ul> {View.fragment([item("one"), item("two")])} </ul>
+    </div>
+  }
+}
+
+/* Case 25: a plain helper function that returns markup — a component in all but
+   name. In a file that opts in (it contains an @xote.component), helper bodies
+   are decomposed like inline markup: bare children are coerced and reads become
+   leaves, so a helper needs no value primitives and no manual thunks. */
+let helperButton = (label: string) =>
+  <button id="helper-btn" class={Signal.get(theme)}> {label} </button>
+
+module HelperHost = {
+  @xote.component
+  let make = () => <div id="helper-host"> {helperButton("Press")} </div>
 }

@@ -1045,6 +1045,40 @@ let sub_exprs (e : expression) : expression list =
   | Pexp_assert x | Pexp_lazy x -> [ x ]
   | _ -> []
 
+(* The map counterpart of sub_exprs: rebuild [e] with [f] applied to each
+   immediate sub-expression, leaving everything else (patterns, guards,
+   labels, types) untouched. *)
+let map_sub_exprs (f : expression -> expression) (e : expression) : expression =
+  let d =
+    match e.pexp_desc with
+    | Pexp_apply (fn, args) -> Pexp_apply (f fn, List.map (fun (l, a) -> (l, f a)) args)
+    | Pexp_ifthenelse (c, t, eo) -> Pexp_ifthenelse (f c, f t, Option.map f eo)
+    | Pexp_match (x, cases) ->
+      Pexp_match (f x, List.map (fun c -> { c with pc_rhs = f c.pc_rhs }) cases)
+    | Pexp_try (x, cases) ->
+      Pexp_try (f x, List.map (fun c -> { c with pc_rhs = f c.pc_rhs }) cases)
+    | Pexp_construct (l, eo) -> Pexp_construct (l, Option.map f eo)
+    | Pexp_variant (l, eo) -> Pexp_variant (l, Option.map f eo)
+    | Pexp_tuple xs -> Pexp_tuple (List.map f xs)
+    | Pexp_array xs -> Pexp_array (List.map f xs)
+    | Pexp_field (x, l) -> Pexp_field (f x, l)
+    | Pexp_setfield (a, l, b) -> Pexp_setfield (f a, l, f b)
+    | Pexp_send (x, l) -> Pexp_send (f x, l)
+    | Pexp_record (fields, base) ->
+      Pexp_record (List.map (fun (l, v) -> (l, f v)) fields, Option.map f base)
+    | Pexp_constraint (x, t) -> Pexp_constraint (f x, t)
+    | Pexp_coerce (x, a, b) -> Pexp_coerce (f x, a, b)
+    | Pexp_sequence (a, b) -> Pexp_sequence (f a, f b)
+    | Pexp_let (r, vbs, body) ->
+      Pexp_let (r, List.map (fun vb -> { vb with pvb_expr = f vb.pvb_expr }) vbs, f body)
+    | Pexp_fun (l, def, p, body) -> Pexp_fun (l, Option.map f def, p, f body)
+    | Pexp_open (o, l, x) -> Pexp_open (o, l, f x)
+    | Pexp_assert x -> Pexp_assert (f x)
+    | Pexp_lazy x -> Pexp_lazy (f x)
+    | other -> other
+  in
+  { e with pexp_desc = d }
+
 (* A reactive-helper *call*: `f(...)` where `f` is a local function whose body
    eagerly reads a signal (tracked in env.funcs). A *bare* `f` (passed, not
    called) is left alone — the runtime already treats a function attribute/child
@@ -1148,6 +1182,49 @@ let is_value_component (f : expression) : bool =
     true
   | _ -> false
 
+(* ---- render callbacks ----------------------------------------------------
+   A prop whose value is a *function returning JSX* — `render={item => <li>…}`
+   on View.For/Value/Maybe, or any user component taking a render callback.
+   The lambda's body is node position, so it must be decomposed like any other
+   node: without this, a bare child inside a render callback is never coerced
+   and `<span> {item.name} </span>` fails to compile with "This has type:
+   string". Only bodies that actually reach JSX qualify, so event handlers and
+   other function props (`by={p => p.id}`, `onClick={…}`) are left alone. *)
+
+(* The expression a block finally evaluates to (past lets/opens/sequences). *)
+let rec tail_expr (e : expression) : expression =
+  match e.pexp_desc with
+  | Pexp_let (_, _, body) -> tail_expr body
+  | Pexp_letmodule (_, _, body) -> tail_expr body
+  | Pexp_open (_, _, x) -> tail_expr x
+  | Pexp_sequence (_, b) -> tail_expr b
+  | Pexp_constraint (x, _) -> tail_expr x
+  | _ -> e
+
+(* The body of a (possibly uncurried, possibly multi-parameter) function. *)
+let rec fun_body (e : expression) : expression option =
+  match e.pexp_desc with
+  | Pexp_construct ({ txt = Longident.Lident "Function$"; _ }, Some fn) -> fun_body fn
+  | Pexp_fun (_, _, _, body) ->
+    (match fun_body body with Some inner -> Some inner | None -> Some body)
+  | _ -> None
+
+(* Does this expression produce JSX? Directly, or through control flow whose
+   branches do — `() => if cond { <p/> } else { <span/> }` is as much a node
+   producer as `() => <p/>`. *)
+let rec returns_jsx (e : expression) : bool =
+  let t = tail_expr e in
+  if jsx_parts t <> None || is_jsx_fragment t then true
+  else
+    match t.pexp_desc with
+    | Pexp_ifthenelse (_, a, b) ->
+      returns_jsx a || (match b with Some x -> returns_jsx x | None -> false)
+    | Pexp_match (_, cases) -> List.exists (fun c -> returns_jsx c.pc_rhs) cases
+    | _ -> false
+
+let is_render_callback (e : expression) : bool =
+  match fun_body e with Some body -> returns_jsx body | None -> false
+
 let is_children_label = function
   | Labelled "children" | Optional "children" -> true
   | _ -> false
@@ -1206,15 +1283,26 @@ let rec fine_node (env : env) (e : expression) : expression =
 
           The *eager* read check matters here too: a control-flow child that is
           already reactive on its own reads only inside a lambda, so it is left
-          as-is rather than redundantly wrapped. *)
-       if reads_signal_eager env e then wrap_tracked (decompose_branches env e) else e
+          as-is rather than redundantly wrapped.
+
+          A condition with no eager read needs no View.tracked — its structure
+          cannot change — but its branches are still node position and must be
+          decomposed all the same. Skipping them (as this did) meant a bare
+          child inside a statically-conditioned branch never reached
+          View.child, so `{if isActive { <b> {"yes"} </b> } else { … }}` failed
+          to compile with "This has type: string" pointing at the literal
+          rather than at the conditional. Conditioning on a plain bool (a prop,
+          a local) is ordinary UI code, so this path matters as much as the
+          reactive one. *)
+       let branches = decompose_branches env e in
+       if reads_signal_eager env e then wrap_tracked branches else branches
      | Pexp_let (r, vbs, body) ->
        (* A block expression in node position — `{let x = …; <span/>}`. Recurse
           into the tail so the JSX inside keeps fine-grained leaves instead of
           the whole block collapsing into one coarse View.child thunk (which
           would rebuild the subtree — and lose element identity — on every
           dependency change). Bindings scope exactly like the component body. *)
-       let vbs' = List.map (map_vb env) vbs in
+       let vbs' = List.map (map_local_vb env) vbs in
        let env' = collect_val_aliases env vbs in
        { e with pexp_desc = Pexp_let (r, vbs', fine_node env' body) }
      | Pexp_letmodule (name, me, body) ->
@@ -1232,8 +1320,32 @@ let rec fine_node (env : env) (e : expression) : expression =
           an eager signal read is thunked so it re-runs as reactive text; a static
           scalar becomes static text; a value that is already a node passes through
           untouched (View.child detects nodes at runtime). This removes the value-
-          primitive ceremony under the annotation. *)
+          primitive ceremony under the annotation.
+
+          Whatever else the expression is — an application, a pipe, an array,
+          a `try`, a record — it can still *contain* JSX, and any JSX it
+          contains is node position too. So descend first (see
+          decompose_node_shaped), then coerce the result. *)
+       let e = decompose_node_shaped env e in
        wrap_child (if should_thunk env e then thunk e else e))
+
+(* Descend through a node-position expression that is not itself JSX, and
+   decompose the node-shaped things inside it: JSX, and functions returning
+   JSX. Everything else is rebuilt unchanged.
+
+   This is deliberately shape-agnostic. Special-casing containers (application
+   arguments, then arrays, then …) kept missing one: `View.fragment([<p/>])`,
+   `xs->Array.map(x => <li> {x} </li>)`, `opt->Option.getOr(<p/>)` and
+   `try { <p/> } catch { … }` are all just JSX sitting somewhere inside an
+   expression whose value becomes a node. Walking the whole expression covers
+   them uniformly, and covers shapes nobody has written yet. *)
+and decompose_node_shaped (env : env) (e : expression) : expression =
+  map_sub_exprs
+    (fun sub ->
+      if jsx_parts sub <> None || is_jsx_fragment sub then fine_node env sub
+      else if is_render_callback sub then fine_callback env sub
+      else decompose_node_shaped env sub)
+    e
 
 (* Recurse fine_node into the *node-position* bodies of control flow (the
    condition/scrutinee and any guards stay untouched — they are value position
@@ -1260,11 +1372,24 @@ and component_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * 
   (* User-component props are left untouched: an eager `Signal.get(x)` prop is a
      legitimate one-shot read of a plain-typed prop (pass the signal itself when
      the prop should be reactive). The exceptions are node-shaped values, which
-     are node position wherever they appear: children, and any prop whose value
-     is itself JSX — recurse so their reactive leaves stay fine-grained. *)
+     are node position wherever they appear: children, any prop whose value is
+     itself JSX, and any prop whose value is a *function returning* JSX (a
+     render callback) — recurse so their reactive leaves stay fine-grained and
+     their bare children are coerced. *)
   if is_children_label lbl then (lbl, map_children (fine_node env) v)
   else if jsx_parts v <> None || is_jsx_fragment v then (lbl, fine_node env v)
+  else if is_render_callback v then (lbl, fine_callback env v)
   else (lbl, v)
+
+(* Decompose the body of a render callback, walking past its parameters (and
+   the uncurried `Function$` wrapper) to the node-position body. *)
+and fine_callback (env : env) (e : expression) : expression =
+  match e.pexp_desc with
+  | Pexp_construct (({ txt = Longident.Lident "Function$"; _ } as c), Some fn) ->
+    { e with pexp_desc = Pexp_construct (c, Some (fine_callback env fn)) }
+  | Pexp_fun (l, def, p, body) ->
+    { e with pexp_desc = Pexp_fun (l, def, p, fine_callback env body) }
+  | _ -> fine_node env e
 
 and value_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
   if is_children_label lbl then (lbl, map_children (value_leaf env) v)
@@ -1332,6 +1457,21 @@ and map_vb (env : env) (vb : value_binding) : value_binding =
       pvb_expr = decompose_component_body env vb.pvb_expr }
   | None -> { vb with pvb_expr = map_expr env vb.pvb_expr }
 
+(* A binding *inside* an annotated component. Its value is rendered as part of
+   that component, so JSX bound to a name — `let row = <p> {"x"} </p>` — and a
+   local helper returning JSX — `let btn = label => <button> {label} </button>`
+   — are decomposed exactly like inline markup. Without this the annotation
+   stopped at the component's return expression, and pulling a piece of markup
+   out into a local binding silently lost fine-grained leaves and required the
+   value-primitive wrappers back. *)
+and map_local_vb (env : env) (vb : value_binding) : value_binding =
+  if List.exists is_xote_component vb.pvb_attributes then map_vb env vb
+  else
+    let v = vb.pvb_expr in
+    if jsx_parts v <> None || is_jsx_fragment v then { vb with pvb_expr = fine_node env v }
+    else if is_render_callback v then { vb with pvb_expr = fine_callback env v }
+    else map_vb env vb
+
 (* Walk to the component's tail (return) expression, threading the alias env
    through lets/opens and running the normal traversal on non-tail parts (so a
    nested reactive leaves still work), then fine-grain the returned JSX. *)
@@ -1344,7 +1484,7 @@ and decompose_component_body (env : env) (e : expression) : expression =
   | Pexp_fun (l, def, p, body) ->
     { e with pexp_desc = Pexp_fun (l, def, p, decompose_component_body env body) }
   | Pexp_let (r, vbs, body) ->
-    let vbs' = List.map (map_vb env) vbs in
+    let vbs' = List.map (map_local_vb env) vbs in
     let env' = collect_val_aliases env vbs in
     { e with pexp_desc = Pexp_let (r, vbs', decompose_component_body env' body) }
   | Pexp_letmodule (name, me, body) ->
@@ -1358,6 +1498,37 @@ and decompose_component_body (env : env) (e : expression) : expression =
   | Pexp_constraint (x, t) ->
     { e with pexp_desc = Pexp_constraint (decompose_component_body env x, t) }
   | _ -> fine_node env e
+
+(* Does this file opt in to the annotation at all? A file containing at least
+   one @xote.component is written in the fine-grained style, so JSX anywhere in
+   it — including plain helper functions like
+   `let filterButton = (label, …) => <button> {label} </button>` — is
+   decomposed too. Helpers that return markup are components in all but name,
+   and requiring the value-primitive wrappers back in them was the last place
+   the two styles collided.
+
+   Files with no annotation are left completely untouched, so a project mixing
+   @jsx.component code with explicit thunks keeps its current semantics. *)
+let rec structure_has_component (s : structure) : bool =
+  List.exists
+    (fun si ->
+      match si.pstr_desc with
+      | Pstr_value (_, vbs) ->
+        List.exists (fun vb -> List.exists is_xote_component vb.pvb_attributes) vbs
+      | Pstr_module mb -> module_has_component mb.pmb_expr
+      | Pstr_recmodule mbs -> List.exists (fun mb -> module_has_component mb.pmb_expr) mbs
+      | _ -> false)
+    s
+
+and module_has_component (me : module_expr) : bool =
+  match me.pmod_desc with
+  | Pmod_structure s -> structure_has_component s
+  | Pmod_constraint (m, _) -> module_has_component m
+  | Pmod_functor (_, _, b) -> module_has_component b
+  | _ -> false
+
+(* Set once per file, before the traversal runs. *)
+let fine_grain_helpers = ref false
 
 (* Structure items are threaded left-to-right so a top-level `let g = Signal.get`,
    `module S = Signal`, or `open Signal` is visible to later items. *)
@@ -1378,7 +1549,9 @@ and update_env_si (env : env) si =
 
 and map_si (env : env) si =
   match si.pstr_desc with
-  | Pstr_value (r, vbs) -> { si with pstr_desc = Pstr_value (r, List.map (map_vb env) vbs) }
+  | Pstr_value (r, vbs) ->
+    let f = if !fine_grain_helpers then map_local_vb env else map_vb env in
+    { si with pstr_desc = Pstr_value (r, List.map f vbs) }
   | Pstr_module mb -> { si with pstr_desc = Pstr_module (map_mb env mb) }
   | Pstr_recmodule mbs -> { si with pstr_desc = Pstr_recmodule (List.map (map_mb env) mbs) }
   | Pstr_include incl ->
@@ -1439,6 +1612,8 @@ let () =
   output_string oc magic;
   output_value oc name;
   (if magic = impl_magic then
-     output_value oc (map_structure empty_env (Obj.magic payload : structure))
+     let structure = (Obj.magic payload : structure) in
+     fine_grain_helpers := structure_has_component structure;
+     output_value oc (map_structure empty_env structure)
    else output_value oc payload);
   close_out oc
