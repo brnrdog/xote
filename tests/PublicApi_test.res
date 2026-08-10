@@ -21,7 +21,7 @@ let suite = Zekr.suite(
       let emptyView: View.node = View.empty()
 
       let _jsxElement: XoteJSX.element = XoteJSX.null()
-      let _routeResult = Route.matchPathname("/users/:id", "/users/1")
+      let _routeResult = Route.match("/users/:id", "/users/1")
       let _routeConfig: Router.routeConfig = {pattern: "/", render: _params => View.null()}
       let _location: unit => Signal.t<Router.location> = Router.location
       let _renderOptions: SSR.renderOptions = {}

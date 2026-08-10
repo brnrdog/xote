@@ -61,6 +61,8 @@ let match = (pattern: string, pathname: string): matchResult => {
   matchPath(parsePattern(pattern), pathname)
 }
 
+/* Deprecated aliases. `Route.match` is the canonical entry point; these are
+ kept for one release because `docs/TECHNICAL_OVERVIEW.md` documented them. */
 let compile = parsePattern
 let matchCompiled = matchPath
 let matchPathname = match

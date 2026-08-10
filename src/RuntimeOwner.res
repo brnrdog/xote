@@ -31,13 +31,12 @@ let disposeOwner = (owner: owner): unit => {
   })
 }
 
-@warning("-27")
-let setOwner = (element: Dom.element, owner: owner): unit => {
-  %raw(`element["__xote_owner__"] = owner`)
-}
+let setOwner: (Dom.element, owner) => unit = %raw(`function (element, owner) {
+  element["__xote_owner__"] = owner
+}`)
 
-@warning("-27")
-let getOwner = (element: Dom.element): option<owner> => {
-  let owner: Nullable.t<owner> = %raw(`element["__xote_owner__"]`)
-  owner->Nullable.toOption
-}
+let readOwner: Dom.element => Nullable.t<owner> = %raw(`function (element) {
+  return element["__xote_owner__"]
+}`)
+
+let getOwner = (element: Dom.element): option<owner> => readOwner(element)->Nullable.toOption

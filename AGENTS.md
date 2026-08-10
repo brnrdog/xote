@@ -21,7 +21,9 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - `npm run preview` - Preview production build
 
 ### Testing
-- `npm run test` - Compile ReScript and run `node tests/Tests.res.mjs`. Tests are built on the [zekr](https://www.npmjs.com/package/zekr) framework (see `tests/Tests.res`) and include snapshot fixtures under `tests/__snapshots__/`.
+- `npm run test` - Compile ReScript, run the zekr suites, then the two public API guardrails. Tests are built on the [zekr](https://www.npmjs.com/package/zekr) framework (see `tests/Tests.res`) and include snapshot fixtures under `tests/__snapshots__/`.
+- `npm run test:exports` - Assert the JS export surface of each public module matches its snapshot.
+- `npm run test:boundary` - Compile `tests/consumer` against a staged copy of the publishable package to check the public API boundary from outside.
 
 ### PPX (`@xote.component`)
 - `npm run ppx:build` - Compile the native PPX binary from `ppx/ppx.ml` (needs `ocamlopt`)
@@ -58,17 +60,42 @@ JavaScript package entries are intentionally split by feature:
 - `xote/hydration` exposes hydration only.
 - `xote/mdx` exposes the optional MDX integration.
 
-The root `xote` entry is client-focused and does not export router, SSR, hydration, or MDX. Direct source/module subpaths remain available where listed in `package.json`.
+The root `xote` entry is client-focused and does not export router, SSR, hydration, or MDX. Direct source/module subpaths remain available where listed in `package.json`. There is no catch-all `./src/*` export: `package.json` names one `./src/<Module>.res.mjs` entry per public module, so `import "xote/src/RuntimeDom.res.mjs"` fails to resolve even though the ReScript module is reachable.
+
+### Public API Boundary
+
+**The public API is what the `.resi` interface files in `src/` declare. Nothing else.**
+
+Fifteen modules are public: `View`, `Html`, `XoteJSX`, `MaybeSignal`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Mdx`, `Signal`, `Computed`, `Effect`. All of them except `XoteJSX` ship a `.resi` that lists exactly the values, types and nested modules they export. A `.resi` narrows both the ReScript surface and the emitted JavaScript, so `dist/` stays clean too.
+
+Everything else in `src/` is an internal `Runtime*` module. Public modules use them but never re-export them — no `module DOM = RuntimeDom` style aliases, because an alias inside a public module republishes the internal.
+
+Three things are worth knowing:
+
+- **`rescript.json`'s `sources.public` field has no effect in ReScript 12.** It is kept because it documents intent (and would start enforcing if upstream fixes it), but it is not the boundary. As a consequence the `Runtime*` modules stay reachable as `Xote.RuntimeDom`, `Xote.RuntimeOwner`, and so on. They are internal regardless, and the `Runtime` prefix is the signal.
+- **`XoteJSX` has no `.resi`.** `Elements.props` carries around a hundred type parameters; restating it in an interface would cost far more than it buys. Its prop-conversion helpers are therefore still reachable.
+- **`Obj.magic` defeats all of this**, as it defeats any ReScript abstraction. The boundary is a contract against accident, not against determination.
+
+Two guardrails check the boundary instead of asserting it in prose:
+
+| Command | What it checks |
+|---|---|
+| `npm run test:boundary` | Compiles `tests/consumer` against a staged copy of the publishable package. `allowed/` must compile, `deprecated/` must compile *with a warning*, every file in `forbidden/` must fail. `forbidden/` samples one probe per sealing mechanism rather than listing every internal. |
+| `npm run test:exports` | Snapshots the `export { ... }` list of each public `src/*.res.mjs` against `tests/__snapshots__/public-exports.json`. |
+
+Both run as part of `npm test` and in CI. Widening a `.resi` is an API change: expect `test:exports` to fail, and update the snapshot deliberately with `UPDATE_SNAPSHOTS=1 node tests/PublicExports_test.mjs`.
+
+**Removing something reachable needs a deprecation cycle.** Mark it `@deprecated("... Removed in the next major release.")` in the `.resi`, add a probe under `tests/consumer/deprecated/`, and delete it in the next major. Values that were only ever reachable by accident — never named in `AGENTS.md`, `docs/`, or the docs site — can be sealed outright.
 
 **Reactive Primitives (re-exported from rescript-signals):**
 - **`Xote.Signal`**: Reactive state cells with `make`, `get`, `peek`, `set`, `update`, plus `batch` and `untrack` from the scheduler. `Signal.make` accepts optional `~name` (for debugging) and `~equals` (a custom `('a, 'a) => bool` comparator) parameters. The default equality is JavaScript `===` (reference/strict), not structural — pass `~equals` when you need deep comparison. `set` only notifies dependents when the new value differs from the current one, preventing unnecessary updates and accidental infinite loops.
 - **`Xote.Computed`**: Derived signals that automatically recompute when dependencies change. `Computed.make` accepts optional `~name` (for debugging) and `~equals` (a custom `('a, 'a) => bool` comparator) parameters. As with `Signal.make`, the default equality is JavaScript `===` — pass `~equals` when downstream observers should ignore structurally-equal recomputations. **Lazy with push-based dirty flagging** — when upstream dependencies change, computeds are marked dirty immediately, but only recompute when read (via `Signal.get` or `Signal.peek`). **Disposal is manual**: `rescript-signals` 3.x does not drop a computed when its subscribers reach zero — a computed stays linked to its source signals until `Computed.dispose(signal)` unlinks it.
 - **`Xote.Effect`**: Side effects that run when dependencies change. **Can return cleanup callbacks** — signature is `unit => option<unit => unit>`. Two entry points: `Effect.run` is fire-and-forget and returns `unit`; `Effect.runWithDisposer` returns a `disposer` with a `dispose()` method for manual teardown. Both accept an optional `~name` for debugging.
 
-These three are thin shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.res`) that `include` the corresponding modules from `rescript-signals`.
+These three are explicit re-export shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.res`) over `rescript-signals` — deliberately not `include`, so a new helper upstream does not silently become Xote public API. `Signal.t<'a>` is **abstract**: it is the upstream signal record at runtime, but the type system hides the fields, so `signal.value = x` cannot bypass the scheduler.
 
 **Xote Modules:**
-- **`Xote.View`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `Keyed`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `int`, `float`, `bool`, `fragment`, `signalFragment`, `tracked`, `each`, `eachWithKey`, `element`), the JSX rendering components (`For`, `Show`, `Maybe`, `Value`, `Text`, `Int`, `Float`, `Bool`), attribute helpers (`attr`, `signalAttr`, `computedAttr`, `optionalAttr`, `optionalSignalAttr`, `optionalComputedAttr`, `Attr`), the `null`/`empty` placeholders, and `mount`/`mountById`. It also exposes the two helpers `@xote.component` emits: `child` (runtime coercion of a bare JSX child) and `probe` (hidden-read detection — see the PPX section below). Note that `child` is typed `'a => node`, so it **erases type checking in child position**: under the annotation a record or variant in `{…}` compiles and renders `"[object Object]"` with a development-only console warning (gated on the same `__XOTE_DEV__` / `NODE_ENV` flag as `probe`), where unannotated code would have failed to compile. That is the deliberate price of the zero-ceremony bare child. The owner-based reactivity system for resource cleanup also lives here.
+- **`Xote.View`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `Keyed`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `int`, `float`, `bool`, `fragment`, `signalFragment`, `tracked`, `each`, `eachWithKey`, `element`), the JSX rendering components (`For`, `Show`, `Maybe`, `Value`, `Text`, `Int`, `Float`, `Bool`), attribute helpers (`attr`, `signalAttr`, `computedAttr`, `optionalAttr`, `optionalSignalAttr`, `optionalComputedAttr`, `Attr`), the `null`/`empty` placeholders, and `mount`/`mountById`. It also exposes the two helpers `@xote.component` emits: `child` (runtime coercion of a bare JSX child) and `probe` (hidden-read detection — see the PPX section below). Note that `child` is typed `'a => node`, so it **erases type checking in child position**: under the annotation a record or variant in `{…}` compiles and renders `"[object Object]"` with a development-only console warning (gated on the same `__XOTE_DEV__` / `NODE_ENV` flag as `probe`), where unannotated code would have failed to compile. That is the deliberate price of the zero-ceremony bare child. The renderer itself lives in the internal `RuntimeRender` module, the node types in `RuntimeNode`, and the owner-based cleanup system in `RuntimeOwner`.
 - **`Xote.Html`**: Convenience constructors for common HTML tags (`div`, `span`, `button`, `input`, `h1`-`h3`, `p`, `ul`, `li`, `a`). Thin wrappers over `View.element`. For tags not listed, call `View.element(tag, ...)` directly or use JSX.
 - **`Xote.XoteJSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with a broad set of supported attributes (standard, form/input, link, media, accessibility, drag-and-drop, and data attributes) plus an `attrs` escape hatch for anything else. Named `XoteJSX` (not `JSX`) to avoid colliding with unrelated modules when consumers use `open Xote`. Note: to defer side-effecting component evaluation out of any surrounding `Computed` context, `XoteJSX.jsx` wraps user-defined components in `View.LazyComponent`.
 - **`Xote.MaybeSignal`**: Static-or-reactive value wrapper exposing the type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` plus `static`, `reactive`, `computed` (derives a `Reactive` from a `unit => 'a`), `get` (tracked read), `peek` (untracked read), `isStatic`/`isReactive`, `map`, `toSignal`, and `ofUnknown`. Use it anywhere an API should accept either a plain value or a signal — JSX props are the most common case, not the only one. Notes on the trickier members:
@@ -78,11 +105,13 @@ These three are thin shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.re
   - The JS export for `static` is `$$static` (ReScript escapes the reserved word), which matters for consumers importing `xote/maybe-signal` from JavaScript.
 - **`Xote.Prop`**: **Deprecated** alias of `Xote.MaybeSignal`, kept for backwards compatibility. `Prop.t` is a type alias of `MaybeSignal.t` (same constructors, same runtime representation), so values are interchangeable and migrating is a rename: `Prop.static` → `MaybeSignal.static`, `Prop.signal` and `Prop.reactive` → `MaybeSignal.reactive`, `Prop.get` → `MaybeSignal.get`. The deprecations live in `src/Prop.resi`: ReScript only reports warning 3 for values declared in an interface file, so `@deprecated` on the implementation's `let` bindings alone is silently ignored at call sites. `XoteJSX.Prop` and `Router.Link.Prop` re-export this module (not `MaybeSignal`), so those paths warn too.
 - **`Xote.Router`**: Signal-based client-side router with pattern matching, dynamic routes, base path support, scroll position restoration, and a global singleton state (via `Symbol.for()`) that works across multiple bundles.
-- **`Xote.Route`**: Route matching utilities.
+- **`Xote.Route`**: Route matching. `Route.match(pattern, pathname)` returns `Match(params)` or `NoMatch`. `parsePattern`, `matchPath`, `compile`, `matchCompiled` and `matchPathname` are `@deprecated` and go away in the next major.
 - **`Xote.SSR`**: Server-side rendering to HTML strings with hydration markers (`<!--$-->`, `<!--#-->`, `<!--kl-->`, `<!--k:KEY-->`, `<!--lc-->`).
 - **`Xote.SSRContext`**: Runtime environment detection (`isServer`, `isClient`) and helpers (`onServer`, `onClient`, `match`).
 - **`Xote.SSRState`**: State serialization/restoration between server and client. Includes a `Codec` system for type-safe encoding/decoding and a `sync`/`signal` API for seamless server-client state transfer.
 - **`Xote.Hydration`**: Client-side hydration that walks server-rendered DOM, attaches reactive effects, event listeners, and sets up keyed list reconciliation without re-rendering.
+
+**Internal modules** (prefixed `Runtime`, no compatibility guarantee): `RuntimeNode` (the `node`/`attrValue` types and `resolveAttr`/`peekAttr`), `RuntimeRender` (DOM rendering and keyed reconciliation), `RuntimeDom`, `RuntimeOwner`, `RuntimeHtml`, `RuntimeAttr`, `RuntimeValue`, `RuntimeJsxProp`, `RuntimeHydrationMarkers`.
 
 ### Reactivity Model
 
@@ -98,14 +127,14 @@ All reactive behavior is provided by **rescript-signals**:
 
 **Batching**: `Signal.batch(fn)` defers scheduler flushing until `fn` returns, so a burst of `Signal.set` calls triggers each effect at most once. Batches can be nested and return a value. `Signal.untrack(fn)` disables dependency capture inside `fn`, which is the idiomatic way to read a signal without subscribing the current observer to it (there is also `Signal.peek(signal)` for a single untracked read).
 
-**Owner System**: Components use an owner-based tracking system (the `RuntimeOwner` module, surfaced as `Reactivity` in `View.res`) that stores effect disposers and computed references on DOM elements via the `__xote_owner__` property. Owners are disposed recursively when DOM elements are removed, preventing memory leaks.
+**Owner System**: Components use an owner-based tracking system (the internal `RuntimeOwner` module) that stores effect disposers and computed references on DOM elements via the `__xote_owner__` property. Owners are disposed recursively when DOM elements are removed, preventing memory leaks.
 
 ### ReScript Configuration
 
 - **Build system**: ReScript compiler v12+ with `esmodule` output format
 - **Output**: In-source compilation (`.res.mjs` files alongside `.res` files)
-- **Namespacing**: `namespace: true` in `rescript.json` automatically scopes every module under `Xote`. Public modules are listed explicitly in `sources.public` (`View`, `Html`, `XoteJSX`, `MaybeSignal`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Mdx`, `Signal`, `Computed`, `Effect`); everything else (e.g. `DOM`/`Reactivity`, which live inside `View.res`) stays internal.
-- **Dependencies**: `rescript-signals` ^3.1.0 and `@rescript/core` ^1.6.1 (the only runtime dependencies)
+- **Namespacing**: `namespace: true` in `rescript.json` automatically scopes every module under `Xote`. The public API is defined by the `.resi` interface files in `src/` — see [Public API Boundary](#public-api-boundary).
+- **Dependencies**: `rescript-signals` ^3.1.0 (the only runtime dependency)
 - **JSX**: ReScript JSX v4 configured with `module: "XoteJSX"` (generic JSX transform). Consumers must mirror this in their own `rescript.json`.
 
 ### Component System
@@ -237,13 +266,13 @@ Full server-side rendering with client-side hydration:
 
 ### Attribute & Property Handling
 
-The `DOM.setAttrOrProp` helper (in `View.res`, via the internal `RuntimeDom` module) handles the distinction between HTML attributes and DOM properties:
+The internal `RuntimeDom.setAttrOrProp` helper handles the distinction between HTML attributes and DOM properties:
 - `value`, `checked`, `disabled` are set as DOM properties (not attributes)
 - Boolean attributes (`checked`, `disabled`, `required`, `readonly`, `multiple`, `draggable`, `hidden`, `contenteditable`, `spellcheck`, `autofocus`) are added or removed based on whether the serialized value is `"true"`. ARIA attributes are deliberately **not** on that list — they are enumerated, so `aria-expanded`, `aria-selected`, and `aria-hidden` render their literal `"true"`/`"false"` value
 - A **missing value removes the attribute**: `None` from an optional attribute, or a `null`/`undefined` coming out of an untyped JSX value, calls `removeAttribute` (or resets the property for `value`/`checked`/`disabled`) instead of writing the string `"undefined"`. This is what presence-based styling needs — `data-checked:bg-primary` compiles to `[data-checked]`, so an attribute that is always present, even as `""`, always matches
 - All other attributes use `setAttribute`
 
-`View.attrValue` therefore has six variants: `Static`/`SignalValue`/`Compute` over `string`, and `OptionalStatic`/`OptionalSignalValue`/`OptionalCompute` over `option<string>`. Renderers do not match on them directly — `View.resolveAttr` reduces any of them to `ReadStatic(Nullable.t<string>)` (a value known up front) or `ReadReactive(unit => Nullable.t<string>)` (a read that must run inside an effect), and `View.peekAttr` returns the current value untracked for SSR. Client render, hydration, and SSR all go through those two, so a new variant only has to be handled once.
+`View.attrValue` therefore has six variants: `Static`/`SignalValue`/`Compute` over `string`, and `OptionalStatic`/`OptionalSignalValue`/`OptionalCompute` over `option<string>`. Consumers may match on them, but renderers do not — the internal `RuntimeNode.resolveAttr` reduces any of them to `ReadStatic(Nullable.t<string>)` (a value known up front) or `ReadReactive(unit => Nullable.t<string>)` (a read that must run inside an effect), and `RuntimeNode.peekAttr` returns the current value untracked for SSR. `RuntimeRender`, `Hydration` and `SSR` all go through those two, so a new variant only has to be handled once.
 
 ## Key Concepts for Development
 
@@ -593,7 +622,7 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 ### Before Making Changes
 
 1. **Compile first**: Always run `npm run res:build` before testing or building
-2. **Understand the module boundary**: The public surface is the list of modules in `rescript.json`'s `sources.public` (`View`, `Html`, `XoteJSX`, `MaybeSignal`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Mdx`, `Signal`, `Computed`, `Effect`). Helpers like `DOM`, `Reactivity`, and `Render` are implementation details and should not be relied on by consumers.
+2. **Understand the module boundary**: The public surface is what the `.resi` files in `src/` declare — see [Public API Boundary](#public-api-boundary). Widening one is an API change; run `npm run test:exports` and `npm run test:boundary` after touching any of them.
 
 ### Making Changes
 
@@ -606,7 +635,7 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 
 | File | Purpose |
 |------|---------|
-| `src/View.res` | Core rendering, node primitives, mount, reconciliation |
+| `src/View.res` | Public node API: constructors, attributes, JSX components, mount |
 | `src/Html.res` | Common HTML element constructors (`div`, `button`, ...) |
 | `src/XoteJSX.res` | JSX v4 transform and `Elements` module |
 | `src/Router.res` | Client-side routing |
@@ -617,7 +646,11 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 | `src/SSRContext.res` | Server/client environment detection |
 | `src/MaybeSignal.res` | Static/Reactive value wrapper |
 | `src/Prop.res`, `src/Prop.resi` | Deprecated alias of `MaybeSignal` (the interface file is what makes the deprecations warn) |
-| `src/Signal.res`, `src/Computed.res`, `src/Effect.res` | Re-export shims for `rescript-signals` |
+| `src/Signal.res`, `src/Computed.res`, `src/Effect.res` | Explicit re-export shims for `rescript-signals` |
+| `src/*.resi` | Interface files - the public API boundary |
+| `src/RuntimeNode.res` | Internal `node`/`attrValue` type definitions and attribute resolution |
+| `src/RuntimeRender.res` | Internal renderer, shared by `View.mount` and `Hydration` |
+| `tests/consumer/` | Fixture package that compiles against the published surface |
 | `ppx/ppx.ml` | The `@xote.component` fine-grained PPX (vendored OCaml 4.06 AST + rewriter) |
 | `ppx/example/` | Standalone PPX consumer project; `verify.mjs` is its jsdom regression suite (`npm run ppx:test`). `src/Store.res` is deliberately a *second* file, so its helpers model the cross-module reads detection cannot follow |
 | `ppx/postinstall.js` | Selects/installs the prebuilt PPX binary at npm install time |
@@ -627,9 +660,11 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 ### Common Pitfalls
 
 - **Forgetting to compile**: `.res.mjs` files are generated - edit `.res` files, not `.res.mjs`
+- **Adding a value to a public module**: it is invisible until the module's `.resi` declares it. That is the point - decide whether it is API before exporting it.
+- **`%raw` capturing a ReScript binding**: write raw JavaScript as a self-contained function literal (`let f: string => unit = %raw(\`function (x) { ... }\`)`). Referring to a surrounding binding by name works until the compiler inlines or renames it, and then breaks at runtime with a `ReferenceError`.
 - **Effect return type**: Effects must return `option<unit => unit>`, not `unit`. Return `None` when no cleanup is needed.
 - **Signal reads in effects**: Use `Signal.get` (creates dependency) vs `Signal.peek` (no dependency). Using `get` inside an effect will re-run the effect when the signal changes.
-- **Owner disposal**: When removing DOM elements with reactive state, ensure the owner system cleans up (handled automatically by `Render.disposeElement`)
+- **Owner disposal**: When removing DOM elements with reactive state, ensure the owner system cleans up (handled automatically by `RuntimeRender.disposeElement`)
 - **Router init**: `Router.init()` must be called before any routing functions on the client. For SSR, use `Router.initSSR(~pathname, ())` instead to avoid accessing browser APIs.
 - **Boolean attributes**: Use string `"true"`/`"false"` - the `setAttrOrProp` function handles the conversion to proper DOM behavior. To *remove* an attribute reactively, use the optional helpers (`View.optionalComputedAttr(key, () => ... ? Some("") : None)`) rather than adding the key to `RuntimeAttr.booleanAttributes`
 - **SSR state cleanup**: Call `SSRState.clear()` between multiple renders on the server to reset the state registry
@@ -639,7 +674,7 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 - Follow existing patterns in the codebase
 - Use `/* */` comments (ReScript style), not `//` for documentation comments
 - Source files in `src/` use bare module names; ReScript namespacing handles the `Xote.` prefix at the consumer
-- Keep the public API minimal — only modules listed in `rescript.json`'s `sources.public` should be relied on
+- Keep the public API minimal — a value is public only if a `.resi` declares it
 - Prefer structural types over nominal when possible in ReScript
 
 ### Testing Changes
@@ -647,7 +682,7 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 The project has a test suite using the [zekr](https://github.com/nicholasgasior/zekr) framework. Verify changes by:
 
 1. Successful ReScript compilation (`npm run res:build`)
-2. Run tests (`npm run test`)
+2. Run tests (`npm run test`) - this includes the public API guardrails
 3. Successful Vite build (`npm run build`)
 4. Manual testing with demo apps (`npm run dev`)
 5. For SSR changes, check the `examples/ssr/` setup
@@ -666,3 +701,6 @@ The project has a test suite using the [zekr](https://github.com/nicholasgasior/
 | `tests/Route_test.res` | Route matching |
 | `tests/SSR_test.res` | Server-side rendering |
 | `tests/SSRState_test.res` | State serialization |
+| `tests/PublicApi_test.res` | Documented API stays usable from inside the package |
+| `tests/PublicExports_test.mjs` | JS export surface of each public module (snapshot) |
+| `tests/consumer/` | Public API boundary as a downstream package sees it (`allowed/`, `deprecated/`, `forbidden/`) |
