@@ -988,6 +988,9 @@ let thunk body =
 let view_tracked = Longident.Ldot (Longident.Lident "View", "tracked")
 let wrap_tracked e = apply (ident view_tracked) [ thunk e ]
 
+let view_child = Longident.Ldot (Longident.Lident "View", "child")
+let wrap_child e = apply (ident view_child) [ e ]
+
 (* ---- signal-read detection ----------------------------------------------
    A read is any occurrence of `Signal.get` (applied or not). Beyond the
    literal `Signal.get` / `X.Signal.get`, an alias environment threaded through
@@ -1114,6 +1117,14 @@ let jsx_parts (e : expression) =
   | Pexp_apply (f, args) when has_jsx e -> Some (f, args)
   | _ -> None
 
+(* A JSX fragment `<>…</>` is a `::`/`[]` list carrying the JSX attribute (not a
+   Pexp_apply, so jsx_parts misses it). Its children are node position. *)
+let is_jsx_fragment (e : expression) : bool =
+  has_jsx e
+  && (match e.pexp_desc with
+      | Pexp_construct ({ txt = Longident.Lident ("::" | "[]"); _ }, _) -> true
+      | _ -> false)
+
 (* Lowercase leading char => intrinsic HTML/SVG element (children are nodes). *)
 let is_element (f : expression) : bool =
   match f.pexp_desc with
@@ -1148,21 +1159,39 @@ let rec fine_node (env : env) (e : expression) : expression =
   | Some (f, args) ->
     (* element or user component: attrs are value position, children nodes *)
     { e with pexp_desc = Pexp_apply (f, List.map (element_arg env) args) }
+  | None when is_jsx_fragment e ->
+    (* A fragment `<>…</>` is a JSX-tagged `::`/`[]` list, not a Pexp_apply, so
+       jsx_parts misses it. Recurse fine_node into each child exactly like an
+       element's children (map_children preserves the outer @JSX attribute), so
+       nested reactive regions stay *independent*. Without this the whole fragment
+       would be wrapped in one coarse thunk and any nested `if`/`switch` inside it
+       would collapse into that single tracked scope — rebuilding every sibling on
+       one signal change. *)
+    map_children (fine_node env) e
   | None ->
-    (* not a JSX element: a bare child expression in node position. A signal
-       read here means the *node structure* varies, which needs View.tracked.
-       But first recurse fine-grained into each branch body: that turns the
-       branches' leaves into thunks, so when the tracked scope runs a branch to
-       build its nodes the thunks are not invoked — the scope ends up tracking
-       only the condition/scrutinee (the eager reads), while a leaf inside a
-       branch keeps its own reactive scope. Net effect: changing a signal that
-       only a branch leaf reads updates just that leaf and does NOT re-run the
-       switch or rebuild the branch.
+    (match e.pexp_desc with
+     | Pexp_ifthenelse _ | Pexp_match _ ->
+       (* Control flow in node position: the *node structure* varies, which needs
+          View.tracked. First recurse fine-grained into each branch body: that
+          turns the branches' leaves into thunks, so when the tracked scope runs
+          a branch to build its nodes the thunks are not invoked — the scope ends
+          up tracking only the condition/scrutinee (the eager reads), while a leaf
+          inside a branch keeps its own reactive scope. Net effect: changing a
+          signal that only a branch leaf reads updates just that leaf and does NOT
+          re-run the switch or rebuild the branch.
 
-       The *eager* read check matters here too: a child that is already reactive
-       on its own (e.g. `View.signalText(() => Signal.get(x))`) reads only inside
-       a lambda, so it is left as-is rather than redundantly wrapped. *)
-    if reads_signal_eager env e then wrap_tracked (decompose_branches env e) else e
+          The *eager* read check matters here too: a control-flow child that is
+          already reactive on its own reads only inside a lambda, so it is left
+          as-is rather than redundantly wrapped. *)
+       if reads_signal_eager env e then wrap_tracked (decompose_branches env e) else e
+     | _ ->
+       (* A bare value child — `<div>{Signal.get(count)}</div>` — with no explicit
+          <View.Int>/<View.Text> wrapper. Coerce it to a node with View.child:
+          an eager signal read is thunked so it re-runs as reactive text; a static
+          scalar becomes static text; a value that is already a node passes through
+          untouched (View.child detects nodes at runtime). This removes the value-
+          primitive ceremony under the annotation. *)
+       wrap_child (if should_thunk env e then thunk e else e))
 
 (* Recurse fine_node into the *node-position* bodies of control flow (the
    condition/scrutinee and any guards stay untouched — they are value position
