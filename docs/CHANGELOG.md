@@ -1,3 +1,15 @@
+# [7.1.0-beta.7](https://github.com/brnrdog/xote/compare/v7.1.0-beta.6...v7.1.0-beta.7) (2026-08-10)
+
+
+### Features
+
+* introduce MaybeSignal, deprecate Prop  ([f5da1e3](https://github.com/brnrdog/xote/commit/f5da1e39496022d0b79f9d7064e134b38052ae60))
+* **ppx:** add [@xote](https://github.com/xote).component for fine-grained components ([26ca857](https://github.com/brnrdog/xote/commit/26ca8578c19fd4512ab8184edfce37dc0c72f757))
+* **ppx:** fine-grain JSX wherever it appears, including helper functions ([d631140](https://github.com/brnrdog/xote/commit/d631140d65a5bfe35a519f4240a722e5be3f4aa9))
+* **ppx:** ship prebuilt binaries so [@xote](https://github.com/xote).component needs no toolchain ([0f3d1b4](https://github.com/brnrdog/xote/commit/0f3d1b46eb4a28009dfbb2216d59028a2d55b07f))
+* **view:** add tracked() for auto-tracked reactive blocks ([ae5c4e9](https://github.com/brnrdog/xote/commit/ae5c4e97d67abc369bc5bd127fe40953ba2d043b))
+* **view:** coerce bare JSX children so value primitives are optional ([0721b84](https://github.com/brnrdog/xote/commit/0721b84085768d26f2432090492caacef30f59b0))
+
 # [7.1.0-beta.6](https://github.com/brnrdog/xote/compare/v7.1.0-beta.5...v7.1.0-beta.6) (2026-08-08)
 
 
