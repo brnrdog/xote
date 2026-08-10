@@ -1,4 +1,4 @@
-@jsx.component
+@xote.component
 let make = (~filename, ~code, ~caption=?, ~children=?) => {
   let activeTab = Signal.make("code")
   let hasDemo = switch children {
