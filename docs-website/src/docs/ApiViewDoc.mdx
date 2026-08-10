@@ -212,7 +212,7 @@ Alias for [`View.eachWithKey`](#view-eachwithkey).
 ```rescript
 module For: {
   type props<'item> = {
-    each: Prop.t<array<'item>>,
+    each: MaybeSignal.t<array<'item>>,
     by?: 'item => string,
     render: 'item => View.node,
   }
@@ -230,7 +230,7 @@ JSX list primitive. Pass `by` to enable keyed reconciliation.
 ```rescript
 module KeyedFor: {
   type props<'item> = {
-    each: Prop.t<array<'item>>,
+    each: MaybeSignal.t<array<'item>>,
     by: 'item => string,
     render: 'item => View.node,
   }
@@ -248,7 +248,7 @@ JSX list primitive that always requires a key function.
 ```rescript
 module Show: {
   type props = {
-    when_: Prop.t<bool>,
+    when_: MaybeSignal.t<bool>,
     children?: View.node,
     fallback?: View.node,
   }
@@ -266,7 +266,7 @@ JSX conditional primitive for boolean branches.
 ```rescript
 module Maybe: {
   type props<'value> = {
-    value: Prop.t<option<'value>>,
+    value: MaybeSignal.t<option<'value>>,
     render: 'value => View.node,
     fallback?: View.node,
   }
@@ -284,7 +284,7 @@ JSX conditional primitive for option values.
 ```rescript
 module Value: {
   type props<'value> = {
-    value: Prop.t<'value>,
+    value: MaybeSignal.t<'value>,
     render: 'value => View.node,
   }
 
@@ -359,7 +359,7 @@ Look up a DOM element by id and mount into it.
 <View.Text value={value} />
 ```
 
-JSX text primitive. `value` or `children` may be a raw string, `Signal.t<string>`, `Prop.t<string>`, or `unit => string`.
+JSX text primitive. `value` or `children` may be a raw string, `Signal.t<string>`, `MaybeSignal.t<string>`, or `unit => string`.
 
 <a id="view-int-component" />
 
@@ -370,7 +370,7 @@ JSX text primitive. `value` or `children` may be a raw string, `Signal.t<string>
 <View.Int value={value} />
 ```
 
-JSX integer text primitive. `value` or `children` may be a raw int, `Signal.t<int>`, `Prop.t<int>`, or `unit => int`.
+JSX integer text primitive. `value` or `children` may be a raw int, `Signal.t<int>`, `MaybeSignal.t<int>`, or `unit => int`.
 
 <a id="view-float-component" />
 
@@ -381,7 +381,7 @@ JSX integer text primitive. `value` or `children` may be a raw int, `Signal.t<in
 <View.Float value={value} />
 ```
 
-JSX float text primitive. `value` or `children` may be a raw float, `Signal.t<float>`, `Prop.t<float>`, or `unit => float`.
+JSX float text primitive. `value` or `children` may be a raw float, `Signal.t<float>`, `MaybeSignal.t<float>`, or `unit => float`.
 
 <a id="view-bool-component" />
 
@@ -392,7 +392,7 @@ JSX float text primitive. `value` or `children` may be a raw float, `Signal.t<fl
 <View.Bool value={value} />
 ```
 
-JSX boolean text primitive. `value` or `children` may be a raw bool, `Signal.t<bool>`, `Prop.t<bool>`, or `unit => bool`.
+JSX boolean text primitive. `value` or `children` may be a raw bool, `Signal.t<bool>`, `MaybeSignal.t<bool>`, or `unit => bool`.
 
 ## Example
 

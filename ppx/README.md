@@ -243,7 +243,7 @@ from the alias environment and its attribute is left as a plain, once-evaluated
 string).
 
 Only *eager* reads trigger a thunk. A read deferred inside a nested lambda — a
-`() => …` you wrote yourself, a `Computed`, a `Prop.reactive(Computed.make(…))`,
+`() => …` you wrote yourself, a `Computed`, a `MaybeSignal.reactive(Computed.make(…))`,
 or a helper that merely *returns* a thunk — is already reactive and left as-is.
 Because of that, when detection can't see a read (below), the safe fix is always
 to wrap the value in `() =>` yourself: it will not be double-wrapped.

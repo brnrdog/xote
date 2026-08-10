@@ -6,7 +6,9 @@ let objectHasTag = (obj: {..}, tag: string): bool =>
   | None => false
   }
 
-let isReactiveProp = (value: 'value): bool => {
+/* Detects a `MaybeSignal.t` at runtime by its variant tag. Used where JSX hands
+ us untyped values that may be raw, a signal, a function, or a `MaybeSignal.t`. */
+let isMaybeSignal = (value: 'value): bool => {
   switch value->Core.Type.Classify.classify {
   | Object(obj) => {
       let obj: {..} = Obj.magic(obj)
@@ -23,9 +25,20 @@ let isFunction = (value: 'value): bool =>
   | _ => false
   }
 
-let isObject = (value: 'value): bool =>
+/* Detects a `Signal.t` by its shape. Structural rather than "any object", so a
+ plain record handed to an untyped prop is treated as a value instead of being
+ silently read as a signal. */
+let isSignalLike = (value: 'value): bool =>
   switch value->Core.Type.Classify.classify {
-  | Object(_) => true
+  | Object(obj) => {
+      let obj: {..} = Obj.magic(obj)
+      obj->Core.Object.hasOwnProperty("subs") &&
+      obj->Core.Object.hasOwnProperty("value") &&
+      switch obj->Core.Object.get("equals") {
+      | Some(equals) => isFunction(equals)
+      | None => false
+      }
+    }
   | _ => false
   }
 

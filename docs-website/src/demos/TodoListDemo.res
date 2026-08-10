@@ -125,7 +125,7 @@ module TodoList = {
   let make = () => {
     <ul class="todo-demo-list">
       <View.For
-        each={Prop.signal(todos)}
+        each={MaybeSignal.reactive(todos)}
         by={todo => todo.id}
         render={todo => <TodoRow todo />}
       />

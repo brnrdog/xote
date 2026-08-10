@@ -1,3 +1,6 @@
+/* Deprecated re-export of the top-level `Prop` module, kept so existing
+ `XoteJSX.Prop.*` call sites keep compiling — they now raise the same
+ deprecation warnings as `Prop` itself. Use `MaybeSignal` directly. */
 module Prop = Prop
 
 /* ReScript JSX transform type aliases */
@@ -48,8 +51,9 @@ let null = (): element => View.text("")
 
 /* Elements module for lowercase HTML tags */
 module Elements = {
-  /* Props type for HTML elements - accepts both raw values and Prop.t for flexibility
-   * This allows ergonomic JSX like class="foo" while also supporting class={Prop.reactive(signal)}
+  /* Props type for HTML elements - accepts both raw values and MaybeSignal.t for
+   * flexibility. This allows ergonomic JSX like class="foo" while also supporting
+   * class={MaybeSignal.reactive(signal)}
    */
   type props<
     'id,
@@ -155,7 +159,7 @@ module Elements = {
     'markerEnd,
     'xlinkHref,
   > = {
-    /* Standard attributes - accept raw strings or Prop.t<string> */
+    /* Standard attributes - accept raw strings or MaybeSignal.t<string> */
     id?: 'id,
     class?: 'class,
     style?: 'style,

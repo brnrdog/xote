@@ -20,6 +20,7 @@
     "./view": "./src/View.res.mjs",
     "./html": "./src/Html.res.mjs",
     "./jsx": "./src/XoteJSX.res.mjs",
+    "./maybe-signal": "./src/MaybeSignal.res.mjs",
     "./prop": "./src/Prop.res.mjs",
     "./route": "./src/Route.res.mjs",
     "./router": {

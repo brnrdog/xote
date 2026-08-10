@@ -45,7 +45,7 @@ The `ppx-flags` line enables the **`@xote.component`** annotation — the standa
 This README uses the application-facing names for public code:
 
 - `View` is the module for building and mounting DOM nodes.
-- `Prop` is the static-or-reactive prop module.
+- `MaybeSignal` is the static-or-reactive prop module.
 - `View.For`, `View.Show`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are the building blocks used throughout these examples.
 - `View.Text`, `View.Int`, `View.Float`, and `View.Bool` turn a value into a node. Under `@xote.component` you do not need them: a bare `{…}` child works directly (see [Bare children](#bare-children)). They stay available for code that does not use the PPX, and for the stronger `int`/`float` typing on the child.
 
@@ -135,7 +135,7 @@ On top of the reactive primitives with signals, Xote provides a declarative view
 ```rescript
 let className = Signal.make("card")
 
-<div class={Prop.signal(className)}>
+<div class={MaybeSignal.reactive(className)}>
   {"Status: "}
   {Signal.get(className)}
 </div>
@@ -166,6 +166,9 @@ The explicit value primitives are still there for code that does not use the PPX
 </div>
 ```
 
+Built-in attributes take a plain value, a signal, or a `unit => 'a` function, so
+a signal can be passed straight through without wrapping it.
+
 For rendering collections in JSX, prefer `View.For`. Add `by` when items have stable identity and should reconcile by key:
 
 ```rescript
@@ -177,32 +180,32 @@ let todos = Signal.make([
 ])
 
 <View.For
-  each={Prop.signal(todos)}
+  each={MaybeSignal.reactive(todos)}
   by={todo => todo.id}
   render={todo => <li> {todo.title} </li>}
 />
 ```
 
-The other view components take static or reactive values through `Prop.t`, and their render callbacks are fine-grained too:
+The other view components take static or reactive values through `MaybeSignal.t`, and their render callbacks are fine-grained too:
 
 ```rescript
 <View.For
-  each={Prop.static(["Draft", "Review", "Ship"])}
+  each={MaybeSignal.static(["Draft", "Review", "Ship"])}
   render={label => <span> {label} </span>}
 />
 
-<View.Show when_={Prop.signal(isReady)} fallback={<p> {"Loading"} </p>}>
+<View.Show when_={MaybeSignal.reactive(isReady)} fallback={<p> {"Loading"} </p>}>
   <p> {"Ready"} </p>
 </View.Show>
 
 <View.Maybe
-  value={Prop.signal(selectedTodo)}
+  value={MaybeSignal.reactive(selectedTodo)}
   fallback={<p> {"No selection"} </p>}
   render={todo => <p> {todo.title} </p>}
 />
 
 <View.Value
-  value={Prop.signal(count)}
+  value={MaybeSignal.reactive(count)}
   render={count => <p> {"Count: "} {count} </p>}
 />
 ```
@@ -230,22 +233,39 @@ Under `@xote.component` you rarely write `View.tracked` yourself: an `if`/`switc
 
 ### Static or Reactive Props
 
-Use `Prop` when a component prop can accept either a static value or a signal:
+`MaybeSignal` is how a value says whether it is plain or reactive. There is one
+rule for when you need it:
+
+| Where | What it accepts |
+|---|---|
+| Built-in HTML/SVG attributes, `View.Text`/`Int`/`Float`/`Bool` | anything — a plain value, a `Signal.t`, a `unit => 'a` function, or a `MaybeSignal.t`. No wrapper needed. |
+| Props with a declared type — `View.Show`, `View.For`, `View.Maybe`, `View.Value`, and the components you write | a `MaybeSignal.t`, so the wrapper is how the caller says which one they are passing. |
 
 ```rescript
 @xote.component
-let make = (~className: Prop.t<string>=Prop.static("badge"), ~children) => {
+let make = (~className: MaybeSignal.t<string>=MaybeSignal.static("badge"), ~children) => {
   <span class={className}> {children} </span>
 }
 
 let tone = Signal.make("badge badge-info")
 
-<Badge className={Prop.signal(tone)}>
+<Badge className={MaybeSignal.reactive(tone)}>
   {"Live"}
 </Badge>
 ```
 
-`Prop` is the module for static-or-reactive props.
+`MaybeSignal.t<'a>` is `Reactive(Signal.t<'a>) | Static('a)`. Build one with
+`MaybeSignal.static`, `MaybeSignal.reactive`, or `MaybeSignal.computed(fn)` for a
+derived value. Read it with `MaybeSignal.get` (tracked) or `MaybeSignal.peek`
+(untracked), and transform it with `MaybeSignal.map`, which preserves staticness.
+
+`MaybeSignal.ofUnknown` is the coercion the JSX runtime applies to untyped props;
+reach for it only when adapting untyped input of your own.
+
+> **Deprecated:** the old `Prop` module is a deprecated alias of `MaybeSignal`.
+> `Prop.t` is a type alias of `MaybeSignal.t`, so migrating is a rename:
+> `Prop.static` → `MaybeSignal.static`, `Prop.signal` and `Prop.reactive` →
+> `MaybeSignal.reactive`, `Prop.get` → `MaybeSignal.get`.
 
 ### Router and SSR State
 

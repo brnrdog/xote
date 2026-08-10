@@ -171,13 +171,10 @@ module DomInspector = {
         )}
       </ol>
       <p
-        class={Prop.reactive(
-          Computed.make(() =>
-            Array.length(Signal.get(entries)) > 0
-              ? "dom-inspector-empty is-hidden"
-              : "dom-inspector-empty"
-          ),
-        )}>
+        class={() =>
+          Array.length(Signal.get(entries)) > 0
+            ? "dom-inspector-empty is-hidden"
+            : "dom-inspector-empty"}>
         {View.text("Drag the slider. Only the changed text nodes update.")}
       </p>
     </aside>

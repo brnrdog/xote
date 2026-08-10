@@ -5,6 +5,7 @@ Zekr.setSnapshotDir("tests/__snapshots__")
 Zekr.runSuites([
   Component_test.suite,
   JSX_test.suite,
+  MaybeSignal_test.suite,
   KeyedList_test.suite,
   Route_test.suite,
   PublicApi_test.suite,

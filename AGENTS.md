@@ -52,7 +52,7 @@ The build process generates:
 The codebase uses ReScript's `namespace: true` setting in `rescript.json`, so every source file in `src/` is automatically scoped under the `Xote` namespace by the compiler. There is no manual `Xote__` prefix and no central `Xote.res` barrel — each module is an independent entry point, which lets bundlers tree-shake at module granularity.
 
 JavaScript package entries are intentionally split by feature:
-- `xote` and `xote/client` expose the client rendering core (`View`, `Html`, `XoteJSX`, `Prop`, and signal shims).
+- `xote` and `xote/client` expose the client rendering core (`View`, `Html`, `XoteJSX`, `MaybeSignal`, the deprecated `Prop` alias, and signal shims).
 - `xote/router` exposes the browser router plus `Route`.
 - `xote/ssr` exposes `SSR`, `SSRState`, and `SSRContext`.
 - `xote/hydration` exposes hydration only.
@@ -62,7 +62,7 @@ The root `xote` entry is client-focused and does not export router, SSR, hydrati
 
 **Reactive Primitives (re-exported from rescript-signals):**
 - **`Xote.Signal`**: Reactive state cells with `make`, `get`, `peek`, `set`, `update`, plus `batch` and `untrack` from the scheduler. `Signal.make` accepts optional `~name` (for debugging) and `~equals` (a custom `('a, 'a) => bool` comparator) parameters. The default equality is JavaScript `===` (reference/strict), not structural — pass `~equals` when you need deep comparison. `set` only notifies dependents when the new value differs from the current one, preventing unnecessary updates and accidental infinite loops.
-- **`Xote.Computed`**: Derived signals that automatically recompute when dependencies change. `Computed.make` accepts optional `~name` (for debugging) and `~equals` (a custom `('a, 'a) => bool` comparator) parameters. As with `Signal.make`, the default equality is JavaScript `===` — pass `~equals` when downstream observers should ignore structurally-equal recomputations. **Lazy with push-based dirty flagging** — when upstream dependencies change, computeds are marked dirty immediately, but only recompute when read (via `Signal.get` or `Signal.peek`). **Auto-disposal**: automatically dispose when they lose all subscribers; use `Computed.dispose(signal)` for manual cleanup.
+- **`Xote.Computed`**: Derived signals that automatically recompute when dependencies change. `Computed.make` accepts optional `~name` (for debugging) and `~equals` (a custom `('a, 'a) => bool` comparator) parameters. As with `Signal.make`, the default equality is JavaScript `===` — pass `~equals` when downstream observers should ignore structurally-equal recomputations. **Lazy with push-based dirty flagging** — when upstream dependencies change, computeds are marked dirty immediately, but only recompute when read (via `Signal.get` or `Signal.peek`). **Disposal is manual**: `rescript-signals` 3.x does not drop a computed when its subscribers reach zero — a computed stays linked to its source signals until `Computed.dispose(signal)` unlinks it.
 - **`Xote.Effect`**: Side effects that run when dependencies change. **Can return cleanup callbacks** — signature is `unit => option<unit => unit>`. Two entry points: `Effect.run` is fire-and-forget and returns `unit`; `Effect.runWithDisposer` returns a `disposer` with a `dispose()` method for manual teardown. Both accept an optional `~name` for debugging.
 
 These three are thin shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.res`) that `include` the corresponding modules from `rescript-signals`.
@@ -71,7 +71,12 @@ These three are thin shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.re
 - **`Xote.View`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `Keyed`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `int`, `float`, `bool`, `fragment`, `signalFragment`, `tracked`, `each`, `eachWithKey`, `element`), the JSX rendering components (`For`, `Show`, `Maybe`, `Value`, `Text`, `Int`, `Float`, `Bool`), attribute helpers (`attr`, `signalAttr`, `computedAttr`, `Attr`), the `null`/`empty` placeholders, and `mount`/`mountById`. The owner-based reactivity system for resource cleanup also lives here.
 - **`Xote.Html`**: Convenience constructors for common HTML tags (`div`, `span`, `button`, `input`, `h1`-`h3`, `p`, `ul`, `li`, `a`). Thin wrappers over `View.element`. For tags not listed, call `View.element(tag, ...)` directly or use JSX.
 - **`Xote.XoteJSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with a broad set of supported attributes (standard, form/input, link, media, accessibility, drag-and-drop, and data attributes). Named `XoteJSX` (not `JSX`) to avoid colliding with unrelated modules when consumers use `open Xote`. Note: to defer side-effecting component evaluation out of any surrounding `Computed` context, `XoteJSX.jsx` wraps user-defined components in `View.LazyComponent`.
-- **`Xote.Prop`**: Static-or-reactive prop module exposing the type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` plus the `static`, `reactive`, `signal` (alias of `reactive`), and `get` helpers. Lets props accept either static values or reactive signals in JSX.
+- **`Xote.MaybeSignal`**: Static-or-reactive value wrapper exposing the type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` plus `static`, `reactive`, `computed` (derives a `Reactive` from a `unit => 'a`), `get` (tracked read), `peek` (untracked read), `isStatic`/`isReactive`, `map`, `toSignal`, and `ofUnknown`. Use it anywhere an API should accept either a plain value or a signal — JSX props are the most common case, not the only one. Notes on the trickier members:
+  - `map` runs its function once immediately in both cases. For a `Reactive` value the result is backed by a `Computed`, which stays subscribed to the source until `Computed.dispose` is called on it, so prefer holding a mapped value over rebuilding it per update.
+  - `toSignal` returns the source signal for `Reactive`, but lifts `Static` into a **fresh, detached** signal — each call allocates a new one and writing to the result does not reach the original. Treat that result as read-only.
+  - `ofUnknown` normalizes an untyped value (raw / `Signal.t` / `unit => 'a` thunk / already-wrapped `t`) into a `t`. It is the single coercion behind every JSX surface that accepts untyped props, in both the ReScript and the hand-written JS runtime. It is unchecked by design — use `static`/`reactive`/`computed` in typed code.
+  - The JS export for `static` is `$$static` (ReScript escapes the reserved word), which matters for consumers importing `xote/maybe-signal` from JavaScript.
+- **`Xote.Prop`**: **Deprecated** alias of `Xote.MaybeSignal`, kept for backwards compatibility. `Prop.t` is a type alias of `MaybeSignal.t` (same constructors, same runtime representation), so values are interchangeable and migrating is a rename: `Prop.static` → `MaybeSignal.static`, `Prop.signal` and `Prop.reactive` → `MaybeSignal.reactive`, `Prop.get` → `MaybeSignal.get`. The deprecations live in `src/Prop.resi`: ReScript only reports warning 3 for values declared in an interface file, so `@deprecated` on the implementation's `let` bindings alone is silently ignored at call sites. `XoteJSX.Prop` and `Router.Link.Prop` re-export this module (not `MaybeSignal`), so those paths warn too.
 - **`Xote.Router`**: Signal-based client-side router with pattern matching, dynamic routes, base path support, scroll position restoration, and a global singleton state (via `Symbol.for()`) that works across multiple bundles.
 - **`Xote.Route`**: Route matching utilities.
 - **`Xote.SSR`**: Server-side rendering to HTML strings with hydration markers (`<!--$-->`, `<!--#-->`, `<!--kl-->`, `<!--k:KEY-->`, `<!--lc-->`).
@@ -99,7 +104,7 @@ All reactive behavior is provided by **rescript-signals**:
 
 - **Build system**: ReScript compiler v12+ with `esmodule` output format
 - **Output**: In-source compilation (`.res.mjs` files alongside `.res` files)
-- **Namespacing**: `namespace: true` in `rescript.json` automatically scopes every module under `Xote`. Public modules are listed explicitly in `sources.public` (`View`, `Html`, `XoteJSX`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Mdx`, `Signal`, `Computed`, `Effect`); everything else (e.g. `DOM`/`Reactivity`, which live inside `View.res`) stays internal.
+- **Namespacing**: `namespace: true` in `rescript.json` automatically scopes every module under `Xote`. Public modules are listed explicitly in `sources.public` (`View`, `Html`, `XoteJSX`, `MaybeSignal`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Mdx`, `Signal`, `Computed`, `Effect`); everything else (e.g. `DOM`/`Reactivity`, which live inside `View.res`) stays internal.
 - **Dependencies**: `rescript-signals` ^3.1.0 and `@rescript/core` ^1.6.1 (the only runtime dependencies)
 - **JSX**: ReScript JSX v4 configured with `module: "XoteJSX"` (generic JSX transform). Consumers must mirror this in their own `rescript.json`.
 
@@ -176,7 +181,7 @@ let app = () => {
   - SVG gradient/stop: `offset`, `stopColor`, `stopOpacity`, `gradientUnits`, `gradientTransform`, `spreadMethod`
   - SVG markers: `markerStart`, `markerMid`, `markerEnd`
   - SVG xlink (legacy): `xlinkHref`
-- Props support raw values, `Prop.t<'a>` (`Static` / `Reactive`), raw `Signal.t<'a>`, or a computed `unit => 'a` function for flexible static/reactive handling
+- Props support raw values, `MaybeSignal.t<'a>` (`Static` / `Reactive`), raw `Signal.t<'a>`, or a computed `unit => 'a` function for flexible static/reactive handling. These element props are untyped by design (each is its own type variable, resolved at runtime by `MaybeSignal.ofUnknown`), so `class={42}` compiles and renders `class="42"` — the trade for not requiring a wrapper. Props with a declared type (`View.Show`, `View.For`, `View.Maybe`, `View.Value`, and user components) take a `MaybeSignal.t` and are checked normally
 - Event handlers: `onClick`, `onInput`, `onChange`, `onSubmit`, `onFocus`, `onBlur`, `onKeyDown`, `onKeyUp`, `onMouseEnter`, `onMouseLeave`, `onMouseDown`, `onMouseMove`, `onMouseUp`, `onContextMenu`, plus drag-and-drop: `onDrag`, `onDragStart`, `onDragEnd`, `onDragOver`, `onDragEnter`, `onDragLeave`, `onDrop`
 - Children are passed via JSX syntax and rendered as nodes
 - Boolean attributes (`disabled`, `checked`, `required`, `readOnly`, `multiple`, `autofocus`, `ariaHidden`, `ariaExpanded`, `ariaSelected`, `draggable`, `hidden`, `contentEditable`, `spellcheck`) are added/removed based on the value rather than stringified
@@ -240,7 +245,7 @@ The `DOM.setAttrOrProp` helper (in `View.res`, via the internal `RuntimeDom` mod
 
 3. **Effect cleanup callbacks**: Effects can return `Some(cleanupFn)` to register cleanup that runs before re-execution and on disposal. Return `None` when no cleanup is needed. Signature is `unit => option<unit => unit>`.
 
-4. **Computed disposal**: `Computed.make` returns a `Signal.t<'a>` directly. For manual disposal, use `Computed.dispose(signal)`. Auto-disposal happens automatically when subscribers drop to zero.
+4. **Computed disposal**: `Computed.make` returns a `Signal.t<'a>` directly, already subscribed to whatever it read during its initial computation. There is no automatic disposal — call `Computed.dispose(signal)` to unlink a computed you no longer need. Xote's owner system tracks `Effect` disposers only, so computeds created during render are not cleaned up for you.
 
 5. **Untracked reads**: Use `Signal.peek(signal)` for a single untracked read, or `Signal.untrack(fn)` to disable dependency capture inside a larger block.
 
@@ -290,7 +295,7 @@ let translated = Computed.make(
   ~equals=(a, b) => a.x === b.x && a.y === b.y,
 )
 
-// Manual disposal (usually not needed - auto-disposes when subscribers drop to zero)
+// Manual disposal - unlinks the computed from the signals it depends on
 Computed.dispose(doubled)
 ```
 
@@ -434,17 +439,44 @@ View.eachWithKey(
 />
 ```
 
-#### Reactive props with Prop
-```rescript
-// Props can accept either static or reactive values
-<div class={Prop.static("container")}>
-  {View.text("Static class")}
-</div>
+#### Static-or-reactive values with MaybeSignal
+Built-in element attributes and `View.Text`/`Int`/`Float`/`Bool` are untyped and
+accept anything, so no wrapper is needed there:
 
-<div class={Prop.signal(classSignal)}>
-  {View.text("Reactive class")}
-</div>
+```rescript
+<div class="container"> {View.text("Static class")} </div>
+<div class={classSignal}> {View.text("Reactive class")} </div>
+<div class={() => Signal.get(isActive) ? "on" : "off"}> {View.text("Derived")} </div>
 ```
+
+Props with a declared type take a `MaybeSignal.t`, and that is where the wrapper
+earns its keep — `View.Show`, `View.For`, `View.Maybe`, `View.Value`, and any
+component you write:
+
+```rescript
+<View.Show when_={MaybeSignal.reactive(isReady)}> ... </View.Show>
+<View.For each={MaybeSignal.static(["Draft", "Ship"])} render={...} />
+
+@jsx.component
+let make = (~className: MaybeSignal.t<string>=MaybeSignal.static("badge"), ~children) =>
+  <span class={className}> {children} </span>
+```
+
+`MaybeSignal` is not prop-specific — use it for any static-or-reactive input:
+
+```rescript
+let label: MaybeSignal.t<string> = MaybeSignal.reactive(nameSignal)
+let title = MaybeSignal.computed(() => Signal.get(first) ++ " " ++ Signal.get(last))
+
+MaybeSignal.get(label)          // tracked read
+MaybeSignal.peek(label)         // untracked read
+MaybeSignal.map(label, String.toUpperCase) // stays static if the input was static
+MaybeSignal.toSignal(label)     // Signal.t<string>; a Static input yields a detached signal
+MaybeSignal.ofUnknown(anything) // coercion for untyped input (raw / signal / thunk / t)
+```
+
+> `Prop` is the deprecated predecessor of `MaybeSignal`. It still works (`Prop.t`
+> is a type alias of `MaybeSignal.t`) but emits deprecation warnings.
 
 #### Router with JSX
 ```rescript
@@ -515,7 +547,7 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 ### Before Making Changes
 
 1. **Compile first**: Always run `npm run res:build` before testing or building
-2. **Understand the module boundary**: The public surface is the list of modules in `rescript.json`'s `sources.public` (`View`, `Html`, `XoteJSX`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Mdx`, `Signal`, `Computed`, `Effect`). Helpers like `DOM`, `Reactivity`, and `Render` are implementation details and should not be relied on by consumers.
+2. **Understand the module boundary**: The public surface is the list of modules in `rescript.json`'s `sources.public` (`View`, `Html`, `XoteJSX`, `MaybeSignal`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Mdx`, `Signal`, `Computed`, `Effect`). Helpers like `DOM`, `Reactivity`, and `Render` are implementation details and should not be relied on by consumers.
 
 ### Making Changes
 
@@ -537,7 +569,8 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 | `src/Hydration.res` | Client-side hydration |
 | `src/SSRState.res` | Server-client state transfer |
 | `src/SSRContext.res` | Server/client environment detection |
-| `src/Prop.res` | Static/Reactive prop wrapper |
+| `src/MaybeSignal.res` | Static/Reactive value wrapper |
+| `src/Prop.res`, `src/Prop.resi` | Deprecated alias of `MaybeSignal` (the interface file is what makes the deprecations warn) |
 | `src/Signal.res`, `src/Computed.res`, `src/Effect.res` | Re-export shims for `rescript-signals` |
 | `ppx/ppx.ml` | The `@xote.component` fine-grained PPX (vendored OCaml 4.06 AST + rewriter) |
 | `ppx/example/` | Standalone PPX consumer project; `verify.mjs` is its jsdom regression suite (`npm run ppx:test`) |
@@ -581,6 +614,7 @@ The project has a test suite using the [zekr](https://github.com/nicholasgasior/
 | `tests/Component_test.res` | Component rendering |
 | `tests/Hydration_test.res` | Hydration logic |
 | `tests/JSX_test.res` | JSX transform |
+| `tests/MaybeSignal_test.res` | `MaybeSignal` helpers and the deprecated `Prop` alias |
 | `tests/KeyedList_test.res` | Keyed list reconciliation |
 | `tests/Route_test.res` | Route matching |
 | `tests/SSR_test.res` | Server-side rendering |
