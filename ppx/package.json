@@ -2,7 +2,7 @@
   "name": "xote-tracked-ppx",
   "version": "0.1.0",
   "private": true,
-  "description": "Experimental native ReScript PPX that expands @tracked JSX blocks into fine-grained Xote reactive leaves. Opt-in; build with ./build.sh (needs ocamlopt).",
+  "description": "Native ReScript PPX that expands @xote.component into fine-grained Xote reactive leaves. Shipped prebuilt per platform in the xote npm package; build from source with ./build.sh (needs ocamlopt).",
   "bin": {
     "xote-tracked-ppx": "./ppx"
   },
