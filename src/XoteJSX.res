@@ -1,7 +1,7 @@
-module MaybeSignal = MaybeSignal
-
-/* Deprecated alias — use `MaybeSignal` */
-module Prop = MaybeSignal
+/* Deprecated re-export of the top-level `Prop` module, kept so existing
+ `XoteJSX.Prop.*` call sites keep compiling — they now raise the same
+ deprecation warnings as `Prop` itself. Use `MaybeSignal` directly. */
+module Prop = Prop
 
 /* ReScript JSX transform type aliases */
 type element = View.node
@@ -159,7 +159,7 @@ module Elements = {
     'markerEnd,
     'xlinkHref,
   > = {
-    /* Standard attributes - accept raw strings or Prop.t<string> */
+    /* Standard attributes - accept raw strings or MaybeSignal.t<string> */
     id?: 'id,
     class?: 'class,
     style?: 'style,

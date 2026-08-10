@@ -137,11 +137,14 @@ On top of the reactive primitives with signals, Xote provides a declarative view
 ```rescript
 let className = Signal.make("card")
 
-<div class={MaybeSignal.signal(className)}>
+<div class={className}>
   <View.Text> "Status: " </View.Text>
   <View.Text> {className} </View.Text>
 </div>
 ```
+
+Built-in attributes take a plain value, a signal, or a `unit => 'a` function, so
+a signal can be passed straight through without wrapping it.
 
 For rendering collections in JSX, prefer `View.For`. Add `by` when items have stable identity and should reconcile by key:
 
@@ -154,7 +157,7 @@ let todos = Signal.make([
 ])
 
 <View.For
-  each={MaybeSignal.signal(todos)}
+  each={MaybeSignal.reactive(todos)}
   by={todo => todo.id}
   render={todo => <li> <View.Text> {todo.title} </View.Text> </li>}
 />
@@ -170,24 +173,24 @@ let todos = Signal.make([
 
 <ul>
   <View.For
-    each={MaybeSignal.signal(todos)}
+    each={MaybeSignal.reactive(todos)}
     by={todo => todo.id}
     render={todo => <li> <View.Text> {todo.title} </View.Text> </li>}
   />
 </ul>
 
-<View.Show when_={MaybeSignal.signal(isReady)} fallback={<p> <View.Text> "Loading" </View.Text> </p>}>
+<View.Show when_={MaybeSignal.reactive(isReady)} fallback={<p> <View.Text> "Loading" </View.Text> </p>}>
   <p> <View.Text> "Ready" </View.Text> </p>
 </View.Show>
 
 <View.Maybe
-  value={MaybeSignal.signal(selectedTodo)}
+  value={MaybeSignal.reactive(selectedTodo)}
   fallback={<p> <View.Text> "No selection" </View.Text> </p>}
   render={todo => <p> <View.Text> {todo.title} </View.Text> </p>}
 />
 
 <View.Value
-  value={MaybeSignal.signal(count)}
+  value={MaybeSignal.reactive(count)}
   render={count =>
     <p>
       <View.Text> "Count: " </View.Text>
@@ -206,9 +209,13 @@ let todos = Signal.make([
 
 ### Static or Reactive Values
 
-Use `MaybeSignal` when a value can be either a plain value or a signal. It is
-most visible on component props, but nothing about it is prop-specific — use it
-for any API that should accept both:
+`MaybeSignal` is how a value says whether it is plain or reactive. There is one
+rule for when you need it:
+
+| Where | What it accepts |
+|---|---|
+| Built-in HTML/SVG attributes, `View.Text`/`Int`/`Float`/`Bool` | anything — a plain value, a `Signal.t`, a `unit => 'a` function, or a `MaybeSignal.t`. No wrapper needed. |
+| Props with a declared type — `View.Show`, `View.For`, `View.Maybe`, `View.Value`, and the components you write | a `MaybeSignal.t`, so the wrapper is how the caller says which one they are passing. |
 
 ```rescript
 @jsx.component
@@ -218,20 +225,23 @@ let make = (~className: MaybeSignal.t<string>=MaybeSignal.static("badge"), ~chil
 
 let tone = Signal.make("badge badge-info")
 
-<Badge className={MaybeSignal.signal(tone)}>
+<Badge className={MaybeSignal.reactive(tone)}>
   <View.Text> "Live" </View.Text>
 </Badge>
 ```
 
-`MaybeSignal.t<'a>` is `Reactive(Signal.t<'a>) | Static('a)`. Read it with
-`MaybeSignal.get` (tracked) or `MaybeSignal.peek` (untracked); `MaybeSignal.map`
-transforms it while preserving staticness, and `MaybeSignal.toSignal` normalizes
-it to a plain signal.
+`MaybeSignal.t<'a>` is `Reactive(Signal.t<'a>) | Static('a)`. Build one with
+`MaybeSignal.static`, `MaybeSignal.reactive`, or `MaybeSignal.computed(fn)` for a
+derived value. Read it with `MaybeSignal.get` (tracked) or `MaybeSignal.peek`
+(untracked), and transform it with `MaybeSignal.map`, which preserves staticness.
+
+`MaybeSignal.ofUnknown` is the coercion the JSX runtime applies to untyped props;
+reach for it only when adapting untyped input of your own.
 
 > **Deprecated:** the old `Prop` module is a deprecated alias of `MaybeSignal`.
 > `Prop.t` is a type alias of `MaybeSignal.t`, so migrating is a rename:
-> `Prop.static` → `MaybeSignal.static`, `Prop.signal` → `MaybeSignal.signal`,
-> `Prop.get` → `MaybeSignal.get`.
+> `Prop.static` → `MaybeSignal.static`, `Prop.signal` and `Prop.reactive` →
+> `MaybeSignal.reactive`, `Prop.get` → `MaybeSignal.get`.
 
 ### Router and SSR State
 

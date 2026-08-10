@@ -114,7 +114,7 @@ SSR mirrors the same boolean attribute behavior when rendering strings.
 - `jsx`, `jsxs`, `jsxKeyed`, and `jsxsKeyed` are entry points for the JSX transform.
 - Lowercase HTML tags are implemented in `XoteJSX.Elements`.
 - JSX components are wrapped in `View.LazyComponent` so component evaluation happens during render/hydration rather than inside an unrelated computed context.
-- JSX attributes accept raw values, `MaybeSignal.t<'a>`, raw `Signal.t<'a>`, or computed functions for compatibility.
+- JSX attributes accept raw values, `MaybeSignal.t<'a>`, raw `Signal.t<'a>`, or computed functions for compatibility. `MaybeSignal.ofUnknown` is the single coercion behind that flexibility, shared by `RuntimeJsxProp`, `View.valuePrimitive`, and the hand-written `src/jsx-runtime.mjs`.
 
 `MaybeSignal.t<'a>` is:
 
@@ -122,9 +122,13 @@ SSR mirrors the same boolean attribute behavior when rendering strings.
 type t<'a> = Reactive(Signal.t<'a>) | Static('a)
 ```
 
-Use `MaybeSignal.static(value)` or `MaybeSignal.signal(signal)` (alias of `MaybeSignal.reactive`) when an API should support either static or reactive input. Read it with `MaybeSignal.get` (tracked) or `MaybeSignal.peek` (untracked); `MaybeSignal.map` maps it while preserving staticness, `MaybeSignal.toSignal` normalizes it to a `Signal.t`, and `MaybeSignal.isStatic`/`isReactive` classify it.
+Build one with `MaybeSignal.static(value)`, `MaybeSignal.reactive(signal)`, or `MaybeSignal.computed(fn)` when an API should support either static or reactive input. Read it with `MaybeSignal.get` (tracked) or `MaybeSignal.peek` (untracked); `MaybeSignal.map` maps it while preserving staticness, and `MaybeSignal.isStatic`/`isReactive` classify it.
 
-`Xote.Prop` is a deprecated alias of `Xote.MaybeSignal`. `Prop.t` is a type alias of `MaybeSignal.t` with the same constructors and runtime representation, so the two are interchangeable and migrating is a rename.
+Wrapping is only required where a prop has a declared type — `View.Show`, `View.For`, `View.Maybe`, `View.Value`, and user-written components. Built-in element attributes and `View.Text`/`Int`/`Float`/`Bool` take untyped values and coerce them at runtime, so a raw signal or thunk can be passed straight through.
+
+Two sharp edges worth knowing: `MaybeSignal.map` runs its function once immediately and, for reactive values, leaves a `Computed` subscribed to the source until `Computed.dispose`; and `MaybeSignal.toSignal` lifts a `Static` into a fresh detached signal, so writes to the result do not reach the original.
+
+`Xote.Prop` is a deprecated alias of `Xote.MaybeSignal`. `Prop.t` is a type alias of `MaybeSignal.t` with the same constructors and runtime representation, so the two are interchangeable and migrating is a rename. The deprecations are declared in `src/Prop.resi`, because ReScript only reports warning 3 for values declared in an interface file. `XoteJSX.Prop` and `Router.Link.Prop` re-export the deprecated module, so those paths warn as well.
 
 ### Router
 
