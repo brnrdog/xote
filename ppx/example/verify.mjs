@@ -143,5 +143,120 @@ Signal.set(Demo.status, 'Loading');
 check('scrutinee change still swaps to <span>',
   outer.querySelector('span') !== null && outer.querySelector('#ready-strong') === null);
 
+// --- Bare children coerced by View.child (no <View.Int>/<View.Text> needed) --
+// <div>{Signal.get(count)}</div> — a bare *reactive scalar* becomes reactive
+// text; the <div> keeps its identity across the change (fine-grained leaf).
+console.log('bare reactive int child (View.child):');
+Signal.set(Demo.count, 0);
+const bi = mount(() => Demo.BareInt.make({}));
+bi.__marker = 'BI';
+check('bare int renders "0"', bi.textContent === '0');
+Signal.set(Demo.count, 7);
+check('bare int updates to "7"', document.querySelector('#bare-int').textContent === '7');
+check('bare int <div> kept identity (reactive leaf, not rebuilt)', document.querySelector('#bare-int').__marker === 'BI');
+
+// <div><span>…</span>{Signal.get(name)}</div> — bare reactive string alongside a
+// static sibling; only the text leaf reacts, the <span> keeps its identity.
+console.log('bare reactive string child + static sibling:');
+Signal.set(Demo.name, 'Ada');
+const bs = mount(() => Demo.BareString.make({}));
+const bsSpan = bs.querySelector('.lbl');
+bsSpan.__marker = 'SPAN';
+check('bare string shows "n: Ada"', bs.textContent === 'n: Ada');
+Signal.set(Demo.name, 'Bo');
+check('bare string updates to "n: Bo"', document.querySelector('#bare-string').textContent === 'n: Bo');
+check('static <span> sibling kept identity', document.querySelector('#bare-string .lbl').__marker === 'SPAN');
+
+// <div>{"literal"}</div> — a bare *static* scalar (a type error before View.child)
+// becomes a static text node.
+console.log('bare static scalar child:');
+const bst = mount(() => Demo.BareStatic.make({}));
+check('bare static renders "literal"', bst.textContent === 'literal');
+
+// <div>{View.text("noded")}</div> — a bare child that is *already a node* passes
+// through View.child untouched.
+console.log('bare already-a-node child (passthrough):');
+const bn = mount(() => Demo.BareNode.make({}));
+check('bare node renders "noded"', bn.textContent === 'noded');
+
+// Control flow with *scalar* branches: still a tracked structural swap on
+// `status`, but each scalar branch is coerced by View.child (no value primitive).
+console.log('scalar switch branches (tracked + View.child):');
+Signal.set(Demo.status, 'Loading');
+const ss = mount(() => Demo.ScalarSwitch.make({}));
+ss.__marker = 'SS';
+check('scalar switch shows "…loading"', ss.textContent === '…loading');
+Signal.set(Demo.status, { TAG: 'Ready', _0: 'done' });
+check('scalar switch swaps to "done"', document.querySelector('#scalar-switch').textContent === 'done');
+check('scalar switch outer <div> kept identity', document.querySelector('#scalar-switch').__marker === 'SS');
+
+// --- Fragment body: nested regions stay independent ------------------------
+// A make whose body is a <>…</> fragment with two reactive regions: a canvas
+// element and a mobile-backdrop `if`. Each fragment child is decomposed on its
+// own, so toggling the backdrop must NOT rebuild the canvas. (Regression: before
+// fragments were recursed into, the whole fragment was one coarse thunk and a
+// panel toggle rebuilt every sibling, losing DOM state.)
+console.log('fragment body: independent reactive regions (no coarse collapse):');
+Signal.set(Demo.mobileOpen, false);
+Signal.set(Demo.canvas, 'canvas-a');
+const wsHost = document.createElement('div');
+document.body.appendChild(wsHost);
+View.mount(Demo.Workspace.make({}), wsHost);
+const canvasEl = wsHost.querySelector('#ws-canvas');
+canvasEl.__marker = 'CANVAS';
+check('canvas renders "canvas-a"', canvasEl.textContent === 'canvas-a');
+check('backdrop absent initially', wsHost.querySelector('#ws-backdrop') === null);
+
+Signal.set(Demo.mobileOpen, true);
+check('backdrop appears on panel toggle', wsHost.querySelector('#ws-backdrop') !== null);
+check('canvas kept identity across panel toggle (NOT rebuilt)', wsHost.querySelector('#ws-canvas').__marker === 'CANVAS');
+
+Signal.set(Demo.canvas, 'canvas-b');
+check('canvas content updates on its own', wsHost.querySelector('#ws-canvas').textContent === 'canvas-b');
+check('canvas still same element after its own update', wsHost.querySelector('#ws-canvas').__marker === 'CANVAS');
+
+Signal.set(Demo.mobileOpen, false);
+check('backdrop removed on toggle off', wsHost.querySelector('#ws-backdrop') === null);
+check('canvas kept identity across second toggle (regions independent)', wsHost.querySelector('#ws-canvas').__marker === 'CANVAS');
+
+// --- Bare children directly in a fragment return ---------------------------
+// A dropdown-style fragment whose labels sit at the top level next to a static
+// anchor. Each bare read must be coerced in place (no display:contents root).
+console.log('bare children directly in a fragment return:');
+Signal.set(Demo.name, 'Ada');
+Signal.set(Demo.count, 3);
+const dfHost = document.createElement('div');
+document.body.appendChild(dfHost);
+View.mount(Demo.DropdownFragment.make({}), dfHost);
+const dfAnchor = dfHost.querySelector('#df-anchor');
+dfAnchor.__marker = 'ANCHOR';
+check('fragment bare label renders (name)', dfHost.textContent.includes('Ada'));
+check('fragment bare thunk renders (#count)', dfHost.textContent.includes('#3'));
+Signal.set(Demo.name, 'Bo');
+Signal.set(Demo.count, 9);
+check('fragment bare label updates', dfHost.textContent.includes('Bo'));
+check('fragment bare thunk updates', dfHost.textContent.includes('#9'));
+check('fragment static anchor kept identity', dfHost.querySelector('#df-anchor').__marker === 'ANCHOR');
+
+// --- Fragment as a control-flow branch body --------------------------------
+// The dropdown's labels live inside CanvasMenu's `{if …}` as a fragment, not in
+// their own component. The branch is decomposed so its bare labels are coerced;
+// the anchor outside the `if` keeps its identity across toggles.
+console.log('fragment as a control-flow branch body:');
+Signal.set(Demo.active, false);
+Signal.set(Demo.name, 'Ada');
+Signal.set(Demo.count, 5);
+const mb = mount(() => Demo.MenuBranch.make({}));
+const mbAnchor = mb.querySelector('#mb-anchor');
+mbAnchor.__marker = 'MB';
+check('branch closed: no labels yet', !mb.textContent.includes('Ada'));
+Signal.set(Demo.active, true);
+check('branch open: bare label coerced (name)', document.querySelector('#mb-host').textContent.includes('Ada'));
+check('branch open: bare int coerced (count)', document.querySelector('#mb-host').textContent.includes('5'));
+check('anchor outside the if kept identity', document.querySelector('#mb-anchor').__marker === 'MB');
+Signal.set(Demo.active, false);
+check('branch closed again: labels gone', !document.querySelector('#mb-host').textContent.includes('Ada'));
+check('anchor still same element after toggle', document.querySelector('#mb-anchor').__marker === 'MB');
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

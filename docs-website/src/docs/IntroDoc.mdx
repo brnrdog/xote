@@ -29,14 +29,9 @@ let increment = (_evt: Dom.event) => {
 @xote.component
 let make = () => {
   <div>
-    <h1> <View.Text> "Counter" </View.Text> </h1>
-    <p>
-      <View.Text> "Count: " </View.Text>
-      <View.Int> {Signal.get(count)} </View.Int>
-    </p>
-    <button onClick={increment}>
-      <View.Text> "Increment" </View.Text>
-    </button>
+    <h1> {"Counter"} </h1>
+    <p> {"Count: "} {Signal.get(count)} </p>
+    <button onClick={increment}> {"Increment"} </button>
   </div>
 }
 
@@ -45,7 +40,7 @@ View.mountById(<Counter />, "app")
 
 When `count` changes, only the reactive view node updates. The component does not need a render loop or a dependency array.
 
-The `@xote.component` annotation is what lets you read signals **inline** (no `() => …` thunks) while keeping updates fine-grained. It needs a one-time setup (a small native PPX) — see [Views → JSX Configuration](/docs/view/overview#jsx-configuration).
+The `@xote.component` annotation is what lets you read signals **inline** (no `() => …` thunks) while keeping updates fine-grained. It also lets you write plain `{…}` children — strings, numbers, or signal reads — with no `<View.Int>`/`<View.Text>` wrapper; each is coerced to a reactive text node for you. It needs a one-time setup (a small native PPX) — see [Views → JSX Configuration](/docs/view/overview#jsx-configuration).
 
 ## How the Docs Are Organized
 
