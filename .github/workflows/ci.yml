@@ -12,8 +12,14 @@ permissions:
   pull-requests: write
 
 jobs:
+  # The five-platform ppx binary matrix does NOT run here on every push: it
+  # lives in ppx-binaries.yml, triggered by release.yml, by changes to
+  # ppx/** or that workflow, and by a weekly drift-canary schedule. The test
+  # job below still builds and e2e-tests the ppx on Linux each run.
   test:
-    runs-on: ubuntu-latest
+    # Pinned (not -latest) so apt's OCaml stays 4.14, matching the compiler
+    # ppx-binaries.yml pins for the shipped binaries. Bump both together.
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
@@ -36,13 +42,14 @@ jobs:
       - name: Run tests
         run: node tests/Tests.res.mjs
 
-      # The @tracked ppx (ppx/) is an opt-in native binary, not part of the
-      # published package. Build and exercise it here so it can't rot; needs
-      # only ocamlopt (no opam).
-      - name: Set up OCaml (for @tracked ppx)
+      # The @xote.component ppx (ppx/) ships in the npm package as prebuilt
+      # binaries (see ppx-binaries.yml / release.yml). Build it from source
+      # and run the example's jsdom verification here so the transform can't
+      # rot; needs only ocamlopt (no opam).
+      - name: Set up OCaml (for the @xote.component ppx)
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ocaml-nox
 
-      - name: Build & verify @tracked ppx
+      - name: Build & verify @xote.component ppx
         run: npm run ppx:test
 
       - name: Vite Build

@@ -20,7 +20,9 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Pinned (not -latest) so apt's OCaml stays 4.14, matching the compiler
+    # ppx-binaries.yml pins for the shipped binaries. Bump both together.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,9 +41,9 @@ jobs:
           cd docs-website
           npm ci
 
-      # The docs site uses the @tracked ppx (a native binary built from
+      # The docs site uses the @xote.component ppx (a native binary built from
       # ppx/ppx.ml during its res:build); ocamlopt is the only build dep.
-      - name: Set up OCaml (for @tracked ppx)
+      - name: Set up OCaml (for the @xote.component ppx)
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ocaml-nox
 
       - name: Build website

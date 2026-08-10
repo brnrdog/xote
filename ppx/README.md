@@ -5,15 +5,18 @@ props-deriving component whose returned JSX is decomposed into **fine-grained
 reactive leaves** — the compile-time counterpart to the runtime
 [`View.tracked`](../src/View.res) helper.
 
-> **Status:** experimental, opt-in. The PPX is exercised in CI and used by the
-> [docs site](../docs-website) itself (the Counter demo), but it is **not part
-> of the published npm package** — consumers who want it build it themselves
-> (see [Opt-in for consumers](#opt-in-for-consumers)). It demonstrates that the
+> **Status:** the standard authoring model. The npm package ships the PPX as a
+> prebuilt binary per platform, selected at install time (see
+> [Distribution](#distribution)), so enabling `@xote.component` is a single
+> `ppx-flags` line with no toolchain requirement. The PPX is exercised in CI
+> and used by the [docs site](../docs-website) itself. It grew out of the
 > [`rescript-signals` #34](https://github.com/brnrdog/rescript-signals/pull/34)
-> auto-tracking idea can target Xote's view layer *and* compile away the
+> auto-tracking idea, targeting Xote's view layer *and* compiling away the
 > wholesale-replacement tradeoff of `View.tracked`. See
 > [`docs/proposals/tracked-blocks.md`](../docs/proposals/tracked-blocks.md) for
-> the full design context (this is "Phase 2, fine-grained variant").
+> the full design context, and
+> [RFC #141](https://github.com/brnrdog/xote/issues/141) for the decision to
+> distribute prebuilt binaries and make this the primary model.
 
 ## What problem it solves
 
@@ -90,12 +93,30 @@ Applied recursively to the component's returned JSX:
 | `<View.Text/…>` child | no | left as-is (static text) |
 | Element / nested JSX | — | recurse into attributes and children |
 | Fragment (`<>…</>`) | — | recurse into each child independently (so nested reactive regions stay separate — not collapsed into one thunk) |
-| Bare child, control flow (`if`/`switch` selecting different nodes) | yes | branches decomposed fine-grained, then wrapped in `View.tracked` — see below |
+| User-component prop (`<Card label={…}>`) | — | left untouched — see [User-component props](#user-component-props) |
+| Bare child, control flow (`if`/`switch` selecting different nodes) | yes | branches decomposed fine-grained, then wrapped in `View.tracked` — see below. Signal reads in `when` guards count: they are evaluated with the scrutinee |
+| Bare child, block expression (`{let x = …; <span/>}`) | — | recurse into the tail, threading `let`-bound aliases — the inner JSX keeps fine-grained leaves |
 | Bare child, otherwise (`{Signal.get(x)}`, `{"lit"}`, `{someNode}`) | — | wrapped in `View.child` — see [Bare value children](#bare-value-children) |
 
 The result: reactivity lives at the leaves; `View.tracked` is emitted
 **surgically**, only around a child region whose node *structure* actually
 varies, and never around the stable elements that enclose it.
+
+### User-component props
+
+Props of a **user component** land in that component's typed props record, so
+the PPX never thunks them — `<Card label={Signal.get(name)} />` compiles as
+written and is a deliberate **one-shot read** (the component function runs
+once; a reactive-looking scalar prop cannot be reactive anyway). For a prop
+that should react, pass the signal itself (`<Card count={count} />`) or a
+thunk, and have the component read it.
+
+The two node-shaped exceptions are still decomposed: **children**, and any
+prop whose value is **itself JSX** (`<Layout header={<span
+class={Signal.get(theme)} />} />` — the header's class stays a fine-grained
+reactive leaf). Intrinsic elements (`<div>`, …) are different: their attributes
+accept thunks at runtime, which is why *their* reactive attributes are thunked
+into `computedAttr`s.
 
 ### Bare value children
 
@@ -117,9 +138,16 @@ Every bare non-control-flow child is wrapped in the runtime helper
 - an eager signal read is thunked first, so it becomes a **reactive text** leaf;
 - a static scalar (`{"lit"}`, `{42}`) becomes a **static text** node — previously
   a *compile error* (a scalar in node position), now it just works;
-- a value that is **already a node** (`{View.text(x)}`, a component call, a list)
+- a value that is **already a node** (`{View.text(x)}`, a component call)
   passes through untouched (detected by its runtime tag);
-- `null`/`undefined` render nothing.
+- a bare **signal** (`{count}` where `count: Signal.t<_>`) becomes reactive
+  text — signals are detected positively by their runtime shape, so an
+  arbitrary record is never mistaken for one;
+- an **array** is coerced element-wise into a fragment (an array of nodes
+  renders each node; an array of scalars renders their text);
+- `null`/`undefined` render nothing;
+- any **other object** (a record, a dict) cannot be rendered as a node: it is
+  stringified with a console warning pointing at the value.
 
 This also covers control flow whose **branches are scalars** — the `switch` is
 still tracked for the structural swap, but each scalar branch is coerced by
@@ -171,9 +199,10 @@ shadowing it with a non-alias removes it) recognises all of these:
 | Local reactive helper | `let cls = () => Signal.get(x) ? …` … `cls()` | function binding whose body eagerly reads a signal; its *call* counts |
 
 `Signal.peek` is intentionally **not** a read — it is an untracked read, so a
-value that only peeks stays static (verified by the shadowing case, where an
-alias rebound to a `peek`-based function is dropped and its attribute is left
-as a plain string).
+value that only peeks stays static (verified by the example's `PeekShadow`
+case, where a reactive helper rebound to a `peek`-based function is dropped
+from the alias environment and its attribute is left as a plain, once-evaluated
+string).
 
 Only *eager* reads trigger a thunk. A read deferred inside a nested lambda — a
 `() => …` you wrote yourself, a `Computed`, a `Prop.reactive(Computed.make(…))`,
@@ -207,41 +236,61 @@ exception**; they keep their original copyright headers. The
 and license text is in [`LICENSE.OCaml`](./LICENSE.OCaml), which ships in the
 npm tarball alongside `ppx.ml`.
 
-## Build
+## Distribution
 
-```sh
-sh build.sh   # produces ./ppx (needs ocamlopt; any recent OCaml, tested 4.14)
-```
+The npm package ships the PPX **prebuilt** for the common platforms, under
+`ppx/bin/`:
 
-Wire it into a project's `rescript.json`:
+| Platform | Binary |
+|---|---|
+| Linux x64 | `ppx-linux-x64.exe` |
+| Linux arm64 | `ppx-linux-arm64.exe` |
+| macOS x64 (Intel) | `ppx-darwin-x64.exe` |
+| macOS arm64 (Apple Silicon) | `ppx-darwin-arm64.exe` |
+| Windows x64 | `ppx-win32-x64.exe` |
 
-```json
-{ "ppx-flags": ["xote-tracked-ppx/ppx"] }
-```
-
-## Opt-in for consumers
-
-The compiled binary is platform-specific and is **not** shipped in the npm
-package, and — deliberately — neither is a `ppx-flags` entry in Xote's own
-published `rescript.json`. That last point matters: a ReScript consumer
-recompiles a dependency's sources during its own build and applies that
-dependency's `ppx-flags`, so a PPX listed in Xote's published config would
-force `ocamlopt` on **every** Xote user. Instead the PPX is strictly opt-in.
-
-The `ppx.ml` source *is* published, so a consumer who wants `@xote.component`
-can build it from the installed package and reference it from **their own**
-`rescript.json`:
-
-```sh
-npm install xote
-sh node_modules/xote/ppx/build.sh      # needs ocamlopt
-```
+The binaries are compiled in CI by
+[`.github/workflows/ppx-binaries.yml`](../.github/workflows/ppx-binaries.yml)
+and injected into the tarball by the release workflow. On install, Xote's
+`postinstall` script ([`postinstall.js`](./postinstall.js)) copies the binary
+matching `process.platform`-`process.arch` to `ppx/ppx` (`ppx/ppx.exe` on
+Windows), which is the path consumers reference:
 
 ```json
 { "ppx-flags": ["xote/ppx/ppx"] }
 ```
 
-Consumers who don't do this are entirely unaffected.
+That one line in your `rescript.json` is the whole setup — no OCaml toolchain
+required. Two edge cases:
+
+- **Install scripts disabled.** Some package managers skip dependency install
+  scripts (pnpm does by default). Approve them for `xote`
+  (`pnpm approve-builds`) or run `node node_modules/xote/ppx/postinstall.js`
+  once.
+- **Unsupported platform.** If no prebuilt binary matches — or the matching
+  one does not execute on the host (the install script smoke-runs it; the
+  Linux prebuilts are glibc-linked, so musl systems like Alpine fall through
+  here) — the script falls back to compiling `ppx.ml` from source when
+  `ocamlopt` is on the `PATH`, and otherwise prints instructions without
+  failing the install.
+
+A `ppx-flags` entry is deliberately **not** in Xote's own published
+`rescript.json`: a ReScript consumer recompiles a dependency's sources during
+its own build and applies that dependency's `ppx-flags`, and Xote's `src/`
+carries no `@xote.component` annotations, so listing the PPX there would make
+every build depend on the binary for no benefit. The annotation applies to
+*your* components, which is why the flag lives in *your* `rescript.json` —
+exactly like the `jsx` configuration you already mirror.
+
+## Build from source
+
+```sh
+sh build.sh   # produces ./ppx (needs ocamlopt; any recent OCaml, tested 4.14)
+```
+
+`build.sh` also accepts an output path relative to `ppx/`
+(`sh build.sh bin/ppx-linux-x64.exe`), which is how the CI matrix produces
+the prebuilt binaries.
 
 ## In this repo
 
@@ -272,10 +321,10 @@ Or step by step from `example/`:
 sh setup.sh             # link toolchain + Xote from the repo root (idempotent)
 sh ../build.sh          # build the ppx
 npm run build           # compile Demo.res through the ppx
-npm run verify          # jsdom runtime check (71 assertions)
+npm run verify          # jsdom runtime check (every case above, asserted on real DOM)
 ```
 
-## Known limitations (it's a prototype)
+## Known limitations
 
 - **Signal detection is syntactic** (though alias- and helper-aware — see the
   table above). It follows `let`/`module`/`open` aliases and *local* reactive
@@ -286,6 +335,21 @@ npm run verify          # jsdom runtime check (71 assertions)
   hatch is reliable: wrap it in `() =>` yourself and it becomes reactive (the
   eager check leaves your thunk alone, so it is never double-wrapped). An
   over-eager match only produces a harmless extra `computedAttr`.
+- **Hoisting a read into a `let` makes it a one-shot read.** Reactivity follows
+  the *expression in JSX position*: `<div> {Signal.get(count)} </div>` is a
+  reactive leaf, but
+
+  ```rescript
+  let label = Signal.get(count)->Int.toString
+  <div> {label} </div>
+  ```
+
+  reads `count` once, at component setup, and renders a static value — the
+  binding is an ordinary eager evaluation, exactly as it would be in any
+  signals library without a compiler. When extracting a reactive expression
+  into a binding, bind a *thunk* instead: `let label = () =>
+  Signal.get(count)->Int.toString` and use `{label()}` (a tracked reactive
+  helper) or `{label}` (coerced by `View.child`).
 - **Value-component detection is hard-coded** to the qualified
   `View.Text/Int/Float/Bool`. An aliased or opened `View` (`module V = View` →
   `<V.Text>`, `open View` → bare `<Text>`) is not recognized as a value
@@ -295,14 +359,17 @@ npm run verify          # jsdom runtime check (71 assertions)
   child** (`View.child` coerces it), or use the qualified `View.Text` form.
 - **Coupled to ReScript's ppx ABI.** The vendored OCaml 4.06 parsetree, the
   `Caml1999M022` marshal magic, and the uncurried `Function$` construct name are
-  compiler internals. A ReScript release that bumps the ppx AST version fails
-  loudly (magic mismatch); one that renamed `Function$` could fail *quietly*.
-  Validated against ReScript 12; CI building the docs site through the PPX is the
-  canary on upgrade.
+  compiler internals. A ReScript release that bumps the ppx AST version makes
+  the ppx **fail the build immediately** with an error naming the mismatched
+  magic (interface ASTs still pass through untouched); a release that renamed
+  `Function$` could fail *quietly*. Validated against ReScript 12; CI building
+  the docs site through the PPX is the early warning on upgrade.
 - **A branch swap still rebuilds that branch's subtree.** Control flow tracks
   only the condition (leaves inside branches stay fine-grained, see above), but
   when the condition *does* change, the selected branch is built fresh — there
   is no keyed diffing between the old and new branch. This matches Xote's own
   `View.Show`/`View.tracked`; use `View.For` with `by` for lists.
-- **Not wired into the main build.** This lives outside `src/` and is not part
-  of `npm run build`/`test`; it is a standalone proof of concept.
+- **Separate from the library build.** The PPX is never needed to build or use
+  Xote itself (`npm run build`/`npm run test` don't involve it). It is compiled
+  per platform in CI, shipped prebuilt in the npm tarball, and exercised
+  end-to-end by `npm run ppx:test` on every push.

@@ -159,6 +159,114 @@ let suite = Zekr.suite(
       let r3 = Dom.Assert.toHaveTextContent(container, "Hello, Grace")
       combineResults([r1, r2, r3])
     }),
+    test("child coerces a static scalar to static text", () => {
+      let {container} = Dom.render("")
+      let _ = mountTo(
+        Html.div(~children=[View.child("Count: "), View.child(42)], ()),
+        container,
+      )
+      Dom.Assert.toHaveTextContent(container, "Count: 42")
+    }),
+    test("child passes an already-built node through untouched", () => {
+      let {container} = Dom.render("")
+      let _ = mountTo(View.child(View.text("already a node")), container)
+      Dom.Assert.toHaveTextContent(container, "already a node")
+    }),
+    test("child renders null and undefined as nothing", () => {
+      let {container} = Dom.render("")
+      let _ = mountTo(
+        Html.div(
+          ~children=[View.child(%raw(`null`)), View.text("visible"), View.child(%raw(`undefined`))],
+          (),
+        ),
+        container,
+      )
+      Dom.Assert.toHaveTextContent(container, "visible")
+    }),
+    test("child turns a raw signal into reactive text", () => {
+      let {container} = Dom.render("")
+      let count = Signal.make(1)
+      let _ = mountTo(View.child(count), container)
+      let r1 = Dom.Assert.toHaveTextContent(container, "1")
+      Signal.set(count, 2)
+      let r2 = Dom.Assert.toHaveTextContent(container, "2")
+      combineResults([r1, r2])
+    }),
+    test("child turns an eager-read thunk into reactive text", () => {
+      let {container} = Dom.render("")
+      let count = Signal.make(10)
+      let _ = mountTo(View.child(() => Signal.get(count)), container)
+      let r1 = Dom.Assert.toHaveTextContent(container, "10")
+      Signal.set(count, 11)
+      let r2 = Dom.Assert.toHaveTextContent(container, "11")
+      combineResults([r1, r2])
+    }),
+    test("child turns a node-returning thunk into a tracked fragment", () => {
+      let {container} = Dom.render("")
+      let count = Signal.make(0)
+      let _ = mountTo(
+        View.child(() =>
+          Html.p(~children=[View.text("n=" ++ Signal.get(count)->Int.toString)], ())
+        ),
+        container,
+      )
+      let r1 = Dom.Assert.toHaveTextContent(container, "n=0")
+      Signal.set(count, 7)
+      let r2 = Dom.Assert.toHaveTextContent(container, "n=7")
+      combineResults([r1, r2])
+    }),
+    test("child thunk over option<node> survives None -> Some(node)", () => {
+      let {container} = Dom.render("")
+      let show = Signal.make(false)
+      let _ = mountTo(
+        Html.div(
+          ~children=[
+            View.child(() =>
+              Signal.get(show) ? Some(Html.p(~children=[View.text("shown")], ())) : None
+            ),
+            View.text("|end"),
+          ],
+          (),
+        ),
+        container,
+      )
+      let r1 = Dom.Assert.toHaveTextContent(container, "|end")
+      Signal.set(show, true)
+      let r2 = Dom.Assert.toHaveTextContent(container, "shown|end")
+      Signal.set(show, false)
+      let r3 = Dom.Assert.toHaveTextContent(container, "|end")
+      combineResults([r1, r2, r3])
+    }),
+    test("child thunk returning an array of nodes renders and updates", () => {
+      let {container} = Dom.render("")
+      let items = Signal.make(["a", "b"])
+      let _ = mountTo(
+        View.child(() => Signal.get(items)->Array.map(item => View.text(item))),
+        container,
+      )
+      let r1 = Dom.Assert.toHaveTextContent(container, "ab")
+      Signal.set(items, ["a", "b", "c"])
+      let r2 = Dom.Assert.toHaveTextContent(container, "abc")
+      combineResults([r1, r2])
+    }),
+    test("child coerces an array element-wise into a fragment", () => {
+      let {container} = Dom.render("")
+      let _ = mountTo(
+        Html.div(
+          ~children=[View.child([View.text("a"), View.text("b")]), View.child([1, 2, 3])],
+          (),
+        ),
+        container,
+      )
+      Dom.Assert.toHaveTextContent(container, "ab123")
+    }),
+    test("child does not treat a plain record as a signal", () => {
+      let {container} = Dom.render("")
+      /* a non-node, non-signal object: must not reach Signal.get — it renders
+         stringified (with a console warning) instead of crashing */
+      let _ = mountTo(View.child({"label": "x"}), container)
+      Dom.Assert.toHaveTextContent(container, "[object Object]")
+    }),
     test("null node renders empty content", () => {
       let {container} = Dom.render("")
       let _ = mountTo(Html.div(~children=[View.null(), View.text("visible")], ()), container)

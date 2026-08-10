@@ -1,5 +1,5 @@
-// Runtime verification that the @tracked fine-grained ppx produces reactive
-// *leaves* (not a wholesale rebuild). The key assertions tag DOM elements with
+// Runtime verification that the @xote.component fine-grained ppx produces
+// reactive *leaves* (not a wholesale rebuild). The key assertions tag DOM elements with
 // a marker property, mutate signals, then check the marker survives — proving
 // the element kept its identity and was not recreated.
 //
@@ -257,6 +257,110 @@ check('anchor outside the if kept identity', document.querySelector('#mb-anchor'
 Signal.set(Demo.active, false);
 check('branch closed again: labels gone', !document.querySelector('#mb-host').textContent.includes('Ada'));
 check('anchor still same element after toggle', document.querySelector('#mb-anchor').__marker === 'MB');
+
+// --- Poly-variant payload in attribute position -----------------------------
+// `class={switch #tone(Signal.get(theme)) { ... }}`: the read sits inside a
+// polymorphic variant payload (Pexp_variant), which the eager-read traversal
+// must descend into — previously this attribute silently stayed static.
+console.log('poly-variant payload in attribute position:');
+Signal.set(Demo.theme, 'light');
+const vaHost = document.createElement('div');
+document.body.appendChild(vaHost);
+View.mount(Demo.VariantAttr.make({}), vaHost);
+const vaEl = vaHost.querySelector('#variant-attr');
+vaEl.__marker = 'VA';
+check('variant payload read renders initial class', vaEl.className === 'tone-light');
+Signal.set(Demo.theme, 'dark');
+check('variant payload read is reactive (class updates)', vaHost.querySelector('#variant-attr').className === 'tone-dark');
+check('element kept identity across class update', vaHost.querySelector('#variant-attr').__marker === 'VA');
+
+// --- Guard-only reads make the switch tracked -------------------------------
+// `switch v { | _ if Signal.get(active) => … }`: the ONLY read is in the
+// `when` guard. Guards are evaluated eagerly, so the switch must be tracked —
+// previously the guard was invisible and the branch was static forever.
+console.log('switch guard read (tracked via when-guard):');
+Signal.set(Demo.active, true);
+const gs = mount(() => Demo.GuardSwitch.make({}));
+gs.__marker = 'GS';
+check('guard true renders "on" branch', gs.querySelector('#gs-on') !== null);
+Signal.set(Demo.active, false);
+check('guard read is tracked: swaps to "off" branch', document.querySelector('#guard-switch #gs-off') !== null);
+check('guard switch outer div kept identity', document.querySelector('#guard-switch').__marker === 'GS');
+
+// --- Signature-constrained module still transformed -------------------------
+// `module ConstrainedPanel: Sig = { @xote.component … }`: the traversal must
+// descend through Pmod_constraint — previously the annotation was silently
+// left unexpanded there (static attrs, or a type error on bare children).
+console.log('component inside `module X: Sig = { … }`:');
+Signal.set(Demo.theme, 'light');
+Signal.set(Demo.count, 1);
+const cp = mount(() => Demo.ConstrainedPanel.make({}));
+cp.__marker = 'CP';
+check('constrained: reactive class renders', cp.className === 'light');
+check('constrained: bare int child renders', cp.textContent === '1');
+Signal.set(Demo.theme, 'dark');
+Signal.set(Demo.count, 2);
+check('constrained: class updates (transform ran under the constraint)', document.querySelector('#constrained').className === 'dark');
+check('constrained: bare child updates', document.querySelector('#constrained').textContent === '2');
+check('constrained: element kept identity', document.querySelector('#constrained').__marker === 'CP');
+
+// --- let-block child stays fine-grained -------------------------------------
+// `{let label = …; <span class={Signal.get(theme)}/>}` in node position: the
+// tail JSX keeps fine-grained leaves. Previously the whole block collapsed
+// into one coarse View.child thunk that rebuilt the span on every change.
+console.log('let-block in node position (fine-grained, identity kept):');
+Signal.set(Demo.theme, 'light');
+const lb = mount(() => Demo.LetBlockChild.make({}));
+const lbSpan = lb.querySelector('#lb-span');
+lbSpan.__marker = 'LB';
+check('let-block span renders with initial class', lbSpan.className === 'light');
+Signal.set(Demo.theme, 'dark');
+check('let-block class updates', lb.querySelector('#lb-span').className === 'dark');
+check('let-block span kept identity (no coarse rebuild)', lb.querySelector('#lb-span').__marker === 'LB');
+
+// --- User-component props ----------------------------------------------------
+// A scalar prop that eagerly reads a signal passes through untouched (a
+// deliberate one-shot read — previously the ppx thunked it into a baffling
+// type error). A JSX-valued prop is node position: its own leaves stay
+// reactive and keep identity.
+console.log('user-component props (one-shot scalars, reactive JSX values):');
+Signal.set(Demo.name, 'Ada');
+Signal.set(Demo.theme, 'light');
+const tc = mount(() => Demo.UseTitleCard.make({}));
+check('scalar prop rendered from one-shot read', tc.querySelector('#tc-label').textContent === 'Ada');
+const tcHeader = tc.querySelector('#tc-header');
+tcHeader.__marker = 'TCH';
+check('JSX-valued prop rendered with its reactive class', tcHeader.className === 'light');
+Signal.set(Demo.name, 'Bo');
+Signal.set(Demo.theme, 'dark');
+check('scalar prop is a deliberate one-shot read (stays "Ada")', tc.querySelector('#tc-label').textContent === 'Ada');
+check('JSX prop class updates (leaves decomposed inside the prop)', tc.querySelector('#tc-header').className === 'dark');
+check('JSX prop element kept identity', tc.querySelector('#tc-header').__marker === 'TCH');
+
+// --- peek + shadowing: rebound helper is dropped -----------------------------
+// `toneClass` is a reactive helper at top level, but the component rebinds it
+// to a peek-based one — the rebind drops it from the reactive-helper set, so
+// the attribute is a plain, intentionally static string.
+console.log('peek-based rebind drops the reactive helper:');
+Signal.set(Demo.active, true);
+const ps = mount(() => Demo.PeekShadow.make({}));
+check('peek class evaluated once ("peek-on")', ps.className === 'peek-on');
+Signal.set(Demo.active, false);
+check('peek class intentionally static (no update)', document.querySelector('#peek-shadow').className === 'peek-on');
+
+// --- Bare mapped-list child (array-returning thunk) --------------------------
+// `{Signal.get(items)->Array.map(…)}`: the eager read is thunked and the
+// thunk returns an *array* — View.child must re-coerce it per run, not lock
+// into reactive-text mode from the first value.
+console.log('bare mapped list child (array thunk re-coerced per run):');
+Signal.set(Demo.items, ['a', 'b']);
+const ml = mount(() => Demo.MappedList.make({}));
+ml.__marker = 'ML';
+check('mapped list renders items', ml.textContent === 'ab');
+check('mapped list renders real <li> elements', ml.querySelectorAll('li.ml-item').length === 2);
+Signal.set(Demo.items, ['a', 'b', 'c']);
+check('mapped list updates', document.querySelector('#mapped-list').textContent === 'abc');
+check('mapped list outer <ul> kept identity', document.querySelector('#mapped-list').__marker === 'ML');
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
