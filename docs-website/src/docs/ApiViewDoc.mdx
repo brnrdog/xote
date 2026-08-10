@@ -155,6 +155,16 @@ let signalFragment: Signal.t<array<View.node>> => View.node
 
 Render an array of nodes from a signal and replace the fragment when it changes.
 
+<a id="view-tracked" />
+
+### View.tracked
+
+```rescript
+let tracked: (unit => View.node) => View.node
+```
+
+Create an auto-tracked reactive block. Every signal read while the body runs subscribes the block, and the body re-evaluates when any dependency changes. Dependencies are re-discovered on each run, so conditional reads work. The block's children are replaced wholesale (no diffing) on update — keep tracked blocks small and use [`View.For`](#view-for) or [`View.eachWithKey`](#view-eachwithkey) for lists.
+
 <a id="view-each" />
 
 ### View.each

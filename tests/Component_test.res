@@ -124,6 +124,41 @@ let suite = Zekr.suite(
       let r2 = Dom.Assert.toHaveTextContent(container, "replaced")
       combineResults([r1, r2])
     }),
+    test("tracked block re-renders when a signal read inside changes", () => {
+      let {container} = Dom.render("")
+      let count = Signal.make(0)
+      let _ = mountTo(
+        View.tracked(() =>
+          Html.p(~children=[View.text("Count: " ++ Signal.get(count)->Int.toString)], ())
+        ),
+        container,
+      )
+      let r1 = Dom.Assert.toHaveTextContent(container, "Count: 0")
+      Signal.set(count, 5)
+      let r2 = Dom.Assert.toHaveTextContent(container, "Count: 5")
+      combineResults([r1, r2])
+    }),
+    test("tracked block re-discovers conditional signal reads", () => {
+      let {container} = Dom.render("")
+      let show = Signal.make(false)
+      let name = Signal.make("Ada")
+      let _ = mountTo(
+        View.tracked(() =>
+          if Signal.get(show) {
+            View.text("Hello, " ++ Signal.get(name))
+          } else {
+            View.text("hidden")
+          }
+        ),
+        container,
+      )
+      let r1 = Dom.Assert.toHaveTextContent(container, "hidden")
+      Signal.set(show, true)
+      let r2 = Dom.Assert.toHaveTextContent(container, "Hello, Ada")
+      Signal.set(name, "Grace")
+      let r3 = Dom.Assert.toHaveTextContent(container, "Hello, Grace")
+      combineResults([r1, r2, r3])
+    }),
     test("null node renders empty content", () => {
       let {container} = Dom.render("")
       let _ = mountTo(Html.div(~children=[View.null(), View.text("visible")], ()), container)
