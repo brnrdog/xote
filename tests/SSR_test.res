@@ -57,6 +57,17 @@ let suite = Zekr.suite(
         assertContains(html, "<!--/#-->"),
       ])
     }),
+    test("wraps tracked block with fragment hydration markers", () => {
+      let html = SSR.renderToString(() => {
+        let sig = Signal.make("tracked content")
+        View.tracked(() => Html.p(~children=[View.text(Signal.get(sig))], ()))
+      })
+      combineResults([
+        assertContains(html, "<!--#-->"),
+        assertContains(html, "tracked content"),
+        assertContains(html, "<!--/#-->"),
+      ])
+    }),
     test("wraps keyed list items with key markers", () => {
       let html = SSR.renderToString(() => {
         let items = Signal.make(["a", "b"])
