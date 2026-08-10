@@ -18,5 +18,6 @@
     "version": 4,
     "module": "XoteJSX"
   },
+  "ppx-flags": ["xote-tracked-ppx/ppx"],
   "compiler-flags": ["-open RescriptCore", "-open Xote"]
 }

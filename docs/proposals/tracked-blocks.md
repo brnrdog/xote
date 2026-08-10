@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Phase 1 implemented (`View.tracked`); Phase 2 proposed; Phase 3 exploratory |
+| **Status** | Phase 1 implemented (`View.tracked`); Phase 2 fine-grained PPX built, opt-in, CI-exercised and used by the docs site (see [`ppx/`](../../ppx/)); Phase 3 exploratory |
 | **Related** | [brnrdog/rescript-signals#34](https://github.com/brnrdog/rescript-signals/pull/34) — auto-tracking for React and the `@tracked` annotation |
 
 ## Summary
@@ -109,39 +109,114 @@ One thunk for the whole block; the reads inside are plain `Signal.get`:
 | Lists | `View.For` with `by` (keyed reconciliation) |
 | Block over **several signals + control flow** | `View.tracked` |
 
-## Phase 2 — the `tracked` annotation (proposed)
+## Phase 2 — the `tracked` annotation (prototyped)
 
 PR #34 ships `rescript-tracked-ppx`, which expands a `@tracked` attribute at
-compile time. It is currently hardcoded to the React hooks
-(`SignalsReactAuto.useTracked`), but the expansion is mechanical — the same
-PPX with a configurable target (e.g. a `--target` flag in `ppx-flags`) would
-let Xote projects write:
+compile time (hardcoded to the React hook `SignalsReactAuto.useTracked`). Two
+expansions are possible for Xote, and a prototype of the more ambitious one
+lives in [`ppx/`](../../ppx/).
+
+### 2a. Coarse expansion (`@tracked()` → `View.tracked`)
+
+The mechanical option: expand the annotated block to a single
+`View.tracked(() => <block>)`. Convenient, but it inherits `View.tracked`'s
+wholesale-replacement semantics — any dependency change rebuilds the whole
+block. This is what PR #34's PPX does for React, retargeted.
+
+### 2b. Fine-grained expansion (implemented in [`ppx/`](../../ppx/))
+
+The better option, and the one implemented: instead of one coarse computed,
+**decompose the returned JSX** and push reactivity to the leaves that actually
+read signals. The annotation is `@xote.component` (which also emits
+`@jsx.component`, so props derive). Given:
 
 ```rescript
-@tracked()
-<div>
-  <p> <View.Text> {`Hello, ${Signal.get(name)}`} </View.Text> </p>
-</div>
-```
-
-expanding to:
-
-```rescript
-View.tracked(() =>
-  <div>
-    <p> <View.Text> {`Hello, ${Signal.get(name)}`} </View.Text> </p>
+@xote.component
+let make = () => {
+  <div class={Signal.get(active) ? "on" : "off"} id="card">
+    <span class="static-label"> {View.text("Name:")} </span>
+    <View.Text> {`Hello, ${Signal.get(name)}`} </View.Text>
   </div>
-)
+}
 ```
+
+the PPX emits (abbreviated):
+
+```js
+function make(props) {
+  return Elements.jsxs("div", {
+    id: "card",                                     // static — untouched
+    class: () => Signal.get(active) ? "on" : "off", // → View.computedAttr (leaf)
+    children: [
+      Elements.jsx("span", { class: "static-label", children: View.text("Name:") }), // untouched
+      jsx(View.Text.make, { children: () => `Hello, ` + Signal.get(name) }),          // reactive text leaf
+    ],
+  });
+}
+```
+
+No `View.tracked`, no `SignalFragment`, no rebuild — the `<div>` and `<span>`
+keep DOM identity across updates; only the `class` attribute and the greeting
+text node re-run. `View.tracked` is emitted **only** where node *structure*
+varies (an `if`/`switch` in child position), never around the stable elements
+that enclose it. The prototype's `example/verify.mjs` proves this at runtime by
+tagging elements and asserting the tags survive signal changes (27 assertions,
+all passing).
+
+Two refinements make the output genuinely fine-grained rather than a thin
+sugar over `View.tracked`:
+
+- **Alias-aware detection.** Beyond a literal `Signal.get`, the PPX threads a
+  scoped alias environment that follows value aliases (`let g = Signal.get`),
+  module aliases (`module S = Signal`), `open Signal`, and the pipe form
+  (`sig->Signal.get`), while treating the untracked `Signal.peek` as a non-read.
+- **Control flow tracks only the condition.** Branch bodies are decomposed
+  before the `View.tracked` wrapper is applied, so their leaves become thunks
+  that the tracked scope does not invoke while building nodes. The scope
+  therefore subscribes only to the condition/scrutinee; a signal read by a leaf
+  *inside* a branch (e.g. a `class` in the chosen branch) updates that leaf
+  alone and does not re-run the switch or rebuild the branch element.
+
+Decomposition rules and limitations are documented in
+[`ppx/README.md`](../../ppx/README.md). The PPX runs before ReScript's JSX
+transform, so it sees JSX as `Apply @[JSX]` nodes with attributes as labelled
+arguments — the ideal layer to redistribute reactivity before lowering.
 
 Notes:
 
-- Only the automatic form (`@tracked()`) is useful in Xote. The explicit-deps
-  form (`@tracked([a, b])`) exists in React to avoid re-render subscriptions,
-  but inside a `Computed` every read auto-tracks — a dependency list adds
-  nothing here.
-- This requires a change in rescript-signals (configurable expansion target),
-  not in Xote. `View.tracked` is already the stable expansion target.
+- PR #34's React annotation forms don't carry over. Its explicit-deps form
+  (`@tracked([a, b])`) exists to avoid re-render subscriptions, but inside
+  fine-grained leaves every read auto-tracks — a dependency list adds nothing.
+  Xote needs only automatic discovery, which `@xote.component` provides.
+- 2b is self-contained in Xote (its own vendored-AST PPX). 2a would instead
+  reuse rescript-signals' PPX with a configurable expansion target;
+  `View.tracked` is already the stable target for that path.
+- The implemented annotation is a single binding-level `@xote.component`: the
+  PPX rewrites it to `@jsx.component` so props still derive *and* fine-grains
+  the whole returned JSX — one attribute, no separate tracking annotation to
+  stack. (An earlier expression-level `@tracked` form was dropped in favour of
+  the one component-level annotation; `@xote.component` inherits
+  `@jsx.component`'s one-component-per-module rule.)
+
+### Consumer-safety constraint (why it's opt-in, not in the library core)
+
+A ReScript consumer recompiles a dependency's sources during its own build and
+applies that dependency's `ppx-flags` (verified: a cold consumer build fails
+with "ppx not found" when the dependency lists a PPX the consumer lacks). So a
+`ppx-flags` entry in Xote's *published* `rescript.json` would force `ocamlopt`
+on every Xote user. The PPX is therefore kept out of the published library
+config entirely:
+
+- The published library (`src/`, root `rescript.json`) has **no** `ppx-flags`;
+  consumers who don't opt in are unaffected.
+- The `ppx.ml` source ships in the npm tarball, so a consumer who *wants*
+  `@xote.component` builds it (`sh node_modules/xote/ppx/build.sh`) and lists it
+  in **their own** `rescript.json` (`"ppx-flags": ["xote/ppx/ppx"]`).
+- In-repo, the PPX is real: `ci.yml` builds and runs its end-to-end test on
+  every push/PR, and the docs site (`docs-website/`, its own non-published
+  config) authors the Counter demo with `@xote.component` and builds the PPX in
+  its `res:build`. This proves it through SSR + hydration without touching the
+  publish path.
 
 ## Phase 3 — notify-only scheduling (exploratory)
 
@@ -161,9 +236,11 @@ noting that adopting `Tracking` keeps the door open.
 
 - **Compiler-granular tracking (Solid-style).** Compile JSX so each inline
   read becomes its own leaf binding, avoiding the wholesale-replacement
-  tradeoff entirely. Strictly better output, but requires a full JSX
-  transform rather than a local attribute expansion — a much larger project
-  than reusing the PR #34 PPX. `View.tracked` does not preclude it.
+  tradeoff entirely. This is precisely what Phase 2b prototypes — see
+  [`ppx/`](../../ppx/). It turned out to be tractable as a local expansion
+  over the pre-JSX-transform AST rather than a full custom JSX transform,
+  because Xote's runtime already accepts thunked attribute/child values and
+  lowers them to fine-grained bindings.
 - **A `<View.Tracked>` JSX component.** JSX children evaluate eagerly, so the
   component would need a `render: unit => node` thunk prop — no more ergonomic
   than calling `View.tracked` directly, and it would suggest the block is
