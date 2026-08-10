@@ -42,7 +42,7 @@ The compiler flag `-open Xote` is optional, it makes the Xote modules available 
 This README uses the application-facing names for public code:
 
 - `View` is the module for building and mounting DOM nodes.
-- `Prop` is the static-or-reactive prop module.
+- `MaybeSignal` is the static-or-reactive value wrapper (it replaces the deprecated `Prop` module).
 - `View.Text`, `View.Int`, `View.For`, `View.Show`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are the building blocks used throughout these examples.
 
 ### Quick Example
@@ -137,11 +137,14 @@ On top of the reactive primitives with signals, Xote provides a declarative view
 ```rescript
 let className = Signal.make("card")
 
-<div class={Prop.signal(className)}>
+<div class={className}>
   <View.Text> "Status: " </View.Text>
   <View.Text> {className} </View.Text>
 </div>
 ```
+
+Built-in attributes take a plain value, a signal, or a `unit => 'a` function, so
+a signal can be passed straight through without wrapping it.
 
 For rendering collections in JSX, prefer `View.For`. Add `by` when items have stable identity and should reconcile by key:
 
@@ -154,40 +157,40 @@ let todos = Signal.make([
 ])
 
 <View.For
-  each={Prop.signal(todos)}
+  each={MaybeSignal.reactive(todos)}
   by={todo => todo.id}
   render={todo => <li> <View.Text> {todo.title} </View.Text> </li>}
 />
 ```
 
-`View` also provides component primitives for static or reactive values. Their children can be raw values, signals, `Prop.t` values, or functions.
+`View` also provides component primitives for static or reactive values. Their children can be raw values, signals, `MaybeSignal.t` values, or functions.
 
 ```rescript
 <View.For
-  each={Prop.static(["Draft", "Review", "Ship"])}
+  each={MaybeSignal.static(["Draft", "Review", "Ship"])}
   render={label => <span> <View.Text> {label} </View.Text> </span>}
 />
 
 <ul>
   <View.For
-    each={Prop.signal(todos)}
+    each={MaybeSignal.reactive(todos)}
     by={todo => todo.id}
     render={todo => <li> <View.Text> {todo.title} </View.Text> </li>}
   />
 </ul>
 
-<View.Show when_={Prop.signal(isReady)} fallback={<p> <View.Text> "Loading" </View.Text> </p>}>
+<View.Show when_={MaybeSignal.reactive(isReady)} fallback={<p> <View.Text> "Loading" </View.Text> </p>}>
   <p> <View.Text> "Ready" </View.Text> </p>
 </View.Show>
 
 <View.Maybe
-  value={Prop.signal(selectedTodo)}
+  value={MaybeSignal.reactive(selectedTodo)}
   fallback={<p> <View.Text> "No selection" </View.Text> </p>}
   render={todo => <p> <View.Text> {todo.title} </View.Text> </p>}
 />
 
 <View.Value
-  value={Prop.signal(count)}
+  value={MaybeSignal.reactive(count)}
   render={count =>
     <p>
       <View.Text> "Count: " </View.Text>
@@ -204,24 +207,41 @@ let todos = Signal.make([
 </p>
 ```
 
-### Static or Reactive Props
+### Static or Reactive Values
 
-Use `Prop` when a component prop can accept either a static value or a signal:
+`MaybeSignal` is how a value says whether it is plain or reactive. There is one
+rule for when you need it:
+
+| Where | What it accepts |
+|---|---|
+| Built-in HTML/SVG attributes, `View.Text`/`Int`/`Float`/`Bool` | anything — a plain value, a `Signal.t`, a `unit => 'a` function, or a `MaybeSignal.t`. No wrapper needed. |
+| Props with a declared type — `View.Show`, `View.For`, `View.Maybe`, `View.Value`, and the components you write | a `MaybeSignal.t`, so the wrapper is how the caller says which one they are passing. |
 
 ```rescript
 @jsx.component
-let make = (~className: Prop.t<string>=Prop.static("badge"), ~children) => {
+let make = (~className: MaybeSignal.t<string>=MaybeSignal.static("badge"), ~children) => {
   <span class={className}> {children} </span>
 }
 
 let tone = Signal.make("badge badge-info")
 
-<Badge className={Prop.signal(tone)}>
+<Badge className={MaybeSignal.reactive(tone)}>
   <View.Text> "Live" </View.Text>
 </Badge>
 ```
 
-`Prop` is the module for static-or-reactive props.
+`MaybeSignal.t<'a>` is `Reactive(Signal.t<'a>) | Static('a)`. Build one with
+`MaybeSignal.static`, `MaybeSignal.reactive`, or `MaybeSignal.computed(fn)` for a
+derived value. Read it with `MaybeSignal.get` (tracked) or `MaybeSignal.peek`
+(untracked), and transform it with `MaybeSignal.map`, which preserves staticness.
+
+`MaybeSignal.ofUnknown` is the coercion the JSX runtime applies to untyped props;
+reach for it only when adapting untyped input of your own.
+
+> **Deprecated:** the old `Prop` module is a deprecated alias of `MaybeSignal`.
+> `Prop.t` is a type alias of `MaybeSignal.t`, so migrating is a rename:
+> `Prop.static` → `MaybeSignal.static`, `Prop.signal` and `Prop.reactive` →
+> `MaybeSignal.reactive`, `Prop.get` → `MaybeSignal.get`.
 
 ### Router and SSR State
 

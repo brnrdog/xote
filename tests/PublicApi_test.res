@@ -12,10 +12,10 @@ let suite = Zekr.suite(
         None
       })
 
-      let prop = Prop.signal(name)
+      let maybeSignal = MaybeSignal.reactive(name)
       let node: View.node = Html.div(
         ~attrs=[View.Attr.string("class", "app")],
-        ~children=[View.text(Prop.get(prop))],
+        ~children=[View.text(MaybeSignal.get(maybeSignal))],
         (),
       )
       let emptyView: View.node = View.empty()
