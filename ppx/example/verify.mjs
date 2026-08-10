@@ -362,5 +362,109 @@ Signal.set(Demo.items, ['a', 'b', 'c']);
 check('mapped list updates', document.querySelector('#mapped-list').textContent === 'abc');
 check('mapped list outer <ul> kept identity', document.querySelector('#mapped-list').__marker === 'ML');
 
+
+// --- Control flow on a plain (non-signal) condition -------------------------
+// The conditional is built once, but its branches are node position: bare
+// children inside them must still be coerced by View.child. This is the shape
+// that failed to compile before the branches were decomposed on this path.
+console.log('control flow on a plain condition:');
+const sbTrue = document.createElement('div');
+document.body.appendChild(sbTrue);
+View.mount(Demo.StaticBranch.make({ flag: true }), sbTrue);
+check('plain-cond branch renders bare literal child', sbTrue.querySelector('#sb-yes').textContent === 'yes');
+check('plain-cond ternary over strings renders', sbTrue.textContent.includes('on'));
+
+const sbFalse = document.createElement('div');
+document.body.appendChild(sbFalse);
+View.mount(Demo.StaticBranch.make({ flag: false }), sbFalse);
+check('plain-cond else branch renders bare literal child', sbFalse.querySelector('#sb-no').textContent === 'no');
+check('plain-cond ternary takes the else value', sbFalse.textContent.includes('off'));
+
+// A reactive leaf inside a statically-chosen branch stays fine-grained: the
+// branch element keeps its identity while the leaf updates.
+Signal.set(Demo.theme, 'light');
+Signal.set(Demo.name, 'Ada');
+const sbrl = document.createElement('div');
+document.body.appendChild(sbrl);
+View.mount(Demo.StaticBranchReactiveLeaf.make({ flag: true }), sbrl);
+const sbrlTag = sbrl.querySelector('#sbrl-tag');
+sbrlTag.__marker = 'SBRL';
+check('plain-cond branch leaf renders initial class', sbrlTag.className === 'light');
+check('plain-cond branch leaf renders bare signal read', sbrlTag.textContent.includes('Ada'));
+Signal.set(Demo.theme, 'dark');
+Signal.set(Demo.name, 'Bo');
+check('leaf class updates inside a plain-cond branch', sbrl.querySelector('#sbrl-tag').className === 'dark');
+check('leaf text updates inside a plain-cond branch', sbrl.querySelector('#sbrl-tag').textContent.includes('Bo'));
+check('branch element kept identity (built once, not rebuilt)', sbrl.querySelector('#sbrl-tag').__marker === 'SBRL');
+
+
+// --- Bare children inside a render callback ---------------------------------
+// `render={row => …}` is a function returning JSX: node position once applied,
+// but not JSX itself, so the traversal used to stop at the callback boundary.
+console.log('bare children inside a render callback:');
+Signal.set(Demo.theme, 'light');
+Signal.set(Demo.count, 7);
+const cb = mount(() => Demo.CallbackRows.make({}));
+const cbFirst = cb.querySelector('#cb-rows li');
+cbFirst.__marker = 'ROW1';
+check('callback bare child renders (author)', cb.textContent.includes('Ada'));
+check('callback bare literal renders (separator)', cb.textContent.includes('·'));
+check('callback bare signal read renders (count)', cb.textContent.includes('7'));
+check('callback leaf attribute rendered', cbFirst.className === 'light');
+// The leaves inside the callback are fine-grained: updating a signal they read
+// changes them in place instead of rebuilding the row.
+Signal.set(Demo.count, 8);
+check('callback bare signal read updates', document.querySelector('#cb-rows').textContent.includes('8'));
+Signal.set(Demo.theme, 'dark');
+check('callback leaf attribute updates', document.querySelector('#cb-rows li').className === 'dark');
+check('row kept identity across leaf updates', document.querySelector('#cb-rows li').__marker === 'ROW1');
+
+
+// --- Node-taking helpers called as plain functions --------------------------
+// `View.tracked(() => …)` / `View.each(xs, x => …)` are applications, not JSX,
+// so the traversal used to stop at the call and leave their callback bodies
+// undecomposed.
+console.log('bare children inside node-taking helper callbacks:');
+Signal.set(Demo.active, false);
+Signal.set(Demo.theme, 'light');
+Signal.set(Demo.name, 'Ada');
+const hc = mount(() => Demo.HelperCallbacks.make({}));
+check('tracked callback: else branch bare literal', hc.textContent.includes('inactive'));
+check('each callback: bare item rendered', hc.textContent.includes('one') && hc.textContent.includes('two'));
+Signal.set(Demo.active, true);
+const hcOn = document.querySelector('#hc-on');
+hcOn.__marker = 'HC';
+check('tracked callback: branch bare signal read', hcOn.textContent.includes('Ada'));
+check('tracked callback: branch leaf attribute', hcOn.className === 'light');
+// Leaves inside the tracked callback stay fine-grained: the element survives.
+Signal.set(Demo.name, 'Bo');
+Signal.set(Demo.theme, 'dark');
+check('tracked callback: bare read updates', document.querySelector('#hc-on').textContent.includes('Bo'));
+check('tracked callback: leaf attribute updates', document.querySelector('#hc-on').className === 'dark');
+check('tracked callback: element kept identity', document.querySelector('#hc-on').__marker === 'HC');
+
+
+// --- Plain helper functions returning markup --------------------------------
+// The file opts in via its @xote.component bindings, so helper bodies are
+// decomposed too: bare child coerced, class a reactive leaf.
+console.log('helper function returning markup:');
+Signal.set(Demo.theme, 'light');
+const hb = mount(() => Demo.HelperHost.make({}));
+const hbBtn = hb.querySelector('#helper-btn');
+hbBtn.__marker = 'HB';
+check('helper bare child rendered', hbBtn.textContent.includes('Press'));
+check('helper leaf attribute rendered', hbBtn.className === 'light');
+Signal.set(Demo.theme, 'dark');
+check('helper leaf attribute updates (reactive, not static)', document.querySelector('#helper-btn').className === 'dark');
+check('helper element kept identity', document.querySelector('#helper-btn').__marker === 'HB');
+
+// --- JSX reached through arrays, applications, pipes, local bindings --------
+console.log('JSX nested in non-child positions:');
+const ns = mount(() => Demo.NestedShapes.make({}));
+check('let-bound JSX renders bare child', ns.querySelector('#ns-heading').textContent.includes('Nested'));
+check('array literal inside View.fragment', ns.querySelector('#ns-arr').textContent.includes('array'));
+check('pipe + map callback decomposed', ns.querySelectorAll('.ns-map').length === 2);
+check('local helper items rendered', ns.textContent.includes('one') && ns.textContent.includes('two'));
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

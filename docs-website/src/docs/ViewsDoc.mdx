@@ -94,7 +94,7 @@ let make = () =>
 
 Only the number re-renders when `count` changes; the `<div>` and the static `"Count: "` text are built once.
 
-The explicit primitives — [`View.Text`](/docs/api/view#view-text-component), [`View.Int`](/docs/api/view#view-int-component), [`View.Float`](/docs/api/view#view-float-component), [`View.Bool`](/docs/api/view#view-bool-component) — remain available and are what you use **without** the PPX (or when you want the stronger `int`/`float` typing on the child). Their children can be raw values, signals, `Prop.t` values, or computed functions. For arrays and lists, use [`View.For`](/docs/api/view#view-for); pass `by` when item identity matters.
+The explicit primitives — [`View.Text`](/docs/api/view#view-text-component), [`View.Int`](/docs/api/view#view-int-component), [`View.Float`](/docs/api/view#view-float-component), [`View.Bool`](/docs/api/view#view-bool-component) — remain available and are what you use **without** the PPX (or when you want the stronger `int`/`float` typing on the child). Their children can be raw values, signals, `MaybeSignal.t` values, or computed functions. For arrays and lists, use [`View.For`](/docs/api/view#view-for); pass `by` when item identity matters.
 
 ```rescript
 // equivalent, without the annotation:
@@ -209,7 +209,7 @@ Use [`View.Show`](/docs/api/view#view-show) for boolean branches, [`View.Maybe`]
 
 ### Auto-tracked Blocks
 
-When one block of UI depends on several signals at once, the primitives above require you to wire each dependency explicitly — a `Prop.signal` here, a computed there. [`View.tracked`](/docs/api/view#view-tracked) is the escape hatch for those cases: every signal read while its body runs subscribes the block automatically, and the block re-renders when any of them changes.
+When one block of UI depends on several signals at once, the primitives above require you to wire each dependency explicitly — a `MaybeSignal.reactive` here, a computed there. [`View.tracked`](/docs/api/view#view-tracked) is the escape hatch for those cases: every signal read while its body runs subscribes the block automatically, and the block re-renders when any of them changes.
 
 ```rescript
 let loggedIn = Signal.make(false)

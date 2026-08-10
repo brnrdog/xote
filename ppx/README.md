@@ -94,8 +94,11 @@ Applied recursively to the component's returned JSX:
 | Element / nested JSX | — | recurse into attributes and children |
 | Fragment (`<>…</>`) | — | recurse into each child independently (so nested reactive regions stay separate — not collapsed into one thunk) |
 | User-component prop (`<Card label={…}>`) | — | left untouched — see [User-component props](#user-component-props) |
+| User-component render callback (`render={row => <li>…</li>}`) | — | the callback body is node position: decomposed like any other node, so bare children are coerced and leaves stay fine-grained |
 | Bare child, control flow (`if`/`switch` selecting different nodes) | yes | branches decomposed fine-grained, then wrapped in `View.tracked` — see below. Signal reads in `when` guards count: they are evaluated with the scrutinee |
+| Bare child, control flow | no | branches decomposed fine-grained, **no** `View.tracked` — a condition that cannot change needs no reactive scope, but its branches are still node position, so their bare children are coerced and their leaves stay fine-grained |
 | Bare child, block expression (`{let x = …; <span/>}`) | — | recurse into the tail, threading `let`-bound aliases — the inner JSX keeps fine-grained leaves |
+| Bare child, anything containing JSX (`{View.tracked(() => …)}`, `{View.fragment([<p/>])}`, `{xs->Array.map(x => <li/>)}`, `{try {<p/>} catch {…}}`) | — | the whole expression is walked: JSX inside it, and functions returning JSX, are node position and get decomposed; the result is then wrapped in `View.child` |
 | Bare child, otherwise (`{Signal.get(x)}`, `{"lit"}`, `{someNode}`) | — | wrapped in `View.child` — see [Bare value children](#bare-value-children) |
 
 The result: reactivity lives at the leaves; `View.tracked` is emitted
@@ -111,12 +114,47 @@ once; a reactive-looking scalar prop cannot be reactive anyway). For a prop
 that should react, pass the signal itself (`<Card count={count} />`) or a
 thunk, and have the component read it.
 
-The two node-shaped exceptions are still decomposed: **children**, and any
-prop whose value is **itself JSX** (`<Layout header={<span
-class={Signal.get(theme)} />} />` — the header's class stays a fine-grained
-reactive leaf). Intrinsic elements (`<div>`, …) are different: their attributes
-accept thunks at runtime, which is why *their* reactive attributes are thunked
-into `computedAttr`s.
+The node-shaped exceptions are still decomposed:
+
+- **children**;
+- any prop whose value is **itself JSX** (`<Layout header={<span
+  class={Signal.get(theme)} />} />` — the header's class stays a fine-grained
+  reactive leaf);
+- any prop whose value is a **function returning JSX** — a render callback such
+  as `View.For`'s `render={row => <li> {row.author} </li>}`. Its body is node
+  position once applied, so it is decomposed like any other node: bare children
+  are coerced and reactive leaves inside stay fine-grained. Function props whose
+  body is *not* JSX (`by={row => row.id}`, `onClick={…}`) are left alone.
+
+Intrinsic elements (`<div>`, …) are different: their attributes accept thunks
+at runtime, which is why *their* reactive attributes are thunked into
+`computedAttr`s.
+
+### Where the annotation reaches
+
+`@xote.component` marks a *file* as written in the fine-grained style, not just
+one binding. In a file containing at least one annotated component, JSX is
+decomposed wherever it appears:
+
+- the annotated component's returned markup, and everything nested in it;
+- JSX bound to a name (`let row = <p> {"x"} </p>`);
+- **plain helper functions that return markup**, at the top level or in a
+  sibling module:
+
+```rescript
+/* no annotation needed: helpers that return markup are components in all but
+   name, and are decomposed like inline JSX */
+let filterButton = (label: string, value: filter, current: filter) =>
+  <button
+    class={value === current ? "active" : "idle"}
+    onClick={_ => Signal.set(filter, value)}>
+    {label}
+  </button>
+```
+
+A file with **no** `@xote.component` anywhere is left completely untouched, so a
+project that mixes `@jsx.component` code with explicit thunks keeps its current
+semantics. That is the opt-in boundary: per file, by annotation.
 
 ### Bare value children
 
@@ -205,7 +243,7 @@ from the alias environment and its attribute is left as a plain, once-evaluated
 string).
 
 Only *eager* reads trigger a thunk. A read deferred inside a nested lambda — a
-`() => …` you wrote yourself, a `Computed`, a `Prop.reactive(Computed.make(…))`,
+`() => …` you wrote yourself, a `Computed`, a `MaybeSignal.reactive(Computed.make(…))`,
 or a helper that merely *returns* a thunk — is already reactive and left as-is.
 Because of that, when detection can't see a read (below), the safe fix is always
 to wrap the value in `() =>` yourself: it will not be double-wrapped.
