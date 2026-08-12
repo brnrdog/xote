@@ -1,3 +1,16 @@
+# [7.1.0-beta.8](https://github.com/brnrdog/xote/compare/v7.1.0-beta.7...v7.1.0-beta.8) (2026-08-12)
+
+
+### Features
+
+* include instructions for agents in the package ([450e210](https://github.com/brnrdog/xote/commit/450e210f3a9df0b2fa649efb73bb7d123784c98d))
+* **jsx:** add attrs escape hatch and removable attributes ([d405274](https://github.com/brnrdog/xote/commit/d4052741612e6771ad144dc04f529898bfef9558))
+* **ppx:** add `[@xote](https://github.com/xote).component` for fine-grained components ([cd6b4d1](https://github.com/brnrdog/xote/commit/cd6b4d16ce38abb243fd739df3a3f0a75982bdc7))
+* **ppx:** fine-grain JSX wherever it appears, including helper functions ([4638c91](https://github.com/brnrdog/xote/commit/4638c91d3d70a23f08a6858a2085e00788df65fd))
+* **ppx:** ship prebuilt binaries so `[@xote](https://github.com/xote).component` needs no toolchain ([59672b2](https://github.com/brnrdog/xote/commit/59672b2f222238e2a7e560f6fbbcc7d3d4149a73))
+* **view:** add tracked() for auto-tracked reactive blocks ([2427c6b](https://github.com/brnrdog/xote/commit/2427c6bbb15a205fed42869b0c8f45c61e5a37d8))
+* **view:** coerce bare JSX children so value primitives are optional ([8b67a43](https://github.com/brnrdog/xote/commit/8b67a4387cb175dcd5517d1ab2154b30a8a541b9))
+
 # [7.1.0-beta.7](https://github.com/brnrdog/xote/compare/v7.1.0-beta.6...v7.1.0-beta.7) (2026-08-10)
 
 
