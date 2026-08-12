@@ -86,17 +86,35 @@ external addEventListener: (Dom.element, string, Dom.event => unit) => unit = "a
 let createElementForTag = (tag: string): Dom.element =>
   isSvgTag(tag) ? createElementNS(svgNamespace, tag) : createElement(tag)
 
-let setAttrOrProp = (el: Dom.element, key: string, value: string): unit => {
+let removeAttrOrProp = (el: Dom.element, key: string): unit => {
   switch key {
-  | "value" => setValue(el, value)
-  | "checked" => setChecked(el, value == "true")
-  | "disabled" => setDisabled(el, value == "true")
-  | _ if RuntimeAttr.isBoolean(key) =>
-    if RuntimeAttr.shouldRenderBoolean(value) {
-      setAttribute(el, key, "")
-    } else {
-      removeAttribute(el, key)
+  | "value" => setValue(el, "")
+  | "checked" => setChecked(el, false)
+  | "disabled" => setDisabled(el, false)
+  | _ => removeAttribute(el, key)
+  }
+}
+
+/* The value is nullable: `null`/`undefined` (a `None` coming out of an optional
+ attribute, or an untyped JSX value that resolved to nothing) removes the
+ attribute instead of writing the string "undefined". That is what
+ presence-based selectors such as `[data-open]` need — an attribute that is
+ always present, even as `""`, is always matched. */
+let setAttrOrProp = (el: Dom.element, key: string, value: Nullable.t<string>): unit => {
+  switch value->Nullable.toOption {
+  | None => removeAttrOrProp(el, key)
+  | Some(value) =>
+    switch key {
+    | "value" => setValue(el, value)
+    | "checked" => setChecked(el, value == "true")
+    | "disabled" => setDisabled(el, value == "true")
+    | _ if RuntimeAttr.isBoolean(key) =>
+      if RuntimeAttr.shouldRenderBoolean(value) {
+        setAttribute(el, key, "")
+      } else {
+        removeAttribute(el, key)
+      }
+    | _ => setAttribute(el, key, value)
     }
-  | _ => setAttribute(el, key, value)
   }
 }

@@ -97,15 +97,19 @@ Attributes are represented as `(string, View.attrValue)` pairs:
 - `View.Attr.string(key, value)` for static string attributes.
 - `View.Attr.signal(key, signal)` for reactive string attributes.
 - `View.Attr.compute(key, fn)` for computed string attributes.
-- `View.attr`, `View.signalAttr`, and `View.computedAttr` are equivalent shorthands for the `View.Attr.*` helpers.
+- `View.Attr.optional(key, value)`, `View.Attr.optionalSignal(key, signal)`, and `View.Attr.optionalCompute(key, fn)` for `option<string>` values, where `None` removes the attribute.
+- `View.attr`, `View.signalAttr`, `View.computedAttr`, `View.optionalAttr`, `View.optionalSignalAttr`, and `View.optionalComputedAttr` are equivalent shorthands for the `View.Attr.*` helpers.
+
+`View.resolveAttr` reduces any of those to how it must be applied — `ReadStatic(value)` for a value known up front, `ReadReactive(read)` for one that has to run inside an effect — and `View.peekAttr` reads the current value untracked. The DOM renderer, hydration, and SSR all go through them, so all six variants behave identically across the three.
 
 The DOM renderer maps selected names to DOM properties or boolean attribute behavior:
 
 - `value`, `checked`, and `disabled` are set as properties.
-- Boolean attributes such as `required`, `readonly`, `multiple`, `hidden`, `autofocus`, and selected ARIA/global attributes are added for `"true"` and removed otherwise.
+- Boolean attributes such as `required`, `readonly`, `multiple`, `hidden`, `autofocus`, `draggable`, `contenteditable`, and `spellcheck` are added for `"true"` and removed otherwise. ARIA attributes are *not* in that list: they are enumerated, so `aria-expanded` keeps its literal `"true"`/`"false"` value.
+- A missing value (`None`, `null`, `undefined`) removes the attribute — `removeAttribute`, or resetting the property for `value`/`checked`/`disabled` — instead of writing the string `"undefined"`. That is what presence-based selectors such as `[data-open]` need.
 - Other attributes use `setAttribute`.
 
-SSR mirrors the same boolean attribute behavior when rendering strings.
+SSR mirrors the same behavior when rendering strings: boolean attributes render bare, and an attribute with no value is not rendered at all.
 
 ### JSX Support
 

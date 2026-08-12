@@ -54,6 +54,26 @@ let suite = Zekr.suite(
       let r2 = Dom.Assert.toHaveClass(el, "updated")
       combineResults([r1, r2])
     }),
+    test("optional attributes toggle presence after hydration", () => {
+      let open_ = Signal.make(true)
+      let component = () =>
+        Html.div(
+          ~attrs=[View.optionalComputedAttr("data-open", () => Signal.get(open_) ? Some("") : None)],
+          ~children=[View.text("panel")],
+          (),
+        )
+      let ssrHtml = SSR.renderToString(component)
+      let {container} = Dom.render(ssrHtml)
+      Hydration.hydrate(component, container)
+      let el = Dom.Query.getByText(container, "panel")
+      let r1 = Dom.Assert.toHaveAttribute(el, "data-open", ~value="")
+      Signal.set(open_, false)
+      combineResults([
+        assertContains(ssrHtml, `data-open=""`),
+        r1,
+        Dom.Assert.toNotHaveAttribute(el, "data-open"),
+      ])
+    }),
     test("nested elements hydrate correctly", () => {
       let visible = Signal.make(true)
       let component = () =>
