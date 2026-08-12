@@ -257,21 +257,12 @@ let rec hydrateNode = (node: View.node, domNode: Dom.element): unit => {
       Reactivity.runWithOwner(owner, () => {
         /* Hydrate reactive attributes */
         attrs->Array.forEach(((key, value)) => {
-          switch value {
-          | View.Static(_) => () /* Already rendered, nothing to do */
-          | View.SignalValue(signal) => {
+          switch View.resolveAttr(value) {
+          | View.ReadStatic(_) => () /* Already rendered, nothing to do */
+          | View.ReadReactive(read) => {
               let disposer = Effect.runWithDisposer(
                 () => {
-                  DOM.setAttrOrProp(domNode, key, Signal.get(signal))
-                  None
-                },
-              )
-              Reactivity.addDisposer(owner, disposer)
-            }
-          | View.Compute(compute) => {
-              let disposer = Effect.runWithDisposer(
-                () => {
-                  DOM.setAttrOrProp(domNode, key, compute())
+                  DOM.setAttrOrProp(domNode, key, read())
                   None
                 },
               )
@@ -589,21 +580,12 @@ and hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => {
         Reactivity.runWithOwner(owner, () => {
           /* Hydrate reactive attributes */
           attrs->Array.forEach(((key, value)) => {
-            switch value {
-            | View.Static(_) => ()
-            | View.SignalValue(signal) => {
+            switch View.resolveAttr(value) {
+            | View.ReadStatic(_) => ()
+            | View.ReadReactive(read) => {
                 let disposer = Effect.runWithDisposer(
                   () => {
-                    DOM.setAttrOrProp(domNode, key, Signal.get(signal))
-                    None
-                  },
-                )
-                Reactivity.addDisposer(owner, disposer)
-              }
-            | View.Compute(compute) => {
-                let disposer = Effect.runWithDisposer(
-                  () => {
-                    DOM.setAttrOrProp(domNode, key, compute())
+                    DOM.setAttrOrProp(domNode, key, read())
                     None
                   },
                 )

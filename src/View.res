@@ -6,11 +6,19 @@ module Core = RescriptCore
  * Type Definitions
  * ============================================================================ */
 
-/* Attribute value source */
+/* Attribute value source.
+
+ The `Optional*` variants carry an `option<string>`, where `None` means "remove
+ this attribute" rather than "write an empty value". Presence-based styling
+ (`[data-open]`, `[data-checked]`) needs that distinction: an attribute that is
+ always present, even as `""`, always matches. */
 type attrValue =
   | Static(string)
   | SignalValue(Signal.t<string>)
   | Compute(unit => string)
+  | OptionalStatic(option<string>)
+  | OptionalSignalValue(Signal.t<option<string>>)
+  | OptionalCompute(unit => option<string>)
 
 /* Virtual node types */
 type rec node =
@@ -44,18 +52,64 @@ module Attributes = {
     key,
     Compute(compute),
   )
+
+  let optional = (key: string, value: option<string>): (string, attrValue) => (
+    key,
+    OptionalStatic(value),
+  )
+
+  let optionalSignal = (key: string, signal: Signal.t<option<string>>): (string, attrValue) => (
+    key,
+    OptionalSignalValue(signal),
+  )
+
+  let optionalComputed = (key: string, compute: unit => option<string>): (string, attrValue) => (
+    key,
+    OptionalCompute(compute),
+  )
 }
 
 /* Public API for attributes */
 let attr = Attributes.static
 let signalAttr = Attributes.signal
 let computedAttr = Attributes.computed
+let optionalAttr = Attributes.optional
+let optionalSignalAttr = Attributes.optionalSignal
+let optionalComputedAttr = Attributes.optionalComputed
 
 module Attr = {
   let string = attr
   let signal = signalAttr
   let compute = computedAttr
+  let optional = optionalAttr
+  let optionalSignal = optionalSignalAttr
+  let optionalCompute = optionalComputedAttr
 }
+
+/* An `attrValue` reduced to how it has to be applied: a value that is known up
+ front, or a read that must run inside an effect. Both are nullable because a
+ missing value removes the attribute. */
+type attrRead =
+  | ReadStatic(Nullable.t<string>)
+  | ReadReactive(unit => Nullable.t<string>)
+
+let resolveAttr = (value: attrValue): attrRead =>
+  switch value {
+  | Static(value) => ReadStatic(Nullable.make(value))
+  | OptionalStatic(value) => ReadStatic(Nullable.fromOption(value))
+  | SignalValue(signal) => ReadReactive(() => Nullable.make(Signal.get(signal)))
+  | OptionalSignalValue(signal) => ReadReactive(() => Nullable.fromOption(Signal.get(signal)))
+  | Compute(compute) => ReadReactive(() => Nullable.make(compute()))
+  | OptionalCompute(compute) => ReadReactive(() => Nullable.fromOption(compute()))
+  }
+
+/* Current value of an attribute without subscribing to it — SSR renders a
+ snapshot, so it must not register dependencies. */
+let peekAttr = (value: attrValue): Nullable.t<string> =>
+  switch resolveAttr(value) {
+  | ReadStatic(value) => value
+  | ReadReactive(read) => Signal.untrack(read)
+  }
 
 /* ============================================================================
  * Rendering
@@ -321,22 +375,12 @@ module Render = {
             tag == "select" && key == "value"
 
           let applyAttr = ((key, value)) => {
-            switch value {
-            | Static(v) => DOM.setAttrOrProp(el, key, v)
-            | SignalValue(signal) => {
-                DOM.setAttrOrProp(el, key, Signal.peek(signal))
+            switch resolveAttr(value) {
+            | ReadStatic(value) => DOM.setAttrOrProp(el, key, value)
+            | ReadReactive(read) => {
                 let disposer = Effect.runWithDisposer(
                   () => {
-                    DOM.setAttrOrProp(el, key, Signal.get(signal))
-                    None
-                  },
-                )
-                addDisposer(owner, disposer)
-              }
-            | Compute(compute) => {
-                let disposer = Effect.runWithDisposer(
-                  () => {
-                    DOM.setAttrOrProp(el, key, compute())
+                    DOM.setAttrOrProp(el, key, read())
                     None
                   },
                 )

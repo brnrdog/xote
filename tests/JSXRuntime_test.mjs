@@ -77,6 +77,41 @@ assert.equal(
   '<svg viewBox="0 0 10 10" markerWidth="4"><path markerHeight="5"></path></svg>',
 );
 
+// Escape hatch: attributes with no prop of their own, merged after the props.
+assert.equal(
+  renderToString(
+    jsx("div", {
+      className: "from-prop",
+      attrs: [
+        ["aria-controls", "panel-1"],
+        ["class", "from-attrs"],
+        // View.attr returns the [name, value] pair an entry already is
+        View.attr("aria-valuenow", "50"),
+        View.optionalAttr("aria-valuetext", undefined),
+      ],
+      children: "ok",
+    }),
+  ),
+  '<div aria-controls="panel-1" class="from-attrs" aria-valuenow="50">ok</div>',
+);
+
+// A value that resolves to nothing removes the attribute instead of writing
+// the string "undefined".
+const open_ = Signal.make(true);
+const presence = jsx("div", {
+  attrs: [["data-open", () => (Signal.get(open_) ? "" : undefined)]],
+  children: "panel",
+});
+
+assert.equal(renderToString(presence), '<div data-open="">panel</div>');
+
+const presenceContainer = document.createElement("div");
+View.mount(presence, presenceContainer);
+const panel = presenceContainer.querySelector("div");
+assert.equal(panel.getAttribute("data-open"), "");
+Signal.set(open_, false);
+assert.equal(panel.hasAttribute("data-open"), false);
+
 const keyedFromProps = jsx("span", { key: "spread-key", children: "keyed" });
 assert.equal(keyedFromProps.TAG, "Keyed");
 assert.equal(keyedFromProps.key, "spread-key");
