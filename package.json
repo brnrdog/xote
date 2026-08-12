@@ -61,7 +61,8 @@
     "src/**/*.resi",
     "src/**/*.res.mjs",
     "src/*.mjs",
-    "rescript.json"
+    "rescript.json",
+    "AGENTS.md"
   ],
   "scripts": {
     "res:build": "rescript",
