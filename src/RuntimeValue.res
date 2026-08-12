@@ -19,6 +19,17 @@ let isMaybeSignal = (value: 'value): bool => {
   }
 }
 
+/* Variant tag of a value, when it is a tagged variant at all. Used to tell one
+ runtime-shaped variant from another where JSX hands us untyped values. */
+let getTag = (value: 'value): option<string> =>
+  switch value->Core.Type.Classify.classify {
+  | Object(obj) => {
+      let obj: {..} = Obj.magic(obj)
+      obj->Core.Object.get("TAG")
+    }
+  | _ => None
+  }
+
 let isFunction = (value: 'value): bool =>
   switch value->Core.Type.Classify.classify {
   | Function(_) => true

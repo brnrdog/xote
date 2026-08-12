@@ -694,6 +694,118 @@ let suite = Zekr.suite(
         assertTrue(objectIs(updatedApple, appleNode)),
       ])
     }),
+    test("attrs escape hatch renders attributes without a typed prop", () => {
+      let {container} = Dom.render("")
+      let _ = mountTo(
+        <div
+          role="tablist"
+          attrs=[("aria-controls", "panel-1"), ("aria-orientation", "horizontal")]>
+          {View.text("Tabs")}
+        </div>,
+        container,
+      )
+      let el = Dom.Query.getByRole(container, "tablist")
+      combineResults([
+        Dom.Assert.toHaveAttribute(el, "aria-controls", ~value="panel-1"),
+        Dom.Assert.toHaveAttribute(el, "aria-orientation", ~value="horizontal"),
+      ])
+    }),
+    test("attrs escape hatch accepts View attribute values", () => {
+      let {container} = Dom.render("")
+      let level = Signal.make("50")
+      let _ = mountTo(
+        <div
+          role="slider"
+          attrs=[
+            View.attr("aria-valuemin", "0"),
+            View.attr("aria-valuemax", "100"),
+            View.signalAttr("aria-valuenow", level),
+          ]>
+          {View.text("Volume")}
+        </div>,
+        container,
+      )
+      let el = Dom.Query.getByRole(container, "slider")
+      let r1 = Dom.Assert.toHaveAttribute(el, "aria-valuenow", ~value="50")
+      Signal.set(level, "80")
+      combineResults([
+        r1,
+        Dom.Assert.toHaveAttribute(el, "aria-valuemin", ~value="0"),
+        Dom.Assert.toHaveAttribute(el, "aria-valuenow", ~value="80"),
+      ])
+    }),
+    test("attrs escape hatch overrides a typed prop with the same key", () => {
+      let {container} = Dom.render("")
+      let _ = mountTo(
+        <div class="from-prop" attrs=[("class", "from-attrs")]> {View.text("Box")} </div>,
+        container,
+      )
+      let el = Dom.Query.getByText(container, "Box")
+      combineResults([
+        Dom.Assert.toHaveClass(el, "from-attrs"),
+        Dom.Assert.toNotHaveClass(el, "from-prop"),
+        /* The typed prop is dropped rather than rendered twice */
+        assertEqual(
+          SSR.renderToString(() =>
+            <div class="from-prop" attrs=[("class", "from-attrs")]> {View.text("Box")} </div>
+          ),
+          `<div class="from-attrs">Box</div>`,
+        ),
+      ])
+    }),
+    test("attrs escape hatch toggles presence-based state attributes", () => {
+      let {container} = Dom.render("")
+      let checked = Signal.make(false)
+      let _ = mountTo(
+        <button
+          role="switch"
+          attrs=[
+            View.optionalComputedAttr("data-checked", () => Signal.get(checked) ? Some("") : None),
+            View.optionalComputedAttr("aria-checked", () =>
+              Some(Signal.get(checked) ? "true" : "false")
+            ),
+          ]>
+          {View.text("Toggle")}
+        </button>,
+        container,
+      )
+      let el = Dom.Query.getByRole(container, "switch")
+      let r1 = Dom.Assert.toNotHaveAttribute(el, "data-checked")
+      let r2 = Dom.Assert.toHaveAttribute(el, "aria-checked", ~value="false")
+      Signal.set(checked, true)
+      combineResults([
+        r1,
+        r2,
+        Dom.Assert.toHaveAttribute(el, "data-checked", ~value=""),
+        Dom.Assert.toHaveAttribute(el, "aria-checked", ~value="true"),
+      ])
+    }),
+    test("a thunk returning None removes the attribute", () => {
+      let {container} = Dom.render("")
+      let open_ = Signal.make(true)
+      let _ = mountTo(
+        <div attrs=[("data-open", () => Signal.get(open_) ? Some("") : None)]>
+          {View.text("Panel")}
+        </div>,
+        container,
+      )
+      let el = Dom.Query.getByText(container, "Panel")
+      let r1 = Dom.Assert.toHaveAttribute(el, "data-open", ~value="")
+      Signal.set(open_, false)
+      combineResults([r1, Dom.Assert.toNotHaveAttribute(el, "data-open")])
+    }),
+    test("aria state props keep their true/false value", () => {
+      let {container} = Dom.render("")
+      let _ = mountTo(
+        <button ariaExpanded={false} ariaSelected={true}> {View.text("Menu")} </button>,
+        container,
+      )
+      let el = Dom.Query.getByRole(container, "button")
+      combineResults([
+        Dom.Assert.toHaveAttribute(el, "aria-expanded", ~value="false"),
+        Dom.Assert.toHaveAttribute(el, "aria-selected", ~value="true"),
+      ])
+    }),
   ],
   ~afterEach=() => Dom.cleanup(),
 )

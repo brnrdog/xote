@@ -68,9 +68,9 @@ The root `xote` entry is client-focused and does not export router, SSR, hydrati
 These three are thin shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.res`) that `include` the corresponding modules from `rescript-signals`.
 
 **Xote Modules:**
-- **`Xote.View`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `Keyed`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `int`, `float`, `bool`, `fragment`, `signalFragment`, `tracked`, `each`, `eachWithKey`, `element`), the JSX rendering components (`For`, `Show`, `Maybe`, `Value`, `Text`, `Int`, `Float`, `Bool`), attribute helpers (`attr`, `signalAttr`, `computedAttr`, `Attr`), the `null`/`empty` placeholders, and `mount`/`mountById`. The owner-based reactivity system for resource cleanup also lives here.
+- **`Xote.View`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `Keyed`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `int`, `float`, `bool`, `fragment`, `signalFragment`, `tracked`, `each`, `eachWithKey`, `element`), the JSX rendering components (`For`, `Show`, `Maybe`, `Value`, `Text`, `Int`, `Float`, `Bool`), attribute helpers (`attr`, `signalAttr`, `computedAttr`, `optionalAttr`, `optionalSignalAttr`, `optionalComputedAttr`, `Attr`), the `null`/`empty` placeholders, and `mount`/`mountById`. The owner-based reactivity system for resource cleanup also lives here.
 - **`Xote.Html`**: Convenience constructors for common HTML tags (`div`, `span`, `button`, `input`, `h1`-`h3`, `p`, `ul`, `li`, `a`). Thin wrappers over `View.element`. For tags not listed, call `View.element(tag, ...)` directly or use JSX.
-- **`Xote.XoteJSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with a broad set of supported attributes (standard, form/input, link, media, accessibility, drag-and-drop, and data attributes). Named `XoteJSX` (not `JSX`) to avoid colliding with unrelated modules when consumers use `open Xote`. Note: to defer side-effecting component evaluation out of any surrounding `Computed` context, `XoteJSX.jsx` wraps user-defined components in `View.LazyComponent`.
+- **`Xote.XoteJSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with a broad set of supported attributes (standard, form/input, link, media, accessibility, drag-and-drop, and data attributes) plus an `attrs` escape hatch for anything else. Named `XoteJSX` (not `JSX`) to avoid colliding with unrelated modules when consumers use `open Xote`. Note: to defer side-effecting component evaluation out of any surrounding `Computed` context, `XoteJSX.jsx` wraps user-defined components in `View.LazyComponent`.
 - **`Xote.MaybeSignal`**: Static-or-reactive value wrapper exposing the type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` plus `static`, `reactive`, `computed` (derives a `Reactive` from a `unit => 'a`), `get` (tracked read), `peek` (untracked read), `isStatic`/`isReactive`, `map`, `toSignal`, and `ofUnknown`. Use it anywhere an API should accept either a plain value or a signal — JSX props are the most common case, not the only one. Notes on the trickier members:
   - `map` runs its function once immediately in both cases. For a `Reactive` value the result is backed by a `Computed`, which stays subscribed to the source until `Computed.dispose` is called on it, so prefer holding a mapped value over rebuilding it per update.
   - `toSignal` returns the source signal for `Reactive`, but lifts `Static` into a **fresh, detached** signal — each call allocates a new one and writing to the result does not reach the original. Treat that result as read-only.
@@ -129,6 +129,7 @@ Xote supports **two syntax styles**:
    - `attr("key", "value")` - static string attribute
    - `signalAttr("key", signal)` - reactive attribute from a signal
    - `computedAttr("key", () => ...)` - reactive attribute from a computed function
+   - `optionalAttr("key", option)`, `optionalSignalAttr("key", signal)`, `optionalComputedAttr("key", () => ...)` - the same three over `option<string>`, where `None` **removes** the attribute (see "Attribute & Property Handling")
 5. **Lists**:
    - `each(signal, renderItem)` - simple reactive list (re-renders all items on change)
    - `eachWithKey(signal, keyFn, renderItem)` - efficient keyed list with DOM reconciliation (preserves element identity, only updates changed items)
@@ -173,6 +174,7 @@ let app = () => {
   - Global: `draggable`, `hidden`, `contentEditable`, `spellcheck`
   - Accessibility: `role`, `tabIndex`, `ariaLabel`, `ariaHidden`, `ariaExpanded`, `ariaSelected`
   - Data: `data` (an `Obj.t`/`Dict.t` expanded into `data-*` attributes)
+  - Escape hatch: `attrs` (see below) for anything without a typed prop
   - SVG root: `xmlns`, `xmlnsXlink`, `version`, `viewBox`, `preserveAspectRatio`
   - SVG geometry: `d`, `pathLength`, `cx`, `cy`, `r`, `rx`, `ry`, `x`, `y`, `x1`, `y1`, `x2`, `y2`, `fx`, `fy`, `dx`, `dy`, `points`, `transform`, `transformOrigin`
   - SVG presentation: `fill`, `fillOpacity`, `fillRule`, `stroke`, `strokeWidth`, `strokeLinecap`, `strokeLinejoin`, `strokeDasharray`, `strokeDashoffset`, `strokeOpacity`, `strokeMiterlimit`, `opacity`, `color`, `visibility`, `vectorEffect`, `pointerEvents`
@@ -184,7 +186,8 @@ let app = () => {
 - Props support raw values, `MaybeSignal.t<'a>` (`Static` / `Reactive`), raw `Signal.t<'a>`, or a computed `unit => 'a` function for flexible static/reactive handling. These element props are untyped by design (each is its own type variable, resolved at runtime by `MaybeSignal.ofUnknown`), so `class={42}` compiles and renders `class="42"` — the trade for not requiring a wrapper. Props with a declared type (`View.Show`, `View.For`, `View.Maybe`, `View.Value`, and user components) take a `MaybeSignal.t` and are checked normally
 - Event handlers: `onClick`, `onInput`, `onChange`, `onSubmit`, `onFocus`, `onBlur`, `onKeyDown`, `onKeyUp`, `onMouseEnter`, `onMouseLeave`, `onMouseDown`, `onMouseMove`, `onMouseUp`, `onContextMenu`, plus drag-and-drop: `onDrag`, `onDragStart`, `onDragEnd`, `onDragOver`, `onDragEnter`, `onDragLeave`, `onDrop`
 - Children are passed via JSX syntax and rendered as nodes
-- Boolean attributes (`disabled`, `checked`, `required`, `readOnly`, `multiple`, `autofocus`, `ariaHidden`, `ariaExpanded`, `ariaSelected`, `draggable`, `hidden`, `contentEditable`, `spellcheck`) are added/removed based on the value rather than stringified
+- Boolean attributes (`disabled`, `checked`, `required`, `readOnly`, `multiple`, `autofocus`, `draggable`, `hidden`, `contentEditable`, `spellcheck`) are added/removed based on the value rather than stringified. `ariaHidden`/`ariaExpanded`/`ariaSelected` are not: ARIA is enumerated, so they render `aria-expanded="false"` rather than dropping the attribute
+- `attrs` is the escape hatch for attributes the typed props do not cover — `aria-controls`, `aria-labelledby`, `aria-valuenow`, presence-toggled state attributes, and anything else. Entries are `(key, value)` pairs merged **after** the typed props, so an entry overrides a prop with the same key (the prop is dropped, not rendered twice). A value accepts everything a typed attribute prop accepts (raw value, `Signal.t`, `unit => 'a` thunk, `MaybeSignal.t`, `None`) as well as a `View.attrValue` built with `View.attr`/`View.optionalComputedAttr`/… — which is also how one array mixes static and reactive entries, since the array's values share a single type. `Router.Link` takes the same `attrs` prop
 
 ### Router
 
@@ -197,7 +200,7 @@ Signal-based client-side router with:
 - **Scroll restoration**: Saves/restores scroll position on back/forward navigation via `history.state`
 - **Global singleton**: Uses `Symbol.for("xote.router.state")` on `globalThis` so all Xote bundles share router state
 - **Link component**: `Router.link(~to, ~attrs, ~children, ())` for navigation without page reload
-- **JSX Link**: `<Router.Link to="/path" class="nav-link">` for declarative navigation in JSX
+- **JSX Link**: `<Router.Link to="/path" class="nav-link">` for declarative navigation in JSX; takes the same `attrs` escape hatch as HTML elements (`attrs=[("aria-current", "page")]`)
 
 ### SSR & Hydration
 
@@ -234,8 +237,11 @@ Full server-side rendering with client-side hydration:
 
 The `DOM.setAttrOrProp` helper (in `View.res`, via the internal `RuntimeDom` module) handles the distinction between HTML attributes and DOM properties:
 - `value`, `checked`, `disabled` are set as DOM properties (not attributes)
-- Boolean attributes (`required`, `readonly`, `multiple`, `aria-hidden`, `aria-expanded`, `aria-selected`, `draggable`, `hidden`, `contenteditable`, `spellcheck`, `autofocus`) are added or removed based on whether the serialized value is `"true"`
+- Boolean attributes (`checked`, `disabled`, `required`, `readonly`, `multiple`, `draggable`, `hidden`, `contenteditable`, `spellcheck`, `autofocus`) are added or removed based on whether the serialized value is `"true"`. ARIA attributes are deliberately **not** on that list — they are enumerated, so `aria-expanded`, `aria-selected`, and `aria-hidden` render their literal `"true"`/`"false"` value
+- A **missing value removes the attribute**: `None` from an optional attribute, or a `null`/`undefined` coming out of an untyped JSX value, calls `removeAttribute` (or resets the property for `value`/`checked`/`disabled`) instead of writing the string `"undefined"`. This is what presence-based styling needs — `data-checked:bg-primary` compiles to `[data-checked]`, so an attribute that is always present, even as `""`, always matches
 - All other attributes use `setAttribute`
+
+`View.attrValue` therefore has six variants: `Static`/`SignalValue`/`Compute` over `string`, and `OptionalStatic`/`OptionalSignalValue`/`OptionalCompute` over `option<string>`. Renderers do not match on them directly — `View.resolveAttr` reduces any of them to `ReadStatic(Nullable.t<string>)` (a value known up front) or `ReadReactive(unit => Nullable.t<string>)` (a read that must run inside an effect), and `View.peekAttr` returns the current value untracked for SSR. Client render, hydration, and SSR all go through those two, so a new variant only has to be handled once.
 
 ## Key Concepts for Development
 
@@ -384,6 +390,18 @@ Html.button(
   ],
   ()
 )
+
+// Optional: None removes the attribute instead of writing a value.
+// Presence-based styling ([data-checked], [data-open]) needs the removal.
+Html.button(
+  ~attrs=[
+    View.optionalComputedAttr("data-checked", () =>
+      Signal.get(isChecked) ? Some("") : None
+    ),
+    View.optionalAttr("aria-describedby", descriptionId),  // option<string>
+  ],
+  ()
+)
 ```
 
 ### Auto-tracked blocks
@@ -438,6 +456,30 @@ View.eachWithKey(
   onInput={handleInput}
 />
 ```
+
+#### Attributes without a typed prop (`attrs`)
+
+```rescript
+// Untyped entries — same values as any other JSX attribute
+<div role="tablist" attrs=[("aria-controls", "panel-1"), ("aria-orientation", "horizontal")]>
+  ...
+</div>
+
+// View.attrValue entries — typed, and the way to mix static and reactive
+<button
+  role="switch"
+  attrs=[
+    View.attr("aria-controls", panelId),
+    View.computedAttr("aria-checked", () => Signal.get(checked) ? "true" : "false"),
+    // present as `data-checked` only while checked, so [data-checked] matches
+    View.optionalComputedAttr("data-checked", () => Signal.get(checked) ? Some("") : None),
+  ]>
+  {View.text("Toggle")}
+</button>
+```
+
+`attrs` is merged after the typed props, so `<div class="a" attrs=[("class", "b")] />`
+renders `class="b"` once.
 
 #### Static-or-reactive values with MaybeSignal
 Built-in element attributes and `View.Text`/`Int`/`Float`/`Bool` are untyped and
@@ -585,7 +627,7 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 - **Signal reads in effects**: Use `Signal.get` (creates dependency) vs `Signal.peek` (no dependency). Using `get` inside an effect will re-run the effect when the signal changes.
 - **Owner disposal**: When removing DOM elements with reactive state, ensure the owner system cleans up (handled automatically by `Render.disposeElement`)
 - **Router init**: `Router.init()` must be called before any routing functions on the client. For SSR, use `Router.initSSR(~pathname, ())` instead to avoid accessing browser APIs.
-- **Boolean attributes**: Use string `"true"`/`"false"` - the `setAttrOrProp` function handles the conversion to proper DOM behavior
+- **Boolean attributes**: Use string `"true"`/`"false"` - the `setAttrOrProp` function handles the conversion to proper DOM behavior. To *remove* an attribute reactively, use the optional helpers (`View.optionalComputedAttr(key, () => ... ? Some("") : None)`) rather than adding the key to `RuntimeAttr.booleanAttributes`
 - **SSR state cleanup**: Call `SSRState.clear()` between multiple renders on the server to reset the state registry
 
 ### Code Style

@@ -62,6 +62,7 @@
     "src/**/*.res.mjs",
     "src/*.mjs",
     "rescript.json",
+    "AGENTS.md",
     "ppx/ppx.ml",
     "ppx/build.sh",
     "ppx/postinstall.js",

@@ -17,20 +17,20 @@ type renderOptions = {
 module Attributes = {
   /* Render a single attribute to string */
   let renderAttr = ((key, value): (string, View.attrValue)): string => {
-    let attrValue = switch value {
-    | View.Static(v) => v
-    | View.SignalValue(signal) => Signal.peek(signal)
-    | View.Compute(fn) => fn()
-    }
-
-    if RuntimeAttr.isBoolean(key) {
-      if RuntimeAttr.shouldRenderBoolean(attrValue) {
-        key
+    /* A missing value means the attribute is not rendered at all, matching the
+     `removeAttribute` the client does for the same value. */
+    switch View.peekAttr(value)->Nullable.toOption {
+    | None => ""
+    | Some(attrValue) =>
+      if RuntimeAttr.isBoolean(key) {
+        if RuntimeAttr.shouldRenderBoolean(attrValue) {
+          key
+        } else {
+          ""
+        }
       } else {
-        ""
+        `${key}="${Html.escape(attrValue)}"`
       }
-    } else {
-      `${key}="${Html.escape(attrValue)}"`
     }
   }
 

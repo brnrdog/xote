@@ -108,7 +108,13 @@ function normalizeStyle(style) {
     .join(";");
 }
 
+// `undefined` means "no attribute": View removes it instead of writing the
+// string "undefined", which is what presence-based selectors need.
 function stringifyAttrValue(name, value) {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
   if (name === "style") {
     return normalizeStyle(value);
   }
@@ -131,6 +137,39 @@ function attrFromValue(name, value) {
   return normalized.TAG === "Static"
     ? View.attr(name, normalized._0)
     : View.signalAttr(name, normalized._0);
+}
+
+// Tags of View.attrValue, so an `attrs` entry already built with View.attr &
+// friends passes through untouched. "Static" is absent for the same reason as
+// in RuntimeJsxProp: it is also MaybeSignal.Static, and both take the same path.
+const attrValueTags = new Set([
+  "SignalValue",
+  "Compute",
+  "OptionalStatic",
+  "OptionalSignalValue",
+  "OptionalCompute",
+]);
+
+function toAttrEntry(name, value) {
+  if (value && typeof value === "object" && attrValueTags.has(value.TAG)) {
+    return [name, value];
+  }
+
+  return attrFromValue(name, value);
+}
+
+// Later entries win, so an escape-hatch attribute replaces the prop of the same
+// name rather than rendering twice.
+function mergeAttrs(base, extra) {
+  if (extra.length === 0) {
+    return base;
+  }
+
+  const combined = base.concat(extra);
+  const lastIndex = new Map();
+  combined.forEach(([name], index) => lastIndex.set(name, index));
+
+  return combined.filter(([name], index) => lastIndex.get(name) === index);
 }
 
 function eventNameFromProp(name, value) {
@@ -167,10 +206,19 @@ function normalizeNode(value) {
 
 function buildElement(tag, props = {}) {
   const attrs = [];
+  const extraAttrs = [];
   const events = [];
 
   for (const [rawName, value] of Object.entries(props)) {
     if (internalProps.has(rawName) || value === null || value === undefined) {
+      continue;
+    }
+
+    // Escape hatch: [[name, value], ...] for attributes with no prop of their own.
+    if (rawName === "attrs") {
+      for (const [name, attrValue] of value) {
+        extraAttrs.push(toAttrEntry(name, attrValue));
+      }
       continue;
     }
 
@@ -184,7 +232,13 @@ function buildElement(tag, props = {}) {
     attrs.push(attrFromValue(attrName, value));
   }
 
-  return View.element(tag, attrs, events, normalizeChildren(props.children), undefined);
+  return View.element(
+    tag,
+    mergeAttrs(attrs, extraAttrs),
+    events,
+    normalizeChildren(props.children),
+    undefined,
+  );
 }
 
 function getReservedKey(props, key) {

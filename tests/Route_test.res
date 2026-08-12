@@ -175,6 +175,34 @@ let suite = Zekr.suite(
         assertEqual(current.hash, "#computed-make"),
       ])
     }),
+    test("Router.Link renders attributes from the attrs escape hatch", () => {
+      Router.init()
+      let {container} = Dom.render("")
+
+      View.mount(
+        <Router.Link
+          to="/docs"
+          attrs=[
+            View.attr("rel", "prefetch"),
+            View.optionalComputedAttr("aria-current", () =>
+              Signal.get(Router.location()).pathname == "/docs" ? Some("page") : None
+            ),
+          ]>
+          {View.text("Docs")}
+        </Router.Link>,
+        container,
+      )
+
+      let link = Dom.Query.getByText(container, "Docs")
+      let r1 = combineResults([
+        assertEqual(getAttr(link, "rel"), "prefetch"),
+        Dom.Assert.toNotHaveAttribute(link, "aria-current"),
+      ])
+
+      Dom.Event.click(link)
+
+      combineResults([r1, Dom.Assert.toHaveAttribute(link, "aria-current", ~value="page")])
+    }),
     test("Router.link scrolls to hash targets after navigation", () => {
       Router.init()
       useImmediateMicrotask()

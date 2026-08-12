@@ -428,7 +428,7 @@ module Link = {
    Use `MaybeSignal` directly. */
   module Prop = Prop
 
-  type props<'class, 'id, 'style, 'target, 'ariaLabel> = {
+  type props<'class, 'id, 'style, 'target, 'ariaLabel, 'attrs> = {
     /* Required navigation prop */
     to: string,
     /* Common attributes - can be static or reactive */
@@ -437,6 +437,10 @@ module Link = {
     style?: 'style,
     target?: 'target,
     @as("aria-label") ariaLabel?: 'ariaLabel,
+    /* Escape hatch for attributes with no prop of their own (`aria-current`,
+     `rel`, `data-*`, ...), merged after them. Same values as
+     `XoteJSX.Elements`'s `attrs`. */
+    attrs?: array<(string, 'attrs)>,
     /* Event handlers */
     onClick?: Dom.event => unit,
     /* Children */
@@ -472,7 +476,14 @@ module Link = {
     | None => ()
     }
 
-    attrs
+    switch props.attrs {
+    | Some(entries) =>
+      RuntimeJsxProp.mergeAttrs(
+        attrs,
+        entries->Array.map(((key, value)) => RuntimeJsxProp.toAttrEntry(key, value)),
+      )
+    | None => attrs
+    }
   }
 
   /* Extract children from props */

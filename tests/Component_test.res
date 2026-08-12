@@ -308,6 +308,58 @@ let suite = Zekr.suite(
       let r2 = Dom.Assert.toHaveTextContent(container, "AppleBananaCherry")
       combineResults([r1, r2])
     }),
+    test("optional attribute is not rendered when None", () => {
+      let {container} = Dom.render("")
+      let _ = mountTo(
+        Html.div(
+          ~attrs=[View.optionalAttr("data-open", None), View.optionalAttr("data-state", Some(""))],
+          ~children=[View.text("panel")],
+          (),
+        ),
+        container,
+      )
+      let el = Dom.Query.getByText(container, "panel")
+      combineResults([
+        Dom.Assert.toNotHaveAttribute(el, "data-open"),
+        Dom.Assert.toHaveAttribute(el, "data-state", ~value=""),
+      ])
+    }),
+    test("optional computed attribute is removed when it becomes None", () => {
+      let {container} = Dom.render("")
+      let open_ = Signal.make(true)
+      let _ = mountTo(
+        Html.div(
+          ~attrs=[
+            View.optionalComputedAttr("data-open", () => Signal.get(open_) ? Some("") : None),
+          ],
+          ~children=[View.text("panel")],
+          (),
+        ),
+        container,
+      )
+      let el = Dom.Query.getByText(container, "panel")
+      let r1 = Dom.Assert.toHaveAttribute(el, "data-open", ~value="")
+      Signal.set(open_, false)
+      let r2 = Dom.Assert.toNotHaveAttribute(el, "data-open")
+      Signal.set(open_, true)
+      combineResults([r1, r2, Dom.Assert.toHaveAttribute(el, "data-open", ~value="")])
+    }),
+    test("optional signal attribute is removed when it becomes None", () => {
+      let {container} = Dom.render("")
+      let state = Signal.make(Some("open"))
+      let _ = mountTo(
+        Html.div(
+          ~attrs=[View.optionalSignalAttr("data-state", state)],
+          ~children=[View.text("panel")],
+          (),
+        ),
+        container,
+      )
+      let el = Dom.Query.getByText(container, "panel")
+      let r1 = Dom.Assert.toHaveAttribute(el, "data-state", ~value="open")
+      Signal.set(state, None)
+      combineResults([r1, Dom.Assert.toNotHaveAttribute(el, "data-state")])
+    }),
     test("lazy component defers evaluation", () => {
       let {container} = Dom.render("")
       let evaluated = ref(false)

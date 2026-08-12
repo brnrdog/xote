@@ -158,6 +158,8 @@ module Elements = {
     'markerMid,
     'markerEnd,
     'xlinkHref,
+    /* Escape hatch */
+    'attrs,
   > = {
     /* Standard attributes - accept raw strings or MaybeSignal.t<string> */
     id?: 'id,
@@ -211,6 +213,15 @@ module Elements = {
     @as("aria-selected") ariaSelected?: 'ariaSelected,
     /* Data attributes */
     data?: Obj.t,
+    /* Escape hatch for attributes with no typed prop — `aria-controls`,
+     `aria-valuenow`, presence-toggled state attributes, ... Entries are merged
+     after the typed props, so an entry here overrides a prop with the same key.
+     Values accept everything a typed attribute prop accepts (raw value,
+     `Signal.t`, `unit => 'a` thunk, `MaybeSignal.t`, `None`) as well as a
+     `View.attrValue` built with `View.attr`/`View.optionalComputedAttr`/... —
+     which is also how a single array mixes static and reactive entries, since
+     they then share one type. */
+    attrs?: array<(string, 'attrs)>,
     /* SVG attributes - root */
     xmlns?: 'xmlns,
     @as("xmlns:xlink") xmlnsXlink?: 'xmlnsXlink,
@@ -488,7 +499,15 @@ module Elements = {
     | None => ()
     }
 
-    attrs
+    /* Escape hatch, merged last so it wins over the typed props */
+    switch props.attrs {
+    | Some(entries) =>
+      RuntimeJsxProp.mergeAttrs(
+        attrs,
+        entries->Array.map(((key, value)) => RuntimeJsxProp.toAttrEntry(key, value)),
+      )
+    | None => attrs
+    }
   }
 
   /* Helper to add optional event handler to events array */
