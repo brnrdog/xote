@@ -108,6 +108,24 @@ let suite = Zekr.suite(
         assertFalse(String.includes(html, `disabled="true"`)),
       ])
     }),
+    test("skips optional attributes with no value", () => {
+      let html = SSR.renderToString(() =>
+        Html.div(
+          ~attrs=[
+            View.optionalAttr("data-open", None),
+            View.optionalComputedAttr("data-state", () => Some("closed")),
+          ],
+          (),
+        )
+      )
+      assertEqual(html, `<div data-state="closed"></div>`)
+    }),
+    test("renders aria state attributes with their value", () => {
+      let html = SSR.renderToString(() =>
+        Html.div(~attrs=[View.attr("aria-expanded", "false"), View.attr("aria-hidden", "true")], ())
+      )
+      assertEqual(html, `<div aria-expanded="false" aria-hidden="true"></div>`)
+    }),
     test("escapes attribute values", () => {
       let html = SSR.renderToString(() =>
         Html.div(~attrs=[View.attr("title", `say "hello" & goodbye`)], ())
