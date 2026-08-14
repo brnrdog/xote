@@ -17,7 +17,6 @@
     "preview": "NODE_ENV=production node server.mjs"
   },
   "dependencies": {
-    "@rescript/core": "^1.6.1",
     "highlight.js": "^11.11.1",
     "posthog-js": "^1.372.1",
     "rescript-signals": "^3.1.0",
