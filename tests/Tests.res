@@ -9,6 +9,7 @@ Zekr.runSuites([
   KeyedList_test.suite,
   Route_test.suite,
   PublicApi_test.suite,
+  Probe_test.suite,
   SSR_test.suite,
   SSRState_test.suite,
   Hydration_test.suite,

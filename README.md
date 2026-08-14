@@ -169,6 +169,39 @@ The explicit value primitives are still there for code that does not use the PPX
 Built-in attributes take a plain value, a signal, or a `unit => 'a` function, so
 a signal can be passed straight through without wrapping it.
 
+#### Keep signal reads visible
+
+`@xote.component` decides what to make reactive by *reading your source*. It
+follows `Signal.get` and `MaybeSignal.get`, aliases (`let g = Signal.get`,
+`module S = Signal`, `open Signal`), local helpers that read a signal, and
+helpers in a module in the same file. It cannot follow a call into **another
+module** — nothing in `Store.waitingCount(store)` says "signal" — so that leaf is
+compiled as a plain value and renders its first result forever:
+
+```rescript
+<p> {Store.waitingCount(store)} </p>   // ⚠️ one-shot: never updates
+<p> {() => Store.waitingCount(store)} </p>   // ✅ reactive
+```
+
+The same applies to a read hoisted into a `let` (`let n = Signal.get(count)`,
+then `{n}`): reactivity follows the expression written in JSX position. In both
+cases the fix is a thunk — `() => …` — and the PPX never double-wraps one you
+wrote yourself.
+
+You do not have to catch these by eye. A leaf whose expression contains a call
+the PPX cannot resolve is emitted wrapped in `View.probe`, which checks at
+runtime whether evaluating it actually subscribed to a signal and, if it did,
+logs the source location once:
+
+```
+[Xote] Queue.res:42:19: this value reads a signal through a call
+@xote.component cannot see … Wrap it in a thunk (`{() => ...}`).
+```
+
+There are no false positives — the check is on what the evaluation really read,
+not on how it looks — and probing is skipped in production builds. Full rules:
+[`ppx/README.md`](ppx/README.md#hidden-reads).
+
 For rendering collections in JSX, prefer `View.For`. Add `by` when items have stable identity and should reconcile by key:
 
 ```rescript

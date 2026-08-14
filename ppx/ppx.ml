@@ -992,26 +992,42 @@ let view_child = Longident.Ldot (Longident.Lident "View", "child")
 let wrap_child e = apply (ident view_child) [ e ]
 
 (* ---- signal-read detection ----------------------------------------------
-   A read is any occurrence of `Signal.get` (applied or not). Beyond the
-   literal `Signal.get` / `X.Signal.get`, an alias environment threaded through
-   the traversal also recognises indirect reads:
+   A read is a tracked `get`: `Signal.get`, and equally `MaybeSignal.get` /
+   `Prop.get` (the deprecated alias), which read through the static-or-reactive
+   wrapper and subscribe just the same. Beyond the literal `Signal.get` /
+   `X.MaybeSignal.get`, an alias environment threaded through the traversal also
+   recognises indirect reads:
      - a value alias:    `let g = Signal.get` then `g(sig)`
      - a module alias:   `module S = Signal` then `S.get(sig)`
      - an open:          `open Signal` then a bare `get(sig)`
      - a reactive helper: `let cls = () => Signal.get(x) ? …` then `cls()` —
        a local function whose body eagerly reads a signal; calling it is a read.
+     - a same-file module helper: `module Store = { let count = s => Signal.get(s) }`
+       then `Store.count(s)` — collected per module while walking the structure.
    The environment is scoped by the traversal (bindings visible only after they
    appear); shadowing a name with a non-reactive binding removes it. *)
-type env = { vals : string list; mods : string list; funcs : string list; open_signal : bool }
-let empty_env = { vals = []; mods = []; funcs = []; open_signal = false }
+type env = {
+  vals : string list;
+  mods : string list;
+  funcs : string list;
+  (* reactive helpers reached through a same-file module, as "Store.count" *)
+  qfuncs : string list;
+  open_signal : bool;
+}
+let empty_env = { vals = []; mods = []; funcs = []; qfuncs = []; open_signal = false }
 
-let is_signal_get (env : env) (e : expression) : bool =
+(* Modules whose `get` is a *tracked* read. `peek` is deliberately absent from
+   every one of them: it is the untracked read. *)
+let is_read_module_name = function
+  | "Signal" | "MaybeSignal" | "Prop" -> true
+  | _ -> false
+
+let is_read_fn (env : env) (e : expression) : bool =
   match e.pexp_desc with
   | Pexp_ident { txt = Longident.Ldot (m, "get"); _ } ->
     (match m with
-     | Longident.Lident "Signal" -> true
-     | Longident.Ldot (_, "Signal") -> true
-     | Longident.Lident name -> List.mem name env.mods
+     | Longident.Lident name -> is_read_module_name name || List.mem name env.mods
+     | Longident.Ldot (_, name) -> is_read_module_name name
      | _ -> false)
   | Pexp_ident { txt = Longident.Lident name; _ } ->
     List.mem name env.vals || (env.open_signal && name = "get")
@@ -1087,6 +1103,9 @@ let is_reactive_call (env : env) (e : expression) : bool =
   match e.pexp_desc with
   | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Longident.Lident f; _ }; _ }, _) ->
     List.mem f env.funcs
+  | Pexp_apply
+      ({ pexp_desc = Pexp_ident { txt = Longident.Ldot (Longident.Lident m, f); _ }; _ }, _) ->
+    List.mem (m ^ "." ^ f) env.qfuncs
   | _ -> false
 
 (* An *eager* read: a `Signal.get` (or reactive-helper call) that runs when this
@@ -1099,7 +1118,7 @@ let rec reads_signal_eager (env : env) (e : expression) : bool =
   | Pexp_fun _ -> false
   | Pexp_construct ({ txt = Longident.Lident "Function$"; _ }, Some _) -> false
   | _ ->
-    is_reactive_call env e || is_signal_get env e
+    is_reactive_call env e || is_read_fn env e
     || List.exists (reads_signal_eager env) (sub_exprs e)
 
 (* Does `e` denote a function whose body eagerly reads a signal? Strip the
@@ -1126,7 +1145,7 @@ let collect_val_aliases (env : env) (vbs : value_binding list) : env =
       match vb.pvb_pat.ppat_desc with
       | Ppat_var { txt = name; _ } ->
         let drop = List.filter (fun n -> n <> name) in
-        if is_signal_get env vb.pvb_expr then
+        if is_read_fn env vb.pvb_expr then
           { env with vals = name :: env.vals; funcs = drop env.funcs }
         else if func_reads env vb.pvb_expr then
           { env with funcs = name :: env.funcs; vals = drop env.vals }
@@ -1134,22 +1153,22 @@ let collect_val_aliases (env : env) (vbs : value_binding list) : env =
       | _ -> env)
     env vbs
 
-let is_signal_module (me : module_expr) : bool =
+let is_read_module (me : module_expr) : bool =
   match me.pmod_desc with
-  | Pmod_ident { txt = Longident.Lident "Signal"; _ } -> true
-  | Pmod_ident { txt = Longident.Ldot (_, "Signal"); _ } -> true
+  | Pmod_ident { txt = Longident.Lident name; _ } -> is_read_module_name name
+  | Pmod_ident { txt = Longident.Ldot (_, name); _ } -> is_read_module_name name
   | _ -> false
 
 let collect_mod_alias (env : env) (name : string Location.loc) (me : module_expr) : env =
-  if is_signal_module me then { env with mods = name.Location.txt :: env.mods } else env
+  if is_read_module me then { env with mods = name.Location.txt :: env.mods } else env
 
-let is_signal_lid = function
-  | Longident.Lident "Signal" -> true
-  | Longident.Ldot (_, "Signal") -> true
+let is_read_lid = function
+  | Longident.Lident name -> is_read_module_name name
+  | Longident.Ldot (_, name) -> is_read_module_name name
   | _ -> false
 
 let collect_open (env : env) (lid : Longident.t) : env =
-  if is_signal_lid lid then { env with open_signal = true } else env
+  if is_read_lid lid then { env with open_signal = true } else env
 
 (* ---- JSX shape helpers -------------------------------------------------- *)
 let has_jsx (e : expression) : bool =
@@ -1181,6 +1200,100 @@ let is_value_component (f : expression) : bool =
   | Pexp_ident { txt = Longident.Ldot (Longident.Lident "View", ("Text" | "Int" | "Float" | "Bool")); _ } ->
     true
   | _ -> false
+
+(* Does this expression contain JSX anywhere? A value that builds nodes is not a
+   scalar leaf, so it is never probed for a hidden read (the JSX inside it is
+   decomposed on its own). *)
+let rec contains_jsx (e : expression) : bool =
+  jsx_parts e <> None || is_jsx_fragment e || List.exists contains_jsx (sub_exprs e)
+
+(* ---- hidden reads --------------------------------------------------------
+   Detection is syntactic, so a read behind a call the ppx cannot see the
+   definition of — `Store.waitingCount(store)` from another module, a read
+   pulled out of a data structure — looks exactly like a static value and
+   compiles to one. That was the single silent failure mode.
+
+   The ppx cannot resolve such a call, but it can *tell that one is there*: an
+   expression made only of constants, identifiers, field accesses, lambdas and
+   structural combinations of those provably calls nothing, and anything else
+   might. Leaves in the second group are wrapped in `View.probe`, which decides
+   at runtime — it evaluates the expression inside a throwaway computed and
+   warns, naming this source location, if the evaluation actually subscribed to
+   a signal. Inert leaves are emitted untouched, so the common cases (a literal,
+   a prop, `item.name`) cost nothing. *)
+
+(* A symbolic identifier (`>`, `++`, `===`) is a ReScript primitive operator, so
+   applying one is as inert as its arguments. *)
+let is_operator_name (s : string) : bool =
+  String.length s > 0
+  && (match s.[0] with 'a' .. 'z' | 'A' .. 'Z' | '_' -> false | _ -> true)
+
+(* Xote's and rescript-signals' own entry points never hide a tracked read: they
+   build nodes (`View.text`, `Html.div`) or reactive values that carry their own
+   subscription (`Computed.make`, `MaybeSignal.reactive`), and the one function
+   here that *is* a read — `Signal.get`/`MaybeSignal.get` — is recognised and
+   thunked before probing is ever considered. `Signal.peek` is untracked by
+   design. So a call into one of them is as inert as its arguments, and probing
+   it would only report node-shaped values nobody can act on. *)
+let is_library_module = function
+  | "View" | "Html" | "XoteJSX" | "Signal" | "Computed" | "Effect" | "MaybeSignal" | "Prop" ->
+    true
+  | _ -> false
+
+let is_library_call_path (lid : Longident.t) : bool =
+  match lid with
+  | Longident.Ldot (Longident.Lident m, _) | Longident.Ldot (Longident.Ldot (_, m), _) ->
+    is_library_module m
+  | _ -> false
+
+let rec is_inert (e : expression) : bool =
+  match e.pexp_desc with
+  | Pexp_constant _ | Pexp_ident _ | Pexp_fun _ | Pexp_function _ | Pexp_unreachable -> true
+  (* a thunk defers its body: whatever it reads, it reads reactively *)
+  | Pexp_construct ({ txt = Longident.Lident "Function$"; _ }, Some _) -> true
+  | Pexp_construct (_, eo) | Pexp_variant (_, eo) ->
+    (match eo with Some x -> is_inert x | None -> true)
+  | Pexp_field (x, _) | Pexp_constraint (x, _) | Pexp_coerce (x, _, _) | Pexp_lazy x -> is_inert x
+  | Pexp_tuple xs | Pexp_array xs -> List.for_all is_inert xs
+  | Pexp_record (fields, base) ->
+    List.for_all (fun (_, v) -> is_inert v) fields
+    && (match base with Some b -> is_inert b | None -> true)
+  | Pexp_ifthenelse (c, t, eo) ->
+    is_inert c && is_inert t && (match eo with Some x -> is_inert x | None -> true)
+  | Pexp_match (s, cases) ->
+    is_inert s
+    && List.for_all
+         (fun c ->
+           is_inert c.pc_rhs && match c.pc_guard with Some g -> is_inert g | None -> true)
+         cases
+  | Pexp_sequence (a, b) -> is_inert a && is_inert b
+  | Pexp_let (_, vbs, body) ->
+    List.for_all (fun vb -> is_inert vb.pvb_expr) vbs && is_inert body
+  | Pexp_open (_, _, x) -> is_inert x
+  | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Longident.Lident op; _ }; _ }, args)
+    when is_operator_name op ->
+    List.for_all (fun (_, a) -> is_inert a) args
+  | Pexp_apply ({ pexp_desc = Pexp_ident { txt = lid; _ }; _ }, args)
+    when is_library_call_path lid ->
+    List.for_all (fun (_, a) -> is_inert a) args
+  | _ -> false
+
+(* The file being rewritten, used when an expression carries no location. *)
+let source_file = ref ""
+
+let site_of (loc : Location.t) : string =
+  let p = loc.Location.loc_start in
+  let file =
+    if p.Lexing.pos_fname = "" then !source_file else Filename.basename p.Lexing.pos_fname
+  in
+  let file = if file = "" then "@xote.component" else file in
+  if p.Lexing.pos_lnum <= 0 then file
+  else Printf.sprintf "%s:%d:%d" file p.Lexing.pos_lnum (p.Lexing.pos_cnum - p.Lexing.pos_bol + 1)
+
+let view_probe = Longident.Ldot (Longident.Lident "View", "probe")
+let str_const s = mkexp (Pexp_constant (Pconst_string (s, None)))
+let wrap_probe (e : expression) : expression =
+  apply (ident view_probe) [ str_const (site_of e.pexp_loc); thunk e ]
 
 (* ---- render callbacks ----------------------------------------------------
    A prop whose value is a *function returning JSX* — `render={item => <li>…}`
@@ -1229,6 +1342,17 @@ let is_children_label = function
   | Labelled "children" | Optional "children" -> true
   | _ -> false
 
+let label_name = function Labelled n | Optional n -> Some n | Nolabel -> None
+
+(* Labels that are never a reactive value leaf, so never worth probing: an event
+   handler is a callback, and `attrs` is the escape-hatch array whose entries
+   carry their own `View.attr`/`View.computedAttr` reactivity. *)
+let is_non_leaf_label (lbl : arg_label) : bool =
+  match label_name lbl with
+  | Some "attrs" -> true
+  | Some n -> String.length n > 2 && n.[0] = 'o' && n.[1] = 'n' && n.[2] >= 'A' && n.[2] <= 'Z'
+  | None -> false
+
 (* A value-position expression should be thunked iff it *eagerly* reads a signal
    and isn't already JSX. Using the eager check means values that are already
    reactive on their own — a `() => …` thunk, a `Computed`, a `Prop.reactive(…)`
@@ -1236,6 +1360,18 @@ let is_children_label = function
    @xote.component is a safe drop-in on components already written that way. *)
 let should_thunk (env : env) (v : expression) : bool =
   reads_signal_eager env v && jsx_parts v = None
+
+(* A value-position expression whose read status the ppx cannot decide: it is
+   not a visible read (that is already thunked), and it is not provably
+   call-free either. `View.probe` settles it at runtime. Node-shaped values are
+   excluded — they are decomposed, not read. *)
+let should_probe (env : env) (v : expression) : bool =
+  (not (should_thunk env v)) && (not (is_inert v)) && not (contains_jsx v)
+
+(* A value-position leaf: thunk a visible read, probe an unresolvable call,
+   leave everything else exactly as written. *)
+let leaf_value (env : env) (v : expression) : expression =
+  if should_thunk env v then thunk v else if should_probe env v then wrap_probe v else v
 
 (* `@xote.component` is the single annotation: it derives props exactly like
    `@jsx.component` (which we emit for the JSX transform to expand) *and*
@@ -1295,7 +1431,13 @@ let rec fine_node (env : env) (e : expression) : expression =
           a local) is ordinary UI code, so this path matters as much as the
           reactive one. *)
        let branches = decompose_branches env e in
-       if reads_signal_eager env e then wrap_tracked branches else branches
+       if reads_signal_eager env e then wrap_tracked branches
+       else
+         (* No visible read, so no `View.tracked`. If the condition/scrutinee is
+            not provably call-free, the structure may in fact depend on a signal
+            the ppx cannot see; probe it so that failure is reported instead of
+            silently rendering one frozen branch. *)
+         probe_condition env branches
      | Pexp_let (r, vbs, body) ->
        (* A block expression in node position — `{let x = …; <span/>}`. Recurse
           into the tail so the JSX inside keeps fine-grained leaves instead of
@@ -1327,7 +1469,7 @@ let rec fine_node (env : env) (e : expression) : expression =
           contains is node position too. So descend first (see
           decompose_node_shaped), then coerce the result. *)
        let e = decompose_node_shaped env e in
-       wrap_child (if should_thunk env e then thunk e else e))
+       wrap_child (leaf_value env e))
 
 (* Descend through a node-position expression that is not itself JSX, and
    decompose the node-shaped things inside it: JSX, and functions returning
@@ -1347,6 +1489,20 @@ and decompose_node_shaped (env : env) (e : expression) : expression =
       else decompose_node_shaped env sub)
     e
 
+(* Wrap the condition/scrutinee (and any `when` guards) of an *untracked*
+   control-flow child in `View.probe`. These drive the structural swap, so a
+   read hidden in one of them freezes the whole branch, not just one value. *)
+and probe_condition (env : env) (e : expression) : expression =
+  let p (v : expression) = if should_probe env v then wrap_probe v else v in
+  match e.pexp_desc with
+  | Pexp_ifthenelse (c, t, eo) -> { e with pexp_desc = Pexp_ifthenelse (p c, t, eo) }
+  | Pexp_match (s, cases) ->
+    { e with
+      pexp_desc =
+        Pexp_match
+          (p s, List.map (fun cs -> { cs with pc_guard = Option.map p cs.pc_guard }) cases) }
+  | _ -> e
+
 (* Recurse fine_node into the *node-position* bodies of control flow (the
    condition/scrutinee and any guards stay untouched — they are value position
    and should drive the structural swap). *)
@@ -1365,7 +1521,8 @@ and element_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * ex
     | Labelled _ | Optional _ ->
       (* attribute: value position. Thunk it if reactive so it lowers to a
          computed attribute; leave plain JSX/static/already-function values. *)
-      if should_thunk env v then (lbl, thunk v) else (lbl, v)
+      if is_non_leaf_label lbl then (lbl, if should_thunk env v then thunk v else v)
+      else (lbl, leaf_value env v)
     | Nolabel -> (lbl, v)
 
 and component_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
@@ -1395,12 +1552,11 @@ and value_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expr
   if is_children_label lbl then (lbl, map_children (value_leaf env) v)
   else
     match lbl with
-    | Labelled "value" -> (lbl, if should_thunk env v then thunk v else v)
+    | Labelled "value" -> (lbl, leaf_value env v)
     | _ -> (lbl, v)
 
 (* child of a value component (View.Text ...): value position -> thunk. *)
-and value_leaf (env : env) (v : expression) : expression =
-  if should_thunk env v then thunk v else v
+and value_leaf (env : env) (v : expression) : expression = leaf_value env v
 
 (* Map [f] over a JSX children list (a `::`/`[]` spine); tolerate a bare
    single child that is not wrapped in a list. *)
@@ -1543,8 +1699,24 @@ let rec map_structure (env : env) (s : structure) : structure =
 and update_env_si (env : env) si =
   match si.pstr_desc with
   | Pstr_value (_, vbs) -> collect_val_aliases env vbs
-  | Pstr_module mb -> collect_mod_alias env mb.pmb_name mb.pmb_expr
+  | Pstr_module mb ->
+    let env = collect_mod_alias env mb.pmb_name mb.pmb_expr in
+    collect_module_funcs env mb.pmb_name.Location.txt mb.pmb_expr
   | Pstr_open od -> collect_open env od.popen_lid.Location.txt
+  | _ -> env
+
+(* `module Store = { let count = s => Signal.get(s) }` in this file makes
+   `Store.count(s)` a read like any local helper. Walk the module body with the
+   surrounding environment (so it can use outer aliases), then qualify the
+   reactive names it introduced. Only same-file modules are reachable — a helper
+   imported from another file is what `View.probe` covers. *)
+and collect_module_funcs (env : env) (name : string) (me : module_expr) : env =
+  match me.pmod_desc with
+  | Pmod_structure s | Pmod_constraint ({ pmod_desc = Pmod_structure s; _ }, _) ->
+    let inner = List.fold_left update_env_si env s in
+    let added before after = List.filter (fun n -> not (List.mem n before)) after in
+    let names = added env.funcs inner.funcs @ added env.vals inner.vals in
+    { env with qfuncs = List.map (fun n -> name ^ "." ^ n) names @ env.qfuncs }
   | _ -> env
 
 and map_si (env : env) si =
@@ -1613,6 +1785,7 @@ let () =
   output_value oc name;
   (if magic = impl_magic then
      let structure = (Obj.magic payload : structure) in
+     source_file := Filename.basename name;
      fine_grain_helpers := structure_has_component structure;
      output_value oc (map_structure empty_env structure)
    else output_value oc payload);
