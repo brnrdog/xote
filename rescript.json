@@ -40,7 +40,6 @@
   },
   "suffix": ".res.mjs",
   "dependencies": [
-    "@rescript/core",
     "rescript-signals"
   ],
   "dev-dependencies": [

@@ -1,6 +1,5 @@
 module DOM = RuntimeDom
 module Reactivity = RuntimeOwner
-module Core = RescriptCore
 
 /* ============================================================================
  * Type Definitions
@@ -147,25 +146,24 @@ module Render = {
     if a === b {
       true
     } else {
-      switch (a->Core.Type.Classify.classify, b->Core.Type.Classify.classify) {
-      | (Object(objA), Object(objB)) => {
-          let dictA: Dict.t<Obj.t> = Obj.magic(objA)
-          let dictB: Dict.t<Obj.t> = Obj.magic(objB)
-          let keysA = dictA->Dict.keysToArray
-          let keysB = dictB->Dict.keysToArray
+      if RuntimeValue.isObject(a) && RuntimeValue.isObject(b) {
+        let dictA: Dict.t<Obj.t> = Obj.magic(a)
+        let dictB: Dict.t<Obj.t> = Obj.magic(b)
+        let keysA = dictA->Dict.keysToArray
+        let keysB = dictB->Dict.keysToArray
 
-          if keysA->Array.length !== keysB->Array.length {
-            false
-          } else {
-            keysA->Array.every(key =>
-              switch (dictA->Dict.get(key), dictB->Dict.get(key)) {
-              | (Some(valueA), Some(valueB)) => valueA === valueB
-              | _ => false
-              }
-            )
-          }
+        if keysA->Array.length !== keysB->Array.length {
+          false
+        } else {
+          keysA->Array.every(key =>
+            switch (dictA->Dict.get(key), dictB->Dict.get(key)) {
+            | (Some(valueA), Some(valueB)) => valueA === valueB
+            | _ => false
+            }
+          )
         }
-      | _ => false
+      } else {
+        false
       }
     }
 
@@ -174,17 +172,17 @@ module Render = {
   }
 
   let getKeyedChildren = (children: array<node>): option<array<keyedChild>> => {
-    if children->Core.Array.length == 0 {
+    if children->Array.length == 0 {
       None
     } else {
-      let keyedChildren = children->Core.Array.filterMap(child => {
+      let keyedChildren = children->Array.filterMap(child => {
         switch child {
         | Keyed({key, identity, child}) => Some({key, identity, child})
         | _ => None
         }
       })
 
-      if keyedChildren->Core.Array.length == children->Core.Array.length {
+      if keyedChildren->Array.length == children->Array.length {
         Some(keyedChildren)
       } else {
         None
@@ -758,9 +756,9 @@ let mountById = (node: node, containerId: string): unit => {
 let isReactiveProp = RuntimeValue.isMaybeSignal
 
 let valuePrimitive = (value: 'input, stringify: 'value => string): node =>
-  switch value->Core.Type.Classify.classify {
-  | Null | Undefined => null()
-  | _ =>
+  if RuntimeValue.isNullish(value) {
+    null()
+  } else {
     switch MaybeSignal.ofUnknown(value)->MaybeSignal.map(stringify) {
     | Static(value) => text(value)
     | Reactive(signal) => SignalText(signal)
