@@ -15,6 +15,14 @@ globalThis.Node = dom.window.Node;
 const View = await import('xote/src/View.res.mjs');
 const Signal = await import('xote/src/Signal.res.mjs');
 const Demo = await import('./src/Demo.res.mjs');
+const Store = await import('./src/Store.res.mjs');
+
+// `View.probe` reports hidden reads through console.warn. Capture from the very
+// first mount so the hidden-read section can assert both what was reported and
+// what was not — a false positive is as much a failure as a missed read.
+const warnings = [];
+const realWarn = console.warn;
+console.warn = (...args) => { warnings.push(args.join(' ')); };
 
 let pass = 0, fail = 0;
 const check = (name, cond) => {
@@ -465,6 +473,76 @@ check('let-bound JSX renders bare child', ns.querySelector('#ns-heading').textCo
 check('array literal inside View.fragment', ns.querySelector('#ns-arr').textContent.includes('array'));
 check('pipe + map callback decomposed', ns.querySelectorAll('.ns-map').length === 2);
 check('local helper items rendered', ns.textContent.includes('one') && ns.textContent.includes('two'));
+
+// --- MaybeSignal.get is a tracked read --------------------------------------
+// Reading through the static-or-reactive wrapper subscribes exactly like
+// Signal.get, so both leaves below must be reactive, not one-shot.
+console.log('MaybeSignal.get is a tracked read:');
+Signal.set(Demo.theme, 'light');
+Signal.set(Demo.name, 'Ada');
+const ms = mount(() => Demo.MaybeSignalRead.make({}));
+ms.__marker = 'MS';
+check('MaybeSignal.get attribute rendered', ms.className === 'light');
+check('MaybeSignal.get bare child rendered', ms.textContent.includes('Ada'));
+Signal.set(Demo.theme, 'dark');
+Signal.set(Demo.name, 'Bo');
+check('MaybeSignal.get attribute updates', document.querySelector('#maybe-signal').className === 'dark');
+check('MaybeSignal.get bare child updates', document.querySelector('#maybe-signal').textContent.includes('Bo'));
+check('MaybeSignal leaf kept element identity', document.querySelector('#maybe-signal').__marker === 'MS');
+
+// --- A reactive helper behind a same-file module -----------------------------
+console.log('same-file module helper is a tracked read:');
+Signal.set(Demo.count, 2);
+const mh = mount(() => Demo.ModuleHelper.make({}));
+mh.__marker = 'MH';
+check('module helper bare child rendered', mh.textContent.includes('4'));
+check('module helper attribute rendered', mh.className === 'positive');
+Signal.set(Demo.count, 0);
+check('module helper bare child updates', document.querySelector('#module-helper').textContent.trim() === '0');
+check('module helper attribute updates', document.querySelector('#module-helper').className === 'zero');
+check('module helper kept element identity', document.querySelector('#module-helper').__marker === 'MH');
+
+// --- Hidden reads: what detection cannot follow, reported at runtime ---------
+// `Store` is another file, so the ppx sees only a call it cannot resolve. The
+// leaf is wrapped in `View.probe`, which evaluates it inside a throwaway
+// computed and reports it if that computed subscribed to anything.
+console.log('hidden reads (an unresolvable call that does read a signal):');
+const hidden = mount(() => Demo.Hidden.make({}));
+check('hidden read still renders its initial value', hidden.textContent.includes('4'));
+check('hidden read attribute still renders', hidden.className === 'tone-calm');
+check('hidden read reported with its source location', warnings.some((w) => w.includes('Demo.res:525:54')));
+check('hidden read attribute reported', warnings.some((w) => w.includes('Demo.res:525:32')));
+check('warning names the fix', warnings.some((w) => w.includes('() => ...')));
+
+// This is precisely what the warning is for: the leaf is frozen at its first
+// value. Detection cannot fix it, so it has to say so.
+Signal.set(Store.waiting, 9);
+check('hidden read is indeed frozen (the failure the warning describes)', document.querySelector('#hidden-read').textContent.includes('4'));
+
+const hiddenBranch = mount(() => Demo.HiddenBranch.make({}));
+check('hidden condition renders a branch', hiddenBranch.querySelector('#hb-idle') !== null);
+check('hidden condition reported', warnings.some((w) => w.includes('Demo.res:534:11')));
+
+// Only once per site, however many times the component mounts.
+const repeats = warnings.filter((w) => w.includes('Demo.res:525:54')).length;
+mount(() => Demo.Hidden.make({}));
+check('each site is reported once, not per render', warnings.filter((w) => w.includes('Demo.res:525:54')).length === repeats);
+
+// --- ...and silent when there is nothing to report ---------------------------
+// An unresolvable call is not evidence of a read. Probing decides by what the
+// evaluation actually subscribed to, so a false positive is impossible.
+console.log('probe stays silent when nothing is read:');
+const quiet = warnings.length;
+const clean = mount(() => Demo.HiddenClean.make({}));
+check('unresolvable-but-static bare child renders', clean.textContent.includes('42'));
+check('unresolvable-but-static attribute renders', clean.className === 'row!');
+check('no warning for a call that reads nothing', warnings.length === quiet);
+// Case 25 (PeekShadow) is probed too: `Signal.peek` registers no dependency, so
+// a deliberate one-shot peek must not be reported either.
+check('no warning for a deliberate peek-based helper', !warnings.some((w) => w.includes('Demo.res:357')));
+check('no warning from any other case', warnings.every((w) => /Demo\.res:(525|534):/.test(w)));
+
+console.warn = realWarn;
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -68,7 +68,7 @@ The root `xote` entry is client-focused and does not export router, SSR, hydrati
 These three are thin shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.res`) that `include` the corresponding modules from `rescript-signals`.
 
 **Xote Modules:**
-- **`Xote.View`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `Keyed`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `int`, `float`, `bool`, `fragment`, `signalFragment`, `tracked`, `each`, `eachWithKey`, `element`), the JSX rendering components (`For`, `Show`, `Maybe`, `Value`, `Text`, `Int`, `Float`, `Bool`), attribute helpers (`attr`, `signalAttr`, `computedAttr`, `optionalAttr`, `optionalSignalAttr`, `optionalComputedAttr`, `Attr`), the `null`/`empty` placeholders, and `mount`/`mountById`. The owner-based reactivity system for resource cleanup also lives here.
+- **`Xote.View`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `Keyed`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `int`, `float`, `bool`, `fragment`, `signalFragment`, `tracked`, `each`, `eachWithKey`, `element`), the JSX rendering components (`For`, `Show`, `Maybe`, `Value`, `Text`, `Int`, `Float`, `Bool`), attribute helpers (`attr`, `signalAttr`, `computedAttr`, `optionalAttr`, `optionalSignalAttr`, `optionalComputedAttr`, `Attr`), the `null`/`empty` placeholders, and `mount`/`mountById`. It also exposes the two helpers `@xote.component` emits: `child` (runtime coercion of a bare JSX child) and `probe` (hidden-read detection — see the PPX section below). The owner-based reactivity system for resource cleanup also lives here.
 - **`Xote.Html`**: Convenience constructors for common HTML tags (`div`, `span`, `button`, `input`, `h1`-`h3`, `p`, `ul`, `li`, `a`). Thin wrappers over `View.element`. For tags not listed, call `View.element(tag, ...)` directly or use JSX.
 - **`Xote.XoteJSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with a broad set of supported attributes (standard, form/input, link, media, accessibility, drag-and-drop, and data attributes) plus an `attrs` escape hatch for anything else. Named `XoteJSX` (not `JSX`) to avoid colliding with unrelated modules when consumers use `open Xote`. Note: to defer side-effecting component evaluation out of any surrounding `Computed` context, `XoteJSX.jsx` wraps user-defined components in `View.LazyComponent`.
 - **`Xote.MaybeSignal`**: Static-or-reactive value wrapper exposing the type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` plus `static`, `reactive`, `computed` (derives a `Reactive` from a `unit => 'a`), `get` (tracked read), `peek` (untracked read), `isStatic`/`isReactive`, `map`, `toSignal`, and `ofUnknown`. Use it anywhere an API should accept either a plain value or a signal — JSX props are the most common case, not the only one. Notes on the trickier members:
@@ -148,7 +148,9 @@ Xote supports **two syntax styles**:
 - values that are already reactive (a `() => …` thunk, a `Computed`, `Prop.reactive(…)`) are left alone — the annotation is a safe drop-in;
 - **user-component props are never thunked**: `<Card label={Signal.get(x)} />` is a deliberate one-shot read; pass the signal itself for a reactive prop. Children and JSX-valued props of user components are still decomposed.
 
-Detection follows local aliases (`let g = Signal.get`, `module S = Signal`, `open Signal`, local reactive helpers) but is syntactic: reads hidden behind imported helpers, or hoisted into a plain `let` binding (`let label = Signal.get(count)->Int.toString`), compile to *static one-shot values with no error*. The escape hatch is to wrap the value in `() => …` yourself. Full rules and limitations: `ppx/README.md`. The npm package ships the PPX as prebuilt per-platform binaries selected by `ppx/postinstall.js`; Xote's own `src/` never uses the annotation.
+Detection covers `Signal.get` **and** `MaybeSignal.get`/`Prop.get`, and follows aliases (`let g = Signal.get`, `module S = Signal`, `open Signal`), local reactive helpers, and helpers in a module declared in the same file. It is still syntactic, so reads hidden behind an **imported** helper, or hoisted into a plain `let` binding (`let label = Signal.get(count)->Int.toString`), compile to static one-shot values; the escape hatch is to wrap the value in `() => …` yourself.
+
+Those remaining cases are no longer silent. A value leaf whose expression contains a call the PPX cannot resolve is emitted wrapped in `View.probe`: on its **first** evaluation it runs inside a throwaway computed and, if that computed subscribed to anything, a warning naming the source location is logged (and the value is read back through the computed, so an enclosing `tracked` block's dependencies are unchanged). No dependencies means no warning and no behaviour change, so there are no false positives. Each site is probed once — later evaluations are a plain call — and probing is skipped entirely when `globalThis.__XOTE_DEV__` or `process.env.NODE_ENV` says production. Full rules and limitations: `ppx/README.md`. The npm package ships the PPX as prebuilt per-platform binaries selected by `ppx/postinstall.js`; Xote's own `src/` never uses the annotation.
 
 #### JSX Syntax
 Xote supports ReScript's generic JSX v4 for a declarative component syntax:
@@ -615,7 +617,7 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 | `src/Prop.res`, `src/Prop.resi` | Deprecated alias of `MaybeSignal` (the interface file is what makes the deprecations warn) |
 | `src/Signal.res`, `src/Computed.res`, `src/Effect.res` | Re-export shims for `rescript-signals` |
 | `ppx/ppx.ml` | The `@xote.component` fine-grained PPX (vendored OCaml 4.06 AST + rewriter) |
-| `ppx/example/` | Standalone PPX consumer project; `verify.mjs` is its jsdom regression suite (`npm run ppx:test`) |
+| `ppx/example/` | Standalone PPX consumer project; `verify.mjs` is its jsdom regression suite (`npm run ppx:test`). `src/Store.res` is deliberately a *second* file, so its helpers model the cross-module reads detection cannot follow |
 | `ppx/postinstall.js` | Selects/installs the prebuilt PPX binary at npm install time |
 | `rescript.json` | ReScript compiler configuration (`namespace: true`) |
 | `vite.config.js` | Library build configuration |
@@ -658,6 +660,7 @@ The project has a test suite using the [zekr](https://github.com/nicholasgasior/
 | `tests/JSX_test.res` | JSX transform |
 | `tests/MaybeSignal_test.res` | `MaybeSignal` helpers and the deprecated `Prop` alias |
 | `tests/KeyedList_test.res` | Keyed list reconciliation |
+| `tests/Probe_test.res` | `View.probe` hidden-read detection (reports, false positives, dedupe) |
 | `tests/Route_test.res` | Route matching |
 | `tests/SSR_test.res` | Server-side rendering |
 | `tests/SSRState_test.res` | State serialization |

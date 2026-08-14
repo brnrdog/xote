@@ -486,3 +486,64 @@ module HelperHost = {
   @xote.component
   let make = () => <div id="helper-host"> {helperButton("Press")} </div>
 }
+
+/* Case 26: `MaybeSignal.get` is a tracked read exactly like `Signal.get`, and
+   so is `Prop.get` (its deprecated alias). Reading through the static-or-
+   reactive wrapper subscribes just the same, so these leaves must be thunked. */
+let maybeName: MaybeSignal.t<string> = MaybeSignal.reactive(name)
+let maybeTheme: MaybeSignal.t<string> = MaybeSignal.reactive(theme)
+
+module MaybeSignalRead = {
+  @xote.component
+  let make = () =>
+    <p id="maybe-signal" class={MaybeSignal.get(maybeTheme)}> {MaybeSignal.get(maybeName)} </p>
+}
+
+/* Case 27: a reactive helper reached through a module *in this file*. The ppx
+   walks the module body, so `Counter.doubled()` is a read; `Counter.plain(…)`
+   is not, and stays a plain static value. */
+module Counter = {
+  let doubled = () => Signal.get(count) * 2
+  let plain = (n: int) => n + 1
+}
+
+module ModuleHelper = {
+  @xote.component
+  let make = () =>
+    <p id="module-helper" class={Counter.doubled() > 0 ? "positive" : "zero"}>
+      {Counter.doubled()}
+    </p>
+}
+
+/* Case 28: the hidden read. `Store` lives in another file, so the ppx sees only
+   a call it cannot resolve and cannot know a signal is read behind it. Both
+   leaves are wrapped in `View.probe`, which reports them at runtime instead of
+   rendering a frozen value in silence. */
+module Hidden = {
+  @xote.component
+  let make = () =>
+    <p id="hidden-read" class={Store.themeClass()}> {Store.waitingCount()} </p>
+}
+
+/* Case 28b: the same indirection in a *condition*. A read hidden in the
+   scrutinee freezes the whole branch, so untracked control flow probes it. */
+module HiddenBranch = {
+  @xote.component
+  let make = () =>
+    <div id="hidden-branch">
+      {if Store.isBusy() {
+        <span id="hb-busy"> {"busy"} </span>
+      } else {
+        <span id="hb-idle"> {"idle"} </span>
+      }}
+    </div>
+}
+
+/* Case 29: the probe must not cry wolf. An unresolvable call that reads no
+   signal is a perfectly ordinary static value — no warning, no reactivity, and
+   `View.probe` returns it untouched. */
+module HiddenClean = {
+  @xote.component
+  let make = () =>
+    <p id="hidden-clean" class={Store.title("row")}> {Counter.plain(41)} </p>
+}

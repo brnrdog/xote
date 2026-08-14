@@ -891,6 +891,113 @@ let rec child = (value: 'a): node => {
   }
 }
 
+/* ============================================================================
+ * Hidden signal reads (@xote.component)
+ * ============================================================================ */
+
+/* The ppx detects signal reads *syntactically*. A read it cannot see the
+   definition of — an imported helper (`Store.waitingCount(store)`), a read
+   pulled out of a data structure — is compiled as a plain value: the leaf is
+   evaluated once and never updates, and no error or warning is produced. Inside
+   an enclosing `tracked` block the same read silently widens that block's
+   dependencies, so one broadcast re-renders the whole region.
+
+   `probe` is what `@xote.component` emits around a leaf whose expression
+   contains a call it could not resolve. The first time that leaf is evaluated
+   it runs inside a throwaway computed, and what that computed subscribed to
+   settles the question:
+
+     - nothing subscribed: the leaf really is static. The computed is disposed
+       and the value returned, so `probe` is exactly the identity function.
+     - something subscribed: the read was hidden from the ppx. The value is read
+       back *through* the computed, so an enclosing tracked block subscribes
+       exactly as it would have without the probe (behaviour is unchanged), and
+       a one-time warning naming the source location tells the developer to
+       thunk it.
+
+   The warning is only emitted for a *scalar* result — the shape that silently
+   renders a stale number or class name. A reactive result (a signal, a thunk, a
+   `MaybeSignal`) is already handled by the runtime, and a node-shaped result is
+   built fresh by whatever renders it. */
+
+/* Does this computed subscribe to any signal? Reads `subs.firstDep` on the
+   `rescript-signals` computed. If the internal shape is not recognised, report
+   `false`: no warning and no behaviour change is the safe direction. */
+let hasDependencies: 'a => bool = %raw(`function (c) {
+  var subs = c == null ? null : c.subs
+  if (subs === null || typeof subs !== "object" || !("firstDep" in subs)) { return false }
+  return subs.firstDep != null
+}`)
+
+/* Probing costs one throwaway computed per unresolved leaf, so it is skipped in
+   production builds. `globalThis.__XOTE_DEV__` wins when set; otherwise
+   `process.env.NODE_ENV` (which bundlers inline) decides. When neither is
+   available the probe stays on: a silently stale UI is worse than an allocation. */
+let readDevFlag: unit => bool = %raw(`function () {
+  try {
+    if (typeof globalThis !== "undefined" && globalThis.__XOTE_DEV__ !== undefined) {
+      return !!globalThis.__XOTE_DEV__
+    }
+    if (typeof process !== "undefined" && process.env && process.env.NODE_ENV) {
+      return process.env.NODE_ENV !== "production"
+    }
+  } catch (_) {}
+  return true
+}`)
+
+let probeEnabled: ref<option<bool>> = ref(None)
+
+let isProbeEnabled = (): bool =>
+  switch probeEnabled.contents {
+  | Some(enabled) => enabled
+  | None => {
+      let enabled = readDevFlag()
+      probeEnabled := Some(enabled)
+      enabled
+    }
+  }
+
+let warnHiddenRead = (site: string): unit =>
+  Console.warn(
+    "[Xote] " ++
+    site ++
+    ": this value reads a signal through a call @xote.component cannot see " ++
+    "(a helper from another module, MaybeSignal.get, a read stored in a data structure), " ++
+    "so it compiled to a one-shot value that will never update — and inside a tracked " ++
+    "block it widens that block and re-renders it wholesale. Wrap it in a thunk " ++
+    "(`{() => ...}`) or inline the Signal.get. " ++
+    "See https://github.com/brnrdog/xote/blob/main/ppx/README.md#hidden-reads",
+  )
+
+/* Each site is probed once. The answer is a property of the source expression,
+   not of this render, so re-probing would only repeat the same finding — and
+   the leaked-read branch has to keep its computed alive to stay subscribed.
+   Every later evaluation of a probed leaf is therefore a plain call, and the
+   report is emitted once however often the component renders. */
+let probedSites: Dict.t<bool> = Dict.make()
+
+let probe = (site: string, compute: unit => 'a): 'a =>
+  if !isProbeEnabled() || probedSites->Dict.get(site)->Option.isSome {
+    compute()
+  } else {
+    probedSites->Dict.set(site, true)
+    let signal = Computed.make(compute)
+    if hasDependencies(signal) {
+      switch Signal.peek(signal)->Core.Type.Classify.classify {
+      | String(_) | Number(_) | Bool(_) => warnHiddenRead(site)
+      | _ => ()
+      }
+      /* Read back through the computed so an enclosing tracked block captures
+         the same dependencies it would have captured without the probe. The
+         computed is deliberately not disposed: it is what carries them. */
+      Signal.get(signal)
+    } else {
+      let value = Signal.peek(signal)
+      Computed.dispose(signal)
+      value
+    }
+  }
+
 module Text = {
   type props<'value, 'children> = {
     value?: 'value,

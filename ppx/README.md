@@ -91,6 +91,7 @@ Applied recursively to the component's returned JSX:
 | Attribute value | no | left as-is (static attribute) |
 | `<View.Text/Int/Float/Bool>` child | yes | thunked → reactive text node (leaf) |
 | `<View.Text/…>` child | no | left as-is (static text) |
+| Any value leaf | can't tell — the expression contains a call the PPX cannot resolve | wrapped in `View.probe`, which decides at runtime and reports a read it finds — see [Hidden reads](#hidden-reads) |
 | Element / nested JSX | — | recurse into attributes and children |
 | Fragment (`<>…</>`) | — | recurse into each child independently (so nested reactive regions stay separate — not collapsed into one thunk) |
 | User-component prop (`<Card label={…}>`) | — | left untouched — see [User-component props](#user-component-props) |
@@ -230,23 +231,96 @@ shadowing it with a non-alias removes it) recognises all of these:
 | Form | Example | Detected via |
 |---|---|---|
 | Direct | `Signal.get(sig)` / `X.Signal.get(sig)` | literal match |
+| Through the wrapper | `MaybeSignal.get(v)`, `Prop.get(v)` | same — reading a `MaybeSignal` subscribes exactly like `Signal.get` |
 | Pipe | `sig->Signal.get` | desugars to `Signal.get(sig)` before the PPX |
 | Value alias | `let g = Signal.get` … `g(sig)` | binding tracked in scope |
 | Module alias | `module S = Signal` … `S.get(sig)` | binding tracked in scope |
 | Open | `open Signal` … `get(sig)` | bare `get` under an open |
 | Local reactive helper | `let cls = () => Signal.get(x) ? …` … `cls()` | function binding whose body eagerly reads a signal; its *call* counts |
+| Same-file module helper | `module Store = { let count = s => Signal.get(s) }` … `Store.count(s)` | the module body is walked, and its reactive names qualified |
 
-`Signal.peek` is intentionally **not** a read — it is an untracked read, so a
-value that only peeks stays static (verified by the example's `PeekShadow`
-case, where a reactive helper rebound to a `peek`-based function is dropped
-from the alias environment and its attribute is left as a plain, once-evaluated
-string).
+`Signal.peek` (and `MaybeSignal.peek`) is intentionally **not** a read — it is an
+untracked read, so a value that only peeks stays static (verified by the
+example's `PeekShadow` case, where a reactive helper rebound to a `peek`-based
+function is dropped from the alias environment and its attribute is left as a
+plain, once-evaluated string).
 
 Only *eager* reads trigger a thunk. A read deferred inside a nested lambda — a
 `() => …` you wrote yourself, a `Computed`, a `MaybeSignal.reactive(Computed.make(…))`,
 or a helper that merely *returns* a thunk — is already reactive and left as-is.
-Because of that, when detection can't see a read (below), the safe fix is always
-to wrap the value in `() =>` yourself: it will not be double-wrapped.
+Because of that, when detection can't see a read, the safe fix is always to wrap
+the value in `() =>` yourself: it will not be double-wrapped.
+
+### Hidden reads
+
+Everything above is *syntactic*: the PPX follows a read only as far as it can
+see the definition. One indirection it cannot follow is a call into **another
+module** — `Store.waitingCount(store)`, or a local closure that ends in one:
+
+```rescript
+@xote.component
+let make = (~store) =>
+  <p class={Store.tone(store)}>       /* reads a signal — invisible to the ppx */
+    {Store.waitingCount(store)}
+  </p>
+```
+
+Nothing here says "signal", so nothing is thunked, and the leaf renders its
+first value forever. That was the library's one genuinely silent failure — and
+it is worse than a frozen leaf when the markup sits inside a `tracked` block or
+a tracked branch: the hidden read is captured by *that* scope instead, quietly
+widening it, so one unrelated update re-renders the whole region. A screen can
+look like it works for exactly that reason while the screen next to it breaks.
+
+The PPX still cannot resolve the call — but it can see that a call it cannot
+resolve is *there*. An expression built only from constants, identifiers, field
+accesses, lambdas, operators and Xote's own constructors provably calls nothing;
+anything else might. Leaves in that second group are emitted wrapped in
+[`View.probe`](../src/View.res), which settles the question at runtime: the first
+time the leaf is evaluated it runs inside a throwaway computed, and what that
+computed subscribed to gives the answer.
+
+- **Nothing subscribed** — the leaf really is static. The computed is disposed
+  and the value returned: `probe` was the identity function, and there is no
+  warning. An unresolvable call is not evidence of a read, so a false positive
+  is impossible.
+- **Something subscribed** — the read was hidden. The value is read back
+  *through* the computed, so an enclosing tracked block subscribes exactly as it
+  did before (behaviour is unchanged), and a one-time warning naming the source
+  location is logged:
+
+```
+[Xote] Queue.res:42:19: this value reads a signal through a call @xote.component
+cannot see (a helper from another module, MaybeSignal.get, a read stored in a
+data structure), so it compiled to a one-shot value that will never update — and
+inside a tracked block it widens that block and re-renders it wholesale. Wrap it
+in a thunk (`{() => ...}`) or inline the Signal.get.
+```
+
+The fix at the call site is the same escape hatch as always — make the read
+deferred, and the PPX leaves your thunk alone:
+
+```rescript
+<p class={() => Store.tone(store)}>
+  {() => Store.waitingCount(store)}
+</p>
+```
+
+Untracked control flow is probed the same way, on its condition/scrutinee and
+`when` guards: a read hidden there does not just freeze a value, it freezes the
+whole branch.
+
+Each site is probed **once** — the answer belongs to the source expression, not
+to a particular render — so a probed leaf costs one throwaway computed the first
+time it is evaluated and a plain call every time after, and the report appears
+once however often the component renders. Probing is skipped altogether in
+production builds: `globalThis.__XOTE_DEV__` decides when set, otherwise
+`process.env.NODE_ENV` (which bundlers inline) does. With neither available the
+probe stays on — a silently stale UI is worse than an allocation.
+
+What is *not* probed, because it can never be a hidden scalar read: event
+handlers and the `attrs` escape-hatch array, values containing JSX, and calls
+into `View`/`Html`/`Signal`/`Computed`/`MaybeSignal` themselves.
 
 ## How it works
 
@@ -365,14 +439,22 @@ npm run verify          # jsdom runtime check (every case above, asserted on rea
 ## Known limitations
 
 - **Signal detection is syntactic** (though alias- and helper-aware — see the
-  table above). It follows `let`/`module`/`open` aliases and *local* reactive
-  helpers, but not indirection it cannot see the definition of: a signal read
-  behind an **imported / cross-module** helper, or reached through a data
-  structure, is not detected. Such a value compiles to a **static, once-evaluated
-  attribute/text with no error** — the one genuinely silent failure. The escape
-  hatch is reliable: wrap it in `() =>` yourself and it becomes reactive (the
-  eager check leaves your thunk alone, so it is never double-wrapped). An
-  over-eager match only produces a harmless extra `computedAttr`.
+  table above). It follows `let`/`module`/`open` aliases, local reactive helpers
+  and same-file module helpers, but not indirection it cannot see the definition
+  of: a signal read behind an **imported / cross-module** helper, or reached
+  through a data structure, is not detected, and such a value still compiles to a
+  **static, once-evaluated attribute/text**. It is no longer *silent*:
+  [`View.probe`](#hidden-reads) reports it at runtime, once, with its source
+  location. The escape hatch is unchanged — wrap it in `() =>` yourself and it
+  becomes reactive (the eager check leaves your thunk alone, so it is never
+  double-wrapped). An over-eager match only produces a harmless extra
+  `computedAttr`.
+- **The probe reports, it does not repair.** It cannot: by the time the value
+  exists, the leaf has already been emitted as a static one. It also only fires
+  on the *first* evaluation of a site, and only for a *scalar* result — the shape
+  that silently renders a stale number or class name. A hidden read behind a
+  branch you never render in development is not reported, and neither is one
+  that a leaf only performs on a later evaluation.
 - **Hoisting a read into a `let` makes it a one-shot read.** Reactivity follows
   the *expression in JSX position*: `<div> {Signal.get(count)} </div>` is a
   reactive leaf, but
