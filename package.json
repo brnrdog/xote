@@ -64,6 +64,7 @@
     "rescript.json",
     "AGENTS.md",
     "ppx/ppx.ml",
+    "ppx/ast.ml",
     "ppx/build.sh",
     "ppx/postinstall.js",
     "ppx/bin",

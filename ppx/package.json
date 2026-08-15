@@ -13,6 +13,7 @@
   },
   "files": [
     "ppx.ml",
+    "ast.ml",
     "build.sh",
     "README.md",
     "LICENSE.OCaml"

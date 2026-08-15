@@ -330,8 +330,8 @@ into `View`/`Html`/`Signal`/`Computed`/`MaybeSignal` themselves.
 
 Same mechanism as `rescript-tracked-ppx` in PR #34: ReScript 12 hands an
 external PPX an OCaml **4.06** parsetree (marshal magic `Caml1999M022`).
-`ppx.ml` vendors those exact AST types (so `Marshal` round-trips), implements
-the `ppx <infile> <outfile>` protocol, and rewrites bindings carrying the
+`ast.ml` vendors those exact AST types (so `Marshal` round-trips) and `ppx.ml`
+implements the `ppx <infile> <outfile>` protocol, and rewrites bindings carrying the
 `xote.component` attribute (swapping in `jsx.component` and decomposing the
 returned JSX).
 
@@ -344,13 +344,17 @@ unwrapped to reach the component body inside `Function$(fun ~props -> …)`.
 
 ## License
 
-The vendored AST modules at the top of `ppx.ml` (`Location`, `Longident`,
+The vendored AST modules in [`ast.ml`](./ast.ml) (`Location`, `Longident`,
 `Asttypes`, `Parsetree`) are copied verbatim from the OCaml 4.06 compiler,
 © 1996–2019 INRIA, distributed under **LGPL-2.1 with the OCaml linking
 exception**; they keep their original copyright headers. The
 `@xote.component` rewriter below them is the project's own code. The full third-party notice
 and license text is in [`LICENSE.OCaml`](./LICENSE.OCaml), which ships in the
-npm tarball alongside `ppx.ml`.
+npm tarball alongside `ast.ml` and `ppx.ml`.
+
+Keeping them in a separate file is deliberate: `ast.ml` stays a byte-for-byte
+copy, so a future AST re-sync is a copy rather than a merge, and `ppx.ml` is
+exactly the code this project maintains.
 
 ## Distribution
 

@@ -12,6 +12,6 @@ set -e
 cd "$(dirname "$0")"
 out="${1:-ppx}"
 mkdir -p "$(dirname "$out")"
-ocamlopt -w -a-31 ppx.ml -o "$out"
-rm -f ppx.cmi ppx.cmx ppx.o
+ocamlopt -w -a-31 ast.ml ppx.ml -o "$out"
+rm -f ast.cmi ast.cmx ast.o ppx.cmi ppx.cmx ppx.o
 echo "built $(pwd)/$out"
