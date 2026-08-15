@@ -40,7 +40,7 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
 
 The compiler flag `-open Xote` is optional, it makes the Xote modules available unqualified inside your source files.
 
-The `ppx-flags` line enables the **`@xote.component`** annotation — the standard authoring model. It derives props from labeled arguments (like `@jsx.component`) and additionally lets you read signals **inline** in JSX with fine-grained updates: no `() => …` thunks, no value-primitive wrappers. The npm package ships the PPX prebuilt for linux-x64/arm64, macOS x64/arm64, and Windows x64, selected automatically at install time — no OCaml toolchain needed. See [`ppx/README.md`](ppx/README.md) for how it works and the (few) limitations; to skip the PPX entirely, omit `ppx-flags` and use `@jsx.component` with explicit thunks and `<View.Text>`/`<View.Int>` primitives, as shown further below.
+The `ppx-flags` line enables the **`@xote.component`** annotation — the recommended way to write components today, though its semantics are not frozen yet. It derives props from labeled arguments (like `@jsx.component`) and additionally lets you read signals **inline** in JSX with fine-grained updates: no `() => …` thunks, no value-primitive wrappers. The npm package ships the PPX prebuilt for linux-x64/arm64, macOS x64/arm64, and Windows x64, selected automatically at install time — no OCaml toolchain needed. See [`ppx/README.md`](ppx/README.md) for how it works and the (few) limitations; to skip the PPX entirely, omit `ppx-flags` and use `@jsx.component` with explicit thunks and `<View.Text>`/`<View.Int>` primitives, as shown further below.
 
 This README uses the application-facing names for public code:
 

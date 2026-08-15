@@ -87,7 +87,7 @@
     "docs:serve": "cd docs-website && npm run preview",
     "test": "npx rescript && node tests/Tests.res.mjs && node tests/JSXRuntime_test.mjs",
     "ppx:build": "sh ppx/build.sh",
-    "ppx:test": "sh ppx/example/setup.sh && sh ppx/build.sh && cd ppx/example && npm run build && npm run verify"
+    "ppx:test": "sh ppx/example/setup.sh && sh ppx/build.sh && cd ppx/example && npx rescript clean && npm run build && npm run verify && npm run golden"
   },
   "keywords": [
     "rescript",

@@ -5,7 +5,9 @@ props-deriving component whose returned JSX is decomposed into **fine-grained
 reactive leaves** — the compile-time counterpart to the runtime
 [`View.tracked`](../src/View.res) helper.
 
-> **Status:** the standard authoring model. The npm package ships the PPX as a
+> **Status:** the recommended way to write components today — but the semantics
+> are not frozen yet, and a few are still expected to change (see
+> [Not settled yet](#not-settled-yet)). The npm package ships the PPX as a
 > prebuilt binary per platform, selected at install time (see
 > [Distribution](#distribution)), so enabling `@xote.component` is a single
 > `ppx-flags` line with no toolchain requirement. The PPX is exercised in CI
@@ -138,7 +140,9 @@ one binding. In a file containing at least one annotated component, JSX is
 decomposed wherever it appears:
 
 - the annotated component's returned markup, and everything nested in it;
-- JSX bound to a name (`let row = <p> {"x"} </p>`);
+- JSX bound to a name (`let row = <p> {"x"} </p>`), including JSX sitting inside
+  a container the binding builds — `let rows = [<li/>, <li/>]`,
+  `let header = Some(<h1/>)`, `let build = xs => Array.map(xs, x => <li/>)`;
 - **plain helper functions that return markup**, at the top level or in a
   sibling module:
 
@@ -410,7 +414,21 @@ The PPX is developed and exercised in-repo without touching the published
 library config:
 
 - **`npm run ppx:build`** / **`npm run ppx:test`** (repo root) build the binary
-  and run the end-to-end example verification.
+  and run both example suites: `verify.mjs` (jsdom, behaviour) and `golden.mjs`
+  (assertions on the emitted JavaScript).
+- The two suites cover different failure modes, and the second exists because
+  the first cannot see the bug that has now shipped three times. `verify.mjs`
+  proves leaves are fine-grained by mutating signals and checking elements keep
+  their identity — but JSX the traversal never *visits* still compiles and still
+  renders correct initial output, so a runtime test passes while the leaf is
+  frozen (and gets no `View.probe` either, because probes are only emitted at
+  visited sites). `golden.mjs` asserts on the emitted code, where that is
+  visible. Every positive assertion there has a matching negative, since
+  "reaches the leaf" and "rewrites indiscriminately" both satisfy a positive.
+- **`ppx:test` runs `rescript clean` first, and needs to.** ReScript does not
+  treat the ppx binary as a build input, so editing `ppx.ml` and re-running the
+  suites without a clean silently re-tests the *previously* emitted JavaScript —
+  green, and meaningless. Do not drop the clean to speed the loop up.
 - **CI** (`.github/workflows/ci.yml`) installs `ocaml-nox`, builds the PPX, and
   runs `ppx:test` on every push/PR, so it can't silently rot.
 - The **docs site** (`docs-website/`) is a real consumer: its own
@@ -432,9 +450,49 @@ Or step by step from `example/`:
 ```sh
 sh setup.sh             # link toolchain + Xote from the repo root (idempotent)
 sh ../build.sh          # build the ppx
-npm run build           # compile Demo.res through the ppx
+npx rescript clean      # required after a ppx change — see "In this repo" above
+npm run build           # compile Demo.res / Golden.res through the ppx
 npm run verify          # jsdom runtime check (every case above, asserted on real DOM)
+npm run golden          # assertions on the emitted JavaScript (traversal reach)
 ```
+
+## Not settled yet
+
+These are decisions rather than defects, and each is one real codebase's worth
+of experience away from possibly being made differently. They are listed
+separately from the limitations below because they may change in a way that
+requires edits to your components — worth knowing before the annotation is
+load-bearing for you.
+
+- **The opt-in is per file, but the annotation is per binding.** A file with at
+  least one `@xote.component` has *all* its JSX decomposed, including plain
+  helper functions (which is the point — see
+  [Where the annotation reaches](#where-the-annotation-reaches)). The
+  consequence is action at a distance: a byte-identical helper is reactive in
+  one file and static in another, moving it between files silently changes its
+  behaviour, and deleting the last annotation in a file silently de-reactivates
+  every helper in it — or breaks the build, depending on whether those helpers
+  happen to use bare children. An explicit file-level marker
+  (`@@xote.fineGrained`) would put the opt-in where its effect is; that is the
+  most likely change here.
+- **`View.child` accepts anything.** Its signature is `'a => node`, so under the
+  annotation a value that is neither a node nor a scalar type-checks in child
+  position and fails at runtime instead:
+
+  ```rescript
+  {user}                 /* a record  -> renders "[object Object]" + console warning */
+  {Signal.get(status)}   /* a variant -> renders "[object Object]" + console warning */
+  ```
+
+  Both are compile errors without the annotation. This is the same trade the
+  untyped JSX element props already make, extended from attributes (where a
+  wrong value renders a wrong string) to children (where it renders
+  `[object Object]`). It buys the zero-ceremony bare child, which is a large
+  part of the annotation's value, so the trade is deliberate — but a narrower
+  accepted type is the other place this may move.
+- **User-component props are never thunked.** A deliberate one-shot read today
+  (see [User-component props](#user-component-props)). Defensible, but it is the
+  rule people are most likely to trip over.
 
 ## Known limitations
 

@@ -230,7 +230,7 @@ The tradeoff is granularity. A tracked block replaces its children wholesale whe
 
 ### How `@xote.component` stays fine-grained
 
-`@xote.component` (set up in [JSX Configuration](#jsx-configuration) above) is how the demos on this site are written, and the recommended way to write reactive components. It replaces `@jsx.component`: it derives props from the labeled args **and** fine-grains the returned JSX.
+`@xote.component` (set up in [JSX Configuration](#jsx-configuration) above) is how the demos on this site are written, and the recommended way to write reactive components. Its semantics are still settling, so check the [limitations](https://github.com/brnrdog/xote/blob/main/ppx/README.md#not-settled-yet) before it becomes load-bearing in your app. It replaces `@jsx.component`: it derives props from the labeled args **and** fine-grains the returned JSX.
 
 ```rescript
 @xote.component

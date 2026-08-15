@@ -1626,7 +1626,19 @@ and map_local_vb (env : env) (vb : value_binding) : value_binding =
     let v = vb.pvb_expr in
     if jsx_parts v <> None || is_jsx_fragment v then { vb with pvb_expr = fine_node env v }
     else if is_render_callback v then { vb with pvb_expr = fine_callback env v }
-    else map_vb env vb
+    else
+      (* The binding is not *itself* JSX, but JSX can sit one container down —
+         `let rows = [<li>…</li>]`, `let header = Some(<h1/>)`,
+         `let cells = (<th/>, <th/>)`, `let build = xs => Array.map(xs, x => <li/>)`.
+         Those nodes are node position just the same, so descend with the same
+         shape-agnostic walker used for bare children rather than stopping here.
+
+         Stopping here was the third instance of one bug: an expression that ends
+         up in node position was not reached by the traversal. It was also the
+         worst-behaved one, because the leaves are never *visited* — so they get
+         no `View.probe` either, and a reactive attribute inside container-bound
+         JSX compiled to a frozen value with no warning at all. *)
+      { vb with pvb_expr = decompose_node_shaped env v }
 
 (* Walk to the component's tail (return) expression, threading the alias env
    through lets/opens and running the normal traversal on non-tail parts (so a
