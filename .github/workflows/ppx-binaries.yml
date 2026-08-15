@@ -52,12 +52,15 @@ jobs:
         with:
           ocaml-compiler: "4.14"
 
-      # Same invocation as ppx/build.sh, with the target-specific output path.
+      # Call ppx/build.sh rather than repeating its ocamlopt line here: it takes
+      # the output path (relative to ppx/) for exactly this reason. This step
+      # used to inline the command under a "same invocation as build.sh" comment,
+      # and when build.sh started compiling ast.ml alongside ppx.ml the copy here
+      # did not, so all five platforms failed with "Unbound module Ast" while the
+      # local build was green. One definition, no drift.
       - name: Compile ppx binary
         shell: bash
-        run: |
-          mkdir -p ppx/bin
-          opam exec -- ocamlopt -w -a-31 ppx/ppx.ml -o "ppx/bin/ppx-${{ matrix.target }}.exe"
+        run: opam exec -- sh ppx/build.sh "bin/ppx-${{ matrix.target }}.exe"
 
       # The binary must actually *run* on its host platform — `--help` proves
       # the executable loads (right arch, libc, DLLs), which the release
