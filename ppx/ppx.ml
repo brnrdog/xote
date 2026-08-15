@@ -1063,7 +1063,20 @@ let sub_exprs (e : expression) : expression list =
 
 (* The map counterpart of sub_exprs: rebuild [e] with [f] applied to each
    immediate sub-expression, leaving everything else (patterns, guards,
-   labels, types) untouched. *)
+   labels, types) untouched.
+
+   These two look like hand-maintained duplicates and are tempting to unify —
+   don't. They answer different questions, and the difference is `when` guards:
+
+     - sub_exprs asks "what is *evaluated* when this expression runs?" Guards are,
+       so they are included, which is the only reason a switch whose sole signal
+       read sits in a guard gets tracked at all.
+     - map_sub_exprs asks "what could be *node position*?" A guard is a boolean,
+       never a node, so rewriting through it would be meaningless.
+
+   Deriving sub_exprs from this function drops guards from read detection and
+   silently un-tracks that switch. The example's `GuardSwitch` case is the
+   regression test for exactly that. *)
 let map_sub_exprs (f : expression -> expression) (e : expression) : expression =
   let d =
     match e.pexp_desc with
@@ -1248,34 +1261,33 @@ let is_library_call_path (lid : Longident.t) : bool =
 
 let rec is_inert (e : expression) : bool =
   match e.pexp_desc with
+  (* Leaves; and lambdas, whose body is deferred — whatever it reads, it reads
+     reactively, so the lambda itself calls nothing now. *)
   | Pexp_constant _ | Pexp_ident _ | Pexp_fun _ | Pexp_function _ | Pexp_unreachable -> true
-  (* a thunk defers its body: whatever it reads, it reads reactively *)
   | Pexp_construct ({ txt = Longident.Lident "Function$"; _ }, Some _) -> true
-  | Pexp_construct (_, eo) | Pexp_variant (_, eo) ->
-    (match eo with Some x -> is_inert x | None -> true)
-  | Pexp_field (x, _) | Pexp_constraint (x, _) | Pexp_coerce (x, _, _) | Pexp_lazy x -> is_inert x
-  | Pexp_tuple xs | Pexp_array xs -> List.for_all is_inert xs
-  | Pexp_record (fields, base) ->
-    List.for_all (fun (_, v) -> is_inert v) fields
-    && (match base with Some b -> is_inert b | None -> true)
-  | Pexp_ifthenelse (c, t, eo) ->
-    is_inert c && is_inert t && (match eo with Some x -> is_inert x | None -> true)
-  | Pexp_match (s, cases) ->
-    is_inert s
-    && List.for_all
-         (fun c ->
-           is_inert c.pc_rhs && match c.pc_guard with Some g -> is_inert g | None -> true)
-         cases
-  | Pexp_sequence (a, b) -> is_inert a && is_inert b
-  | Pexp_let (_, vbs, body) ->
-    List.for_all (fun vb -> is_inert vb.pvb_expr) vbs && is_inert body
-  | Pexp_open (_, _, x) -> is_inert x
+  (* An application is inert only when the callee provably calls nothing of its
+     own: a primitive operator, or one of Xote's own entry points. *)
   | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Longident.Lident op; _ }; _ }, args)
     when is_operator_name op ->
     List.for_all (fun (_, a) -> is_inert a) args
   | Pexp_apply ({ pexp_desc = Pexp_ident { txt = lid; _ }; _ }, args)
     when is_library_call_path lid ->
     List.for_all (fun (_, a) -> is_inert a) args
+  (* Purely structural: inert exactly when all of its parts are. `sub_exprs`
+     already enumerates those parts (`when` guards included), so deferring to it
+     keeps this in step instead of re-deriving every constructor's shape here —
+     one fewer hand-maintained copy of the AST layout. *)
+  | Pexp_construct _ | Pexp_variant _ | Pexp_field _ | Pexp_constraint _ | Pexp_coerce _
+  | Pexp_lazy _ | Pexp_tuple _ | Pexp_array _ | Pexp_record _ | Pexp_ifthenelse _
+  | Pexp_match _ | Pexp_sequence _ | Pexp_let _ | Pexp_open _ ->
+    List.for_all is_inert (sub_exprs e)
+  (* Anything else — an ordinary call, a method send, try/assert — might reach a
+     read the ppx cannot see, so it gets probed.
+
+     This default must stay `false`. Routing it to `sub_exprs` instead would make
+     any constructor missing from that function *vacuously* inert (`for_all` over
+     an empty list is `true`) and switch the safety net off silently, which is
+     the one direction this analysis must never fail in. *)
   | _ -> false
 
 (* The file being rewritten, used when an expression carries no location. *)
@@ -1482,12 +1494,23 @@ let rec fine_node (env : env) (e : expression) : expression =
    expression whose value becomes a node. Walking the whole expression covers
    them uniformly, and covers shapes nobody has written yet. *)
 and decompose_node_shaped (env : env) (e : expression) : expression =
-  map_sub_exprs
-    (fun sub ->
-      if jsx_parts sub <> None || is_jsx_fragment sub then fine_node env sub
-      else if is_render_callback sub then fine_callback env sub
-      else decompose_node_shaped env sub)
-    e
+  map_sub_exprs (decompose_here env) e
+
+(* Decompose one expression *in place*, whatever shape it happens to be: JSX is
+   fine-grained, a function returning JSX is entered through its parameters, and
+   anything else is descended into on the chance it holds JSX further down.
+
+   Both callers need exactly this trio — `decompose_node_shaped` applies it to
+   every sub-expression, `map_local_vb` applies it to a binding's value — and
+   they had drifted apart once already, which is how container-bound JSX
+   (`let rows = [<li/>]`) went unreached. Naming it keeps them in step.
+
+   `component_arg` deliberately does *not* use this: a user-component prop that
+   is not node-shaped is left exactly as written, rather than descended into. *)
+and decompose_here (env : env) (e : expression) : expression =
+  if jsx_parts e <> None || is_jsx_fragment e then fine_node env e
+  else if is_render_callback e then fine_callback env e
+  else decompose_node_shaped env e
 
 (* Wrap the condition/scrutinee (and any `when` guards) of an *untracked*
    control-flow child in `View.probe`. These drive the structural swap, so a
@@ -1549,14 +1572,11 @@ and fine_callback (env : env) (e : expression) : expression =
   | _ -> fine_node env e
 
 and value_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
-  if is_children_label lbl then (lbl, map_children (value_leaf env) v)
+  if is_children_label lbl then (lbl, map_children (leaf_value env) v)
   else
     match lbl with
     | Labelled "value" -> (lbl, leaf_value env v)
     | _ -> (lbl, v)
-
-(* child of a value component (View.Text ...): value position -> thunk. *)
-and value_leaf (env : env) (v : expression) : expression = leaf_value env v
 
 (* Map [f] over a JSX children list (a `::`/`[]` spine); tolerate a bare
    single child that is not wrapped in a list. *)
@@ -1572,9 +1592,7 @@ and map_children f (v : expression) : expression =
   | _ -> f v
 
 (* ---- traversal: find @xote.component and decompose ----------------------- *)
-and map_expr (env : env) (e : expression) : expression = map_children_expr env e
-
-and map_children_expr (env : env) (e : expression) : expression =
+and map_expr (env : env) (e : expression) : expression =
   let d =
     match e.pexp_desc with
     | Pexp_fun (l, def, p, body) -> Pexp_fun (l, def, p, map_expr env body)
@@ -1623,22 +1641,17 @@ and map_vb (env : env) (vb : value_binding) : value_binding =
 and map_local_vb (env : env) (vb : value_binding) : value_binding =
   if List.exists is_xote_component vb.pvb_attributes then map_vb env vb
   else
-    let v = vb.pvb_expr in
-    if jsx_parts v <> None || is_jsx_fragment v then { vb with pvb_expr = fine_node env v }
-    else if is_render_callback v then { vb with pvb_expr = fine_callback env v }
-    else
-      (* The binding is not *itself* JSX, but JSX can sit one container down —
-         `let rows = [<li>…</li>]`, `let header = Some(<h1/>)`,
-         `let cells = (<th/>, <th/>)`, `let build = xs => Array.map(xs, x => <li/>)`.
-         Those nodes are node position just the same, so descend with the same
-         shape-agnostic walker used for bare children rather than stopping here.
+    (* Whatever shape the value is — JSX, a helper returning JSX, or JSX sitting
+       one container down (`let rows = [<li/>]`, `Some(<h1/>)`, a tuple,
+       `xs => Array.map(xs, x => <li/>)`) — it is rendered as part of this
+       component, so it is decomposed like inline markup.
 
-         Stopping here was the third instance of one bug: an expression that ends
-         up in node position was not reached by the traversal. It was also the
-         worst-behaved one, because the leaves are never *visited* — so they get
-         no `View.probe` either, and a reactive attribute inside container-bound
-         JSX compiled to a frozen value with no warning at all. *)
-      { vb with pvb_expr = decompose_node_shaped env v }
+       Stopping at the first two shapes was the third instance of one bug: an
+       expression that ends up in node position was not reached by the traversal.
+       It was also the worst-behaved one, because unreached leaves are never
+       *visited* — so they get no `View.probe` either, and a reactive attribute
+       inside container-bound JSX compiled to a frozen value with no warning. *)
+    { vb with pvb_expr = decompose_here env vb.pvb_expr }
 
 (* Walk to the component's tail (return) expression, threading the alias env
    through lets/opens and running the normal traversal on non-tail parts (so a
