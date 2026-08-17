@@ -376,6 +376,25 @@ Use `xote/client` for browser UI, `xote/router` for routing, `xote/ssr` for serv
 
 Check the [website](https://brnrdog.github.io/xote/) for more comprehensive documentations about Xote and Signals.
 
+## Benchmarks
+
+The [`benchmarks/`](benchmarks) directory contains a keyed-list benchmark that runs the same table application in Xote, React, Vue, and SolidJS. Every implementation renders identical DOM from the same generated data and is written the way its own library recommends, so the comparison reflects the architectures rather than the wiring.
+
+Median of 15 iterations, Chromium 141 on a 4-core Xeon. Lower is better, and these are ratios from one machine rather than absolute performance claims.
+
+| | Xote | React | Vue | Solid |
+| --- | ---: | ---: | ---: | ---: |
+| Update every 10th row | **7.8 ms** | 13.4 ms | 11.5 ms | 9.6 ms |
+| Select a row | 1.1 ms | 6.6 ms | 2.7 ms | **0.9 ms** |
+| Create 1,000 rows | 85.5 ms | 63.8 ms | **56.1 ms** | 60.2 ms |
+| Swap two rows | 57.0 ms | 63.7 ms | 10.7 ms | **8.0 ms** |
+| Time to first render | **23.2 ms** | 48.0 ms | 31.1 ms | 25.8 ms |
+| App bundle, gzipped | 7.8 KB | 59.9 KB | 24.9 KB | **4.7 KB** |
+
+Fine-grained updates and startup are where Xote does well: a scattered update writes only the text nodes that changed, and the whole application ships in 7.8 KB. Building large lists is slower than the compiled frameworks, which clone a template per row instead of constructing nodes one at a time. Reordering is the weak spot — the keyed reconciler does not compute a minimal move set, so swapping two rows moves most of the list.
+
+Full results, methodology, and the DOM-operation profile that explains these numbers are in [`benchmarks/README.md`](benchmarks/README.md) and [`benchmarks/results/RESULTS.md`](benchmarks/results/RESULTS.md). Per-framework detail lives in the [React](https://xote.dev/docs/comparisons/react) and [SolidJS](https://xote.dev/docs/comparisons/solidjs) comparison pages.
+
 ## Releasing
 
 Releases are automated with semantic-release and published to npm. See [docs/RELEASING.md](docs/RELEASING.md) for the stable and beta channels and the release flow.
