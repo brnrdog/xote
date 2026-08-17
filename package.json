@@ -62,9 +62,18 @@
     "src/**/*.res.mjs",
     "src/*.mjs",
     "rescript.json",
-    "AGENTS.md"
+    "AGENTS.md",
+    "ppx/ppx.ml",
+    "ppx/ast.ml",
+    "ppx/build.sh",
+    "ppx/postinstall.js",
+    "ppx/bin",
+    "ppx/README.md",
+    "ppx/LICENSE.OCaml"
   ],
   "scripts": {
+    "postinstall": "node ppx/postinstall.js",
+    "prepublishOnly": "node scripts/check-ppx-binaries.mjs",
     "res:build": "rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript -w",
@@ -77,7 +86,9 @@
     "docs:start": "cd docs-website && npm run dev",
     "docs:build": "cd docs-website && npm run build",
     "docs:serve": "cd docs-website && npm run preview",
-    "test": "npx rescript && node tests/Tests.res.mjs && node tests/JSXRuntime_test.mjs"
+    "test": "npx rescript && node tests/Tests.res.mjs && node tests/JSXRuntime_test.mjs && node tests/DevMode_test.mjs",
+    "ppx:build": "sh ppx/build.sh",
+    "ppx:test": "sh ppx/example/setup.sh && sh ppx/build.sh && cd ppx/example && npx rescript clean && npm run build && npm run verify && npm run golden"
   },
   "keywords": [
     "rescript",
@@ -125,6 +136,7 @@
     "@semantic-release/npm": "^13.1.1",
     "@semantic-release/release-notes-generator": "^14.1.0",
     "glob": "^11.1.0",
+    "jsdom": "^28.1.0",
     "remark-gfm": "^4.0.1",
     "rescript": "^12.0.0",
     "semantic-release": "^25.0.1",
