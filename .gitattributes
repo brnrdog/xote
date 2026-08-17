@@ -9,4 +9,10 @@ docs-website/**/* linguist-documentation
 # Config files
 vite.config.js linguist-vendored
 
+# Shell scripts must keep LF endings even when checked out on Windows, where
+# git's core.autocrlf would otherwise rewrite them. The ppx binary matrix runs
+# ppx/build.sh under Cygwin bash on windows-latest, and a CRLF `set -e` fails
+# with "set: -: invalid option" before the script does anything.
+*.sh text eol=lf
+
 

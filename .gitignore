@@ -16,3 +16,9 @@ bundle-size-*.json
 /docs-website/build/
 /docs-website/.cache-loader/
 /docs-website/static/assets/
+
+# Compiled ppx binaries (kept out of ppx/.gitignore on purpose: npm honors
+# nested ignore files when packing, and ppx/bin must ship in the tarball)
+/ppx/ppx
+/ppx/ppx.exe
+/ppx/bin/

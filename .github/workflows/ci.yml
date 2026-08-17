@@ -12,8 +12,14 @@ permissions:
   pull-requests: write
 
 jobs:
+  # The five-platform ppx binary matrix does NOT run here on every push: it
+  # lives in ppx-binaries.yml, triggered by release.yml, by changes to
+  # ppx/** or that workflow, and by a weekly drift-canary schedule. The test
+  # job below still builds and e2e-tests the ppx on Linux each run.
   test:
-    runs-on: ubuntu-latest
+    # Pinned (not -latest) so apt's OCaml stays 4.14, matching the compiler
+    # ppx-binaries.yml pins for the shipped binaries. Bump both together.
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
@@ -35,6 +41,30 @@ jobs:
 
       - name: Run tests
         run: node tests/Tests.res.mjs
+
+      # The @xote.component ppx (ppx/) ships in the npm package as prebuilt
+      # binaries (see ppx-binaries.yml / release.yml). Build it from source
+      # and run the example's jsdom verification here so the transform can't
+      # rot; needs only ocamlopt (no opam).
+      - name: Set up OCaml (for the @xote.component ppx)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ocaml-nox
+
+      - name: Build & verify @xote.component ppx
+        run: npm run ppx:test
+
+      # The docs site is the only real *consumer* of the ppx in this repo — its
+      # own rescript.json carries the ppx-flags and its sources are ordinary
+      # @xote.component components, so this catches a broken consumer config or
+      # a ppx regression the in-repo example cannot see. deploy-docs.yml runs
+      # only on push to main, so before this step a malformed
+      # docs-website/rescript.json passed PR CI green and broke after merge —
+      # which is exactly how it reached this branch. Compiling 47 modules takes
+      # about two seconds; the vite/SSR/prerender stages stay in deploy-docs.
+      - name: Compile docs site through the ppx (real consumer)
+        run: |
+          cd docs-website
+          npm install
+          npm run res:build
 
       - name: Vite Build
         run: npm run build
