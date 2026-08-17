@@ -3,6 +3,8 @@
 /lib/
 /dist/
 /examples/*/dist/
+/benchmarks/node_modules/
+/benchmarks/dist/
 .bsb.lock
 .merlin
 *.res.mjs

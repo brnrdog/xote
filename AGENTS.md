@@ -29,6 +29,10 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - `npm run ppx:build` - Compile the native PPX binary from `ppx/ppx.ml` (needs `ocamlopt`)
 - `npm run ppx:test` - Build the PPX and run the end-to-end example verification (`ppx/example/`, jsdom)
 
+### Benchmarks
+- `benchmarks/` holds a keyed-list benchmark that runs the same app in Xote, React, Vue and SolidJS and measures operation latency, startup, memory and payload. It is a self-contained npm project with its own `package.json`; see `benchmarks/README.md` for how to run it and `benchmarks/results/RESULTS.md` for the latest numbers.
+- The Xote implementation (`benchmarks/apps/xote/BenchApp.res`) is compiled by the root ReScript project — `benchmarks/apps/xote` is listed in `rescript.json` `sources` as a dev directory, so `npm run res:build` covers it.
+
 ### Documentation
 - `npm run docs:start` - Start documentation site
 - `npm run docs:build` - Build documentation site
