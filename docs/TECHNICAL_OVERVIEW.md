@@ -70,6 +70,7 @@ Preferred public constructors:
 - `<View.Int value={MaybeSignal.t<int>} />`, `<View.Float value={MaybeSignal.t<float>} />`, and `<View.Bool value={MaybeSignal.t<bool>} />`
 - `View.fragment(children)`
 - `View.signalFragment(signal)`
+- `View.tracked(() => node)`
 - `View.each(signal, renderItem)`
 - `View.eachWithKey(signal, keyFn, renderItem)`
 - `<View.For each={MaybeSignal.t<array<'a>>} by={optionalKeyFn} render={renderItem} />`
@@ -87,6 +88,7 @@ Rendering is fine-grained:
 - `SignalText` attaches an effect that updates the text node.
 - Reactive attributes attach effects that update only the affected attribute/property.
 - `SignalFragment` replaces its child region when its signal changes.
+- `View.tracked(body)` lowers to `SignalFragment` over a `Computed` of the body, so every signal read while the body runs subscribes the block and its dependencies are re-discovered on each run.
 - `KeyedList` uses comment anchors and key-based reconciliation to preserve DOM identity.
 - `LazyComponent` defers component evaluation until render/hydration time.
 
