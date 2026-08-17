@@ -376,6 +376,25 @@ Use `xote/client` for browser UI, `xote/router` for routing, `xote/ssr` for serv
 
 Check the [website](https://brnrdog.github.io/xote/) for more comprehensive documentations about Xote and Signals.
 
+## Benchmarks
+
+The [`benchmarks/`](benchmarks) directory contains a keyed-list benchmark that runs the same table application in Xote, React, Vue, and SolidJS. Every implementation renders identical DOM from the same generated data and is written the way its own library recommends, so the comparison reflects the architectures rather than the wiring.
+
+Median of 15 iterations, Chromium 141 on a 4-core Xeon. Lower is better, and these are ratios from one machine rather than absolute performance claims. Treat close results as ties: re-running on the same code moves individual ratios by 10-25%, so only the large gaps below are worth reading as differences.
+
+| | Xote | React | Vue | Solid |
+| --- | ---: | ---: | ---: | ---: |
+| Update every 10th row | **4.2 ms** | 9.4 ms | 5.6 ms | 4.4 ms |
+| Select a row | 0.7 ms | 4.5 ms | 1.5 ms | **0.5 ms** |
+| Create 1,000 rows | 76.3 ms | 54.0 ms | 48.4 ms | **43.7 ms** |
+| Swap two rows | 43.1 ms | 51.4 ms | 4.9 ms | **4.0 ms** |
+| Time to first render | 18.8 ms | 35.0 ms | 24.4 ms | **17.1 ms** |
+| App bundle, gzipped | 7.9 KB | 59.9 KB | 24.9 KB | **4.7 KB** |
+
+Fine-grained updates are where Xote does well: a scattered update writes only the text nodes that changed, which puts it level with Solid and about 2x ahead of React, and the whole application ships in 7.9 KB against React's 59.9. Startup is in the same range as Solid's. Building large lists is slower than the compiled frameworks, which clone a template per row instead of constructing nodes one at a time. Reordering is the clear weak spot — the keyed reconciler does not compute a minimal move set, so swapping two rows moves most of the list and costs roughly 10x what Vue and Solid pay.
+
+Full results, methodology, and the DOM-operation profile that explains these numbers are in [`benchmarks/README.md`](benchmarks/README.md) and [`benchmarks/results/RESULTS.md`](benchmarks/results/RESULTS.md). Per-framework detail lives in the [React](https://xote.dev/docs/comparisons/react) and [SolidJS](https://xote.dev/docs/comparisons/solidjs) comparison pages.
+
 ## Releasing
 
 Releases are automated with semantic-release and published to npm. See [docs/RELEASING.md](docs/RELEASING.md) for the stable and beta channels and the release flow.

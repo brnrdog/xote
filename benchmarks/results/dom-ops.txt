@@ -1,0 +1,30 @@
+
+create 1k
+  xote   20000 calls   appendChild=9000 createElement=8000 createTextNode=2000 insertBefore=1000
+  react  16000 calls   createElement=8000 appendChild=8000
+  vue    16000 calls   createElement=8000 insertBefore=8000
+  solid   2001 calls   cloneNode=1000 insertBefore=1000 createElement=1
+
+swap rows
+  xote     997 calls   insertBefore=997
+  react    997 calls   insertBefore=997
+  vue        2 calls   insertBefore=2
+  solid      2 calls   insertBefore=2
+
+update 10th
+  xote       0 calls   
+  react      0 calls   
+  vue        0 calls   
+  solid      0 calls   
+
+remove row
+  xote       1 calls   remove=1
+  react      1 calls   removeChild=1
+  vue        1 calls   removeChild=1
+  solid      1 calls   remove=1
+
+clear 1k
+  xote    1000 calls   remove=1000
+  react   1000 calls   removeChild=1000
+  vue     1000 calls   removeChild=1000
+  solid      0 calls   

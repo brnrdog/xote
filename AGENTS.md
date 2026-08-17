@@ -29,6 +29,11 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - `npm run ppx:build` - Compile the native PPX binary from `ppx/ppx.ml` (needs `ocamlopt`)
 - `npm run ppx:test` - Build the PPX and run the end-to-end example verification (`ppx/example/`, jsdom)
 
+### Benchmarks
+- `benchmarks/` holds a keyed-list benchmark that runs the same app in Xote, React, Vue and SolidJS and measures operation latency, startup, memory and payload. It is a self-contained npm project with its own `package.json`; see `benchmarks/README.md` for how to run it and `benchmarks/results/RESULTS.md` for the latest numbers.
+- The Xote implementation (`benchmarks/apps/xote/BenchApp.res`) is compiled by the root ReScript project — `benchmarks/apps/xote` is listed in `rescript.json` `sources` as a dev directory, so `npm run res:build` covers it.
+- CI runs the suite **only on pull requests carrying the `benchmark` label** (`.github/workflows/benchmark.yml`) and posts a `main` vs PR comment rendered by `scripts/benchmark-report.mjs`. Adding the label to an open PR starts the run — the workflow listens for `labeled` as well as pushes. It builds the PR's benchmark app against both libraries so only `src/` differs between the two columns, and runs them interleaved in one browser — see `benchmarks/README.md` for why position in the schedule would otherwise dominate the result.
+
 ### Documentation
 - `npm run docs:start` - Start documentation site
 - `npm run docs:build` - Build documentation site
@@ -616,6 +621,7 @@ Hydration.hydrateById(app, "root")
 3. **Synchronous scheduler**: All scheduling is synchronous; there is no microtask/animation-frame integration. Use `Signal.batch` to coalesce updates, but understand that effects still run inline when the batch ends.
 4. **Manual JSX key plumbing**: `jsxKeyed`/`jsxsKeyed` currently ignore the `~key` argument — use `View.eachWithKey` (or `<View.For by=...>`) for reconciled lists rather than relying on JSX-level keys.
 5. **`each` re-renders fully**: `View.each` recreates every item on change (it is implemented on top of `SignalFragment`). Prefer `View.eachWithKey` when item identity matters.
+6. **Reordering is not minimal**: phase 3 of the `KeyedList` reconciler walks the new order against the live DOM and inserts every node whose position does not match the walk marker, so one early mismatch cascades through the rest of the list. Swapping two rows in a 1,000-row list costs ~997 `insertBefore` calls where Vue and SolidJS cost 2 (measured by `benchmarks/dom-ops.mjs`). Element identity and reactive state survive the moves, so this is a cost, not a correctness bug — a longest-increasing-subsequence pass would fix it.
 
 ## Agent Workflow
 
