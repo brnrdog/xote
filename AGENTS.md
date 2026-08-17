@@ -620,6 +620,7 @@ Hydration.hydrateById(app, "root")
 3. **Synchronous scheduler**: All scheduling is synchronous; there is no microtask/animation-frame integration. Use `Signal.batch` to coalesce updates, but understand that effects still run inline when the batch ends.
 4. **Manual JSX key plumbing**: `jsxKeyed`/`jsxsKeyed` currently ignore the `~key` argument — use `View.eachWithKey` (or `<View.For by=...>`) for reconciled lists rather than relying on JSX-level keys.
 5. **`each` re-renders fully**: `View.each` recreates every item on change (it is implemented on top of `SignalFragment`). Prefer `View.eachWithKey` when item identity matters.
+6. **Reordering is not minimal**: phase 3 of the `KeyedList` reconciler walks the new order against the live DOM and inserts every node whose position does not match the walk marker, so one early mismatch cascades through the rest of the list. Swapping two rows in a 1,000-row list costs ~997 `insertBefore` calls where Vue and SolidJS cost 2 (measured by `benchmarks/dom-ops.mjs`). Element identity and reactive state survive the moves, so this is a cost, not a correctness bug — a longest-increasing-subsequence pass would fix it.
 
 ## Agent Workflow
 
