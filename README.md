@@ -33,23 +33,27 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
     "version": 4,
     "module": "XoteJSX"
   },
+  "ppx-flags": ["xote/ppx/ppx"],
   "compiler-flags": ["-open Xote"]
 }
 ```
 
 The compiler flag `-open Xote` is optional, it makes the Xote modules available unqualified inside your source files.
 
+The `ppx-flags` line enables the **`@xote.component`** annotation — the recommended way to write components today, though its semantics are not frozen yet. It derives props from labeled arguments (like `@jsx.component`) and additionally lets you read signals **inline** in JSX with fine-grained updates: no `() => …` thunks, no value-primitive wrappers. The npm package ships the PPX prebuilt for linux-x64/arm64, macOS x64/arm64, and Windows x64, selected automatically at install time — no OCaml toolchain needed. See [`ppx/README.md`](ppx/README.md) for how it works and the (few) limitations; to skip the PPX entirely, omit `ppx-flags` and use `@jsx.component` with explicit thunks and `<View.Text>`/`<View.Int>` primitives, as shown further below.
+
 This README uses the application-facing names for public code:
 
 - `View` is the module for building and mounting DOM nodes.
-- `MaybeSignal` is the static-or-reactive value wrapper (it replaces the deprecated `Prop` module).
-- `View.Text`, `View.Int`, `View.For`, `View.Show`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are the building blocks used throughout these examples.
+- `MaybeSignal` is the static-or-reactive prop module.
+- `View.For`, `View.Show`, `View.Attr.*`, `Router.location`, and `SSRState.signal` are the building blocks used throughout these examples.
+- `View.Text`, `View.Int`, `View.Float`, and `View.Bool` turn a value into a node. Under `@xote.component` you do not need them: a bare `{…}` child works directly (see [Bare children](#bare-children)). They stay available for code that does not use the PPX, and for the stronger `int`/`float` typing on the child.
 
 ### Quick Example
 
 ```rescript
 module App = {
-  @jsx.component
+  @xote.component
   let make = () => {
     // Create reactive state
     let count = Signal.make(0)
@@ -64,19 +68,13 @@ module App = {
       None // Optional clean up function
     })
 
-    // Build the UI with JSX
+    // Build the UI with JSX — signal reads inline, only the leaves re-run
     <div>
-      <h1> <View.Text> "Counter" </View.Text> </h1>
-      <p>
-        <View.Text> "Count: " </View.Text>
-        <View.Int> {count} </View.Int>
-      </p>
-      <p>
-        <View.Text> "Doubled: " </View.Text>
-        <View.Int> {doubled} </View.Int>
-      </p>
+      <h1> {"Counter"} </h1>
+      <p> {"Count: "} {Signal.get(count)} </p>
+      <p> {"Doubled: "} {Signal.get(doubled)} </p>
       <button onClick={(_evt: Dom.event) => Signal.update(count, n => n + 1)}>
-        <View.Text> "Increment" </View.Text>
+        {"Increment"}
       </button>
     </div>
   }
@@ -86,19 +84,19 @@ module App = {
 View.mountById(<App />, "app")
 ```
 
+When `count` changes, only the two text leaves that read it update — the elements are built once and keep their DOM identity.
+
 Since in ReScript each file is its own module, you can define a reusable component by exporting a `make` function from that file. The file name becomes the component name: `Counter.res` gives you `<Counter />`. 
 
-The `@jsx.component` attribute instructs the compiler to derive a props type from the function's labeled arguments, enabling JSX usage without boilerplate. 
+The `@xote.component` attribute derives a props type from the function's labeled arguments (exactly like ReScript's `@jsx.component`, which it emits under the hood) and fine-grains the returned JSX. 
 
 Here's an example of a reusable component with properties:
 
 ```res
 // Greeting.res
-@jsx.component
+@xote.component
 let make = (~name: string, ~greeting: string="Hello") => {
-  <p>
-    <View.Text> {`${greeting}, ${name}!`} </View.Text>
-  </p>
+  <p> {`${greeting}, ${name}!`} </p>
 }
 
 // Usage from another file:
@@ -137,14 +135,72 @@ On top of the reactive primitives with signals, Xote provides a declarative view
 ```rescript
 let className = Signal.make("card")
 
-<div class={className}>
-  <View.Text> "Status: " </View.Text>
-  <View.Text> {className} </View.Text>
+<div class={MaybeSignal.reactive(className)}>
+  {"Status: "}
+  {Signal.get(className)}
+</div>
+```
+
+#### Bare children
+
+Under `@xote.component`, any `{…}` child works directly in element position. The annotation wraps it in the runtime helper `View.child`, which coerces it at runtime:
+
+```rescript
+<div>
+  {"Count: "}            // static text
+  {Signal.get(count)}    // reactive text leaf, re-runs on its own
+  {View.text("node")}    // already a node, passes through
+  {someOption}           // None renders nothing
+</div>
+```
+
+An eager signal read becomes a reactive leaf; a static scalar becomes static text; a value that is already a node passes through; `null`/`undefined` render nothing; an array is coerced element-wise.
+
+The explicit value primitives are still there for code that does not use the PPX, and when you want the stronger `int`/`float` typing:
+
+```rescript
+// equivalent, without the annotation
+<div>
+  <View.Text> "Count: " </View.Text>
+  <View.Int> {count} </View.Int>
 </div>
 ```
 
 Built-in attributes take a plain value, a signal, or a `unit => 'a` function, so
 a signal can be passed straight through without wrapping it.
+
+#### Keep signal reads visible
+
+`@xote.component` decides what to make reactive by *reading your source*. It
+follows `Signal.get` and `MaybeSignal.get`, aliases (`let g = Signal.get`,
+`module S = Signal`, `open Signal`), local helpers that read a signal, and
+helpers in a module in the same file. It cannot follow a call into **another
+module** — nothing in `Store.waitingCount(store)` says "signal" — so that leaf is
+compiled as a plain value and renders its first result forever:
+
+```rescript
+<p> {Store.waitingCount(store)} </p>   // ⚠️ one-shot: never updates
+<p> {() => Store.waitingCount(store)} </p>   // ✅ reactive
+```
+
+The same applies to a read hoisted into a `let` (`let n = Signal.get(count)`,
+then `{n}`): reactivity follows the expression written in JSX position. In both
+cases the fix is a thunk — `() => …` — and the PPX never double-wraps one you
+wrote yourself.
+
+You do not have to catch these by eye. A leaf whose expression contains a call
+the PPX cannot resolve is emitted wrapped in `View.probe`, which checks at
+runtime whether evaluating it actually subscribed to a signal and, if it did,
+logs the source location once:
+
+```
+[Xote] Queue.res:42:19: this value reads a signal through a call
+@xote.component cannot see … Wrap it in a thunk (`{() => ...}`).
+```
+
+There are no false positives — the check is on what the evaluation really read,
+not on how it looks — and probing is skipped in production builds. Full rules:
+[`ppx/README.md`](ppx/README.md#hidden-reads).
 
 For rendering collections in JSX, prefer `View.For`. Add `by` when items have stable identity and should reconcile by key:
 
@@ -159,55 +215,56 @@ let todos = Signal.make([
 <View.For
   each={MaybeSignal.reactive(todos)}
   by={todo => todo.id}
-  render={todo => <li> <View.Text> {todo.title} </View.Text> </li>}
+  render={todo => <li> {todo.title} </li>}
 />
 ```
 
-`View` also provides component primitives for static or reactive values. Their children can be raw values, signals, `MaybeSignal.t` values, or functions.
+The other view components take static or reactive values through `MaybeSignal.t`, and their render callbacks are fine-grained too:
 
 ```rescript
 <View.For
   each={MaybeSignal.static(["Draft", "Review", "Ship"])}
-  render={label => <span> <View.Text> {label} </View.Text> </span>}
+  render={label => <span> {label} </span>}
 />
 
-<ul>
-  <View.For
-    each={MaybeSignal.reactive(todos)}
-    by={todo => todo.id}
-    render={todo => <li> <View.Text> {todo.title} </View.Text> </li>}
-  />
-</ul>
-
-<View.Show when_={MaybeSignal.reactive(isReady)} fallback={<p> <View.Text> "Loading" </View.Text> </p>}>
-  <p> <View.Text> "Ready" </View.Text> </p>
+<View.Show when_={MaybeSignal.reactive(isReady)} fallback={<p> {"Loading"} </p>}>
+  <p> {"Ready"} </p>
 </View.Show>
 
 <View.Maybe
   value={MaybeSignal.reactive(selectedTodo)}
-  fallback={<p> <View.Text> "No selection" </View.Text> </p>}
-  render={todo => <p> <View.Text> {todo.title} </View.Text> </p>}
+  fallback={<p> {"No selection"} </p>}
+  render={todo => <p> {todo.title} </p>}
 />
 
 <View.Value
   value={MaybeSignal.reactive(count)}
-  render={count =>
-    <p>
-      <View.Text> "Count: " </View.Text>
-      <View.Int> {count} </View.Int>
-    </p>
-  }
+  render={count => <p> {"Count: "} {count} </p>}
 />
-
-<p>
-  <View.Text> "Count: " </View.Text>
-  <View.Int> {count} </View.Int>
-  <View.Text> ", ready: " </View.Text>
-  <View.Bool> {isReady} </View.Bool>
-</p>
 ```
 
-### Static or Reactive Values
+### Auto-tracked Blocks
+
+When a block of UI depends on several signals at once, `View.tracked` lets you read them inline — every signal read while the body runs subscribes the block automatically, and the block re-renders when any of them changes:
+
+```rescript
+let loggedIn = Signal.make(false)
+let name = Signal.make("Ada")
+
+{View.tracked(() =>
+  if Signal.get(loggedIn) {
+    <p> {`Hello, ${Signal.get(name)}`} </p>
+  } else {
+    <p> {"Please log in"} </p>
+  }
+)}
+```
+
+Dependencies are re-discovered on every run, so conditional reads work: above, `name` is only tracked while `loggedIn` is true. The tradeoff is granularity — a tracked block replaces its children wholesale (no diffing) when a dependency changes, so keep tracked blocks small and prefer `View.For` with `by` for lists.
+
+Under `@xote.component` you rarely write `View.tracked` yourself: an `if`/`switch` in child position is wrapped in it automatically, tracking only the condition — reactive leaves inside the branches stay fine-grained.
+
+### Static or Reactive Props
 
 `MaybeSignal` is how a value says whether it is plain or reactive. There is one
 rule for when you need it:
@@ -218,7 +275,7 @@ rule for when you need it:
 | Props with a declared type — `View.Show`, `View.For`, `View.Maybe`, `View.Value`, and the components you write | a `MaybeSignal.t`, so the wrapper is how the caller says which one they are passing. |
 
 ```rescript
-@jsx.component
+@xote.component
 let make = (~className: MaybeSignal.t<string>=MaybeSignal.static("badge"), ~children) => {
   <span class={className}> {children} </span>
 }
@@ -226,7 +283,7 @@ let make = (~className: MaybeSignal.t<string>=MaybeSignal.static("badge"), ~chil
 let tone = Signal.make("badge badge-info")
 
 <Badge className={MaybeSignal.reactive(tone)}>
-  <View.Text> "Live" </View.Text>
+  {"Live"}
 </Badge>
 ```
 
@@ -269,8 +326,8 @@ reload:
 
 ```rescript
 <nav>
-  <Router.Link to="/"> <View.Text> "Home" </View.Text> </Router.Link>
-  <Router.Link to="/about" class="nav-link"> <View.Text> "About" </View.Text> </Router.Link>
+  <Router.Link to="/"> {"Home"} </Router.Link>
+  <Router.Link to="/about" class="nav-link"> {"About"} </Router.Link>
 </nav>
 ```
 
