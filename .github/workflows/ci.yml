@@ -42,6 +42,18 @@ jobs:
       - name: Run tests
         run: node tests/Tests.res.mjs
 
+      - name: Run JSX runtime tests
+        run: node tests/JSXRuntime_test.mjs
+
+      - name: Check public JS export surface
+        run: npm run test:exports
+
+      - name: Check public API boundary from a consumer package
+        run: npm run test:boundary
+
+      - name: Run dev-mode diagnostics tests
+        run: node tests/DevMode_test.mjs
+
       # The @xote.component ppx (ppx/) ships in the npm package as prebuilt
       # binaries (see ppx-binaries.yml / release.yml). Build it from source
       # and run the example's jsdom verification here so the transform can't

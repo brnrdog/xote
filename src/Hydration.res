@@ -1,7 +1,3 @@
-module DOM = View.DOM
-module Reactivity = View.Reactivity
-module Markers = RuntimeHydrationMarkers
-
 /* ============================================================================
  * Hydration Options
  * ============================================================================ */
@@ -18,7 +14,6 @@ type hydrateOptions = {
 module DOMWalker = {
   /* View types */
   let elementNode = 1
-  let textNode = 3
   let commentNode = 8
 
   /* Get node type */
@@ -26,12 +21,6 @@ module DOMWalker = {
 
   /* Get node value (for comments/text) */
   @get external nodeValue: Dom.element => Nullable.t<string> = "nodeValue"
-
-  /* Get child nodes as array */
-  let getChildNodes = (el: Dom.element): array<Dom.element> => {
-    ignore(el)
-    %raw(`Array.from(el.childNodes || [])`)
-  }
 
   /* Get first child */
   @get external firstChild: Dom.element => Nullable.t<Dom.element> = "firstChild"
@@ -67,8 +56,10 @@ module DOMWalker = {
   let extractKey = (node: Dom.element): option<string> => {
     if nodeType(node) == commentNode {
       switch nodeValue(node)->Nullable.toOption {
-      | Some(value) if String.startsWith(value, Markers.keyedItemPrefixContent) =>
-        Some(String.slice(value, ~start=String.length(Markers.keyedItemPrefixContent)))
+      | Some(value) if String.startsWith(value, RuntimeHydrationMarkers.keyedItemPrefixContent) =>
+        Some(
+          String.slice(value, ~start=String.length(RuntimeHydrationMarkers.keyedItemPrefixContent)),
+        )
       | _ => None
       }
     } else {
@@ -146,8 +137,6 @@ module DOMWalker = {
  * Hydration Error Handling
  * ============================================================================ */
 
-exception HydrationMismatch(string)
-
 let logHydrationWarning = (msg: string): unit => {
   Console.warn(`[Xote Hydration] ${msg}`)
 }
@@ -156,299 +145,8 @@ let logHydrationWarning = (msg: string): unit => {
  * Core Hydration Logic
  * ============================================================================ */
 
-/* Hydrate a single node, attaching reactivity to existing DOM */
-let rec hydrateNode = (node: View.node, domNode: Dom.element): unit => {
-  switch node {
-  | View.Text(_content) => /* Static text - nothing to hydrate, DOM already has the content */
-    ()
-
-  | View.SignalText(signal) => {
-      /*
-       * Server rendered: <!--$-->text<!--/$-->
-       * We need to find the text node between markers and attach an effect
-       */
-      let owner = Reactivity.createOwner()
-      Reactivity.setOwner(domNode, owner)
-
-      Reactivity.runWithOwner(owner, () => {
-        let disposer = Effect.runWithDisposer(() => {
-          DOM.setTextContent(domNode, Signal.get(signal))
-          None
-        })
-        Reactivity.addDisposer(owner, disposer)
-      })
-    }
-
-  | View.Fragment(children) => {
-      /* Fragment children are directly in the parent - hydrate each */
-      let walker = DOMWalker.make(domNode)
-      children->Array.forEach(child => {
-        hydrateNodeWithWalker(child, walker)
-      })
-    }
-
-  | View.SignalFragment(signal) => {
-      /*
-       * Server rendered: <!--#-->...children...<!--/#-->
-       * We need to replace the content when the signal changes
-       */
-      let owner = Reactivity.createOwner()
-      Reactivity.setOwner(domNode, owner)
-      let keyedItems: Dict.t<View.Render.keyedItem<Obj.t>> = Dict.make()
-      let initialized = ref(false)
-
-      Reactivity.runWithOwner(owner, () => {
-        let disposer = Effect.runWithDisposer(() => {
-          let children = Signal.get(signal)
-
-          switch View.Render.getKeyedChildren(children) {
-          | Some(keyedChildren) if initialized.contents =>
-            View.Render.reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=domNode)
-          | keyedChildrenOpt => {
-              View.Render.clearKeyedItems(keyedItems)
-
-              /* Clear existing children */
-              let childNodes: array<Dom.element> = %raw(`Array.from(domNode.childNodes || [])`)
-              childNodes->Array.forEach(
-                child => {
-                  Reactivity.disposeOwner(
-                    Reactivity.getOwner(child)->Option.getOr(Reactivity.createOwner()),
-                  )
-                },
-              )
-              DOM.setInnerHTML(domNode, "")
-
-              switch keyedChildrenOpt {
-              | Some(keyedChildren) =>
-                keyedChildren->Array.forEach(keyedChild => {
-                  let childEl = View.Render.render(keyedChild.child)
-                  keyedItems->Dict.set(keyedChild.key, {
-                    key: keyedChild.key,
-                    item: keyedChild.identity,
-                    element: childEl,
-                  })
-                  domNode->DOM.appendChild(childEl)
-                })
-              | None =>
-                children->Array.forEach(
-                  child => {
-                    let childEl = View.Render.render(child)
-                    domNode->DOM.appendChild(childEl)
-                  },
-                )
-              }
-
-              initialized := true
-            }
-          }
-
-          None
-        })
-        Reactivity.addDisposer(owner, disposer)
-      })
-    }
-
-  | View.Keyed({child, key: _, identity: _}) => hydrateNode(child, domNode)
-
-  | View.Element({attrs, events, children}) => {
-      let owner = Reactivity.createOwner()
-      Reactivity.setOwner(domNode, owner)
-
-      Reactivity.runWithOwner(owner, () => {
-        /* Hydrate reactive attributes */
-        attrs->Array.forEach(((key, value)) => {
-          switch View.resolveAttr(value) {
-          | View.ReadStatic(_) => () /* Already rendered, nothing to do */
-          | View.ReadReactive(read) => {
-              let disposer = Effect.runWithDisposer(
-                () => {
-                  DOM.setAttrOrProp(domNode, key, read())
-                  None
-                },
-              )
-              Reactivity.addDisposer(owner, disposer)
-            }
-          }
-        })
-
-        /* Attach event listeners (not in SSR HTML) */
-        events->Array.forEach(((eventName, handler)) => {
-          domNode->DOM.addEventListener(eventName, handler)
-        })
-
-        /* Hydrate children */
-        let walker = DOMWalker.make(domNode)
-        children->Array.forEach(child => {
-          hydrateNodeWithWalker(child, walker)
-        })
-      })
-    }
-
-  | View.LazyComponent(fn) => {
-      /* Execute lazy component and hydrate its result */
-      let owner = Reactivity.createOwner()
-      let childNode = Reactivity.runWithOwner(owner, fn)
-      Reactivity.setOwner(domNode, owner)
-      hydrateNode(childNode, domNode)
-    }
-
-  | View.KeyedList({signal, keyFn, renderItem}) => {
-      /*
-       * Server rendered: <!--kl--><!--k:key1-->item1<!--/k--><!--k:key2-->item2<!--/k--><!--/kl-->
-       * We need to set up the reconciliation effect
-       */
-      let owner = Reactivity.createOwner()
-      Reactivity.setOwner(domNode, owner)
-
-      /* Build initial key -> element map from existing DOM */
-      let keyedItems: Dict.t<View.Render.keyedItem<Obj.t>> = Dict.make()
-      let walker = DOMWalker.make(domNode)
-
-      /* Skip to list start marker */
-      let _ = DOMWalker.skipUntilMarker(walker, Markers.keyedListStartContent)
-
-      /* Parse existing keyed items */
-      let rec parseKeyedItems = () => {
-        switch DOMWalker.peek(walker) {
-        | Some(node) if DOMWalker.isMarkerPrefix(node, Markers.keyedItemPrefixContent) => {
-            let key = DOMWalker.extractKey(node)->Option.getOr("")
-            let _ = DOMWalker.next(walker) // consume start marker
-
-            /* Collect item elements until end marker */
-            let itemElements = DOMWalker.collectUntilMarker(walker, Markers.keyedItemEndContent)
-
-            /* Get the first actual element (skip text nodes) */
-            switch itemElements->Array.find(el => DOMWalker.nodeType(el) == DOMWalker.elementNode) {
-            | Some(element) => {
-                let items = Signal.peek(signal)
-                let item =
-                  items->Array.find(i => keyFn(i) == key)->Option.getOr(Obj.magic(Dict.make()))
-                keyedItems->Dict.set(key, {key, item, element})
-              }
-            | None => ()
-            }
-
-            parseKeyedItems()
-          }
-        | Some(node) if DOMWalker.isMarker(node, Markers.keyedListEndContent) => {
-            let _ = DOMWalker.next(walker) // consume end marker
-          }
-        | _ => ()
-        }
-      }
-      parseKeyedItems()
-
-      /* Set up reconciliation effect (reuses existing render logic) */
-      Reactivity.runWithOwner(owner, () => {
-        let startAnchor = DOM.createComment(" keyed-list-start ")
-        let endAnchor = DOM.createComment(" keyed-list-end ")
-
-        /* Insert anchors */
-        switch DOMWalker.firstChild(domNode)->Nullable.toOption {
-        | Some(firstChild) => DOM.insertBefore(domNode, startAnchor, firstChild)
-        | None => DOM.appendChild(domNode, startAnchor)
-        }
-        DOM.appendChild(domNode, endAnchor)
-
-        let reconcile = (): unit => {
-          let newItems = Signal.get(signal)
-
-          let newKeyMap: Dict.t<Obj.t> = Dict.make()
-          newItems->Array.forEach(item => {
-            newKeyMap->Dict.set(keyFn(item), item)
-          })
-
-          /* Remove items not in new list */
-          let keysToRemove = []
-          keyedItems
-          ->Dict.keysToArray
-          ->Array.forEach(key => {
-            switch newKeyMap->Dict.get(key) {
-            | None => keysToRemove->Array.push(key)->ignore
-            | Some(_) => ()
-            }
-          })
-
-          keysToRemove->Array.forEach(key => {
-            switch keyedItems->Dict.get(key) {
-            | Some(keyedItem) => {
-                View.Render.disposeElement(keyedItem.element)
-              keyedItem.element->DOM.remove
-                keyedItems->Dict.delete(key)->ignore
-              }
-            | None => ()
-            }
-          })
-
-          /* Build new order */
-          let newOrder: array<View.Render.keyedItem<Obj.t>> = []
-          let elementsToReplace: Dict.t<bool> = Dict.make()
-
-          newItems->Array.forEach(item => {
-            let key = keyFn(item)
-
-            switch keyedItems->Dict.get(key) {
-            | Some(existing) =>
-              if existing.item !== item {
-                elementsToReplace->Dict.set(key, true)
-                let node = renderItem(item)
-                let element = View.Render.render(node)
-                let keyedItem: View.Render.keyedItem<Obj.t> = {key, item, element}
-                newOrder->Array.push(keyedItem)->ignore
-                keyedItems->Dict.set(key, keyedItem)
-              } else {
-                newOrder->Array.push(existing)->ignore
-              }
-            | None => {
-                let node = renderItem(item)
-                let element = View.Render.render(node)
-                let keyedItem: View.Render.keyedItem<Obj.t> = {key, item, element}
-                newOrder->Array.push(keyedItem)->ignore
-                keyedItems->Dict.set(key, keyedItem)
-              }
-            }
-          })
-
-          /* Reconcile DOM */
-          let marker = ref(DOM.getNextSibling(startAnchor))
-
-          newOrder->Array.forEach(keyedItem => {
-            let currentElement = marker.contents
-
-            switch currentElement->Nullable.toOption {
-            | Some(elem) if elem === endAnchor =>
-              DOM.insertBefore(domNode, keyedItem.element, endAnchor)
-            | Some(elem) if elem === keyedItem.element => marker := DOM.getNextSibling(elem)
-            | Some(elem) => {
-                let needsReplacement =
-                  elementsToReplace->Dict.get(keyedItem.key)->Option.getOr(false)
-
-                if needsReplacement {
-                  View.Render.disposeElement(elem)
-                  DOM.replaceChild(domNode, keyedItem.element, elem)
-                  marker := DOM.getNextSibling(keyedItem.element)
-                } else {
-                  DOM.insertBefore(domNode, keyedItem.element, elem)
-                  marker := DOM.getNextSibling(keyedItem.element)
-                }
-              }
-            | None => DOM.insertBefore(domNode, keyedItem.element, endAnchor)
-            }
-          })
-        }
-
-        let disposer = Effect.runWithDisposer(() => {
-          reconcile()
-          None
-        })
-        Reactivity.addDisposer(owner, disposer)
-      })
-    }
-  }
-}
-
-/* Hydrate using a walker (for traversing children) */
-and hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => {
+/* Hydrate a node by walking the server-rendered siblings of `walker` */
+let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => {
   switch node {
   | View.Text(_) => {
       /* Skip text node in DOM */
@@ -457,24 +155,24 @@ and hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => {
 
   | View.SignalText(signal) => {
       /* Find the marker, then hydrate the text node */
-      let _ = DOMWalker.skipUntilMarker(walker, Markers.signalTextStartContent)
+      let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.signalTextStartContent)
 
       /* Get the text node */
       switch DOMWalker.next(walker) {
       | Some(textNode) => {
-          let owner = Reactivity.createOwner()
-          Reactivity.setOwner(textNode, owner)
+          let owner = RuntimeOwner.createOwner()
+          RuntimeOwner.setOwner(textNode, owner)
 
-          Reactivity.runWithOwner(owner, () => {
+          RuntimeOwner.runWithOwner(owner, () => {
             let disposer = Effect.runWithDisposer(() => {
-              DOM.setTextContent(textNode, Signal.get(signal))
+              RuntimeDom.setTextContent(textNode, Signal.get(signal))
               None
             })
-            Reactivity.addDisposer(owner, disposer)
+            RuntimeOwner.addDisposer(owner, disposer)
           })
 
           /* Skip end marker */
-          let _ = DOMWalker.skipUntilMarker(walker, Markers.signalTextEndContent)
+          let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.signalTextEndContent)
         }
       | None => logHydrationWarning("Missing text node for SignalText")
       }
@@ -488,73 +186,78 @@ and hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => {
 
   | View.SignalFragment(signal) => {
       /* Find the container (div with display:contents in SSR, markers in comments) */
-      let _ = DOMWalker.skipUntilMarker(walker, Markers.signalFragmentStartContent)
+      let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.signalFragmentStartContent)
 
       /* Collect all nodes until end marker - these become the container's content */
-      let contentNodes = DOMWalker.collectUntilMarker(walker, Markers.signalFragmentEndContent)
+      let contentNodes = DOMWalker.collectUntilMarker(
+        walker,
+        RuntimeHydrationMarkers.signalFragmentEndContent,
+      )
 
       /* Create a container div to hold the signal fragment */
-      let container = DOM.createElement("div")
-      DOM.setAttribute(container, "style", "display: contents")
+      let container = RuntimeDom.createElement("div")
+      RuntimeDom.setAttribute(container, "style", "display: contents")
 
       /* Get parent before moving nodes (we need it for insertion) */
       let parent: option<Dom.element> = switch contentNodes->Array.get(0) {
-      | Some(firstNode) => {
-          ignore(firstNode)
-          %raw(`firstNode.parentNode`)
-        }
+      | Some(firstNode) => RuntimeDom.getParentNode(firstNode)->Nullable.toOption
       | None => None
       }
 
       /* Move content nodes into container */
       contentNodes->Array.forEach(node => {
-        container->DOM.appendChild(node)
+        container->RuntimeDom.appendChild(node)
       })
 
       /* Insert container where the markers were */
       switch (parent, DOMWalker.peek(walker)) {
-      | (Some(p), Some(nextNode)) => DOM.insertBefore(p, container, nextNode)
-      | (Some(p), None) => DOM.appendChild(p, container)
+      | (Some(p), Some(nextNode)) => RuntimeDom.insertBefore(p, container, nextNode)
+      | (Some(p), None) => RuntimeDom.appendChild(p, container)
       | (None, _) => () /* No content nodes, nothing to do */
       }
 
       /* Set up reactivity */
-      let owner = Reactivity.createOwner()
-      Reactivity.setOwner(container, owner)
-      let keyedItems: Dict.t<View.Render.keyedItem<Obj.t>> = Dict.make()
+      let owner = RuntimeOwner.createOwner()
+      RuntimeOwner.setOwner(container, owner)
+      let keyedItems: Dict.t<RuntimeRender.keyedItem<Obj.t>> = Dict.make()
       let initialized = ref(false)
 
-      Reactivity.runWithOwner(owner, () => {
+      RuntimeOwner.runWithOwner(owner, () => {
         let disposer = Effect.runWithDisposer(() => {
           let children = Signal.get(signal)
 
-          switch View.Render.getKeyedChildren(children) {
+          switch RuntimeRender.getKeyedChildren(children) {
           | Some(keyedChildren) if initialized.contents =>
-            View.Render.reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
+            RuntimeRender.reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
           | keyedChildrenOpt => {
-              View.Render.clearKeyedItems(keyedItems)
+              RuntimeRender.clearKeyedItems(keyedItems)
 
               /* Clear and re-render */
-              let childNodes: array<Dom.element> = %raw(`Array.from(container.childNodes || [])`)
-              childNodes->Array.forEach(View.Render.disposeElement)
-              DOM.setInnerHTML(container, "")
+              let childNodes = RuntimeDom.childNodesToArray(container)
+              childNodes->Array.forEach(RuntimeRender.disposeElement)
+              RuntimeDom.setInnerHTML(container, "")
 
               switch keyedChildrenOpt {
               | Some(keyedChildren) =>
-                keyedChildren->Array.forEach(keyedChild => {
-                  let childEl = View.Render.render(keyedChild.child)
-                  keyedItems->Dict.set(keyedChild.key, {
-                    key: keyedChild.key,
-                    item: keyedChild.identity,
-                    element: childEl,
-                  })
-                  container->DOM.appendChild(childEl)
-                })
+                keyedChildren->Array.forEach(
+                  keyedChild => {
+                    let childEl = RuntimeRender.render(keyedChild.child)
+                    keyedItems->Dict.set(
+                      keyedChild.key,
+                      {
+                        key: keyedChild.key,
+                        item: keyedChild.identity,
+                        element: childEl,
+                      },
+                    )
+                    container->RuntimeDom.appendChild(childEl)
+                  },
+                )
               | None =>
                 children->Array.forEach(
                   child => {
-                    let childEl = View.Render.render(child)
-                    container->DOM.appendChild(childEl)
+                    let childEl = RuntimeRender.render(child)
+                    container->RuntimeDom.appendChild(childEl)
                   },
                 )
               }
@@ -565,7 +268,7 @@ and hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => {
 
           None
         })
-        Reactivity.addDisposer(owner, disposer)
+        RuntimeOwner.addDisposer(owner, disposer)
       })
     }
 
@@ -574,29 +277,29 @@ and hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => {
   | View.Element({attrs, events, children}) =>
     switch DOMWalker.next(walker) {
     | Some(domNode) => {
-        let owner = Reactivity.createOwner()
-        Reactivity.setOwner(domNode, owner)
+        let owner = RuntimeOwner.createOwner()
+        RuntimeOwner.setOwner(domNode, owner)
 
-        Reactivity.runWithOwner(owner, () => {
+        RuntimeOwner.runWithOwner(owner, () => {
           /* Hydrate reactive attributes */
           attrs->Array.forEach(((key, value)) => {
-            switch View.resolveAttr(value) {
-            | View.ReadStatic(_) => ()
-            | View.ReadReactive(read) => {
+            switch RuntimeNode.resolveAttr(value) {
+            | RuntimeNode.ReadStatic(_) => ()
+            | RuntimeNode.ReadReactive(read) => {
                 let disposer = Effect.runWithDisposer(
                   () => {
-                    DOM.setAttrOrProp(domNode, key, read())
+                    RuntimeDom.setAttrOrProp(domNode, key, read())
                     None
                   },
                 )
-                Reactivity.addDisposer(owner, disposer)
+                RuntimeOwner.addDisposer(owner, disposer)
               }
             }
           })
 
           /* Attach event listeners */
           events->Array.forEach(((eventName, handler)) => {
-            domNode->DOM.addEventListener(eventName, handler)
+            domNode->RuntimeDom.addEventListener(eventName, handler)
           })
 
           /* Hydrate children */
@@ -611,28 +314,32 @@ and hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => {
 
   | View.LazyComponent(fn) => {
       /* Skip the lazy component markers and hydrate the content */
-      let _ = DOMWalker.skipUntilMarker(walker, Markers.lazyComponentStartContent)
+      let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.lazyComponentStartContent)
 
       let childNode = fn()
       hydrateNodeWithWalker(childNode, walker)
 
-      let _ = DOMWalker.skipUntilMarker(walker, Markers.lazyComponentEndContent)
+      let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.lazyComponentEndContent)
     }
 
   | View.KeyedList({signal, keyFn, renderItem: _}) => {
       /* Find the keyed list in the DOM */
-      let _ = DOMWalker.skipUntilMarker(walker, Markers.keyedListStartContent)
+      let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.keyedListStartContent)
 
       /* Parse existing keyed items from DOM */
-      let keyedItems: Dict.t<View.Render.keyedItem<Obj.t>> = Dict.make()
+      let keyedItems: Dict.t<RuntimeRender.keyedItem<Obj.t>> = Dict.make()
 
       let rec parseKeyedItems = () => {
         switch DOMWalker.peek(walker) {
-        | Some(node) if DOMWalker.isMarkerPrefix(node, Markers.keyedItemPrefixContent) => {
+        | Some(node)
+          if DOMWalker.isMarkerPrefix(node, RuntimeHydrationMarkers.keyedItemPrefixContent) => {
             let key = DOMWalker.extractKey(node)->Option.getOr("")
             let _ = DOMWalker.next(walker)
 
-            let itemElements = DOMWalker.collectUntilMarker(walker, Markers.keyedItemEndContent)
+            let itemElements = DOMWalker.collectUntilMarker(
+              walker,
+              RuntimeHydrationMarkers.keyedItemEndContent,
+            )
 
             switch itemElements->Array.find(el => DOMWalker.nodeType(el) == DOMWalker.elementNode) {
             | Some(element) => {
@@ -646,7 +353,7 @@ and hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => {
 
             parseKeyedItems()
           }
-        | Some(node) if DOMWalker.isMarker(node, Markers.keyedListEndContent) => {
+        | Some(node) if DOMWalker.isMarker(node, RuntimeHydrationMarkers.keyedListEndContent) => {
             let _ = DOMWalker.next(walker)
           }
         | _ => ()
@@ -705,7 +412,7 @@ let hydrateById = (
   containerId: string,
   ~options: hydrateOptions={},
 ): unit => {
-  switch DOM.getElementById(containerId)->Nullable.toOption {
+  switch RuntimeDom.getElementById(containerId)->Nullable.toOption {
   | Some(container) => hydrate(component, container, ~options)
   | None => Console.error(`[Xote Hydration] Container element not found: ${containerId}`)
   }

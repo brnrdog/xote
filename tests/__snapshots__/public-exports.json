@@ -1,0 +1,152 @@
+{
+  "View": [
+    "$$null",
+    "Attr",
+    "Bool",
+    "Float",
+    "For",
+    "Int",
+    "KeyedFor",
+    "Maybe",
+    "Show",
+    "Text",
+    "Value",
+    "attr",
+    "bool",
+    "child",
+    "computedAttr",
+    "each",
+    "eachWithKey",
+    "element",
+    "empty",
+    "float",
+    "fragment",
+    "int",
+    "isReactiveProp",
+    "mount",
+    "mountById",
+    "optionalAttr",
+    "optionalComputedAttr",
+    "optionalSignalAttr",
+    "probe",
+    "signalAttr",
+    "signalFloat",
+    "signalFragment",
+    "signalInt",
+    "signalText",
+    "text",
+    "tracked"
+  ],
+  "Html": [
+    "a",
+    "button",
+    "div",
+    "h1",
+    "h2",
+    "h3",
+    "input",
+    "li",
+    "p",
+    "span",
+    "ul"
+  ],
+  "XoteJSX": [
+    "$$null",
+    "Elements",
+    "Prop",
+    "array",
+    "jsx",
+    "jsxFragment",
+    "jsxKeyed",
+    "jsxs",
+    "jsxsKeyed"
+  ],
+  "MaybeSignal": [
+    "$$static",
+    "computed",
+    "get",
+    "isReactive",
+    "isStatic",
+    "map",
+    "ofUnknown",
+    "peek",
+    "reactive",
+    "toSignal"
+  ],
+  "Prop": [
+    "$$static",
+    "get",
+    "reactive",
+    "signal"
+  ],
+  "Route": [
+    "compile",
+    "match",
+    "matchCompiled",
+    "matchPath",
+    "matchPathname",
+    "parsePattern"
+  ],
+  "Router": [
+    "Link",
+    "init",
+    "initSSR",
+    "link",
+    "location",
+    "push",
+    "replace",
+    "route",
+    "routes"
+  ],
+  "SSR": [
+    "generateHydrationScript",
+    "renderDocument",
+    "renderToString",
+    "renderToStringWithRoot"
+  ],
+  "SSRContext": [
+    "isClient",
+    "isServer",
+    "match",
+    "onClient",
+    "onServer"
+  ],
+  "SSRState": [
+    "Codec",
+    "clear",
+    "generateScript",
+    "getClientState",
+    "register",
+    "restore",
+    "signal",
+    "sync"
+  ],
+  "Hydration": [
+    "hydrate",
+    "hydrateById"
+  ],
+  "Mdx": [
+    "childrenToNodes",
+    "childrenToText",
+    "component",
+    "components",
+    "render"
+  ],
+  "Signal": [
+    "batch",
+    "get",
+    "make",
+    "peek",
+    "set",
+    "untrack",
+    "update"
+  ],
+  "Computed": [
+    "dispose",
+    "make"
+  ],
+  "Effect": [
+    "run",
+    "runWithDisposer"
+  ]
+}

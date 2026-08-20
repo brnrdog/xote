@@ -22,3 +22,8 @@ bundle-size-*.json
 /ppx/ppx
 /ppx/ppx.exe
 /ppx/bin/
+
+# Consumer boundary fixture (generated)
+/tests/consumer/node_modules/
+/tests/consumer/lib/
+/tests/consumer/probe/

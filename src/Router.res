@@ -23,23 +23,22 @@ type globalRouterState = {
   mutable popStateHandler: option<Dom.event => unit>,
 }
 
-// External binding for Symbol.for() - creates/retrieves a global symbol
-@val @scope("Symbol")
-external symbolFor: string => 'symbol = "for"
+// Raw accessors are written as function literals so they never capture a
+// surrounding ReScript binding - the compiler is free to rename or inline those.
+let readGlobalState: unit => option<globalRouterState> = %raw(`function () {
+  return globalThis[Symbol.for("xote.router.state")]
+}`)
 
-// Get the global symbol key used to store router state
-let getSymbolKey = (): 'symbol => {
-  symbolFor("xote.router.state")
-}
+let writeGlobalState: globalRouterState => unit = %raw(`function (state) {
+  globalThis[Symbol.for("xote.router.state")] = state
+}`)
 
 // Get or create the global router state
 // This function is idempotent - safe to call multiple times
 let getGlobalState = (): globalRouterState => {
   // Check if global state exists
   // We use Symbol.for() inline to ensure the same symbol across all Xote bundles
-  let existingState: option<globalRouterState> = %raw(`globalThis[Symbol.for("xote.router.state")]`)
-
-  switch existingState {
+  switch readGlobalState() {
   | Some(state) => state
   | None => {
       // Create new global state
@@ -55,8 +54,7 @@ let getGlobalState = (): globalRouterState => {
       }
 
       // Store in globalThis using the same symbol
-      ignore(state)
-      let _: unit = %raw(`globalThis[Symbol.for("xote.router.state")] = state`)
+      writeGlobalState(state)
       state
     }
   }
@@ -67,16 +65,19 @@ let getGlobalState = (): globalRouterState => {
 let location = (): Signal.t<location> => getGlobalState().location
 let basePath = (): ref<string> => getGlobalState().basePath
 
+let warnNotInitialized: string => unit = %raw(`function (methodName) {
+  console.warn(
+    '[Xote Router] ' + methodName + ' called before Router.init(). ' +
+    'Make sure to call Router.init() at your app entry point. ' +
+    'This may cause incorrect routing behavior.'
+  )
+}`)
+
 // Warn if Router is used before initialization
 let warnIfNotInitialized = (methodName: string): unit => {
   let state = getGlobalState()
   if !state.initialized {
-    ignore(methodName)
-    let _: unit = %raw(`console.warn(
-      '[Xote Router] ' + methodName + ' called before Router.init(). ' +
-      'Make sure to call Router.init() at your app entry point. ' +
-      'This may cause incorrect routing behavior.'
-    )`)
+    warnNotInitialized(methodName)
   }
 }
 
@@ -168,33 +169,21 @@ let getScrollPosition = (): (float, float) => {
   (x, y)
 }
 
-let scrollTo = (x: float, y: float): unit => {
-  ignore(x)
-  ignore(y)
-  let _: unit = %raw(`window.scrollTo(x, y)`)
-}
+@val @scope("window") external scrollTo: (float, float) => unit = "scrollTo"
 
-let queueMicrotask = (callback: unit => unit): unit => {
-  ignore(callback)
-  let _: unit = %raw(`globalThis.queueMicrotask(callback)`)
-}
+@val @scope("globalThis") external queueMicrotask: (unit => unit) => unit = "queueMicrotask"
 
-let scrollHashIntoView = (hash: string): unit => {
-  ignore(hash)
-  let _: unit = %raw(`
-    (() => {
-      if (!hash) {
-        return;
-      }
+let scrollHashIntoView: string => unit = %raw(`function (hash) {
+  if (!hash) {
+    return;
+  }
 
-      const id = decodeURIComponent(hash.startsWith("#") ? hash.slice(1) : hash);
-      const target = document.getElementById(id);
-      if (target && typeof target.scrollIntoView === "function") {
-        target.scrollIntoView();
-      }
-    })()
-  `)
-}
+  const id = decodeURIComponent(hash.startsWith("#") ? hash.slice(1) : hash);
+  const target = document.getElementById(id);
+  if (target && typeof target.scrollIntoView === "function") {
+    target.scrollIntoView();
+  }
+}`)
 
 let scrollAfterNavigation = (hash: string): unit => {
   if hash == "" {
@@ -205,22 +194,25 @@ let scrollAfterNavigation = (hash: string): unit => {
 }
 
 // Create history state with scroll position
-let makeHistoryState = (scrollX: float, scrollY: float): historyState => {
-  ignore(scrollX)
-  ignore(scrollY)
-  %raw(`({ scrollX: scrollX, scrollY: scrollY })`)
-}
+let makeHistoryState: (float, float) => historyState = %raw(`function (scrollX, scrollY) {
+  return { scrollX: scrollX, scrollY: scrollY }
+}`)
 
 let emptyHistoryState = (): historyState => {
   %raw(`({})`)
 }
 
+let historyScrollX: historyState => Nullable.t<float> = %raw(`function (state) {
+  return state && state.scrollX
+}`)
+
+let historyScrollY: historyState => Nullable.t<float> = %raw(`function (state) {
+  return state && state.scrollY
+}`)
+
 // Extract scroll position from history state
 let getScrollFromState = (state: historyState): option<(float, float)> => {
-  ignore(state)
-  let scrollX: Nullable.t<float> = %raw(`state && state.scrollX`)
-  let scrollY: Nullable.t<float> = %raw(`state && state.scrollY`)
-  switch (Nullable.toOption(scrollX), Nullable.toOption(scrollY)) {
+  switch (Nullable.toOption(historyScrollX(state)), Nullable.toOption(historyScrollY(state))) {
   | (Some(x), Some(y)) => Some((x, y))
   | _ => None
   }
@@ -237,8 +229,7 @@ let saveScrollPosition = (): unit => {
 @val @scope("window")
 external addEventListener: (string, Dom.event => unit) => unit = "addEventListener"
 
-@val @scope("window")
-external removeEventListener: (string, Dom.event => unit) => unit = "removeEventListener"
+@send external preventDefault: Dom.event => unit = "preventDefault"
 
 // Parse current browser location from window.location
 // Strips base path from pathname to get app-relative path
@@ -410,7 +401,7 @@ let link = (
   let target = parseTarget(to)
 
   let handleClick = (_evt: Dom.event) => {
-    let _: unit = %raw(`_evt.preventDefault()`)
+    preventDefault(_evt)
     push(target.pathname, ~search=target.search, ~hash=target.hash, ())
   }
 
@@ -501,7 +492,7 @@ module Link = {
     let target = parseTarget(props.to)
 
     let handleClick = (evt: Dom.event) => {
-      let _: unit = %raw(`evt.preventDefault()`)
+      preventDefault(evt)
       push(target.pathname, ~search=target.search, ~hash=target.hash, ())
 
       // Call user's onClick if provided
