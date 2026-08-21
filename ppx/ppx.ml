@@ -1175,11 +1175,19 @@ let is_element (f : expression) : bool =
     String.length s > 0 && s.[0] >= 'a' && s.[0] <= 'z'
   | _ -> false
 
-(* View.Text / View.Int / View.Float / View.Bool: children are *values*. *)
+(* View.Text / View.Int / View.Float / View.Bool: children are *values*. Also
+   match the namespaced form (Xote.View.Text) — a consumer that does not
+   `-open Xote` writes the full path, and the matcher must not mistake it for a
+   user component (whose children would be coerced to nodes). *)
 let is_value_component (f : expression) : bool =
+  let is_view = function
+    | Longident.Lident "View" -> true
+    | Longident.Ldot (_, "View") -> true
+    | _ -> false
+  in
   match f.pexp_desc with
-  | Pexp_ident { txt = Longident.Ldot (Longident.Lident "View", ("Text" | "Int" | "Float" | "Bool")); _ } ->
-    true
+  | Pexp_ident { txt = Longident.Ldot (m, ("Text" | "Int" | "Float" | "Bool")); _ } ->
+    is_view m
   | _ -> false
 
 (* ---- render callbacks ----------------------------------------------------
@@ -1379,7 +1387,12 @@ and component_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * 
   if is_children_label lbl then (lbl, map_children (fine_node env) v)
   else if jsx_parts v <> None || is_jsx_fragment v then (lbl, fine_node env v)
   else if is_render_callback v then (lbl, fine_callback env v)
-  else (lbl, v)
+  (* A prop value that is not itself JSX can still *contain* JSX — an array,
+     tuple, record or application of markup (`items=[<li/>]`). Walk it like
+     node-position children so its reactive leaves stay fine-grained and its
+     bare children are coerced. Scalar props (a signal read, a plain value) are
+     rebuilt unchanged, so the deliberate one-shot-read semantics hold. *)
+  else (lbl, decompose_node_shaped env v)
 
 (* Decompose the body of a render callback, walking past its parameters (and
    the uncurried `Function$` wrapper) to the node-position body. *)
