@@ -69,10 +69,17 @@ async function buildApp(app) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  for (const app of APPS) {
+  /* `--apps xote` keeps CI from rebuilding the three pinned frameworks. */
+  const args = process.argv.slice(2);
+  const appsFlag = args.indexOf("--apps");
+  const selected = appsFlag === -1 ? APPS : args[appsFlag + 1].split(",");
+
+  for (const app of selected) {
+    if (!APPS.includes(app)) throw new Error(`Unknown app: ${app}`);
     await buildApp(app);
   }
-  console.log("\nAll apps built into benchmarks/dist/");
+
+  console.log(`\nBuilt ${selected.join(", ")} into benchmarks/dist/`);
 }
 
 export { buildApp };

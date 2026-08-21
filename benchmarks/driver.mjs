@@ -7,25 +7,32 @@
  * is the framework doing the work.
  *
  * Usage:
- *   node driver.mjs [--iterations N] [--warmup N] [--apps xote,react] [--headed]
+ *   node driver.mjs [--iterations N] [--warmup N] [--apps xote,react]
+ *                   [--out <dir>] [--headed]
  */
 
-import { createReadStream } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
 import { readdir, readFile, mkdir, writeFile, stat } from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { brotliCompressSync, gzipSync } from "node:zlib";
-import { chromium } from "playwright-core";
+import { chromium } from "playwright";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(here, "dist");
-const resultsDir = path.join(here, "results");
 
-/* Chromium shipped with the environment; Playwright's own download is skipped. */
-const CHROME_PATH =
-  process.env.BENCH_CHROME_PATH ??
-  "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+/*
+ * Chromium: an explicit override wins, then the browser this dev environment
+ * ships, and otherwise Playwright resolves the one it installed (which is how
+ * CI runs it).
+ */
+export function resolveChromePath() {
+  if (process.env.BENCH_CHROME_PATH) return process.env.BENCH_CHROME_PATH;
+
+  const preinstalled = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+  return existsSync(preinstalled) ? preinstalled : undefined;
+}
 
 const CHROME_ARGS = [
   "--no-sandbox",
@@ -51,6 +58,9 @@ const APP_LABELS = {
   vue: "Vue",
   solid: "Solid",
 };
+
+/* CI adds variants like `xote-base`, which have no entry above. */
+const labelFor = (app) => APP_LABELS[app] ?? app;
 
 /*
  * Benchmark definitions.
@@ -285,44 +295,69 @@ async function newPage(browser, url) {
   return page;
 }
 
-async function runBenchmark(browser, url, benchmark, options) {
-  const page = await newPage(browser, url);
-  const samples = { commit: [], painted: [] };
+async function runIteration(page, benchmark) {
+  /* A backgrounded tab gets its rAF throttled, which would wreck the timing. */
+  await page.bringToFront();
+
+  await page.evaluate(async () => {
+    await window.__bench.click("#clear");
+  });
+
+  for (const selector of benchmark.setup) {
+    await page.evaluate(async (sel) => await window.__bench.click(sel), selector);
+  }
+
+  return await page.evaluate(
+    async (sel) => await window.__bench.measure(sel),
+    benchmark.target,
+  );
+}
+
+/*
+ * Runs one benchmark across every app, interleaved iteration by iteration.
+ *
+ * Position within a round costs far more than any difference between the apps:
+ * on a shared runner the app measured first pays up to 2.5x on the
+ * allocation-heavy benchmarks. Alternating the order every iteration spreads
+ * that penalty evenly instead of charging it to whichever app is listed first.
+ */
+async function runBenchmark(browser, apps, urlFor, benchmark, options) {
+  const pages = new Map();
+  const samples = new Map();
+
+  for (const app of apps) {
+    pages.set(app, await newPage(browser, urlFor(app)));
+    samples.set(app, { commit: [], painted: [] });
+  }
 
   try {
     for (let i = 0; i < options.warmup + options.iterations; i++) {
-      await page.evaluate(async () => {
-        await window.__bench.click("#clear");
-      });
+      const order = i % 2 === 0 ? apps : [...apps].reverse();
 
-      for (const selector of benchmark.setup) {
-        await page.evaluate(
-          async (sel) => await window.__bench.click(sel),
-          selector,
-        );
-      }
+      for (const app of order) {
+        const result = await runIteration(pages.get(app), benchmark);
+        assertState(result.state, benchmark.expect, `${app} ${benchmark.id}`);
 
-      const result = await page.evaluate(
-        async (sel) => await window.__bench.measure(sel),
-        benchmark.target,
-      );
-
-      assertState(result.state, benchmark.expect, `${benchmark.id}`);
-
-      if (i >= options.warmup) {
-        samples.commit.push(result.commit);
-        samples.painted.push(result.painted);
+        if (i >= options.warmup) {
+          samples.get(app).commit.push(result.commit);
+          samples.get(app).painted.push(result.painted);
+        }
       }
     }
   } finally {
-    await page.close();
+    for (const page of pages.values()) await page.close();
   }
 
-  return {
-    commit: summarize(samples.commit),
-    painted: summarize(samples.painted),
-    samples,
-  };
+  return new Map(
+    [...samples].map(([app, taken]) => [
+      app,
+      {
+        commit: summarize(taken.commit),
+        painted: summarize(taken.painted),
+        samples: taken,
+      },
+    ]),
+  );
 }
 
 function summarize(values) {
@@ -411,7 +446,7 @@ function relativeRow(apps, values) {
 
 function renderMarkdown(report) {
   const apps = report.apps;
-  const head = `| Benchmark | ${apps.map((a) => APP_LABELS[a]).join(" | ")} |`;
+  const head = `| Benchmark | ${apps.map((a) => labelFor(a)).join(" | ")} |`;
   const rule = `| --- | ${apps.map(() => "---").join(" | ")} |`;
   const lines = [];
 
@@ -424,7 +459,7 @@ function renderMarkdown(report) {
     `${report.options.iterations} measured iterations per benchmark (${report.options.warmup} warmup), median reported. Lower is better; the multiplier is relative to the fastest framework in the row.`,
   );
   lines.push("");
-  lines.push(`Framework versions: ${apps.map((a) => `${APP_LABELS[a]} ${report.versions[a]}`).join(", ")}.`);
+  lines.push(`Framework versions: ${apps.map((a) => `${labelFor(a)} ${report.versions[a]}`).join(", ")}.`);
   lines.push("");
 
   lines.push(`## Operations — commit time (ms)`);
@@ -509,14 +544,22 @@ function renderMarkdown(report) {
 /* ------------------------------------------------------------------ */
 
 function parseArgs(argv) {
-  const options = { iterations: 15, warmup: 3, apps: ALL_APPS, headed: false };
+  const options = {
+    iterations: 15,
+    warmup: 3,
+    apps: ALL_APPS,
+    headed: false,
+    out: path.join(here, "results"),
+  };
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--iterations") options.iterations = Number(argv[++i]);
     else if (arg === "--warmup") options.warmup = Number(argv[++i]);
     else if (arg === "--apps") options.apps = argv[++i].split(",");
+    else if (arg === "--out") options.out = path.resolve(argv[++i]);
     else if (arg === "--headed") options.headed = true;
+    else throw new Error(`Unknown option: ${arg}`);
   }
 
   return options;
@@ -528,14 +571,18 @@ async function readVersions(apps) {
     JSON.parse(await readFile(path.join(here, "node_modules", name, "package.json"), "utf8"))
       .version;
 
+  const xoteVersion = async () => {
+    const pkg = JSON.parse(await readFile(path.join(here, "..", "package.json"), "utf8"));
+    return `${pkg.version} (this checkout)`;
+  };
+
   for (const app of apps) {
     if (app === "react") versions[app] = await dep("react-dom");
     else if (app === "vue") versions[app] = await dep("vue");
     else if (app === "solid") versions[app] = await dep("solid-js");
-    else if (app === "xote") {
-      const pkg = JSON.parse(await readFile(path.join(here, "..", "package.json"), "utf8"));
-      versions[app] = `${pkg.version} (this checkout)`;
-    }
+    else if (app === "xote") versions[app] = await xoteVersion();
+    /* CI variants (`xote-base`) are built elsewhere; the runner labels them. */
+    else versions[app] = process.env[`BENCH_VERSION_${app.replaceAll("-", "_")}`] ?? "unknown";
   }
 
   return versions;
@@ -546,8 +593,9 @@ async function main() {
   const { server, port } = await startServer(distDir);
   const os = await import("node:os");
 
+  const executablePath = resolveChromePath();
   const browser = await chromium.launch({
-    executablePath: CHROME_PATH,
+    ...(executablePath ? { executablePath } : {}),
     headless: !options.headed,
     args: CHROME_ARGS,
   });
@@ -571,30 +619,36 @@ async function main() {
     payload: {},
   };
 
-  try {
-    for (const app of options.apps) {
-      const url = `http://127.0.0.1:${port}/${app}/index.html`;
-      report.results[app] = {};
+  const urlFor = (app) => `http://127.0.0.1:${port}/${app}/index.html`;
+  const pad = Math.max(...options.apps.map((app) => app.length));
 
-      for (const benchmark of BENCHMARKS) {
-        process.stdout.write(`${app.padEnd(6)} ${benchmark.id.padEnd(16)} `);
-        const result = await runBenchmark(browser, url, benchmark, options);
+  try {
+    for (const app of options.apps) report.results[app] = {};
+
+    for (const benchmark of BENCHMARKS) {
+      const perApp = await runBenchmark(browser, options.apps, urlFor, benchmark, options);
+
+      for (const [app, result] of perApp) {
         report.results[app][benchmark.id] = result;
         console.log(
-          `commit ${ms(result.commit.median)}ms  painted ${ms(result.painted.median)}ms`,
+          `${app.padEnd(pad)} ${benchmark.id.padEnd(16)} commit ${ms(
+            result.commit.median,
+          )}ms  painted ${ms(result.painted.median)}ms`,
         );
       }
+    }
 
-      process.stdout.write(`${app.padEnd(6)} startup          `);
-      report.startup[app] = await measureStartup(browser, url, {
+    for (const app of options.apps) {
+      process.stdout.write(`${app.padEnd(pad)} startup          `);
+      report.startup[app] = await measureStartup(browser, urlFor(app), {
         ...options,
         iterations: Math.min(options.iterations, 8),
         warmup: 1,
       });
       console.log(`${ms(report.startup[app].median)}ms`);
 
-      process.stdout.write(`${app.padEnd(6)} memory           `);
-      report.memory[app] = await measureMemory(browser, url);
+      process.stdout.write(`${app.padEnd(pad)} memory           `);
+      report.memory[app] = await measureMemory(browser, urlFor(app));
       console.log(`${kb(report.memory[app].rows1k)}KB @1k rows`);
 
       report.payload[app] = await measurePayload(app);
@@ -604,17 +658,20 @@ async function main() {
     server.close();
   }
 
-  await mkdir(resultsDir, { recursive: true });
+  await mkdir(options.out, { recursive: true });
   await writeFile(
-    path.join(resultsDir, "results.json"),
+    path.join(options.out, "results.json"),
     JSON.stringify(report, null, 2),
   );
 
   const markdown = renderMarkdown(report);
-  await writeFile(path.join(resultsDir, "RESULTS.md"), markdown);
+  await writeFile(path.join(options.out, "RESULTS.md"), markdown);
 
   console.log(`\n${markdown}`);
-  console.log(`Written to benchmarks/results/`);
+  console.log(`Written to ${path.relative(process.cwd(), options.out) || options.out}/`);
 }
 
-await main();
+/* `dom-ops.mjs` imports resolveChromePath from here, so only run as an entry. */
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await main();
+}

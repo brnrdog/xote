@@ -5,24 +5,38 @@
  * framework is slower; this says why — a reconciler doing 997 node moves for a
  * two-row swap shows up here long before it shows up in a flame chart.
  *
- * Usage: node dom-ops.mjs   (run `node build.mjs` first)
+ * Unlike the timings, these counts are deterministic — the same build always
+ * makes the same calls — which is what makes them usable as a CI signal.
+ *
+ * Usage: node dom-ops.mjs [--apps xote,xote-base] [--json <path>]
+ *        (run `node build.mjs` first)
  */
 
 import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright-core";
+import { chromium } from "playwright";
+import { resolveChromePath } from "./driver.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(here, "dist");
 
-const CHROME_PATH =
-  process.env.BENCH_CHROME_PATH ??
-  "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+function parseArgs(argv) {
+  const options = { apps: ["xote", "react", "vue", "solid"], jsonPath: null };
 
-const APPS = ["xote", "react", "vue", "solid"];
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--apps") options.apps = argv[++i].split(",");
+    else if (arg === "--json") options.jsonPath = path.resolve(argv[++i]);
+    else throw new Error(`Unknown option: ${arg}`);
+  }
+
+  return options;
+}
+
+const { apps: APPS, jsonPath } = parseArgs(process.argv.slice(2));
 
 const OPERATIONS = [
   { name: "create 1k", setup: ["#clear"], target: "#run" },
@@ -93,8 +107,9 @@ async function startServer(root) {
 
 const { server, port } = await startServer(distDir);
 
+const executablePath = resolveChromePath();
 const browser = await chromium.launch({
-  executablePath: CHROME_PATH,
+  ...(executablePath ? { executablePath } : {}),
   args: ["--no-sandbox", "--disable-dev-shm-usage"],
 });
 
@@ -126,6 +141,8 @@ for (const app of APPS) {
 await browser.close();
 server.close();
 
+const pad = Math.max(...APPS.map((app) => app.length));
+
 for (const [operation, perApp] of Object.entries(table)) {
   console.log(`\n${operation}`);
   for (const app of APPS) {
@@ -135,6 +152,15 @@ for (const [operation, perApp] of Object.entries(table)) {
       .sort((a, b) => b[1] - a[1])
       .map(([name, count]) => `${name}=${count}`)
       .join(" ");
-    console.log(`  ${app.padEnd(6)} ${String(total).padStart(6)} calls   ${detail}`);
+    console.log(`  ${app.padEnd(pad)} ${String(total).padStart(6)} calls   ${detail}`);
   }
+}
+
+if (jsonPath) {
+  await mkdir(path.dirname(jsonPath), { recursive: true });
+  await writeFile(
+    jsonPath,
+    `${JSON.stringify({ apps: APPS, operations: table }, null, 2)}\n`,
+  );
+  console.log(`\nWritten to ${path.relative(process.cwd(), jsonPath) || jsonPath}`);
 }
