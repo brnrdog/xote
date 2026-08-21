@@ -182,6 +182,76 @@ let suite = Zekr.suite(
       Signal.set(items, [])
       assertEqual(getItemTexts(container), [])
     }),
+    test("reorders and replaces an item in one update", () => {
+      let {container} = Dom.render("")
+      let apple = {id: "1", label: "Apple"}
+      let banana = {id: "2", label: "Banana"}
+      let cherry = {id: "3", label: "Cherry"}
+      let items = Signal.make([apple, banana, cherry])
+      let _ = mountTo(
+        Html.div(
+          ~children=[
+            Html.ul(
+              ~children=[
+                View.eachWithKey(
+                  items,
+                  item => item.id,
+                  item => Html.li(~children=[View.text(item.label)], ()),
+                ),
+              ],
+              (),
+            ),
+          ],
+          (),
+        ),
+        container,
+      )
+      /* The replaced key's element is retired where it lives, not wherever the
+         ordering pass happens to point: a reorder in the same update used to
+         leave the old element behind as a duplicate. */
+      Signal.set(items, [cherry, {id: "2", label: "Blueberry"}, apple])
+      assertEqual(getItemTexts(container), ["Cherry", "Blueberry", "Apple"])
+    }),
+    test("keeps untouched rows reactive across a reorder + replace", () => {
+      let {container} = Dom.render("")
+      let theme = Signal.make("light")
+      let apple = {id: "1", label: "Apple"}
+      let banana = {id: "2", label: "Banana"}
+      let cherry = {id: "3", label: "Cherry"}
+      let items = Signal.make([apple, banana, cherry])
+      let _ = mountTo(
+        Html.div(
+          ~children=[
+            Html.ul(
+              ~children=[
+                View.eachWithKey(
+                  items,
+                  item => item.id,
+                  item =>
+                    Html.li(
+                      ~attrs=[View.signalAttr("class", theme)],
+                      ~children=[View.text(item.label)],
+                      (),
+                    ),
+                ),
+              ],
+              (),
+            ),
+          ],
+          (),
+        ),
+        container,
+      )
+      Signal.set(items, [cherry, {id: "2", label: "Blueberry"}, apple])
+      Signal.set(theme, "dark")
+      /* A row whose owner is disposed while it is still mounted stops updating,
+         so this reads the class of every surviving row. */
+      let classes =
+        Zekr.Dom.Query.findAllByRole(container, "listitem")->Array.map(el =>
+          Zekr__DomBindings.getAttribute(el, "class")->Nullable.toOption->Option.getOr("")
+        )
+      assertEqual(classes, ["dark", "dark", "dark"])
+    }),
     test("handles rapid successive updates", () => {
       let {container} = Dom.render("")
       let items = Signal.make([{id: "1", label: "A"}])
