@@ -95,20 +95,17 @@ module Attr = {
 /* Text nodes */
 let text = (content: string): node => Text(content)
 
-let signalText = (compute: unit => string): node => {
-  let signal = Computed.make(compute)
-  SignalText(signal)
-}
+let signalText = (compute: unit => string): node => SignalText(
+  RuntimeOwner.ownedComputed(compute),
+)
 
-let signalInt = (compute: unit => int): node => {
-  let signal = Computed.make(() => compute()->Int.toString)
-  SignalText(signal)
-}
+let signalInt = (compute: unit => int): node => SignalText(
+  RuntimeOwner.ownedComputed(() => compute()->Int.toString),
+)
 
-let signalFloat = (compute: unit => float): node => {
-  let signal = Computed.make(() => compute()->Float.toString)
-  SignalText(signal)
-}
+let signalFloat = (compute: unit => float): node => SignalText(
+  RuntimeOwner.ownedComputed(() => compute()->Float.toString),
+)
 
 /* Static text nodes with type-specific helpers */
 let int = (value: int): node => Text(Int.toString(value))
@@ -126,7 +123,9 @@ let signalFragment = (signal: Signal.t<array<node>>): node => SignalFragment(sig
    the block, which re-evaluates `body` and replaces its children wholesale
    (no diffing) whenever a dependency changes. Prefer `eachWithKey`/`For` for
    lists and keep tracked blocks small. */
-let tracked = (body: unit => node): node => SignalFragment(Computed.make(() => [body()]))
+let tracked = (body: unit => node): node => SignalFragment(
+  RuntimeOwner.ownedComputed(() => [body()]),
+)
 
 let childrenToArray = (child: option<node>): array<node> => {
   switch child {
@@ -138,7 +137,7 @@ let childrenToArray = (child: option<node>): array<node> => {
 
 /* Lists */
 let each = (signal: Signal.t<array<'a>>, renderItem: 'a => node): node => {
-  let nodesSignal = Computed.make(() => {
+  let nodesSignal = RuntimeOwner.ownedComputed(() => {
     Signal.get(signal)->Array.map(renderItem)
   })
   SignalFragment(nodesSignal)
@@ -212,7 +211,7 @@ module Show = {
     | Static(false) => fragment(childrenToArray(props.fallback))
     | Reactive(signal) =>
       signalFragment(
-        Computed.make(() =>
+        RuntimeOwner.ownedComputed(() =>
           if Signal.get(signal) {
             childrenToArray(props.children)
           } else {
@@ -241,7 +240,8 @@ module Maybe = {
   let make = (props: props<'value>): node => {
     switch props.value {
     | Static(value) => fragment(renderValue(props, value))
-    | Reactive(signal) => signalFragment(Computed.make(() => renderValue(props, Signal.get(signal))))
+    | Reactive(signal) =>
+      signalFragment(RuntimeOwner.ownedComputed(() => renderValue(props, Signal.get(signal))))
     }
   }
 }
@@ -255,7 +255,8 @@ module Value = {
   let make = (props: props<'value>): node => {
     switch props.value {
     | Static(value) => props.render(value)
-    | Reactive(signal) => signalFragment(Computed.make(() => [props.render(Signal.get(signal))]))
+    | Reactive(signal) =>
+      signalFragment(RuntimeOwner.ownedComputed(() => [props.render(Signal.get(signal))]))
     }
   }
 }
@@ -293,9 +294,11 @@ let valuePrimitive = (value: 'input, stringify: 'value => string): node =>
   if RuntimeValue.isNullish(value) {
     null()
   } else {
+    /* `map` always allocates a fresh computed over the source, so the result is
+       the library's to release even when the source signal is the consumer's. */
     switch MaybeSignal.ofUnknown(value)->MaybeSignal.map(stringify) {
     | Static(value) => text(value)
-    | Reactive(signal) => SignalText(signal)
+    | Reactive(signal) => SignalText(RuntimeOwner.markOwned(signal))
     }
   }
 
@@ -437,23 +440,25 @@ let rec child = (value: 'a): node => {
       null()
     } else if RuntimeValue.isFunction(value) {
       let compute: unit => 'b = Obj.magic(value)
-      let signal = Computed.make(compute)
-      if isScalar(Signal.peek(signal)) {
+      /* The thunk's first result decides the shape. That probe read is
+         untracked and thrown away — it asks what the leaf *is*, and must not
+         subscribe anything on its own. */
+      if isScalar(Signal.untrack(compute)) {
         /* scalar-first thunk: a reactive text node. ReScript typing keeps a
            scalar thunk scalar, so locking text mode here is safe. */
-        SignalText(Computed.make(() => stringifyChild(Signal.get(signal))))
+        SignalText(RuntimeOwner.ownedComputed(() => stringifyChild(compute())))
       } else {
         /* node-, array-, option- or otherwise object-first thunk: a tracked
            fragment that re-coerces the result on *every* run, so thunks over
            `option<node>` (None first, Some(node) later) and array-returning
            thunks stay correct instead of being locked into text mode by
            their first value. */
-        SignalFragment(Computed.make(() => [child(Obj.magic(Signal.get(signal)))]))
+        SignalFragment(RuntimeOwner.ownedComputed(() => [child(Obj.magic(compute()))]))
       }
     } else if RuntimeValue.isObject(value) {
       if isSignal(value) {
         let signal: Signal.t<'b> = Obj.magic(value)
-        SignalText(Computed.make(() => stringifyChild(Signal.get(signal))))
+        SignalText(RuntimeOwner.ownedComputed(() => stringifyChild(Signal.get(signal))))
       } else if isArray(value) {
         let items: array<'b> = Obj.magic(value)
         Fragment(items->Array.map(item => child(item)))

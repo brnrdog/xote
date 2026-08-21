@@ -146,6 +146,69 @@ let suite = Zekr.suite(
       Signal.set(ticks, 2)
       combineResults([assertEqual(live, 2), assertEqual(runs.contents, 2)])
     }),
+    test("a tracked block releases the leaf computeds it rebuilds", () => {
+      let {container} = Dom.render("")
+      let visible = Signal.make(true)
+      let counter = Signal.make(0)
+      let _ = mountTo(
+        Html.div(
+          ~children=[
+            View.tracked(() =>
+              if Signal.get(visible) {
+                Html.span(
+                  ~children=[View.signalText(() => Signal.get(counter)->Int.toString)],
+                  (),
+                )
+              } else {
+                View.null()
+              }
+            ),
+          ],
+          (),
+        ),
+        container,
+      )
+      let mounted = subscriberCount(counter)
+      /* Each rebuild used to leave its leaf computed linked to `counter`, so
+         the subscriber list grew for as long as the block kept toggling. */
+      [1, 2, 3, 4, 5]->Array.forEach(_ => {
+        Signal.set(visible, false)
+        Signal.set(visible, true)
+      })
+      let afterToggles = subscriberCount(counter)
+      Signal.set(visible, false)
+      combineResults([
+        assertEqual(mounted, 1),
+        assertEqual(afterToggles, 1),
+        assertEqual(subscriberCount(counter), 0),
+      ])
+    }),
+    test("a computed the consumer built is left alone", () => {
+      let {container} = Dom.render("")
+      let visible = Signal.make(true)
+      let counter = Signal.make(1)
+      let doubled = Computed.make(() => Signal.get(counter) * 2)
+      let _ = mountTo(
+        Html.div(
+          ~children=[
+            View.tracked(() =>
+              if Signal.get(visible) {
+                Html.span(~children=[View.child(doubled)], ())
+              } else {
+                View.null()
+              }
+            ),
+          ],
+          (),
+        ),
+        container,
+      )
+      Signal.set(visible, false)
+      Signal.set(counter, 5)
+      /* Only the computeds the library allocated for the node are released;
+         this one belongs to the caller and still tracks its source. */
+      assertEqual(Signal.get(doubled), 10)
+    }),
     test("a component's root element releases its attribute effect on unmount", () => {
       let {container} = Dom.render("")
       let visible = Signal.make(true)

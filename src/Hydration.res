@@ -162,6 +162,7 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
       | Some(textNode) => {
           let owner = RuntimeOwner.createOwner()
           RuntimeOwner.setOwner(textNode, owner)
+          RuntimeRender.ownComputed(owner, signal)
 
           RuntimeOwner.runWithOwner(owner, () =>
             Effect.run(() => {
@@ -218,6 +219,7 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
       /* Set up reactivity */
       let owner = RuntimeOwner.createOwner()
       RuntimeOwner.setOwner(container, owner)
+      RuntimeRender.ownComputed(owner, signal)
       let keyedItems: Dict.t<RuntimeRender.keyedItem<Obj.t>> = Dict.make()
       let initialized = ref(false)
 

@@ -19,9 +19,13 @@ let toBoolAttr = (key: string, value: 'a): (string, View.attrValue) =>
     let compute: unit => bool = Obj.magic(value)
     View.computedAttr(key, () => RuntimeAttr.boolToString(compute()))
   } else {
-    switch MaybeSignal.ofUnknown(value)->MaybeSignal.map(RuntimeAttr.boolToString) {
-    | Static(value) => View.attr(key, value)
-    | Reactive(signal) => View.signalAttr(key, signal)
+    /* Read the source through a thunk rather than mapping it: a mapped signal
+       would allocate a computed per boolean attribute that outlives the
+       element, where `Compute` is read inside the attribute's own effect. */
+    switch MaybeSignal.ofUnknown(value) {
+    | Static(value) => View.attr(key, RuntimeAttr.boolToString(value))
+    | Reactive(signal) =>
+      View.computedAttr(key, () => RuntimeAttr.boolToString(Signal.get(signal)))
     }
   }
 
