@@ -163,13 +163,12 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
           let owner = RuntimeOwner.createOwner()
           RuntimeOwner.setOwner(textNode, owner)
 
-          RuntimeOwner.runWithOwner(owner, () => {
-            let disposer = Effect.runWithDisposer(() => {
+          RuntimeOwner.runWithOwner(owner, () =>
+            Effect.run(() => {
               RuntimeDom.setTextContent(textNode, Signal.get(signal))
               None
             })
-            RuntimeOwner.addDisposer(owner, disposer)
-          })
+          )
 
           /* Skip end marker */
           let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.signalTextEndContent)
@@ -222,8 +221,8 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
       let keyedItems: Dict.t<RuntimeRender.keyedItem<Obj.t>> = Dict.make()
       let initialized = ref(false)
 
-      RuntimeOwner.runWithOwner(owner, () => {
-        let disposer = Effect.runWithDisposer(() => {
+      RuntimeOwner.runWithOwner(owner, () =>
+        Effect.run(() => {
           let children = Signal.get(signal)
 
           switch RuntimeRender.getKeyedChildren(children) {
@@ -268,8 +267,7 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
 
           None
         })
-        RuntimeOwner.addDisposer(owner, disposer)
-      })
+      )
     }
 
   | View.Keyed({child, key: _, identity: _}) => hydrateNodeWithWalker(child, walker)
@@ -285,15 +283,11 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
           attrs->Array.forEach(((key, value)) => {
             switch RuntimeNode.resolveAttr(value) {
             | RuntimeNode.ReadStatic(_) => ()
-            | RuntimeNode.ReadReactive(read) => {
-                let disposer = Effect.runWithDisposer(
-                  () => {
-                    RuntimeDom.setAttrOrProp(domNode, key, read())
-                    None
-                  },
-                )
-                RuntimeOwner.addDisposer(owner, disposer)
-              }
+            | RuntimeNode.ReadReactive(read) =>
+              Effect.run(() => {
+                RuntimeDom.setAttrOrProp(domNode, key, read())
+                None
+              })
             }
           })
 

@@ -39,6 +39,19 @@ module ThemedRoot = {
   let make = (~theme: Signal.t<string>) => <span class={theme} id="themed" />
 }
 
+/* An effect set up while a component renders belongs to that component. */
+module Ticker = {
+  @jsx.component
+  let make = (~ticks: Signal.t<int>, ~runs: ref<int>) => {
+    Effect.run(() => {
+      runs := runs.contents + 1
+      let _ = Signal.get(ticks)
+      None
+    })
+    <span class="ticker" />
+  }
+}
+
 let suite = Zekr.suite(
   "Ownership",
   [
@@ -86,6 +99,52 @@ let suite = Zekr.suite(
           "0",
         ),
       ])
+    }),
+    test("an effect created in a component body is disposed with the component", () => {
+      let {container} = Dom.render("")
+      let visible = Signal.make(true)
+      let ticks = Signal.make(0)
+      let runs = ref(0)
+      let _ = mountTo(
+        <div>
+          <View.Show when_={MaybeSignal.reactive(visible)}>
+            <Ticker ticks={ticks} runs={runs} />
+          </View.Show>
+        </div>,
+        container,
+      )
+      /* Remounting used to stack a new effect on top of every previous one. */
+      Signal.set(visible, false)
+      Signal.set(visible, true)
+      Signal.set(visible, false)
+      Signal.set(visible, true)
+      let mounted = subscriberCount(ticks)
+      let before = runs.contents
+      Signal.set(ticks, 1)
+      let afterOneWrite = runs.contents - before
+      Signal.set(visible, false)
+      let stopped = runs.contents
+      Signal.set(ticks, 2)
+      combineResults([
+        assertEqual(mounted, 1),
+        assertEqual(afterOneWrite, 1),
+        assertEqual(runs.contents, stopped),
+        assertEqual(subscriberCount(ticks), 0),
+      ])
+    }),
+    test("an effect created outside a render is not owned by anything", () => {
+      let ticks = Signal.make(0)
+      let runs = ref(0)
+      let disposer = Effect.runWithDisposer(() => {
+        runs := runs.contents + 1
+        let _ = Signal.get(ticks)
+        None
+      })
+      Signal.set(ticks, 1)
+      let live = runs.contents
+      disposer.dispose()
+      Signal.set(ticks, 2)
+      combineResults([assertEqual(live, 2), assertEqual(runs.contents, 2)])
     }),
     test("a component's root element releases its attribute effect on unmount", () => {
       let {container} = Dom.render("")
