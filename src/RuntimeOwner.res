@@ -22,6 +22,15 @@ let addDisposer = (owner: owner, disposer: Effect.disposer): unit => {
   owner.disposers->Array.push(disposer)->ignore
 }
 
+/* Fold `source` into `target`. One DOM node can be the root of more than one
+   scope — a component's own scope and the element it returns — and the second
+   `setOwner` would otherwise overwrite the first, dropping its disposers on the
+   floor instead of running them when the node goes away. */
+let absorb = (target: owner, source: owner): unit => {
+  source.disposers->Array.forEach(disposer => target.disposers->Array.push(disposer)->ignore)
+  source.computeds->Array.forEach(computed => target.computeds->Array.push(computed)->ignore)
+}
+
 let disposeOwner = (owner: owner): unit => {
   owner.disposers->Array.forEach(disposer => disposer.dispose())
 
@@ -40,3 +49,10 @@ let readOwner: Dom.element => Nullable.t<owner> = %raw(`function (element) {
 }`)
 
 let getOwner = (element: Dom.element): option<owner> => readOwner(element)->Nullable.toOption
+
+/* Attach without clobbering: merge into whatever scope the node already carries. */
+let attachOwner = (element: Dom.element, owner: owner): unit =>
+  switch getOwner(element) {
+  | Some(existing) => absorb(existing, owner)
+  | None => setOwner(element, owner)
+  }
