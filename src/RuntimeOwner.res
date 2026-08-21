@@ -22,6 +22,16 @@ let addDisposer = (owner: owner, disposer: Effect.disposer): unit => {
   owner.disposers->Array.push(disposer)->ignore
 }
 
+/* Registers a `Computed` with the active owner (if any) so it is disposed with
+ the owner. Used by `MaybeSignal.computed` and `MaybeSignal.map`; a no-op outside
+ a component render. */
+let trackComputed = (computed: Signal.t<'a>): unit => {
+  switch currentOwner.contents {
+  | Some(owner) => owner.computeds->Array.push(Obj.magic(computed))->ignore
+  | None => ()
+  }
+}
+
 let disposeOwner = (owner: owner): unit => {
   owner.disposers->Array.forEach(disposer => disposer.dispose())
 

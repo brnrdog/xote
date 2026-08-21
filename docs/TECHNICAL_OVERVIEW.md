@@ -126,11 +126,11 @@ SSR mirrors the same behavior when rendering strings: boolean attributes render 
 type t<'a> = Reactive(Signal.t<'a>) | Static('a)
 ```
 
-Build one with `MaybeSignal.static(value)`, `MaybeSignal.reactive(signal)`, or `MaybeSignal.computed(fn)` when an API should support either static or reactive input. Read it with `MaybeSignal.get` (tracked) or `MaybeSignal.peek` (untracked); `MaybeSignal.map` maps it while preserving staticness, and `MaybeSignal.isStatic`/`isReactive` classify it.
+Build one with `MaybeSignal.static(value)`, `MaybeSignal.reactive(signal)`, or `MaybeSignal.computed(fn)` when an API should support either static or reactive input. Read it with `MaybeSignal.get` (tracked) or `MaybeSignal.peek` (untracked); `MaybeSignal.map` maps it while preserving staticness; `MaybeSignal.isStatic`/`isReactive` classify it; and `MaybeSignal.fold(value, ~static, ~reactive)` is the single total branch over the two cases. `View.render(value, renderItem)` applies the same branch at the node level, producing a plain node for `Static` and a `SignalFragment` for `Reactive` — `View.Show`/`Maybe`/`Value` are built on it.
 
 Wrapping is only required where a prop has a declared type — `View.Show`, `View.For`, `View.Maybe`, `View.Value`, and user-written components. Built-in element attributes and `View.Text`/`Int`/`Float`/`Bool` take untyped values and coerce them at runtime, so a raw signal or thunk can be passed straight through.
 
-Two sharp edges worth knowing: `MaybeSignal.map` runs its function once immediately and, for reactive values, leaves a `Computed` subscribed to the source until `Computed.dispose`; and `MaybeSignal.toSignal` lifts a `Static` into a fresh detached signal, so writes to the result do not reach the original.
+Two sharp edges worth knowing: `MaybeSignal.map` runs its function once immediately and, for reactive values, leaves a `Computed` subscribed to the source — inside a component that `Computed` is registered with the active owner and disposed on unmount, while outside one it must be `Computed.dispose`d by hand; and `MaybeSignal.toSignal` returns `Some(source signal)` for `Reactive` but `None` for `Static`, because a plain value has no underlying signal (use `fold` to lift one explicitly when you need a uniform `Signal.t`).
 
 `Xote.Prop` is a deprecated alias of `Xote.MaybeSignal`. `Prop.t` is a type alias of `MaybeSignal.t` with the same constructors and runtime representation, so the two are interchangeable and migrating is a rename. The deprecations are declared in `src/Prop.resi`, because ReScript only reports warning 3 for values declared in an interface file. `XoteJSX.Prop` and `Router.Link.Prop` re-export the deprecated module, so those paths warn as well.
 
