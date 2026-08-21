@@ -559,5 +559,30 @@ check('no warning from any other case', warnings.every((w) => /Demo\.res:(525|53
 
 console.warn = realWarn;
 
+// --- Disposal under the scheduler: a replaced branch stays dead --------------
+// One write to `branchOn` swaps the branch AND schedules the class leaf (its
+// computed chain orders it after the region effect). The region disposes the
+// leaf mid-flush; the leaf's leftover queued run must stay a no-op instead of
+// re-tracking its dependencies and resurrecting the effect.
+console.log('a replaced branch leaf stays disposed (no zombie effects):');
+const subscriberCount = (signal) => {
+  let count = 0, link = signal.subs.first;
+  while (link) { count++; link = link.nextSub; }
+  return count;
+};
+const zb = mount(() => Demo.DisposedBranch.make({}));
+const zbSpan = zb.querySelector('#disposed-leaf');
+check('branch leaf mounted with class "on"', zbSpan !== null && zbSpan.className === 'on');
+for (let i = 0; i < 5; i++) {
+  Signal.set(Demo.branchOn, false);
+  Signal.set(Demo.branchOn, true);
+}
+check('after 5 swap cycles only the live leaf subscribes to the chain',
+  subscriberCount(Demo.branchChainB) === 1);
+check('the first (disposed) leaf froze at its last live value',
+  zbSpan.className === 'on');
+Signal.set(Demo.branchOn, false);
+check('swapped away: no leaf subscribes', subscriberCount(Demo.branchChainB) === 0);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

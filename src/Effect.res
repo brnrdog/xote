@@ -8,10 +8,46 @@
 
 type disposer = Signals.Effect.disposer = {dispose: unit => unit}
 
+/* The scheduler's pending queue holds a plain reference to the observer, so an
+   effect disposed while it is queued — a region effect replacing its children
+   disposes the leaf effects inside, and a leaf scheduled by the same write is
+   still waiting its turn — gets one more run after disposal. Upstream, that run
+   re-tracks the effect's dependencies, which relinks the disposed effect to its
+   sources: it comes back from the dead and re-runs on every later write,
+   accumulating one resurrected effect per replacement.
+
+   The body is therefore guarded here: after disposal it reads nothing, so the
+   scheduler's stale-dependency sweep unlinks whatever that last run would have
+   re-tracked, and the effect stays dead. Cleanup is managed on this side of the
+   guard for the same reason — upstream re-runs the previous cleanup before the
+   post-disposal run, which would run a cleanup the disposer already ran. */
 let runWithDisposer = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer => {
-  let disposer = Signals.Effect.runWithDisposer(fn, ~name?)
-  RuntimeOwner.track(RuntimeOwner.addDisposer, disposer.dispose)
-  disposer
+  let disposed = ref(false)
+  let cleanup: ref<option<unit => unit>> = ref(None)
+  let runCleanup = () =>
+    switch cleanup.contents {
+    | Some(run) => {
+        cleanup := None
+        run()
+      }
+    | None => ()
+    }
+  let guarded = () => {
+    if !disposed.contents {
+      runCleanup()
+      cleanup := fn()
+    }
+    None
+  }
+  let inner = Signals.Effect.runWithDisposer(guarded, ~name?)
+  let dispose = () =>
+    if !disposed.contents {
+      disposed := true
+      runCleanup()
+      inner.dispose()
+    }
+  RuntimeOwner.track(RuntimeOwner.addDisposer, dispose)
+  {dispose: dispose}
 }
 
 let run = (fn: unit => option<unit => unit>, ~name: option<string>=?): unit => {
