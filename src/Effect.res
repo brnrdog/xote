@@ -23,27 +23,33 @@ type disposer = Signals.Effect.disposer = {dispose: unit => unit}
    post-disposal run, which would run a cleanup the disposer already ran. */
 let runWithDisposer = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer => {
   let disposed = ref(false)
-  let cleanup: ref<option<unit => unit>> = ref(None)
-  let runCleanup = () =>
-    switch cleanup.contents {
-    | Some(run) => {
-        cleanup := None
-        run()
+  /* Upstream keeps storing the cleanup; taking that bookkeeping over here
+     would cost a ref and a closure on *every* effect, and the renderer builds
+     two per row. Instead each cleanup is handed over pre-disarmed, so the
+     leftover run cannot fire one twice — an effect that returns `None`, which
+     is every attribute and text effect, then pays nothing for the guarantee. */
+  let guarded = () =>
+    if disposed.contents {
+      None
+    } else {
+      switch fn() {
+      | None => None
+      | Some(cleanup) => {
+          let pending = ref(true)
+          Some(
+            () =>
+              if pending.contents {
+                pending := false
+                cleanup()
+              },
+          )
+        }
       }
-    | None => ()
     }
-  let guarded = () => {
-    if !disposed.contents {
-      runCleanup()
-      cleanup := fn()
-    }
-    None
-  }
   let inner = Signals.Effect.runWithDisposer(guarded, ~name?)
   let dispose = () =>
     if !disposed.contents {
       disposed := true
-      runCleanup()
       inner.dispose()
     }
   RuntimeOwner.track(RuntimeOwner.addDisposer, dispose)

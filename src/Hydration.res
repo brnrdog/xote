@@ -234,7 +234,7 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
              path (which handles keyed children too) exactly as on the first
              pass. */
           | Some(keyedChildren)
-            if initialized.contents && keyedItems->Dict.keysToArray->Array.length > 0 =>
+            if initialized.contents && RuntimeRender.tracksItems(keyedItems) =>
             RuntimeRender.reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
           | keyedChildrenOpt => {
               RuntimeRender.clearKeyedItems(keyedItems)
