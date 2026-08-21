@@ -370,17 +370,22 @@ function summarize(values) {
   };
 }
 
-async function measureStartup(browser, url, options) {
-  const samples = [];
+/* Interleaved and order-alternating for the same reason runBenchmark is. */
+async function measureStartup(browser, apps, urlFor, options) {
+  const samples = new Map(apps.map((app) => [app, []]));
 
   for (let i = 0; i < options.warmup + options.iterations; i++) {
-    const page = await newPage(browser, url);
-    const ready = await page.evaluate(() => window.__BENCH_READY_AT__);
-    await page.close();
-    if (i >= options.warmup) samples.push(ready);
+    const order = i % 2 === 0 ? apps : [...apps].reverse();
+
+    for (const app of order) {
+      const page = await newPage(browser, urlFor(app));
+      const ready = await page.evaluate(() => window.__BENCH_READY_AT__);
+      await page.close();
+      if (i >= options.warmup) samples.get(app).push(ready);
+    }
   }
 
-  return summarize(samples);
+  return new Map([...samples].map(([app, taken]) => [app, summarize(taken)]));
 }
 
 async function measureMemory(browser, url) {
@@ -638,15 +643,18 @@ async function main() {
       }
     }
 
-    for (const app of options.apps) {
-      process.stdout.write(`${app.padEnd(pad)} startup          `);
-      report.startup[app] = await measureStartup(browser, urlFor(app), {
-        ...options,
-        iterations: Math.min(options.iterations, 8),
-        warmup: 1,
-      });
-      console.log(`${ms(report.startup[app].median)}ms`);
+    const startup = await measureStartup(browser, options.apps, urlFor, {
+      ...options,
+      iterations: Math.min(options.iterations, 8),
+      warmup: 1,
+    });
 
+    for (const [app, result] of startup) {
+      report.startup[app] = result;
+      console.log(`${app.padEnd(pad)} startup          ${ms(result.median)}ms`);
+    }
+
+    for (const app of options.apps) {
       process.stdout.write(`${app.padEnd(pad)} memory           `);
       report.memory[app] = await measureMemory(browser, urlFor(app));
       console.log(`${kb(report.memory[app].rows1k)}KB @1k rows`);
