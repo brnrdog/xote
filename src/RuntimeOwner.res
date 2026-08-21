@@ -34,6 +34,22 @@ let addComputed = (owner: owner, computed: Obj.t): unit => {
   owner.computeds->Array.push(computed)->ignore
 }
 
+/* Computeds the library builds to back a node — a reactive text leaf, a tracked
+   fragment, a mapped list — are owned by the node they back: rendering hands
+   them to that node's scope, so removing the node unlinks them from the signals
+   they read. A signal that came from the consumer is never marked, and never
+   disposed on their behalf. */
+let markOwned: Signal.t<'a> => Signal.t<'a> = %raw(`function (signal) {
+  signal["__xote_owned__"] = true
+  return signal
+}`)
+
+let isOwned: Signal.t<'a> => bool = %raw(`function (signal) {
+  return signal != null && signal["__xote_owned__"] === true
+}`)
+
+let ownedComputed = (compute: unit => 'a): Signal.t<'a> => markOwned(Computed.make(compute))
+
 /* Register with the scope that is currently rendering, if there is one. */
 let track = (register: (owner, 'a) => unit, value: 'a): unit =>
   switch currentOwner.contents {
