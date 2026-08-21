@@ -412,9 +412,13 @@ let is_children_label = function
 
 let label_name = function Labelled n | Optional n -> Some n | Nolabel -> None
 
-(* Labels that are never a reactive value leaf, so never worth probing: an event
-   handler is a callback, and `attrs` is the escape-hatch array whose entries
-   carry their own `View.attr`/`View.computedAttr` reactivity. *)
+(* Labels that are never a reactive value leaf, so left exactly as written -
+   neither thunked nor probed. An event handler is a callback, and `attrs` is
+   the escape-hatch array whose entries carry their own reactivity (a signal, a
+   `() => ...` thunk, `View.signalAttr`). Thunking either one produces a value
+   its prop cannot hold - `array<(string, 'a)>` given a function, a
+   `Dom.event => unit` given a `unit => _` - and the type error names no
+   location, because the thunk the ppx emits has none. *)
 let is_non_leaf_label (lbl : arg_label) : bool =
   match label_name lbl with
   | Some "attrs" -> true
@@ -617,8 +621,7 @@ and element_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * ex
     | Labelled _ | Optional _ ->
       (* attribute: value position. Thunk it if reactive so it lowers to a
          computed attribute; leave plain JSX/static/already-function values. *)
-      if is_non_leaf_label lbl then (lbl, if should_thunk env v then thunk v else v)
-      else (lbl, leaf_value env v)
+      if is_non_leaf_label lbl then (lbl, v) else (lbl, leaf_value env v)
     | Nolabel -> (lbl, v)
 
 and component_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
