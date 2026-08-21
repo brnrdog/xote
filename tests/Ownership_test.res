@@ -209,6 +209,56 @@ let suite = Zekr.suite(
          this one belongs to the caller and still tracks its source. */
       assertEqual(Signal.get(doubled), 10)
     }),
+    test("an effect still queued when its region replaces it stays disposed", () => {
+      let {container} = Dom.render("")
+      let visible = Signal.make(true)
+      /* The chain gives the class effect a deeper scheduler level than the
+         tracked region's effect, so one write to `visible` queues both and
+         runs the region first: the region disposes the class effect while its
+         own queued run is still waiting. That leftover run used to re-track
+         the effect's dependencies and resurrect it — one immortal effect per
+         branch swap, each still writing to its detached element. */
+      let level1 = Computed.make(() => Signal.get(visible))
+      let level2 = Computed.make(() => Signal.get(level1))
+      let runs = ref(0)
+      let _ = mountTo(
+        Html.div(
+          ~children=[
+            View.tracked(() =>
+              if Signal.get(visible) {
+                Html.span(
+                  ~attrs=[
+                    View.computedAttr("class", () => {
+                      runs := runs.contents + 1
+                      Signal.get(level2) ? "on" : "off"
+                    }),
+                  ],
+                  (),
+                )
+              } else {
+                View.null()
+              }
+            ),
+          ],
+          (),
+        ),
+        container,
+      )
+      [1, 2, 3, 4, 5]->Array.forEach(_ => {
+        Signal.set(visible, false)
+        Signal.set(visible, true)
+      })
+      let subscribersAfterToggles = subscriberCount(level2)
+      let before = runs.contents
+      Signal.set(visible, false)
+      Signal.set(visible, true)
+      combineResults([
+        /* only the live leaf subscribes; zombies grew this by 2 per toggle */
+        assertEqual(subscribersAfterToggles, 1),
+        /* one cycle runs the class thunk once (the new leaf's initial run) */
+        assertEqual(runs.contents - before, 1),
+      ])
+    }),
     test("a component's root element releases its attribute effect on unmount", () => {
       let {container} = Dom.render("")
       let visible = Signal.make(true)

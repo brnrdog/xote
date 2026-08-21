@@ -569,3 +569,29 @@ module EscapeHatch = {
       <button id="eh-button" onClick={stepHandler(Signal.get(hatchStep))}> {"go"} </button>
     </div>
 }
+
+/* Case 31: a branch leaf whose effect is *scheduled by the same write* that
+   swaps the branch away. The computed chain gives the class leaf a deeper
+   scheduler level than the tracked region, so one write to `branchOn` queues
+   both effects and runs the region first: it disposes the leaf while the
+   leaf's own queued run is still pending. That leftover run used to re-track
+   the leaf's dependencies — resurrecting the disposed effect, which kept
+   writing to its detached element on every later update, one immortal effect
+   per swap. */
+let branchOn = Signal.make(true)
+let branchChainA = Computed.make(() => Signal.get(branchOn))
+let branchChainB = Computed.make(() => Signal.get(branchChainA))
+
+module DisposedBranch = {
+  @xote.component
+  let make = () =>
+    <div id="disposed-branch">
+      {if Signal.get(branchOn) {
+        <span id="disposed-leaf" class={Signal.get(branchChainB) ? "on" : "off"}>
+          {"branch"}
+        </span>
+      } else {
+        View.null()
+      }}
+    </div>
+}
