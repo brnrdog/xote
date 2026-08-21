@@ -32,6 +32,7 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 ### Benchmarks
 - `benchmarks/` holds a keyed-list benchmark that runs the same app in Xote, React, Vue and SolidJS and measures operation latency, startup, memory and payload. It is a self-contained npm project with its own `package.json`; see `benchmarks/README.md` for how to run it and `benchmarks/results/RESULTS.md` for the latest numbers.
 - The Xote implementation (`benchmarks/apps/xote/BenchApp.res`) is compiled by the root ReScript project — `benchmarks/apps/xote` is listed in `rescript.json` `sources` as a dev directory, so `npm run res:build` covers it.
+- CI runs the suite on every pull request (the `benchmark` job in `.github/workflows/ci.yml`) and posts a `main` vs PR comment rendered by `scripts/benchmark-report.mjs`. It builds the PR's benchmark app against both libraries so only `src/` differs between the two columns, and runs them interleaved in one browser — see `benchmarks/README.md` for why position in the schedule would otherwise dominate the result.
 
 ### Documentation
 - `npm run docs:start` - Start documentation site

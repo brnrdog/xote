@@ -33,11 +33,51 @@ node dom-ops.mjs       # optional: counts DOM calls per operation
 | `--iterations N` | `15` | Measured iterations per benchmark |
 | `--warmup N` | `3` | Discarded warmup iterations |
 | `--apps a,b` | all four | Restrict the run |
+| `--out DIR` | `results` | Where to write `results.json` and `RESULTS.md` |
 | `--headed` | off | Watch the browser drive the apps |
 
-The driver uses the Chromium already present in this environment
-(`/opt/pw-browsers/chromium-1194/...`). Point `BENCH_CHROME_PATH` at another
-binary to override it.
+The driver prefers `BENCH_CHROME_PATH`, then the Chromium this dev environment
+ships at `/opt/pw-browsers/chromium-1194/...`, and otherwise falls back to the
+browser Playwright installed (`npx playwright install chromium`), which is how
+CI runs it.
+
+## Comparing two builds
+
+CI runs this suite on every pull request and posts a `main` vs PR table. The
+same comparison runs locally: build the base library into `dist/xote-base` and
+name both apps in one invocation.
+
+```bash
+node driver.mjs --apps xote,xote-base --out ci-results
+node dom-ops.mjs --apps xote,xote-base --json ci-results/dom-ops.json
+node ../scripts/benchmark-report.mjs \
+  --results ci-results/results.json \
+  --dom-ops ci-results/dom-ops.json
+```
+
+Only Xote is rebuilt for the comparison. React, Vue and SolidJS are pinned
+dependencies that cannot change between the two commits, so re-running them
+would double the CI time for no signal.
+
+### Why both builds run in one invocation
+
+Position in the schedule costs more than almost any real change. Measured on
+this repo with two byte-identical builds, the app that ran first paid **up to
+2.5x** on the allocation-heavy benchmarks — enough to make every PR look like a
+catastrophic regression.
+
+The driver therefore runs one benchmark across all apps at a time, interleaved
+iteration by iteration, alternating which app goes first on each round, with
+`bringToFront()` before each measurement so no page is measured while
+backgrounded. With that in place two identical builds report deltas that the
+report suppresses as noise.
+
+What survives is still noisy: single-digit to ~15% swings between identical
+builds are normal on a shared runner. The report only flags a change when it
+exceeds both the two runs' combined standard deviation and 5%; everything else
+is printed with a `≈` and carries no claim. The DOM operation counts are
+deterministic, so those are the signal to trust — a reconciler change shows up
+there exactly, with no statistics involved.
 
 ## What is measured
 
@@ -120,6 +160,9 @@ container-slow; the ratios are the point.
 
 - One machine, one browser, one run. Treat differences under ~10% as noise;
   the per-iteration samples in `results.json` let you check the spread.
+- Cross-framework numbers come from a single interleaved run, so no framework
+  gets the first-position penalty described above. They are still one machine's
+  numbers, not a ranking.
 - The container is CPU-constrained, so absolute milliseconds are several times
   what a laptop would show. Ratios travel; absolute numbers do not.
 - Solid and Vue are mature and heavily tuned against exactly this benchmark.
