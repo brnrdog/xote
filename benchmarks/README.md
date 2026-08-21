@@ -120,40 +120,44 @@ default.
 
 ## What the numbers showed
 
-Run on 4× Xeon @ 2.80 GHz, Chromium 141, 15 iterations. The absolute values are
-container-slow; the ratios are the point.
+Run on 4× Xeon @ 2.10 GHz, Chromium 141, 15 iterations. The absolute values
+are container-slow; the ratios are the point, and even those move 10-25%
+between runs of identical code, so read close rows as ties.
 
 **Where Xote leads**
 
-- *Update every 10th row* — 6.7 ms, the fastest of the four (Solid 7.2, Vue
-  8.7, React 14.8). Per-row signals mean 100 text-node writes, no diff.
-- *Time to first render* — 24 ms vs React's 44 ms and Vue's 31 ms.
-- *Payload* — 7.8 KB gzipped for the whole app against React's 59.9 KB and
+- *Update every 10th row* — 4.2 ms, level with Solid's 4.4 and about 2x ahead
+  of Vue (5.6) and React (9.4). Per-row signals mean 100 text-node writes, no
+  diff.
+- *Row selection* — 0.7 ms, a few tenths off Solid and roughly 6x faster than
+  React.
+- *Payload* — 7.9 KB gzipped for the whole app against React's 59.9 KB and
   Vue's 24.9 KB. Solid is smaller still at 4.7 KB.
-- *Row selection* — 1.1 ms, within noise of Solid and ~5× faster than React.
+- *Startup* — 18.8 ms, in the same range as Solid's 17.1 and about half
+  React's 35.0.
 
 **Where Xote trails**
 
-- *Swapping two rows* — 70 ms against Solid's 5.8 ms and Vue's 8.2 ms. This is
-  not overhead, it is an algorithmic gap: `dom-ops.mjs` shows Xote issuing **997
-  `insertBefore` calls to swap two rows**, where Vue and Solid issue 2. Phase 3
-  of the keyed reconciler in `src/View.res` walks the new order against the
-  live DOM and inserts every node whose position does not match the walk
-  marker, so one early mismatch cascades through the rest of the list. A
-  longest-increasing-subsequence pass (what Vue and Solid do) would move only
-  the two nodes that actually changed places. React shows the same 997 moves —
-  the difference is that this is a known trade in a diffing reconciler and less
-  expected in a fine-grained one.
-- *Creating rows* — 1.7× Solid and 1.5× React for 1,000 rows. Xote makes
+- *Swapping two rows* — 43 ms against Solid's 4.0 ms and Vue's 4.9 ms. This is
+  not overhead, it is an algorithmic gap: `dom-ops.mjs` shows Xote issuing
+  **997 `insertBefore` calls to swap two rows**, where Vue and Solid issue 2.
+  Phase 3 of the keyed reconciler in `src/View.res` walks the new order
+  against the live DOM and inserts every node whose position does not match
+  the walk marker, so one early mismatch cascades through the rest of the
+  list. A longest-increasing-subsequence pass (what Vue and Solid do) would
+  move only the two nodes that actually changed places. React shows the same
+  997 moves — the difference is that this is a known trade in a diffing
+  reconciler and less expected in a fine-grained one.
+- *Creating rows* — 1.75x Solid and 1.4x React for 1,000 rows. Xote makes
   20,000 DOM calls per 1,000 rows (8,000 `createElement`, 9,000 `appendChild`,
   2,000 `createTextNode`, 1,000 `insertBefore`); Solid makes 2,001 by cloning a
   compiled template. Template cloning is the structural win here, and it needs
   a compiler.
-- *Memory* — 43.7 MB at 10,000 rows against Solid's 12.2 MB. Each row allocates
-  a label signal plus effects for the reactive class and text, and Xote's owner
-  records are heavier per node. Heap returns to 1.6 MB after clearing, so this
-  is allocation weight and not a leak.
-- *Clearing 10,000 rows* — 189 ms vs Solid's 67 ms; the recursive owner
+- *Memory* — 44.0 MB at 10,000 rows against Solid's 12.3 MB. Each row
+  allocates a label signal plus effects for the reactive class and text, and
+  Xote's owner records are heavier per node. Heap returns to 1.6 MB after
+  clearing, so this is allocation weight and not a leak.
+- *Clearing 10,000 rows* — 176 ms vs Solid's 61 ms; the recursive owner
   disposal walk is the cost.
 
 ## Caveats
