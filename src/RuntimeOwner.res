@@ -1,5 +1,13 @@
+/* Internal: the per-DOM-node scope that owns the reactive state created while a
+   node is being built and rendered, so removing the node stops it.
+
+   Disposers are stored as plain functions rather than `Effect.disposer` values
+   on purpose: `Effect` registers its own disposers here (an effect created
+   while a component renders belongs to that component), so a dependency in the
+   other direction would be a cycle. */
+
 type owner = {
-  disposers: array<Effect.disposer>,
+  disposers: array<unit => unit>,
   mutable computeds: array<Obj.t>,
 }
 
@@ -18,21 +26,32 @@ let runWithOwner = (owner: owner, fn: unit => 'a): 'a => {
   result
 }
 
-let addDisposer = (owner: owner, disposer: Effect.disposer): unit => {
-  owner.disposers->Array.push(disposer)->ignore
+let addDisposer = (owner: owner, dispose: unit => unit): unit => {
+  owner.disposers->Array.push(dispose)->ignore
 }
+
+let addComputed = (owner: owner, computed: Obj.t): unit => {
+  owner.computeds->Array.push(computed)->ignore
+}
+
+/* Register with the scope that is currently rendering, if there is one. */
+let track = (register: (owner, 'a) => unit, value: 'a): unit =>
+  switch currentOwner.contents {
+  | Some(owner) => register(owner, value)
+  | None => ()
+  }
 
 /* Fold `source` into `target`. One DOM node can be the root of more than one
    scope — a component's own scope and the element it returns — and the second
    `setOwner` would otherwise overwrite the first, dropping its disposers on the
    floor instead of running them when the node goes away. */
 let absorb = (target: owner, source: owner): unit => {
-  source.disposers->Array.forEach(disposer => target.disposers->Array.push(disposer)->ignore)
+  source.disposers->Array.forEach(dispose => target.disposers->Array.push(dispose)->ignore)
   source.computeds->Array.forEach(computed => target.computeds->Array.push(computed)->ignore)
 }
 
 let disposeOwner = (owner: owner): unit => {
-  owner.disposers->Array.forEach(disposer => disposer.dispose())
+  owner.disposers->Array.forEach(dispose => dispose())
 
   owner.computeds->Array.forEach(computed => {
     let c: Signal.t<Obj.t> = Obj.magic(computed)

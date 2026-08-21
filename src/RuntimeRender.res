@@ -170,13 +170,12 @@ and render = (node: node): Dom.element => {
       let owner = createOwner()
       setOwner(textNode, owner)
 
-      runWithOwner(owner, () => {
-        let disposer = Effect.runWithDisposer(() => {
+      runWithOwner(owner, () =>
+        Effect.run(() => {
           RuntimeDom.setTextContent(textNode, Signal.get(signal))
           None
         })
-        addDisposer(owner, disposer)
-      })
+      )
 
       textNode
     }
@@ -197,8 +196,8 @@ and render = (node: node): Dom.element => {
       setOwner(container, owner)
       let keyedItems: Dict.t<keyedItem<Obj.t>> = Dict.make()
 
-      runWithOwner(owner, () => {
-        let disposer = Effect.runWithDisposer(() => {
+      runWithOwner(owner, () =>
+        Effect.run(() => {
           let children = Signal.get(signal)
 
           switch getKeyedChildren(children) {
@@ -225,9 +224,7 @@ and render = (node: node): Dom.element => {
 
           None
         })
-
-        addDisposer(owner, disposer)
-      })
+      )
 
       container
     }
@@ -243,13 +240,11 @@ and render = (node: node): Dom.element => {
         let applyAttr = ((key, value)) => {
           switch resolveAttr(value) {
           | ReadStatic(value) => RuntimeDom.setAttrOrProp(el, key, value)
-          | ReadReactive(read) => {
-              let disposer = Effect.runWithDisposer(() => {
-                RuntimeDom.setAttrOrProp(el, key, read())
-                None
-              })
-              addDisposer(owner, disposer)
-            }
+          | ReadReactive(read) =>
+            Effect.run(() => {
+              RuntimeDom.setAttrOrProp(el, key, read())
+              None
+            })
           }
         }
 
@@ -429,13 +424,12 @@ and render = (node: node): Dom.element => {
 
       fragment->RuntimeDom.appendChild(endAnchor)
 
-      runWithOwner(owner, () => {
-        let disposer = Effect.runWithDisposer(() => {
+      runWithOwner(owner, () =>
+        Effect.run(() => {
           reconcile()
           None
         })
-        addDisposer(owner, disposer)
-      })
+      )
 
       fragment
     }
