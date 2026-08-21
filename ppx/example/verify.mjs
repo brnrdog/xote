@@ -502,6 +502,21 @@ check('module helper bare child updates', document.querySelector('#module-helper
 check('module helper attribute updates', document.querySelector('#module-helper').className === 'zero');
 check('module helper kept element identity', document.querySelector('#module-helper').__marker === 'MH');
 
+// --- Escape hatches: `attrs` and event handlers are left exactly as written --
+// Neither prop can hold a thunk, so the ppx never wraps one: an entry carries
+// its own reactivity, and an eager read in either position is a one-shot read.
+// Both used to be thunked, which failed the build with a type error naming no
+// file and no line.
+console.log('escape hatches (attrs, event handlers):');
+const hatch = mount(() => Demo.EscapeHatch.make({}));
+check('an attrs entry renders', hatch.querySelector('#eh-frozen').getAttribute('data-theme') === 'light');
+check('a thunked attrs entry renders', hatch.querySelector('#eh-live').getAttribute('data-theme') === 'light');
+Signal.set(Demo.hatchTheme, 'dark');
+check('a thunked attrs entry updates', hatch.querySelector('#eh-live').getAttribute('data-theme') === 'dark');
+check('an inline read in an attrs entry is a one-shot read', hatch.querySelector('#eh-frozen').getAttribute('data-theme') === 'light');
+hatch.querySelector('#eh-button').dispatchEvent(new dom.window.Event('click'));
+check('a handler built by a factory that reads a signal runs', Signal.peek(Demo.hatchClicks) === 2);
+
 // --- Hidden reads: what detection cannot follow, reported at runtime ---------
 // `Store` is another file, so the ppx sees only a call it cannot resolve. The
 // leaf is wrapped in `View.probe`, which evaluates it inside a throwaway
