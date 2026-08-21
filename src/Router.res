@@ -359,7 +359,8 @@ type routeConfig = {
 let route = (pattern: string, render: Route.params => View.node): View.node => {
   warnIfNotInitialized("Router.route()")
 
-  let signal = Computed.make(() => {
+  /* Owned: the computed backs this node, so removing the node releases it. */
+  let signal = RuntimeOwner.ownedComputed(() => {
     let loc = Signal.get(location())
     switch Route.match(pattern, loc.pathname) {
     | Match(params) => [render(params)]
@@ -373,7 +374,7 @@ let route = (pattern: string, render: Route.params => View.node): View.node => {
 let routes = (configs: array<routeConfig>): View.node => {
   warnIfNotInitialized("Router.routes()")
 
-  let signal = Computed.make(() => {
+  let signal = RuntimeOwner.ownedComputed(() => {
     let loc = Signal.get(location())
     let matched = configs->Array.findMap(config => {
       switch Route.match(config.pattern, loc.pathname) {
