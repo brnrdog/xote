@@ -110,7 +110,19 @@ let rec reconcileKeyedChildren = (
   })
 
   let newOrder: array<keyedItem<Obj.t>> = []
-  let elementsToReplace: Dict.t<Dom.element> = Dict.make()
+
+  /* A key whose identity changed is rebuilt and its previous element retired
+     right here — see the note in the `KeyedList` build phase below. */
+  let buildChild = (keyedChild: keyedChild) => {
+    let element = render(keyedChild.child)
+    let keyedItem: keyedItem<Obj.t> = {
+      key: keyedChild.key,
+      item: keyedChild.identity,
+      element,
+    }
+    newOrder->Array.push(keyedItem)->ignore
+    keyedItems->Dict.set(keyedChild.key, keyedItem)
+  }
 
   keyedChildren->Array.forEach(keyedChild => {
     switch keyedItems->Dict.get(keyedChild.key) {
@@ -118,26 +130,11 @@ let rec reconcileKeyedChildren = (
       if shallowEqualIdentity(existing.item, keyedChild.identity) {
         newOrder->Array.push(existing)->ignore
       } else {
-        let element = render(keyedChild.child)
-        let keyedItem: keyedItem<Obj.t> = {
-          key: keyedChild.key,
-          item: keyedChild.identity,
-          element,
-        }
-        elementsToReplace->Dict.set(keyedChild.key, existing.element)
-        newOrder->Array.push(keyedItem)->ignore
-        keyedItems->Dict.set(keyedChild.key, keyedItem)
+        disposeElement(existing.element)
+        existing.element->RuntimeDom.remove
+        buildChild(keyedChild)
       }
-    | None => {
-        let element = render(keyedChild.child)
-        let keyedItem: keyedItem<Obj.t> = {
-          key: keyedChild.key,
-          item: keyedChild.identity,
-          element,
-        }
-        newOrder->Array.push(keyedItem)->ignore
-        keyedItems->Dict.set(keyedChild.key, keyedItem)
-      }
+    | None => buildChild(keyedChild)
     }
   })
 
@@ -154,25 +151,11 @@ let rec reconcileKeyedChildren = (
     switch currentElement {
     | Some(elem) if elem === keyedItem.element =>
       marker := RuntimeDom.getNextSibling(elem)->Nullable.toOption
-    | Some(elem) => switch elementsToReplace->Dict.get(keyedItem.key) {
-      | Some(previousElement) if elem === previousElement => {
-          disposeElement(previousElement)
-          RuntimeDom.replaceChild(parent, keyedItem.element, previousElement)
-          marker := RuntimeDom.getNextSibling(keyedItem.element)->Nullable.toOption
-        }
-      | _ => {
-          RuntimeDom.insertBefore(parent, keyedItem.element, elem)
-          marker := RuntimeDom.getNextSibling(keyedItem.element)->Nullable.toOption
-        }
+    | Some(elem) => {
+        RuntimeDom.insertBefore(parent, keyedItem.element, elem)
+        marker := RuntimeDom.getNextSibling(keyedItem.element)->Nullable.toOption
       }
-    | None => switch elementsToReplace->Dict.get(keyedItem.key) {
-      | Some(previousElement) => {
-          disposeElement(previousElement)
-          previousElement->RuntimeDom.remove
-          parent->RuntimeDom.appendChild(keyedItem.element)
-        }
-      | None => parent->RuntimeDom.appendChild(keyedItem.element)
-      }
+    | None => parent->RuntimeDom.appendChild(keyedItem.element)
     }
   })
 }
@@ -354,9 +337,23 @@ and render = (node: node): Dom.element => {
               }
             })
 
-            /* Phase 2: Build new order */
+            /* Phase 2: Build new order.
+
+               A key whose item identity changed is rebuilt, and its previous
+               element is retired *here*, where we still know which element it
+               was. Deferring that to the ordering pass below would dispose
+               whatever happens to sit at the marker — a different key's element
+               once the list is also reordered — killing that row's effects
+               while leaving the replaced one behind in the DOM. */
             let newOrder: array<keyedItem<Obj.t>> = []
-            let elementsToReplace: Dict.t<bool> = Dict.make()
+
+            let buildItem = (key, item) => {
+              let node = renderItem(item)
+              let element = render(node)
+              let keyedItem = {key, item, element}
+              newOrder->Array.push(keyedItem)->ignore
+              keyedItems->Dict.set(key, keyedItem)
+            }
 
             newItems->Array.forEach(item => {
               let key = keyFn(item)
@@ -364,22 +361,13 @@ and render = (node: node): Dom.element => {
               switch keyedItems->Dict.get(key) {
               | Some(existing) =>
                 if existing.item !== item {
-                  elementsToReplace->Dict.set(key, true)
-                  let node = renderItem(item)
-                  let element = render(node)
-                  let keyedItem = {key, item, element}
-                  newOrder->Array.push(keyedItem)->ignore
-                  keyedItems->Dict.set(key, keyedItem)
+                  disposeElement(existing.element)
+                  existing.element->RuntimeDom.remove
+                  buildItem(key, item)
                 } else {
                   newOrder->Array.push(existing)->ignore
                 }
-              | None => {
-                  let node = renderItem(item)
-                  let element = render(node)
-                  let keyedItem = {key, item, element}
-                  newOrder->Array.push(keyedItem)->ignore
-                  keyedItems->Dict.set(key, keyedItem)
-                }
+              | None => buildItem(key, item)
               }
             })
 
@@ -395,17 +383,8 @@ and render = (node: node): Dom.element => {
               | Some(elem) if elem === keyedItem.element =>
                 marker := RuntimeDom.getNextSibling(elem)
               | Some(elem) => {
-                  let needsReplacement =
-                    elementsToReplace->Dict.get(keyedItem.key)->Option.getOr(false)
-
-                  if needsReplacement {
-                    disposeElement(elem)
-                    RuntimeDom.replaceChild(parent, keyedItem.element, elem)
-                    marker := RuntimeDom.getNextSibling(keyedItem.element)
-                  } else {
-                    RuntimeDom.insertBefore(parent, keyedItem.element, elem)
-                    marker := RuntimeDom.getNextSibling(keyedItem.element)
-                  }
+                  RuntimeDom.insertBefore(parent, keyedItem.element, elem)
+                  marker := RuntimeDom.getNextSibling(keyedItem.element)
                 }
               | None => RuntimeDom.insertBefore(parent, keyedItem.element, endAnchor)
               }
