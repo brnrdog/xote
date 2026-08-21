@@ -156,6 +156,41 @@ let eachWithKey = (
 }
 
 /* JSX rendering primitives */
+
+/* Renders a static-or-reactive value into a node. A `Static` value renders once;
+   a `Reactive` value re-renders through a `SignalFragment` whenever the source
+   signal changes.
+
+   A `Fragment` returned by `renderItem` is flattened into the pass rather than
+   nested: keyed reconciliation only engages when *every* child of a reactive
+   pass is `Keyed`, so a wrapper node would silently downgrade the multi-child
+   callers (`Show`, `Maybe`) to clear-and-rebuild. */
+let render = (value: MaybeSignal.t<'a>, renderItem: 'a => node): node =>
+  MaybeSignal.fold(value, ~static=renderItem, ~reactive=signal =>
+    signalFragment(
+      RuntimeOwner.ownedComputed(() =>
+        switch renderItem(Signal.get(signal)) {
+        | Fragment(children) => children
+        | node => [node]
+        }
+      ),
+    )
+  )
+
+/* Static branch of a keyed list: plain `Keyed` nodes in a fragment. */
+let staticKeyedFragment = (
+  items: array<'item>,
+  keyFn: 'item => string,
+  renderItem: 'item => node,
+): node =>
+  fragment(
+    items->Array.map(item => Keyed({
+      key: keyFn(item),
+      identity: Obj.magic(item),
+      child: renderItem(item),
+    })),
+  )
+
 module For = {
   type props<'item> = {
     each: MaybeSignal.t<array<'item>>,
@@ -163,19 +198,13 @@ module For = {
     render: 'item => node,
   }
 
-  let make = (props: props<'item>): node => {
+  let make = (props: props<'item>): node =>
     switch (props.each, props.by) {
-    | (Static(items), Some(keyFn)) =>
-      fragment(
-        items->Array.map(item =>
-          Keyed({key: keyFn(item), identity: Obj.magic(item), child: props.render(item)})
-        ),
-      )
+    | (Static(items), Some(keyFn)) => staticKeyedFragment(items, keyFn, props.render)
     | (Static(items), None) => fragment(items->Array.map(props.render))
     | (Reactive(signal), Some(keyFn)) => eachWithKey(signal, keyFn, props.render)
     | (Reactive(signal), None) => each(signal, props.render)
     }
-  }
 }
 
 module KeyedFor = {
@@ -185,17 +214,11 @@ module KeyedFor = {
     render: 'item => node,
   }
 
-  let make = (props: props<'item>): node => {
+  let make = (props: props<'item>): node =>
     switch props.each {
-    | Static(items) =>
-      fragment(
-        items->Array.map(item =>
-          Keyed({key: props.by(item), identity: Obj.magic(item), child: props.render(item)})
-        ),
-      )
+    | Static(items) => staticKeyedFragment(items, props.by, props.render)
     | Reactive(signal) => eachWithKey(signal, props.by, props.render)
     }
-  }
 }
 
 module Show = {
@@ -205,22 +228,10 @@ module Show = {
     fallback?: node,
   }
 
-  let make = (props: props): node => {
-    switch props.when_ {
-    | Static(true) => fragment(childrenToArray(props.children))
-    | Static(false) => fragment(childrenToArray(props.fallback))
-    | Reactive(signal) =>
-      signalFragment(
-        RuntimeOwner.ownedComputed(() =>
-          if Signal.get(signal) {
-            childrenToArray(props.children)
-          } else {
-            childrenToArray(props.fallback)
-          }
-        ),
-      )
-    }
-  }
+  let make = (props: props): node =>
+    render(props.when_, visible =>
+      fragment(visible ? childrenToArray(props.children) : childrenToArray(props.fallback))
+    )
 }
 
 module Maybe = {
@@ -230,20 +241,14 @@ module Maybe = {
     fallback?: node,
   }
 
-  let renderValue = (props: props<'value>, value: option<'value>): array<node> => {
+  let renderValue = (props: props<'value>, value: option<'value>): array<node> =>
     switch value {
     | Some(value) => [props.render(value)]
     | None => childrenToArray(props.fallback)
     }
-  }
 
-  let make = (props: props<'value>): node => {
-    switch props.value {
-    | Static(value) => fragment(renderValue(props, value))
-    | Reactive(signal) =>
-      signalFragment(RuntimeOwner.ownedComputed(() => renderValue(props, Signal.get(signal))))
-    }
-  }
+  let make = (props: props<'value>): node =>
+    render(props.value, value => fragment(renderValue(props, value)))
 }
 
 module Value = {
@@ -252,13 +257,7 @@ module Value = {
     render: 'value => node,
   }
 
-  let make = (props: props<'value>): node => {
-    switch props.value {
-    | Static(value) => props.render(value)
-    | Reactive(signal) =>
-      signalFragment(RuntimeOwner.ownedComputed(() => [props.render(Signal.get(signal))]))
-    }
-  }
+  let make = (props: props<'value>): node => render(props.value, props.render)
 }
 
 /* Element constructor */

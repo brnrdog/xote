@@ -91,6 +91,14 @@ let each: (Signal.t<array<'a>>, 'a => node) => node
 /* Keyed reactive list - reconciles the DOM and preserves element identity */
 let eachWithKey: (Signal.t<array<'a>>, 'a => string, 'a => node) => node
 
+/* Renders a static-or-reactive value into a node: a `Static` value renders once,
+   a `Reactive` one re-renders whenever the source signal changes. `View.Show`,
+   `View.Maybe` and `View.Value` are built on it.
+
+   A `Fragment` returned by `renderItem` is flattened into the reactive pass
+   rather than nested, so keyed children stay reconcilable. */
+let render: (MaybeSignal.t<'a>, 'a => node) => node
+
 let element: (
   string,
   ~attrs: array<(string, attrValue)>=?,

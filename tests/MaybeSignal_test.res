@@ -121,22 +121,22 @@ let suite = Zekr.suite(
 
       Signal.set(count, 4)
 
-      combineResults([assertTrue(lifted === count), assertEqual(Signal.get(lifted), 4)])
+      combineResults([
+        assertTrue(lifted->Option.getUnsafe === count),
+        assertEqual(Signal.get(lifted->Option.getUnsafe), 4),
+      ])
     }),
-    test("toSignal lifts static values into a fresh detached signal", () => {
-      let value = MaybeSignal.static(7)
-      let first = value->MaybeSignal.toSignal
-      let second = value->MaybeSignal.toSignal
-
-      Signal.set(first, 99)
+    test("toSignal returns None for static values", () => {
+      assertEqual(MaybeSignal.static(7)->MaybeSignal.toSignal, None)
+    }),
+    test("fold branches on the wrapped kind", () => {
+      let count = Signal.make(1)
+      let describe = value =>
+        MaybeSignal.fold(value, ~static=v => "static:" ++ Int.toString(v), ~reactive=_signal => "reactive")
 
       combineResults([
-        /* Each call allocates its own signal ... */
-        assertFalse(first === second),
-        /* ... and writing to it does not reach the original or its siblings */
-        assertEqual(Signal.get(first), 99),
-        assertEqual(MaybeSignal.get(value), 7),
-        assertEqual(Signal.get(second), 7),
+        assertEqual(describe(MaybeSignal.static(5)), "static:5"),
+        assertEqual(describe(MaybeSignal.reactive(count)), "reactive"),
       ])
     }),
     test("ofUnknown normalizes raw values, signals, thunks and wrapped values", () => {
