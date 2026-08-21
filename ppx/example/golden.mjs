@@ -129,6 +129,25 @@ has('a user-component scalar prop is left as a one-shot read', demo,
   'Props land in the component\'s typed props record; thunking one would ' +
   'change its type and fail to compile with a baffling error.');
 
+console.log('\nescape hatches: props that cannot hold a thunk');
+
+lacks('the attrs escape hatch is not thunked', demo,
+  'attrs: () =>',
+  '`attrs` is an `array<(string, \'a)>`; a thunk in that position does not ' +
+  'typecheck, and the error names no file or line because the emitted thunk ' +
+  'has no location. Entries carry their own reactivity instead.');
+
+lacks('an event handler is not thunked', demo,
+  'onClick: () =>',
+  'A handler is a `Dom.event => unit`. Thunking a handler built by a factory ' +
+  'that reads a signal made the build fail with "This pattern matches values ' +
+  'of type unit but ... Dom.event".');
+
+has('an eager read in a handler argument stays a one-shot read', demo,
+  'Signal$Xote.get(hatchStep)',
+  'The read is an ordinary argument evaluation, like any other call the ppx ' +
+  'leaves alone — what must not happen is the whole handler being wrapped.');
+
 console.log(`\n${pass} passed, ${failures.length} failed`);
 
 if (failures.length > 0) {
