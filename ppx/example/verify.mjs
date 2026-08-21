@@ -466,5 +466,35 @@ check('array literal inside View.fragment', ns.querySelector('#ns-arr').textCont
 check('pipe + map callback decomposed', ns.querySelectorAll('.ns-map').length === 2);
 check('local helper items rendered', ns.textContent.includes('one') && ns.textContent.includes('two'));
 
+// --- Regression: fully-qualified value component --------------------------
+// <Xote.View.Text>/<Xote.View.Int> must be treated as *value* components even
+// under the namespace, so their children/value are thunked, not coerced into a
+// node (which rendered "[object Object]").
+console.log('fully-qualified value components (<Xote.View.Text>/<Xote.View.Int>):');
+Signal.set(Demo.name, 'Ada');
+Signal.set(Demo.count, 0);
+const qv = mount(() => Demo.QualifiedValue.make({}));
+check('qualified text renders "n=Ada"', qv.textContent === 'n=Ada0');
+check('qualified int renders "0"', qv.textContent.includes('0'));
+Signal.set(Demo.name, 'Bo');
+Signal.set(Demo.count, 41);
+check('qualified text updates to "n=Bo"', document.querySelector('#qualified-value').textContent === 'n=Bo41');
+check('qualified int updates to "41"', document.querySelector('#qualified-value').textContent.includes('41'));
+
+// --- Regression: JSX nested in an array passed as a user-component prop -----
+console.log('JSX nested in an array prop (reactive leaves + bare child):');
+Signal.set(Demo.theme, 'light');
+Signal.set(Demo.name, 'Ada');
+const pitem = mount(() => Demo.PropItemsUse.make({}));
+const pitemLi = pitem.querySelector('#prop-item');
+pitemLi.__marker = 'PI';
+check('array-prop li renders bare child "Ada"', pitemLi.textContent === 'Ada');
+check('array-prop li class is "light"', pitemLi.className === 'light');
+Signal.set(Demo.name, 'Cy');
+Signal.set(Demo.theme, 'dark');
+check('array-prop bare child updates to "Cy"', document.querySelector('#prop-item').textContent === 'Cy');
+check('array-prop class updates to "dark"', document.querySelector('#prop-item').className === 'dark');
+check('array-prop li kept identity', document.querySelector('#prop-item').__marker === 'PI');
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

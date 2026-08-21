@@ -486,3 +486,37 @@ module HelperHost = {
   @xote.component
   let make = () => <div id="helper-host"> {helperButton("Press")} </div>
 }
+
+/* Case 26: a fully-qualified value component — <Xote.View.Text>. A consumer
+   that does not `-open Xote` writes the namespaced path; the value-component
+   matcher must recognise it (not treat it as a user component, which would
+   coerce its child into a node and render "[object Object]"). */
+module QualifiedValue = {
+  @xote.component
+  let make = () =>
+    <div id="qualified-value">
+      <Xote.View.Text> {`n=${Signal.get(name)}`} </Xote.View.Text>
+      <Xote.View.Int value={Signal.get(count)} />
+    </div>
+}
+
+/* Case 27: JSX nested inside an array passed as a user-component prop. The prop
+   value is not itself JSX, but it *contains* JSX — its reactive leaves must
+   stay fine-grained and its bare children coerced (previously the array was
+   left untouched: the class was a one-shot read and a bare child was a compile
+   error). */
+module PropItemsHost = {
+  @xote.component
+  let make = (~items: array<View.node>) =>
+    <div id="prop-items-host"> {View.fragment(items)} </div>
+}
+
+module PropItemsUse = {
+  @xote.component
+  let make = () =>
+    <PropItemsHost
+      items=[
+        <li id="prop-item" class={Signal.get(theme)}> {Signal.get(name)} </li>,
+      ]
+    />
+}
