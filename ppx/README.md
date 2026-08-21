@@ -91,6 +91,7 @@ Applied recursively to the component's returned JSX:
 |---|---|---|
 | Attribute value (`class={…}`) | yes | thunked → `View.computedAttr` (reactive attribute leaf) |
 | Attribute value | no | left as-is (static attribute) |
+| `attrs={…}` / `onClick={…}` and friends | — | left as-is: neither prop can hold a thunk, and an `attrs` entry carries its own reactivity — see [Hidden reads](#hidden-reads) |
 | `<View.Text/Int/Float/Bool>` child | yes | thunked → reactive text node (leaf) |
 | `<View.Text/…>` child | no | left as-is (static text) |
 | Any value leaf | can't tell — the expression contains a call the PPX cannot resolve | wrapped in `View.probe`, which decides at runtime and reports a read it finds — see [Hidden reads](#hidden-reads) |
@@ -116,6 +117,26 @@ written and is a deliberate **one-shot read** (the component function runs
 once; a reactive-looking scalar prop cannot be reactive anyway). For a prop
 that should react, pass the signal itself (`<Card count={count} />`) or a
 thunk, and have the component read it.
+
+One consequence is worth knowing, because it is the one place the "tracks only
+the condition" rule below does not hold. A prop is evaluated where it is
+*written*, before the component it belongs to is deferred — so a one-shot read
+written inside a tracked branch happens inside that branch's scope and
+subscribes it:
+
+```rescript
+{if Signal.get(open_) {
+  <Card label={Signal.get(name)} />   /* `name` subscribes the branch too */
+} else {
+  View.null()
+}}
+```
+
+Changing `name` re-runs the branch and rebuilds the `<Card>` — correct output,
+but wholesale rather than fine-grained. Passing the signal (`<Card name={name}
+/>`) and reading it inside the component keeps the branch subscribed to
+`open_` alone; a read in the component's own body never widens anything,
+because the body runs untracked.
 
 The node-shaped exceptions are still decomposed:
 
@@ -227,6 +248,13 @@ switch and rebuilds the branch. `example/verify.mjs` asserts both:
 the `<strong>` keeps its identity across a `theme` change, and a `status`
 change still swaps the branch.
 
+A **component** rendered from a branch is a scope of its own: Xote runs a
+component body untracked, so a read the PPX leaves as a one-shot read there —
+`let label = Signal.get(count)->Int.toString` — stays one-shot and does not
+subscribe the branch. The exception is a *prop* written at the call site, which
+is evaluated in the branch itself: see [User-component
+props](#user-component-props).
+
 ## What counts as "reads a signal"
 
 Detection is more than a literal `Signal.get`. An alias environment threaded
@@ -326,6 +354,17 @@ probe stays on — a silently stale UI is worse than an allocation.
 What is *not* probed, because it can never be a hidden scalar read: event
 handlers and the `attrs` escape-hatch array, values containing JSX, and calls
 into `View`/`Html`/`Signal`/`Computed`/`MaybeSignal` themselves.
+
+Event handlers and `attrs` are not thunked either — neither prop can hold a
+thunk (`attrs` is an `array<(string, 'a)>`, a handler a `Dom.event => unit`),
+so both are left exactly as written. An `attrs` entry carries its own
+reactivity, which the runtime reads on every update:
+
+```rescript
+attrs=[("data-theme", () => Signal.get(theme))]   /* reactive: a thunk */
+attrs=[("data-theme", theme)]                      /* reactive: the signal */
+attrs=[("data-theme", Signal.get(theme))]          /* one-shot, like any argument */
+```
 
 ## How it works
 
@@ -501,7 +540,13 @@ load-bearing for you.
   accepted type is the other place this may move.
 - **User-component props are never thunked.** A deliberate one-shot read today
   (see [User-component props](#user-component-props)). Defensible, but it is the
-  rule people are most likely to trip over.
+  rule people are most likely to trip over — and inside a tracked branch such a
+  read subscribes that branch, so the branch rebuilds wholesale on a change the
+  annotation otherwise keeps fine-grained. Emitting `Signal.untrack(() => …)`
+  around it would make the one-shot read one-shot in every position; it would
+  also stop an explicit `View.tracked` block from seeing a read written in its
+  own body, which is that helper's documented contract. That trade is the open
+  question here.
 
 ## Known limitations
 
