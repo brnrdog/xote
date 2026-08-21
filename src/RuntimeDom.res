@@ -63,6 +63,10 @@ external getElementById: string => Nullable.t<Dom.element> = "getElementById"
 @get external getParentNode: Dom.element => Nullable.t<Dom.element> = "parentNode"
 @get external childNodes: Dom.element => Array.arrayLike<Dom.element> = "childNodes"
 
+let isDocumentFragment: Dom.element => bool = %raw(`function (node) {
+  return node != null && node.nodeType === 11
+}`)
+
 let childNodesToArray = (el: Dom.element): array<Dom.element> => {
   ignore(el)
   %raw(`Array.from(el.childNodes || [])`)

@@ -286,9 +286,29 @@ and render = (node: node): Dom.element => {
 
   | LazyComponent(fn) => {
       let owner = createOwner()
-      let childNode = runWithOwner(owner, fn)
+
+      /* A component body is its own reactive scope. Rendering happens inside
+         the enclosing region's effect (a `SignalFragment`, a keyed list), so
+         without the untrack an eager read in the body — a `let` binding, a
+         one-shot prop read — subscribes *that* region: one unrelated update
+         then rebuilds the whole region wholesale, taking input focus and
+         scroll position with it. Reads deferred into a thunk, a `Computed` or
+         an `Effect` set up their own scope and are unaffected. */
+      let childNode = runWithOwner(owner, () => Signal.untrack(fn))
       let el = render(childNode)
-      setOwner(el, owner)
+
+      /* `el` already carries its own scope (its attribute effects); merge into
+         it rather than replacing it. A fragment root is emptied when it is
+         appended, so the component's scope rides on its first child instead. */
+      if RuntimeDom.isDocumentFragment(el) {
+        switch RuntimeDom.getFirstChild(el)->Nullable.toOption {
+        | Some(firstChild) => attachOwner(firstChild, owner)
+        | None => ()
+        }
+      } else {
+        attachOwner(el, owner)
+      }
+
       el
     }
 
