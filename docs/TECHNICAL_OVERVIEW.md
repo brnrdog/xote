@@ -44,7 +44,7 @@ Computed values and effects are also provided by `rescript-signals`:
 
 - **`Computed.make(~name?, ~equals?, fn)`** creates a lazy derived signal. Upstream writes mark it dirty; it recomputes when read.
 - **`Computed.dispose(signal)`** manually disposes a computed signal when needed.
-- **`Effect.run(~name?, fn)`** creates a fire-and-forget effect.
+- **`Effect.run(~name?, fn)`** creates a fire-and-forget effect. Created while a component renders, it belongs to that component and is disposed on unmount; created outside a render, it lives until its disposer runs.
 - **`Effect.runWithDisposer(~name?, fn)`** returns a disposer with `dispose()`.
 - Effect callbacks return `option<unit => unit>`: `Some(cleanup)` for teardown or `None` when no cleanup is needed.
 
@@ -92,7 +92,8 @@ Rendering is fine-grained:
 - `SignalFragment` replaces its child region when its signal changes.
 - `View.tracked(body)` lowers to `SignalFragment` over a `Computed` of the body, so every signal read while the body runs subscribes the block and its dependencies are re-discovered on each run.
 - `KeyedList` uses comment anchors and key-based reconciliation to preserve DOM identity.
-- `LazyComponent` defers component evaluation until render/hydration time.
+- `LazyComponent` defers component evaluation until render/hydration time, and runs the component body untracked: a component is its own reactive scope, so an eager read in a body does not subscribe the region that renders it.
+- Removing a node disposes its scope: the effects the renderer attached, any `Effect.run` a component body set up, and the computeds the library allocated to back that node (`View.child`, `tracked`, `each`, `Show`/`Maybe`/`Value`, `signalText`). A signal or computed the caller built is left alone — `Computed.dispose` stays manual there.
 
 ### Attributes
 
@@ -121,7 +122,7 @@ SSR mirrors the same behavior when rendering strings: boolean attributes render 
 
 - `jsx`, `jsxs`, `jsxKeyed`, and `jsxsKeyed` are entry points for the JSX transform.
 - Lowercase HTML tags are implemented in `XoteJSX.Elements`.
-- JSX components are wrapped in `View.LazyComponent` so component evaluation happens during render/hydration rather than inside an unrelated computed context.
+- JSX components are wrapped in `View.LazyComponent` so component evaluation happens during render/hydration rather than inside an unrelated computed context, and the body itself runs untracked so it does not subscribe the effect that renders it either.
 - JSX attributes accept raw values, `MaybeSignal.t<'a>`, raw `Signal.t<'a>`, or computed functions for compatibility. `MaybeSignal.ofUnknown` is the single coercion behind that flexibility, shared by `RuntimeJsxProp`, `View.valuePrimitive`, and the hand-written `src/jsx-runtime.mjs`.
 
 `MaybeSignal.t<'a>` is:
