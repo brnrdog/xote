@@ -43,9 +43,14 @@ CI runs it.
 
 ## Comparing two builds
 
-CI runs this suite on every pull request and posts a `main` vs PR table. The
-same comparison runs locally: build the base library into `dist/xote-base` and
-name both apps in one invocation.
+CI runs this suite on pull requests labelled **`benchmark`** and posts a `main`
+vs PR table. It is opt-in because the run takes several minutes and the timings
+only mean anything for changes that touch rendering — label a PR when you want
+the comparison, and nothing runs when you do not. Adding the label to an
+already-open PR starts a run; no new push is needed.
+
+The same comparison runs locally: build the base library into `dist/xote-base`
+and name both apps in one invocation.
 
 ```bash
 node driver.mjs --apps xote,xote-base --out ci-results
