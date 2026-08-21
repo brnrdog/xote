@@ -148,6 +148,24 @@ has('an eager read in a handler argument stays a one-shot read', demo,
   'The read is an ordinary argument evaluation, like any other call the ppx ' +
   'leaves alone — what must not happen is the whole handler being wrapped.');
 
+lacks('the data object is not thunked', demo,
+  'data: () =>',
+  '`data` is an `Obj.t` expanded entry-wise by the runtime; a thunk in that ' +
+  'position does not typecheck (a `Dict.fromArray` value used to be thunked ' +
+  'into exactly that no-location error), and objectEntries over a function ' +
+  'would drop every data-* attribute. Entries carry their own reactivity.');
+
+lacks('the data object is not probed', demo,
+  'data: Primitive_option.some(View$Xote.probe',
+  'An object-literal `data` value used to be probed as an unresolvable leaf. ' +
+  'Like `attrs`, `data` is a container whose entries carry their own ' +
+  'reactivity, so the container itself is never a scalar leaf to report.');
+
+has('an eager read in a data entry stays a one-shot read', demo,
+  'theme: Signal$Xote.get(hatchData)',
+  'The read is an ordinary argument evaluation; what must not happen is the ' +
+  'object being wrapped or probed as a whole.');
+
 console.log(`\n${pass} passed, ${failures.length} failed`);
 
 if (failures.length > 0) {
