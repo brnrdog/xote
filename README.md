@@ -384,11 +384,11 @@ Median of 15 iterations, Chromium 141 on a 4-core Xeon. Lower is better, and the
 
 | | Xote | React | Vue | Solid |
 | --- | ---: | ---: | ---: | ---: |
-| Update every 10th row | **7.8 ms** | 13.4 ms | 11.5 ms | 9.6 ms |
-| Select a row | 1.1 ms | 6.6 ms | 2.7 ms | **0.9 ms** |
-| Create 1,000 rows | 85.5 ms | 63.8 ms | **56.1 ms** | 60.2 ms |
-| Swap two rows | 57.0 ms | 63.7 ms | 10.7 ms | **8.0 ms** |
-| Time to first render | **23.2 ms** | 48.0 ms | 31.1 ms | 25.8 ms |
+| Update every 10th row | **6.7 ms** | 14.8 ms | 8.7 ms | 7.2 ms |
+| Select a row | 1.1 ms | 5.4 ms | 2.1 ms | **0.9 ms** |
+| Create 1,000 rows | 85.0 ms | 58.4 ms | 57.9 ms | **49.8 ms** |
+| Swap two rows | 70.1 ms | 65.8 ms | 8.2 ms | **5.8 ms** |
+| Time to first render | **23.9 ms** | 43.5 ms | 30.7 ms | 24.8 ms |
 | App bundle, gzipped | 7.8 KB | 59.9 KB | 24.9 KB | **4.7 KB** |
 
 Fine-grained updates and startup are where Xote does well: a scattered update writes only the text nodes that changed, and the whole application ships in 7.8 KB. Building large lists is slower than the compiled frameworks, which clone a template per row instead of constructing nodes one at a time. Reordering is the weak spot — the keyed reconciler does not compute a minimal move set, so swapping two rows moves most of the list.

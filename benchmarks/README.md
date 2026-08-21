@@ -125,17 +125,17 @@ container-slow; the ratios are the point.
 
 **Where Xote leads**
 
-- *Update every 10th row* — 7.8 ms, the fastest of the four (Solid 9.6, Vue
-  11.5, React 13.4). Per-row signals mean 100 text-node writes, no diff.
-- *Time to first render* — 23 ms vs React's 48 ms and Vue's 31 ms.
+- *Update every 10th row* — 6.7 ms, the fastest of the four (Solid 7.2, Vue
+  8.7, React 14.8). Per-row signals mean 100 text-node writes, no diff.
+- *Time to first render* — 24 ms vs React's 44 ms and Vue's 31 ms.
 - *Payload* — 7.8 KB gzipped for the whole app against React's 59.9 KB and
   Vue's 24.9 KB. Solid is smaller still at 4.7 KB.
-- *Row selection* — 1.1 ms, within noise of Solid and 6× faster than React.
+- *Row selection* — 1.1 ms, within noise of Solid and ~5× faster than React.
 
 **Where Xote trails**
 
-- *Swapping two rows* — 57 ms against Solid's and Vue's 8–11 ms. This is not
-  overhead, it is an algorithmic gap: `dom-ops.mjs` shows Xote issuing **997
+- *Swapping two rows* — 70 ms against Solid's 5.8 ms and Vue's 8.2 ms. This is
+  not overhead, it is an algorithmic gap: `dom-ops.mjs` shows Xote issuing **997
   `insertBefore` calls to swap two rows**, where Vue and Solid issue 2. Phase 3
   of the keyed reconciler in `src/View.res` walks the new order against the
   live DOM and inserts every node whose position does not match the walk
@@ -144,16 +144,16 @@ container-slow; the ratios are the point.
   the two nodes that actually changed places. React shows the same 997 moves —
   the difference is that this is a known trade in a diffing reconciler and less
   expected in a fine-grained one.
-- *Creating rows* — 1.5× Solid and 1.35× React for 1,000 rows. Xote makes
+- *Creating rows* — 1.7× Solid and 1.5× React for 1,000 rows. Xote makes
   20,000 DOM calls per 1,000 rows (8,000 `createElement`, 9,000 `appendChild`,
   2,000 `createTextNode`, 1,000 `insertBefore`); Solid makes 2,001 by cloning a
   compiled template. Template cloning is the structural win here, and it needs
   a compiler.
-- *Memory* — 43.6 MB at 10,000 rows against Solid's 12.3 MB. Each row allocates
+- *Memory* — 43.7 MB at 10,000 rows against Solid's 12.2 MB. Each row allocates
   a label signal plus effects for the reactive class and text, and Xote's owner
   records are heavier per node. Heap returns to 1.6 MB after clearing, so this
   is allocation weight and not a leak.
-- *Clearing 10,000 rows* — 187 ms vs Solid's 69 ms; the recursive owner
+- *Clearing 10,000 rows* — 189 ms vs Solid's 67 ms; the recursive owner
   disposal walk is the cost.
 
 ## Caveats
