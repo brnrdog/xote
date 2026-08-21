@@ -20,6 +20,14 @@ type keyedChild = {
   child: node,
 }
 
+/* A node backed by a computed the library created carries its release with it:
+   the scope that renders the node disposes the computed when the node goes
+   away. A signal the consumer built and handed us is left alone. */
+let ownComputed = (owner: owner, signal: Signal.t<'a>): unit =>
+  if isOwned(signal) {
+    addComputed(owner, Obj.magic(signal))
+  }
+
 /* Dispose an element and its reactive state */
 let rec disposeElement = (el: Dom.element): unit => {
   /* Dispose the owner if it exists */
@@ -169,6 +177,7 @@ and render = (node: node): Dom.element => {
       let textNode = RuntimeDom.createTextNode(Signal.peek(signal))
       let owner = createOwner()
       setOwner(textNode, owner)
+      ownComputed(owner, signal)
 
       runWithOwner(owner, () =>
         Effect.run(() => {
@@ -194,6 +203,7 @@ and render = (node: node): Dom.element => {
       let container = RuntimeDom.createElement("div")
       RuntimeDom.setAttribute(container, "style", "display: contents")
       setOwner(container, owner)
+      ownComputed(owner, signal)
       let keyedItems: Dict.t<keyedItem<Obj.t>> = Dict.make()
 
       runWithOwner(owner, () =>
