@@ -29,16 +29,37 @@ let ownComputed = (owner: owner, signal: Signal.t<'a>): unit =>
   }
 
 /* Dispose an element and its reactive state */
-let rec disposeElement = (el: Dom.element): unit => {
-  /* Dispose the owner if it exists */
-  switch getOwner(el) {
-  | Some(owner) => disposeOwner(owner)
-  | None => ()
-  }
+/* Visit every node of `root`'s subtree, `root` included.
 
-  /* Recursively dispose children */
-  el->RuntimeDom.childNodesToArray->Array.forEach(disposeElement)
-}
+   Disposal used to recurse, snapshotting each node's children into an array
+   purely to iterate them — one throwaway array per node, measured at ten per
+   row, so clearing a ten-thousand-row list allocated about a hundred thousand
+   of them. Those snapshots were not pointless, though: a cleanup can mutate the
+   tree while the walk is running, and a plain `nextSibling` walk loses the rest
+   of a sibling chain the moment a cleanup detaches one of them.
+
+   An explicit stack gets both. Each node's children are pushed *before* it is
+   visited, so a node's own cleanup cannot hide them, and once pushed they are
+   held by reference — detaching or moving a node that is already on the stack
+   cannot drop it. One stack for the whole subtree replaces one array per node. */
+let visitSubtree: (Dom.element, Dom.element => unit) => unit = %raw(`function (root, visit) {
+  const stack = [root]
+  while (stack.length > 0) {
+    const node = stack.pop()
+    for (let child = node.firstChild; child !== null; child = child.nextSibling) {
+      stack.push(child)
+    }
+    visit(node)
+  }
+}`)
+
+let disposeElement = (el: Dom.element): unit =>
+  visitSubtree(el, node =>
+    switch getOwner(node) {
+    | Some(owner) => disposeOwner(owner)
+    | None => ()
+    }
+  )
 
 let shallowEqualIdentity = (a: Obj.t, b: Obj.t): bool =>
   if a === b {
