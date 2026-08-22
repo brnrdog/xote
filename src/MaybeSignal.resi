@@ -17,6 +17,16 @@ let reactive: Signal.t<'a> => t<'a>
    out `reactive(Computed.make(fn))`. `fn` runs once immediately. */
 let computed: (unit => 'a) => t<'a>
 
+/* ------------------------------------------------------------------- branch */
+
+/* The total branch over the two cases, and how `get` and `peek` are built. The
+   two callbacks are the inverses of the `static` and `reactive` constructors,
+   so `~reactive` receives the `Signal.t` rather than its value.
+
+   `switch` on the constructors is equally idiomatic and gives you exhaustiveness
+   checking; reach for `fold` when it reads better in a pipe. */
+let fold: (t<'a>, ~static: 'a => 'b, ~reactive: Signal.t<'a> => 'b) => 'b
+
 /* --------------------------------------------------------------------- read */
 
 /* Reads the current value, registering a dependency when `Reactive` */
@@ -34,9 +44,11 @@ let isStatic: t<'a> => bool
    backed by a `Computed` that stays subscribed until `Computed.dispose`. */
 let map: (t<'a>, 'a => 'b) => t<'b>
 
-/* Normalizes to a signal. A `Static` value is lifted into a fresh, detached
-   signal — treat the result as read-only. */
-let toSignal: t<'a> => Signal.t<'a>
+/* The underlying signal, when there is one: the source signal for `Reactive`,
+   `None` for `Static`, because a plain value has no signal. To lift a `Static`
+   value into one explicitly, write
+   `fold(value, ~static=v => Signal.make(v), ~reactive=s => s)`. */
+let toSignal: t<'a> => option<Signal.t<'a>>
 
 /* Normalizes an untyped value — a raw value, a `Signal.t`, a `unit => 'a`
    thunk, or an already-wrapped `t` — into a `t`. This is the coercion the JSX

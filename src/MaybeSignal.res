@@ -23,23 +23,31 @@ let reactive = signal => Reactive(signal)
 
 /* Derives a reactive value from a computation, so callers do not have to spell
  out `reactive(Computed.make(fn))`. Like `Computed.make`, `fn` runs once
- immediately to establish its dependencies. */
+ immediately to establish its dependencies.
+
+ The result is the caller's to release: it is not marked as library-owned, so
+ no node disposes it on your behalf (see `RuntimeOwner.markOwned`). Call
+ `Computed.dispose` on it when you are done. */
 let computed = fn => Reactive(Computed.make(fn))
+
+/* The total branch over the two cases, and how `get` and `peek` are implemented.
+ The two callbacks are the inverses of the `static` and `reactive` constructors,
+ so `~reactive` receives the `Signal.t` rather than its value.
+
+ `switch` on the constructors is equally idiomatic and gives you exhaustiveness
+ checking; reach for `fold` when it reads better in a pipe. */
+let fold = (value, ~static, ~reactive) =>
+  switch value {
+  | Reactive(signal) => reactive(signal)
+  | Static(value) => static(value)
+  }
 
 /* Reads the current value. Inside an observer, a `Reactive` value registers a
  dependency; a `Static` value never does. */
-let get = value =>
-  switch value {
-  | Reactive(signal) => Signal.get(signal)
-  | Static(value) => value
-  }
+let get = value => fold(value, ~static=v => v, ~reactive=Signal.get)
 
 /* Reads the current value without registering a dependency */
-let peek = value =>
-  switch value {
-  | Reactive(signal) => Signal.peek(signal)
-  | Static(value) => value
-  }
+let peek = value => fold(value, ~static=v => v, ~reactive=Signal.peek)
 
 /* Predicates */
 let isReactive = value =>
@@ -63,15 +71,18 @@ let map = (value, fn) =>
   | Static(value) => Static(fn(value))
   }
 
-/* Normalizes to a signal, so the result is always readable with `Signal.get`.
+/* The underlying signal, when there is one.
 
- A `Reactive` value returns its own signal. A `Static` value is lifted into a
- *fresh, detached* signal: each call allocates a new one, and writing to the
- result does not change the original — treat it as read-only. */
+ `Reactive` returns its source signal; `Static` returns `None`, because a plain
+ value has no signal and fabricating a fresh detached one made writes to the
+ result disappear silently. To lift a `Static` value into a signal explicitly,
+ write `fold(value, ~static=v => Signal.make(v), ~reactive=s => s)` —
+ `~static=Signal.make` does not typecheck, because `Signal.make` carries
+ optional `~name`/`~equals` arguments. */
 let toSignal = value =>
   switch value {
-  | Reactive(signal) => signal
-  | Static(value) => Signal.make(value)
+  | Reactive(signal) => Some(signal)
+  | Static(_) => None
   }
 
 /* Normalizes an untyped value into a `t`. This is the coercion the JSX runtimes
