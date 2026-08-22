@@ -221,7 +221,6 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
       RuntimeOwner.setOwner(container, owner)
       RuntimeRender.ownComputed(owner, signal)
       let keyedItems: Dict.t<RuntimeRender.keyedItem<Obj.t>> = Dict.make()
-      let initialized = ref(false)
 
       RuntimeOwner.runWithOwner(owner, () =>
         Effect.run(() => {
@@ -233,8 +232,7 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
              holds foreign elements, so fall through to the clear-and-rebuild
              path (which handles keyed children too) exactly as on the first
              pass. */
-          | Some(keyedChildren)
-            if initialized.contents && RuntimeRender.tracksItems(keyedItems) =>
+          | Some(keyedChildren) if RuntimeRender.tracksItems(keyedItems) =>
             RuntimeRender.reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
           | keyedChildrenOpt => {
               RuntimeRender.clearKeyedItems(keyedItems)
@@ -268,8 +266,6 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
                   },
                 )
               }
-
-              initialized := true
             }
           }
 

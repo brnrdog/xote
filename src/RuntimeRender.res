@@ -138,16 +138,18 @@ let getKeyedChildren = (children: array<node>): option<array<keyedChild>> => {
    A -1 can never be "already in place", so such elements are always inserted.
    Foreign siblings shift every index equally, which leaves the relative order —
    the only thing the subsequence depends on — intact. */
-let currentPositions: (Dom.element, array<Dom.element>) => array<int> = %raw(`function (parent, elements) {
+let currentPositions: (Dom.element, array<keyedItem<Obj.t>>) => array<int> = %raw(`function (parent, items) {
   const positions = new Map()
-  let i = 0
+  let index = 0
   for (let node = parent.firstChild; node !== null; node = node.nextSibling) {
-    positions.set(node, i++)
+    positions.set(node, index++)
   }
-  return elements.map((element) => {
-    const at = positions.get(element)
-    return at === undefined ? -1 : at
-  })
+  const found = new Array(items.length)
+  for (let i = 0; i < items.length; i++) {
+    const at = positions.get(items[i].element)
+    found[i] = at === undefined ? -1 : at
+  }
+  return found
 }`)
 
 /* Indices of a longest increasing subsequence of `values`, ascending. Entries
@@ -221,7 +223,7 @@ let placeInOrder = (
   ~items: array<keyedItem<Obj.t>>,
   ~tail: Nullable.t<Dom.element>,
 ): unit => {
-  let positions = currentPositions(parent, items->Array.map(item => item.element))
+  let positions = currentPositions(parent, items)
   let settled = longestIncreasingSubsequence(positions, ~skip=-1)
 
   let nextSettled = ref(Array.length(settled) - 1)
