@@ -487,82 +487,6 @@ and render = (node: node): Dom.element => {
 
       let keyedItems: Dict.t<keyedItem<Obj.t>> = Dict.make()
 
-      /* Reconciliation logic */
-      let reconcile = (): unit => {
-        let parentOpt = RuntimeDom.getParentNode(endAnchor)->Nullable.toOption
-
-        switch parentOpt {
-        | None => ()
-        | Some(parent) => {
-            let newItems = Signal.get(signal)
-
-            let newKeyMap: Dict.t<Obj.t> = Dict.make()
-            newItems->Array.forEach(item => {
-              newKeyMap->Dict.set(keyFn(item), item)
-            })
-
-            /* Phase 1: Remove */
-            let keysToRemove = []
-            keyedItems
-            ->Dict.keysToArray
-            ->Array.forEach(key => {
-              switch newKeyMap->Dict.get(key) {
-              | None => keysToRemove->Array.push(key)->ignore
-              | Some(_) => ()
-              }
-            })
-
-            keysToRemove->Array.forEach(key => {
-              switch keyedItems->Dict.get(key) {
-              | Some(keyedItem) => {
-                  disposeElement(keyedItem.element)
-                  keyedItem.element->RuntimeDom.remove
-                  keyedItems->Dict.delete(key)->ignore
-                }
-              | None => ()
-              }
-            })
-
-            /* Phase 2: Build new order.
-
-               A key whose item identity changed is rebuilt, and its previous
-               element is retired *here*, where we still know which element it
-               was. Deferring that to the ordering pass below would dispose
-               whatever happens to sit at the marker — a different key's element
-               once the list is also reordered — killing that row's effects
-               while leaving the replaced one behind in the DOM. */
-            let newOrder: array<keyedItem<Obj.t>> = []
-
-            let buildItem = (key, item) => {
-              let node = renderItem(item)
-              let element = render(node)
-              let keyedItem = {key, item, element}
-              newOrder->Array.push(keyedItem)->ignore
-              keyedItems->Dict.set(key, keyedItem)
-            }
-
-            newItems->Array.forEach(item => {
-              let key = keyFn(item)
-
-              switch keyedItems->Dict.get(key) {
-              | Some(existing) =>
-                if existing.item !== item {
-                  disposeElement(existing.element)
-                  existing.element->RuntimeDom.remove
-                  buildItem(key, item)
-                } else {
-                  newOrder->Array.push(existing)->ignore
-                }
-              | None => buildItem(key, item)
-              }
-            })
-
-            /* Phase 3: Reconcile DOM — see `placeInOrder`. */
-            placeInOrder(~parent, ~items=newOrder, ~tail=Nullable.make(endAnchor))
-          }
-        }
-      }
-
       /* Initial render */
       let fragment = RuntimeDom.createDocumentFragment()
       fragment->RuntimeDom.appendChild(startAnchor)
@@ -581,12 +505,98 @@ and render = (node: node): Dom.element => {
 
       runWithOwner(owner, () =>
         Effect.run(() => {
-          reconcile()
+          reconcileKeyedList(~signal, ~keyFn, ~renderItem, ~keyedItems, ~endAnchor)
           None
         })
       )
 
       fragment
+    }
+  }
+}
+
+/* The keyed-list reconcile pass, shared by the render path and by hydration.
+   Both drive the same `keyedItems` dict against the same signal; the only
+   thing that differs is where the end anchor came from — created below, or
+   adopted from the SSR markers in `Hydration`. One body means a hydrated list
+   cannot drift from a rendered one. */
+and reconcileKeyedList = (
+  ~signal: Signal.t<array<Obj.t>>,
+  ~keyFn: Obj.t => string,
+  ~renderItem: Obj.t => node,
+  ~keyedItems: Dict.t<keyedItem<Obj.t>>,
+  ~endAnchor: Dom.element,
+): unit => {
+  let parentOpt = RuntimeDom.getParentNode(endAnchor)->Nullable.toOption
+
+  switch parentOpt {
+  | None => ()
+  | Some(parent) => {
+      let newItems = Signal.get(signal)
+
+      let newKeyMap: Dict.t<Obj.t> = Dict.make()
+      newItems->Array.forEach(item => {
+        newKeyMap->Dict.set(keyFn(item), item)
+      })
+
+      /* Phase 1: Remove */
+      let keysToRemove = []
+      keyedItems
+      ->Dict.keysToArray
+      ->Array.forEach(key => {
+        switch newKeyMap->Dict.get(key) {
+        | None => keysToRemove->Array.push(key)->ignore
+        | Some(_) => ()
+        }
+      })
+
+      keysToRemove->Array.forEach(key => {
+        switch keyedItems->Dict.get(key) {
+        | Some(keyedItem) => {
+            disposeElement(keyedItem.element)
+            keyedItem.element->RuntimeDom.remove
+            keyedItems->Dict.delete(key)->ignore
+          }
+        | None => ()
+        }
+      })
+
+      /* Phase 2: Build new order.
+
+         A key whose item identity changed is rebuilt, and its previous
+         element is retired *here*, where we still know which element it
+         was. Deferring that to the ordering pass below would dispose
+         whatever happens to sit at the marker — a different key's element
+         once the list is also reordered — killing that row's effects
+         while leaving the replaced one behind in the DOM. */
+      let newOrder: array<keyedItem<Obj.t>> = []
+
+      let buildItem = (key, item) => {
+        let node = renderItem(item)
+        let element = render(node)
+        let keyedItem = {key, item, element}
+        newOrder->Array.push(keyedItem)->ignore
+        keyedItems->Dict.set(key, keyedItem)
+      }
+
+      newItems->Array.forEach(item => {
+        let key = keyFn(item)
+
+        switch keyedItems->Dict.get(key) {
+        | Some(existing) =>
+          if existing.item !== item {
+            disposeElement(existing.element)
+            existing.element->RuntimeDom.remove
+            buildItem(key, item)
+          } else {
+            newOrder->Array.push(existing)->ignore
+          }
+        | None => buildItem(key, item)
+        }
+      })
+
+      /* Phase 3: Reconcile DOM — see `placeInOrder`. */
+      placeInOrder(~parent, ~items=newOrder, ~tail=Nullable.make(endAnchor))
     }
   }
 }

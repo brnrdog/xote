@@ -13,7 +13,6 @@ type hydrateOptions = {
 
 module DOMWalker = {
   /* View types */
-  let elementNode = 1
   let commentNode = 8
 
   /* Get node type */
@@ -322,12 +321,24 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
       let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.lazyComponentEndContent)
     }
 
-  | View.KeyedList({signal, keyFn, renderItem: _}) => {
-      /* Find the keyed list in the DOM */
-      let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.keyedListStartContent)
+  | View.KeyedList({signal, keyFn, renderItem}) => {
+      /* The list's own markers become its anchors: `kl` carries the owner and
+         `/kl` is the tail the reconciler inserts before, exactly as the pair of
+         comment nodes the render path creates for itself. Adopting them is what
+         lets hydration run the *same* reconcile pass instead of a second
+         implementation of it. */
+      let startAnchor = DOMWalker.skipUntilMarker(
+        walker,
+        RuntimeHydrationMarkers.keyedListStartContent,
+      )
 
-      /* Parse existing keyed items from DOM */
       let keyedItems: Dict.t<RuntimeRender.keyedItem<Obj.t>> = Dict.make()
+      let endAnchor = ref(None)
+
+      /* Indexed once: a scan per marker would make hydrating a list quadratic
+         in its length, which is the size this path exists to serve. */
+      let itemsByKey: Dict.t<Obj.t> = Dict.make()
+      Signal.peek(signal)->Array.forEach(item => itemsByKey->Dict.set(keyFn(item), item))
 
       let rec parseKeyedItems = () => {
         switch DOMWalker.peek(walker) {
@@ -336,24 +347,36 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
             let key = DOMWalker.extractKey(node)->Option.getOr("")
             let _ = DOMWalker.next(walker)
 
-            let itemElements = DOMWalker.collectUntilMarker(
-              walker,
-              RuntimeHydrationMarkers.keyedItemEndContent,
-            )
+            /* SSR writes the row immediately after its key marker, so the node
+               under the cursor is the row — unless the end marker is already
+               there, which means the row rendered to nothing and there is no
+               element for the reconciler to move. */
+            let element = switch DOMWalker.peek(walker) {
+            | Some(node)
+              if !DOMWalker.isMarker(node, RuntimeHydrationMarkers.keyedItemEndContent) =>
+              Some(node)
+            | _ => None
+            }
 
-            switch itemElements->Array.find(el => DOMWalker.nodeType(el) == DOMWalker.elementNode) {
-            | Some(element) => {
-                let items = Signal.peek(signal)
-                let item =
-                  items->Array.find(i => keyFn(i) == key)->Option.getOr(Obj.magic(Dict.make()))
+            switch (itemsByKey->Dict.get(key), element) {
+            /* Hydrate the row through the ordinary path rather than merely
+               recording it: its handlers and reactive attributes have to
+               attach, or the adopted row renders once and is then inert. */
+            | (Some(item), Some(element)) => {
+                hydrateNodeWithWalker(renderItem(item), walker)
                 keyedItems->Dict.set(key, {key, item, element})
               }
-            | None => ()
+            | (Some(_), None) =>
+              logHydrationWarning(`Keyed item "${key}" rendered no element on the server`)
+            | (None, _) =>
+              logHydrationWarning(`Keyed item "${key}" is in the markup but not in the list`)
             }
+            let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.keyedItemEndContent)
 
             parseKeyedItems()
           }
         | Some(node) if DOMWalker.isMarker(node, RuntimeHydrationMarkers.keyedListEndContent) => {
+            endAnchor := Some(node)
             let _ = DOMWalker.next(walker)
           }
         | _ => ()
@@ -361,8 +384,31 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
       }
       parseKeyedItems()
 
-      /* Note: Full keyed list reconciliation would require more complex handling */
-      /* For now, the initial items are hydrated, future updates use full render */
+      /* Without this the parsed items were dropped on the floor: the list kept
+         the server's markup and never subscribed to `signal`, so every later
+         write was invisible and a hydrated `View.For` stayed frozen for the
+         life of the page. */
+      switch (startAnchor, endAnchor.contents) {
+      | (Some(startAnchor), Some(endAnchor)) => {
+          let owner = RuntimeOwner.createOwner()
+          RuntimeOwner.setOwner(startAnchor, owner)
+          RuntimeRender.ownComputed(owner, signal)
+
+          RuntimeOwner.runWithOwner(owner, () =>
+            Effect.run(() => {
+              RuntimeRender.reconcileKeyedList(
+                ~signal,
+                ~keyFn,
+                ~renderItem,
+                ~keyedItems,
+                ~endAnchor,
+              )
+              None
+            })
+          )
+        }
+      | _ => logHydrationWarning("Keyed list markers are missing; the list will not update")
+      }
     }
   }
 }
