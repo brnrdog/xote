@@ -97,6 +97,125 @@ let getKeyedChildren = (children: array<node>): option<array<keyedChild>> => {
   }
 }
 
+/* ---- minimal reordering ---------------------------------------------------
+
+   Both keyed paths finish by putting elements into the order the new list asks
+   for. The obvious way — walk the desired order against the live DOM and insert
+   whatever does not match — is what this used to do, and it cascades: one early
+   mismatch puts every later element out of step with the walk, so swapping two
+   rows of a thousand issued 997 `insertBefore` calls where Vue and SolidJS
+   issue 2.
+
+   The fix is to move the *complement* instead. Nodes already sitting in the
+   right relative order need no moving at all, and the largest such set is a
+   longest increasing subsequence of their current DOM positions; everything
+   outside it is inserted around it, walking backwards so the next element in
+   the desired order is always available as the insertion anchor. */
+
+/* Current position of each element among `parent`'s children, or -1 for one
+   that is not a child yet (freshly built, or rebuilt after an identity change).
+   A -1 can never be "already in place", so such elements are always inserted.
+   Foreign siblings shift every index equally, which leaves the relative order —
+   the only thing the subsequence depends on — intact. */
+let currentPositions: (Dom.element, array<Dom.element>) => array<int> = %raw(`function (parent, elements) {
+  const positions = new Map()
+  let i = 0
+  for (let node = parent.firstChild; node !== null; node = node.nextSibling) {
+    positions.set(node, i++)
+  }
+  return elements.map((element) => {
+    const at = positions.get(element)
+    return at === undefined ? -1 : at
+  })
+}`)
+
+/* Indices of a longest increasing subsequence of `values`, ascending. Entries
+   equal to `skip` are excluded. Patience sorting, O(n log n): `piles` holds, for
+   each achievable length, the index of the smallest tail seen so far, and
+   `parents` threads each entry back to its predecessor so the run can be
+   reconstructed once the best length is known. */
+let longestIncreasingSubsequence = (values: array<int>, ~skip: int): array<int> => {
+  let count = Array.length(values)
+  let parents = Array.make(~length=count, -1)
+  let piles: array<int> = []
+
+  values->Array.forEachWithIndex((value, index) => {
+    if value != skip {
+      let low = ref(0)
+      let high = ref(Array.length(piles))
+      while low.contents < high.contents {
+        let middle = (low.contents + high.contents) / 2
+        let tail = piles->Array.getUnsafe(middle)
+        if values->Array.getUnsafe(tail) < value {
+          low := middle + 1
+        } else {
+          high := middle
+        }
+      }
+      let at = low.contents
+      if at > 0 {
+        parents->Array.setUnsafe(index, piles->Array.getUnsafe(at - 1))
+      }
+      if at == Array.length(piles) {
+        piles->Array.push(index)->ignore
+      } else {
+        piles->Array.setUnsafe(at, index)
+      }
+    }
+  })
+
+  let length = Array.length(piles)
+  let result = Array.make(~length, 0)
+  if length > 0 {
+    let cursor = ref(piles->Array.getUnsafe(length - 1))
+    let slot = ref(length - 1)
+    while slot.contents >= 0 {
+      result->Array.setUnsafe(slot.contents, cursor.contents)
+      cursor := parents->Array.getUnsafe(cursor.contents)
+      slot := slot.contents - 1
+    }
+  }
+  result
+}
+
+let insertOrAppend = (parent: Dom.element, element: Dom.element, before: Nullable.t<Dom.element>) =>
+  switch before->Nullable.toOption {
+  | Some(node) => RuntimeDom.insertBefore(parent, element, node)
+  | None => parent->RuntimeDom.appendChild(element)
+  }
+
+/* Put `items` into `parent` in the given order, moving as few nodes as
+   possible. `tail` is what the last item must precede — a keyed list's end
+   anchor — or null to append at the end. */
+let placeInOrder = (
+  ~parent: Dom.element,
+  ~items: array<keyedItem<Obj.t>>,
+  ~tail: Nullable.t<Dom.element>,
+): unit => {
+  let positions = currentPositions(parent, items->Array.map(item => item.element))
+  let settled = longestIncreasingSubsequence(positions, ~skip=-1)
+
+  let nextSettled = ref(Array.length(settled) - 1)
+  let before = ref(tail)
+  let index = ref(Array.length(items) - 1)
+
+  while index.contents >= 0 {
+    let item = items->Array.getUnsafe(index.contents)
+    let staysPut =
+      nextSettled.contents >= 0 &&
+        settled->Array.getUnsafe(nextSettled.contents) == index.contents
+
+    if staysPut {
+      nextSettled := nextSettled.contents - 1
+    } else {
+      insertOrAppend(parent, item.element, before.contents)
+    }
+
+    before := Nullable.make(item.element)
+    index := index.contents - 1
+  }
+}
+
 let rec reconcileKeyedChildren = (
   ~keyedChildren: array<keyedChild>,
   ~keyedItems: Dict.t<keyedItem<Obj.t>>,
@@ -155,26 +274,7 @@ let rec reconcileKeyedChildren = (
     }
   })
 
-  let marker = ref(
-    switch RuntimeDom.getFirstChild(parent)->Nullable.toOption {
-    | Some(node) => Some(node)
-    | None => None
-    },
-  )
-
-  newOrder->Array.forEach(keyedItem => {
-    let currentElement = marker.contents
-
-    switch currentElement {
-    | Some(elem) if elem === keyedItem.element =>
-      marker := RuntimeDom.getNextSibling(elem)->Nullable.toOption
-    | Some(elem) => {
-        RuntimeDom.insertBefore(parent, keyedItem.element, elem)
-        marker := RuntimeDom.getNextSibling(keyedItem.element)->Nullable.toOption
-      }
-    | None => parent->RuntimeDom.appendChild(keyedItem.element)
-    }
-  })
+  placeInOrder(~parent, ~items=newOrder, ~tail=Nullable.null)
 }
 
 /* Render a virtual node to a DOM element */
@@ -416,24 +516,8 @@ and render = (node: node): Dom.element => {
               }
             })
 
-            /* Phase 3: Reconcile DOM */
-            let marker = ref(RuntimeDom.getNextSibling(startAnchor))
-
-            newOrder->Array.forEach(keyedItem => {
-              let currentElement = marker.contents
-
-              switch currentElement->Nullable.toOption {
-              | Some(elem) if elem === endAnchor =>
-                RuntimeDom.insertBefore(parent, keyedItem.element, endAnchor)
-              | Some(elem) if elem === keyedItem.element =>
-                marker := RuntimeDom.getNextSibling(elem)
-              | Some(elem) => {
-                  RuntimeDom.insertBefore(parent, keyedItem.element, elem)
-                  marker := RuntimeDom.getNextSibling(keyedItem.element)
-                }
-              | None => RuntimeDom.insertBefore(parent, keyedItem.element, endAnchor)
-              }
-            })
+            /* Phase 3: Reconcile DOM — see `placeInOrder`. */
+            placeInOrder(~parent, ~items=newOrder, ~tail=Nullable.make(endAnchor))
           }
         }
       }
