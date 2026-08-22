@@ -361,10 +361,11 @@ and render = (node: node): Dom.element => {
 
   | Element({tag, attrs, events, children}) => {
       let el = RuntimeDom.createElementForTag(tag)
-      let owner = createOwner()
-      setOwner(el, owner)
 
-      runWithOwner(owner, () => {
+      /* Most elements are static and register nothing, so the scope only
+         becomes an owner if an attribute effect or a component body inside it
+         actually needs one — see `RuntimeOwner`'s scope note. */
+      runInScope(scopeFor(~host=Nullable.make(el)), () => {
         let shouldDeferAttrUntilAfterChildren = ((key, _value)) => tag == "select" && key == "value"
 
         let applyAttr = ((key, value)) => {
@@ -410,7 +411,10 @@ and render = (node: node): Dom.element => {
   | Keyed({child, key: _, identity: _}) => render(child)
 
   | LazyComponent(fn) => {
-      let owner = createOwner()
+      /* The component's element does not exist until its body has run, so this
+         scope carries no host and is attached below — but only if the body
+         registered anything, which a component with no effects never does. */
+      let scope = scopeFor(~host=Nullable.null)
 
       /* A component body is its own reactive scope. Rendering happens inside
          the enclosing region's effect (a `SignalFragment`, a keyed list), so
@@ -419,19 +423,23 @@ and render = (node: node): Dom.element => {
          then rebuilds the whole region wholesale, taking input focus and
          scroll position with it. Reads deferred into a thunk, a `Computed` or
          an `Effect` set up their own scope and are unaffected. */
-      let childNode = runWithOwner(owner, () => Signal.untrack(fn))
+      let childNode = runInScope(scope, () => Signal.untrack(fn))
       let el = render(childNode)
 
       /* `el` already carries its own scope (its attribute effects); merge into
          it rather than replacing it. A fragment root is emptied when it is
          appended, so the component's scope rides on its first child instead. */
-      if RuntimeDom.isDocumentFragment(el) {
-        switch RuntimeDom.getFirstChild(el)->Nullable.toOption {
-        | Some(firstChild) => attachOwner(firstChild, owner)
-        | None => ()
+      switch scope.owner {
+      | Some(owner) =>
+        if RuntimeDom.isDocumentFragment(el) {
+          switch RuntimeDom.getFirstChild(el)->Nullable.toOption {
+          | Some(firstChild) => attachOwner(firstChild, owner)
+          | None => ()
+          }
+        } else {
+          attachOwner(el, owner)
         }
-      } else {
-        attachOwner(el, owner)
+      | None => ()
       }
 
       el
