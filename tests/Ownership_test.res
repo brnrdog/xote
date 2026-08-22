@@ -68,6 +68,8 @@ module Closer = {
   }
 }
 
+exception RenderFailed
+
 let detachById: string => unit = %raw(`function (id) {
   const node = document.getElementById(id)
   if (node !== null) { node.remove() }
@@ -354,6 +356,22 @@ let suite = Zekr.suite(
         assertTrue(log->Array.includes("B")),
         assertTrue(log->Array.includes("C")),
         assertTrue(log->Array.includes("D")),
+      ])
+    }),
+    test("a render that throws leaves no scope behind", () => {
+      let {container} = Dom.render("")
+      let raised = ref(false)
+      try {
+        let _ = mountTo(View.LazyComponent(() => throw(RenderFailed)), container)
+      } catch {
+      | RenderFailed => raised := true
+      }
+      /* A scope left dangling here would collect every effect created
+         afterwards — anywhere, including outside any render — into an owner
+         attached to nothing, so nothing could ever dispose them. */
+      combineResults([
+        assertTrue(raised.contents),
+        assertTrue(RuntimeOwner.currentScope.contents->Option.isNone),
       ])
     }),
     test("a component's root element releases its attribute effect on unmount", () => {
