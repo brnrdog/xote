@@ -211,8 +211,19 @@ and render = (node: node): Dom.element => {
           let children = Signal.get(signal)
 
           switch getKeyedChildren(children) {
-          | Some(keyedChildren) =>
-            reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
+          | Some(keyedChildren) => {
+              /* Keyed reconciliation can only retire elements it tracked in
+                 `keyedItems`. The dict is empty in exactly two cases: the first
+                 pass (container empty, the sweep is a no-op) and right after a
+                 non-keyed pass — whose children are foreign to the reconciler
+                 and must be retired here, or a `Show` fallback stays in the DOM
+                 next to the keyed list that replaces it. */
+              if keyedItems->Dict.keysToArray->Array.length == 0 {
+                container->RuntimeDom.childNodesToArray->Array.forEach(disposeElement)
+                RuntimeDom.setInnerHTML(container, "")
+              }
+              reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
+            }
           | None => {
               clearKeyedItems(keyedItems)
 

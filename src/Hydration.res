@@ -228,7 +228,13 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
           let children = Signal.get(signal)
 
           switch RuntimeRender.getKeyedChildren(children) {
-          | Some(keyedChildren) if initialized.contents =>
+          /* Reconciling is only sound against children the reconciler tracked:
+             after a non-keyed pass `keyedItems` is empty and the container
+             holds foreign elements, so fall through to the clear-and-rebuild
+             path (which handles keyed children too) exactly as on the first
+             pass. */
+          | Some(keyedChildren)
+            if initialized.contents && keyedItems->Dict.keysToArray->Array.length > 0 =>
             RuntimeRender.reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
           | keyedChildrenOpt => {
               RuntimeRender.clearKeyedItems(keyedItems)
