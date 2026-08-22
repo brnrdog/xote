@@ -225,48 +225,11 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
         Effect.run(() => {
           let children = Signal.get(signal)
 
-          switch RuntimeRender.getKeyedChildren(children) {
-          /* Reconciling is only sound against children the reconciler tracked:
-             after a non-keyed pass `keyedItems` is empty and the container
-             holds foreign elements, so fall through to the clear-and-rebuild
-             path (which handles keyed children too) exactly as on the first
-             pass. */
-          | Some(keyedChildren) if RuntimeRender.tracksItems(keyedItems) =>
-            RuntimeRender.reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
-          | keyedChildrenOpt => {
-              RuntimeRender.clearKeyedItems(keyedItems)
-
-              /* Clear and re-render */
-              let childNodes = RuntimeDom.childNodesToArray(container)
-              childNodes->Array.forEach(RuntimeRender.disposeElement)
-              RuntimeDom.setInnerHTML(container, "")
-
-              switch keyedChildrenOpt {
-              | Some(keyedChildren) =>
-                keyedChildren->Array.forEach(
-                  keyedChild => {
-                    let childEl = RuntimeRender.render(keyedChild.child)
-                    keyedItems->Dict.set(
-                      keyedChild.key,
-                      {
-                        key: keyedChild.key,
-                        item: keyedChild.identity,
-                        element: childEl,
-                      },
-                    )
-                    container->RuntimeDom.appendChild(childEl)
-                  },
-                )
-              | None =>
-                children->Array.forEach(
-                  child => {
-                    let childEl = RuntimeRender.render(child)
-                    container->RuntimeDom.appendChild(childEl)
-                  },
-                )
-              }
-            }
-          }
+          /* The same pass the render path runs, including the rule about
+             retiring children the reconciler never tracked. A hydrated fragment
+             is not adopted the way a keyed list is: this first pass clears the
+             server's nodes and renders them again. */
+          RuntimeRender.renderFragmentChildren(~container, ~children, ~keyedItems)
 
           None
         })

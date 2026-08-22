@@ -352,38 +352,7 @@ and render = (node: node): Dom.element => {
         Effect.run(() => {
           let children = Signal.get(signal)
 
-          switch getKeyedChildren(children) {
-          | Some(keyedChildren) => {
-              /* Keyed reconciliation can only retire elements it tracked in
-                 `keyedItems`. The dict is empty in exactly two cases: the first
-                 pass (container empty, the sweep is a no-op) and right after a
-                 non-keyed pass — whose children are foreign to the reconciler
-                 and must be retired here, or a `Show` fallback stays in the DOM
-                 next to the keyed list that replaces it. */
-              if !tracksItems(keyedItems) {
-                container->RuntimeDom.childNodesToArray->Array.forEach(disposeElement)
-                RuntimeDom.setInnerHTML(container, "")
-              }
-              reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
-            }
-          | None => {
-              clearKeyedItems(keyedItems)
-
-              /* Dispose existing children */
-              container->RuntimeDom.childNodesToArray->Array.forEach(disposeElement)
-
-              /* Clear existing children */
-              RuntimeDom.setInnerHTML(container, "")
-
-              /* Render and append new children */
-              children->Array.forEach(
-                child => {
-                  let childEl = render(child)
-                  container->RuntimeDom.appendChild(childEl)
-                },
-              )
-            }
-          }
+          renderFragmentChildren(~container, ~children, ~keyedItems)
 
           None
         })
@@ -511,6 +480,39 @@ and render = (node: node): Dom.element => {
       )
 
       fragment
+    }
+  }
+}
+
+/* One reactive pass of a signal fragment's children into `container`, shared by
+   the render path and by hydration so the rule below lives in one place.
+
+   Keyed reconciliation can only retire elements it tracked in `keyedItems`. The
+   dict is empty in exactly two cases: the first pass (container empty, so the
+   sweep is a no-op) and right after a non-keyed pass — whose children are
+   foreign to the reconciler and must be retired here, or a `Show` fallback stays
+   in the DOM next to the keyed list that replaces it. */
+and renderFragmentChildren = (
+  ~container: Dom.element,
+  ~children: array<node>,
+  ~keyedItems: Dict.t<keyedItem<Obj.t>>,
+): unit => {
+  let sweep = () => {
+    container->RuntimeDom.childNodesToArray->Array.forEach(disposeElement)
+    RuntimeDom.setInnerHTML(container, "")
+  }
+
+  switch getKeyedChildren(children) {
+  | Some(keyedChildren) => {
+      if !tracksItems(keyedItems) {
+        sweep()
+      }
+      reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
+    }
+  | None => {
+      clearKeyedItems(keyedItems)
+      sweep()
+      children->Array.forEach(child => container->RuntimeDom.appendChild(render(child)))
     }
   }
 }
