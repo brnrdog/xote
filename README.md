@@ -384,14 +384,15 @@ Median of 15 iterations, Chromium 141 on a 4-core Xeon. Lower is better, and the
 
 | | Xote | React | Vue | Solid |
 | --- | ---: | ---: | ---: | ---: |
-| Update every 10th row | **4.2 ms** | 9.4 ms | 5.6 ms | 4.4 ms |
-| Select a row | 0.7 ms | 4.5 ms | 1.5 ms | **0.5 ms** |
-| Create 1,000 rows | 76.3 ms | 54.0 ms | 48.4 ms | **43.7 ms** |
-| Swap two rows | 43.1 ms | 51.4 ms | 4.9 ms | **4.0 ms** |
-| Time to first render | 18.8 ms | 35.0 ms | 24.4 ms | **17.1 ms** |
-| App bundle, gzipped | 7.9 KB | 59.9 KB | 24.9 KB | **4.7 KB** |
+| Update every 10th row | 5.4 ms | 10.7 ms | 6.9 ms | **4.6 ms** |
+| Select a row | 1.0 ms | 5.1 ms | 2.0 ms | **0.7 ms** |
+| Create 1,000 rows | 80.0 ms | 54.4 ms | 54.2 ms | **49.8 ms** |
+| Swap two rows | 5.5 ms | 52.9 ms | 5.8 ms | **4.8 ms** |
+| Clear 10,000 rows | 102 ms | 99 ms | 75 ms | **68 ms** |
+| Time to first render | 24.5 ms | 39.9 ms | 27.5 ms | **19.1 ms** |
+| App bundle, gzipped | 8.3 KB | 59.9 KB | 24.9 KB | **4.7 KB** |
 
-Fine-grained updates are where Xote does well: a scattered update writes only the text nodes that changed, which puts it level with Solid and about 2x ahead of React, and the whole application ships in 7.9 KB against React's 59.9. Startup is in the same range as Solid's. Building large lists is slower than the compiled frameworks, which clone a template per row instead of constructing nodes one at a time. Reordering is the clear weak spot — the keyed reconciler does not compute a minimal move set, so swapping two rows moves most of the list and costs roughly 10x what Vue and Solid pay.
+Fine-grained updates are where Xote does well: a scattered update writes only the text nodes that changed, which puts it level with Solid and about 2x ahead of React, and the whole application ships in 8.3 KB against React's 59.9. Startup is in the same range as Solid's, and reordering is a tie with the compiled frameworks — the keyed reconciler moves only the rows a reorder actually displaces, so a two-row swap costs two node moves rather than most of the list. Building large lists remains slower than the compiled frameworks, which clone a template per row instead of constructing nodes one at a time; that is also why Xote holds a larger heap on a 10,000-row list.
 
 Full results, methodology, and the DOM-operation profile that explains these numbers are in [`benchmarks/README.md`](benchmarks/README.md) and [`benchmarks/results/RESULTS.md`](benchmarks/results/RESULTS.md). Per-framework detail lives in the [React](https://xote.dev/docs/comparisons/react) and [SolidJS](https://xote.dev/docs/comparisons/solidjs) comparison pages.
 
