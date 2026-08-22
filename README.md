@@ -376,6 +376,30 @@ Use `xote/client` for browser UI, `xote/router` for routing, `xote/ssr` for serv
 
 Check the [website](https://brnrdog.github.io/xote/) for more comprehensive documentations about Xote and Signals.
 
+## Using xote with AI agents
+
+Xote ships Claude Code skills that teach an agent how the library actually
+behaves — chiefly that reactivity follows the expression written in JSX
+position, so a value read eagerly compiles cleanly and then never updates. Two
+skills: `xote` for writing and editing code, and `xote-review` for auditing a
+diff for the reactivity defects that type-check.
+
+```
+/plugin marketplace add brnrdog/xote
+/plugin install xote@xote
+```
+
+The same skills ship inside the npm package, so a project that already depends
+on xote can link them in directly:
+
+```bash
+mkdir -p .claude/skills
+ln -s ../../node_modules/xote/plugins/xote/skills/xote .claude/skills/xote
+```
+
+See [`plugins/xote/README.md`](plugins/xote/README.md) for both installation
+paths and what each skill covers.
+
 ## Benchmarks
 
 The [`benchmarks/`](benchmarks) directory contains a keyed-list benchmark that runs the same table application in Xote, React, Vue, and SolidJS. Every implementation renders identical DOM from the same generated data and is written the way its own library recommends, so the comparison reflects the architectures rather than the wiring.

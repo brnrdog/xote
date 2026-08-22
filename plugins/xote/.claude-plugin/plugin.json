@@ -1,0 +1,14 @@
+{
+  "name": "xote",
+  "displayName": "xote",
+  "description": "Build applications with xote, the fine-grained reactive UI library for ReScript. Teaches the reactivity model, @xote.component, control flow, routing and SSR, and audits code for reactivity bugs that compile cleanly but never update.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Bernardo Gurgel",
+    "email": "brnrdog@hey.com"
+  },
+  "homepage": "https://xote.dev",
+  "repository": "https://github.com/brnrdog/xote",
+  "license": "LGPL-3.0",
+  "keywords": ["rescript", "xote", "signals", "reactivity", "ui"]
+}

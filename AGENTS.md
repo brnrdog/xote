@@ -24,6 +24,7 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - `npm run test` - Compile ReScript, run the zekr suites, then the two public API guardrails. Tests are built on the [zekr](https://www.npmjs.com/package/zekr) framework (see `tests/Tests.res`) and include snapshot fixtures under `tests/__snapshots__/`.
 - `npm run test:exports` - Assert the JS export surface of each public module matches its snapshot.
 - `npm run test:boundary` - Compile `tests/consumer` against a staged copy of the publishable package to check the public API boundary from outside.
+- `npm run test:skills` - Validate the consumer-facing agent skills in `plugins/`: frontmatter, plugin/marketplace manifests, and that every `Module.value` they mention is declared in the matching `.resi`.
 
 ### PPX (`@xote.component`)
 - `npm run ppx:build` - Compile the native PPX binary from `ppx/ppx.ml` (needs `ocamlopt`)
@@ -614,6 +615,38 @@ Hydration.hydrateById(app, "root")
 - **TC39 Signals proposal**: https://github.com/tc39/proposal-signals
 - **ReScript JSX**: https://rescript-lang.org/docs/manual/latest/jsx
 
+## Consumer-facing Agent Skills
+
+`AGENTS.md` is for people and agents working *on* this repository. The skills in
+`plugins/xote/skills/` are the mirror image: they are for agents working on
+applications *with* xote, and they ship both as a Claude Code plugin
+(`/plugin marketplace add brnrdog/xote`) and inside the npm tarball at
+`node_modules/xote/plugins/xote/skills/`.
+
+Two skills:
+
+- **`xote`** - writing and editing xote code. `SKILL.md` carries the model and
+  the decision tables; the detail lives in `references/` (`setup`, `components`,
+  `reactivity`, `control-flow`, `attributes`, `routing`, `ssr`, `api`,
+  `troubleshooting`) and is loaded only when a task needs it.
+- **`xote-review`** - audits a diff for the defects that compile: one-shot
+  reads, unthunked user-component props, unkeyed lists, oversized tracked
+  blocks, unowned effects, hydration mismatches.
+
+The premise is that the failure mode worth documenting is the one the type
+checker cannot catch. A one-shot `Signal.get` has the same type as a reactive
+one; the difference is *when* it runs, and the symptom is a correct first frame
+that never changes.
+
+**Keeping them true.** `npm run test:skills` (part of `npm test`) parses every
+`Module.value` the skills mention and asserts the matching `.resi` declares it,
+so widening or narrowing the public API fails the skills along with
+`test:exports` and `test:boundary`. It cannot check prose, so when a behaviour
+changes - PPX decomposition rules, attribute handling, hydration - update the
+relevant reference file in the same commit. Anything documented in both places
+should say the same thing; `references/api.md` is the one that must match the
+interfaces exactly.
+
 ## Known Limitations
 
 1. **SignalFragment updates**: `SignalFragment` replaces all children without diffing (no reconciliation algorithm). Use `eachWithKey` for efficient list updates.
@@ -662,6 +695,8 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 | `ppx/ppx.ml` | The `@xote.component` fine-grained PPX (vendored OCaml 4.06 AST + rewriter) |
 | `ppx/example/` | Standalone PPX consumer project; `verify.mjs` is its jsdom regression suite (`npm run ppx:test`). `src/Store.res` is deliberately a *second* file, so its helpers model the cross-module reads detection cannot follow |
 | `ppx/postinstall.js` | Selects/installs the prebuilt PPX binary at npm install time |
+| `plugins/xote/skills/` | Claude Code skills shipped to *consumers* of the package (see "Consumer-facing agent skills") |
+| `scripts/check-skills.mjs` | Guardrail that keeps those skills honest against the `.resi` files |
 | `rescript.json` | ReScript compiler configuration (`namespace: true`) |
 | `vite.config.js` | Library build configuration |
 

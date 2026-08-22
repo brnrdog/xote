@@ -73,6 +73,9 @@
   "sideEffects": false,
   "files": [
     "dist",
+    "plugins/xote/README.md",
+    "plugins/xote/.claude-plugin/plugin.json",
+    "plugins/xote/skills",
     "src/**/*.res",
     "src/**/*.resi",
     "src/**/*.res.mjs",
@@ -102,9 +105,10 @@
     "docs:start": "cd docs-website && npm run dev",
     "docs:build": "cd docs-website && npm run build",
     "docs:serve": "cd docs-website && npm run preview",
-    "test": "npx rescript && node tests/Tests.res.mjs && node tests/JSXRuntime_test.mjs && node tests/DevMode_test.mjs && npm run test:exports && npm run test:boundary",
+    "test": "npx rescript && node tests/Tests.res.mjs && node tests/JSXRuntime_test.mjs && node tests/DevMode_test.mjs && npm run test:exports && npm run test:boundary && npm run test:skills",
     "test:exports": "node tests/PublicExports_test.mjs",
     "test:boundary": "node scripts/consumer-boundary-test.mjs",
+    "test:skills": "node scripts/check-skills.mjs",
     "ppx:build": "sh ppx/build.sh",
     "ppx:test": "sh ppx/example/setup.sh && sh ppx/build.sh && cd ppx/example && npx rescript clean && npm run build && npm run verify && npm run golden"
   },

@@ -1,0 +1,15 @@
+{
+  "name": "xote",
+  "description": "Claude Code plugins for building applications with xote, the fine-grained reactive UI library for ReScript.",
+  "owner": {
+    "name": "Bernardo Gurgel",
+    "url": "https://github.com/brnrdog"
+  },
+  "plugins": [
+    {
+      "name": "xote",
+      "source": "./plugins/xote",
+      "description": "Skills for writing, reviewing and debugging xote applications: the reactivity model, @xote.component, control flow, routing, SSR and hydration."
+    }
+  ]
+}
