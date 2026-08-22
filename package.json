@@ -120,6 +120,10 @@
       {
         "name": "beta",
         "prerelease": true
+      },
+      {
+        "name": "rc",
+        "prerelease": true
       }
     ],
     "plugins": [
