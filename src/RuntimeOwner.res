@@ -11,19 +11,9 @@ type owner = {
   mutable computeds: array<Obj.t>,
 }
 
-let currentOwner: ref<option<owner>> = ref(None)
-
 let createOwner = (): owner => {
   disposers: [],
   computeds: [],
-}
-
-let runWithOwner = (owner: owner, fn: unit => 'a): 'a => {
-  let previousOwner = currentOwner.contents
-  currentOwner := Some(owner)
-  let result = fn()
-  currentOwner := previousOwner
-  result
 }
 
 let addDisposer = (owner: owner, dispose: unit => unit): unit => {
@@ -49,13 +39,6 @@ let isOwned: Signal.t<'a> => bool = %raw(`function (signal) {
 }`)
 
 let ownedComputed = (compute: unit => 'a): Signal.t<'a> => markOwned(Computed.make(compute))
-
-/* Register with the scope that is currently rendering, if there is one. */
-let track = (register: (owner, 'a) => unit, value: 'a): unit =>
-  switch currentOwner.contents {
-  | Some(owner) => register(owner, value)
-  | None => ()
-  }
 
 /* Fold `source` into `target`. One DOM node can be the root of more than one
    scope — a component's own scope and the element it returns — and the second
@@ -90,4 +73,66 @@ let attachOwner = (element: Dom.element, owner: owner): unit =>
   switch getOwner(element) {
   | Some(existing) => absorb(existing, owner)
   | None => setOwner(element, owner)
+  }
+
+/* ---- scopes ---------------------------------------------------------------
+
+   Most DOM elements own nothing. A static `<td class="col-md-1">` registers no
+   effect and no computed, yet allocating its scope up front cost an owner
+   record, two arrays and an expando property on the element — and then a walk
+   over all of it at disposal. Measured on the keyed-list benchmark, 78% of the
+   owners the renderer allocated carried nothing at all: 9 per row, 7 of them
+   empty.
+
+   So a scope starts as a promise of an owner rather than an owner. Nothing is
+   allocated until something actually registers, at which point the owner is
+   created and attached to the node the scope belongs to. Elements that own
+   nothing now cost nothing. */
+
+type scope = {
+  mutable owner: option<owner>,
+  /* Where to attach on materialisation. Null for a scope whose node does not
+     exist yet — a component's, whose element only exists once its body has
+     run; the caller attaches that one itself afterwards. */
+  host: Nullable.t<Dom.element>,
+}
+
+let currentScope: ref<option<scope>> = ref(None)
+
+let scopeFor = (~host: Nullable.t<Dom.element>): scope => {owner: None, host}
+
+/* The owner this scope stands for, created on first use. */
+let materialize = (scope: scope): owner =>
+  switch scope.owner {
+  | Some(owner) => owner
+  | None => {
+      let owner = createOwner()
+      scope.owner = Some(owner)
+      switch scope.host->Nullable.toOption {
+      | Some(element) => attachOwner(element, owner)
+      | None => ()
+      }
+      owner
+    }
+  }
+
+let runInScope = (scope: scope, fn: unit => 'a): 'a => {
+  let previous = currentScope.contents
+  currentScope := Some(scope)
+  let result = fn()
+  currentScope := previous
+  result
+}
+
+/* Run `fn` against an owner that already exists — the reactive-node scopes
+   (`SignalText`, `SignalFragment`, `KeyedList`, hydration) always register
+   something, so there is nothing to defer. */
+let runWithOwner = (owner: owner, fn: unit => 'a): 'a =>
+  runInScope({owner: Some(owner), host: Nullable.null}, fn)
+
+/* Register with the scope that is currently rendering, if there is one. */
+let track = (register: (owner, 'a) => unit, value: 'a): unit =>
+  switch currentScope.contents {
+  | Some(scope) => register(materialize(scope), value)
+  | None => ()
   }
