@@ -548,16 +548,19 @@ module HiddenClean = {
     <p id="hidden-clean" class={Store.title("row")}> {Counter.plain(41)} </p>
 }
 
-/* Case 30: the escape hatches. Neither `attrs` nor an event handler is a value
-   leaf — `attrs` is an `array<(string, 'a)>` and a handler is a
-   `Dom.event => unit`, so neither prop can hold a thunk — and the ppx leaves
-   both exactly as written. An entry carries its own reactivity (a `() => …`, a
-   signal, `View.signalAttr`), and an eager read in either position is a
-   one-shot read like any other argument. Thunking them failed the build with a
-   type error that named no file and no line. */
+/* Case 30: the escape hatches. Neither `attrs`, `data`, nor an event handler
+   is a value leaf — `attrs` is an `array<(string, 'a)>`, `data` an `Obj.t`,
+   and a handler a `Dom.event => unit`, so none of these props can hold a thunk
+   — and the ppx leaves all three exactly as written. An entry carries its own
+   reactivity (a `() => …`, a signal, `View.signalAttr`), and an eager read in
+   any of these positions is a one-shot read like any other argument. Thunking
+   them failed the build with a type error that named no file and no line
+   (`data` depended on the shape of the expression: a `Dict.fromArray` was
+   thunked into that no-location error, an object literal was probed). */
 let hatchTheme = Signal.make("light")
 let hatchStep = Signal.make(2)
 let hatchClicks = Signal.make(0)
+let hatchData = Signal.make("light")
 let stepHandler = (step: int) => (_evt: Dom.event) => Signal.update(hatchClicks, c => c + step)
 
 module EscapeHatch = {
@@ -566,6 +569,8 @@ module EscapeHatch = {
     <div id="escape-hatch">
       <span id="eh-frozen" attrs=[("data-theme", Signal.get(hatchTheme))] />
       <span id="eh-live" attrs=[("data-theme", () => Signal.get(hatchTheme))] />
+      <span id="eh-data-frozen" data={Obj.magic({"theme": Signal.get(hatchData)})} />
+      <span id="eh-data-live" data={Obj.magic({"theme": () => Signal.get(hatchData)})} />
       <button id="eh-button" onClick={stepHandler(Signal.get(hatchStep))}> {"go"} </button>
     </div>
 }
