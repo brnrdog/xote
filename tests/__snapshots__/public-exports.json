@@ -29,6 +29,7 @@
     "optionalComputedAttr",
     "optionalSignalAttr",
     "probe",
+    "render",
     "signalAttr",
     "signalFloat",
     "signalFragment",
@@ -64,6 +65,7 @@
   "MaybeSignal": [
     "$$static",
     "computed",
+    "fold",
     "get",
     "isReactive",
     "isStatic",
