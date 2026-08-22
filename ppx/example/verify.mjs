@@ -520,6 +520,7 @@ check('a thunked data entry renders', hatch.querySelector('#eh-data-live').getAt
 Signal.set(Demo.hatchData, 'dark');
 check('a thunked data entry updates', hatch.querySelector('#eh-data-live').getAttribute('data-theme') === 'dark');
 check('an inline read in a data entry is a one-shot read', hatch.querySelector('#eh-data-frozen').getAttribute('data-theme') === 'light');
+check('a Dict-shaped data value renders its entries', hatch.querySelector('#eh-data-dict').getAttribute('data-theme') === 'light');
 hatch.querySelector('#eh-button').dispatchEvent(new dom.window.Event('click'));
 check('a handler built by a factory that reads a signal runs', Signal.peek(Demo.hatchClicks) === 2);
 

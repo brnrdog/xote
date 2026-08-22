@@ -149,11 +149,17 @@ has('an eager read in a handler argument stays a one-shot read', demo,
   'leaves alone — what must not happen is the whole handler being wrapped.');
 
 lacks('the data object is not thunked', demo,
-  'data: () =>',
+  'data: Primitive_option.some(() =>',
   '`data` is an `Obj.t` expanded entry-wise by the runtime; a thunk in that ' +
   'position does not typecheck (a `Dict.fromArray` value used to be thunked ' +
   'into exactly that no-location error), and objectEntries over a function ' +
   'would drop every data-* attribute. Entries carry their own reactivity.');
+
+has('a Dict-shaped data value reaches the prop unwrapped', demo,
+  'data: Primitive_option.some(Object.fromEntries(',
+  'The shape that used to be thunked. It is the call, not the object literal, ' +
+  'that looked like an eager read worth deferring, so `data` needs the case ' +
+  'that is a call to stay pinned — the literal one cannot regress this way.');
 
 lacks('the data object is not probed', demo,
   'data: Primitive_option.some(View$Xote.probe',

@@ -571,6 +571,10 @@ module EscapeHatch = {
       <span id="eh-live" attrs=[("data-theme", () => Signal.get(hatchTheme))] />
       <span id="eh-data-frozen" data={Obj.magic({"theme": Signal.get(hatchData)})} />
       <span id="eh-data-live" data={Obj.magic({"theme": () => Signal.get(hatchData)})} />
+      <span
+        id="eh-data-dict"
+        data={Obj.magic(Dict.fromArray([("theme", Signal.get(hatchData))]))}
+      />
       <button id="eh-button" onClick={stepHandler(Signal.get(hatchStep))}> {"go"} </button>
     </div>
 }
