@@ -65,6 +65,15 @@ let shallowEqualIdentity = (a: Obj.t, b: Obj.t): bool =>
     }
   }
 
+/* Does the reconciler already track an element in this container? Asked
+   without materialising the key array: `keysToArray` on a ten-thousand-row map
+   allocates ten thousand strings to answer a yes/no question the first key
+   settles, and this runs on every pass. */
+let tracksItems: Dict.t<keyedItem<Obj.t>> => bool = %raw(`function (items) {
+  for (const _ in items) { return true }
+  return false
+}`)
+
 let clearKeyedItems = (keyedItems: Dict.t<keyedItem<Obj.t>>): unit => {
   keyedItems->Dict.keysToArray->Array.forEach(key => keyedItems->Dict.delete(key)->ignore)
 }
@@ -211,8 +220,19 @@ and render = (node: node): Dom.element => {
           let children = Signal.get(signal)
 
           switch getKeyedChildren(children) {
-          | Some(keyedChildren) =>
-            reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
+          | Some(keyedChildren) => {
+              /* Keyed reconciliation can only retire elements it tracked in
+                 `keyedItems`. The dict is empty in exactly two cases: the first
+                 pass (container empty, the sweep is a no-op) and right after a
+                 non-keyed pass — whose children are foreign to the reconciler
+                 and must be retired here, or a `Show` fallback stays in the DOM
+                 next to the keyed list that replaces it. */
+              if !tracksItems(keyedItems) {
+                container->RuntimeDom.childNodesToArray->Array.forEach(disposeElement)
+                RuntimeDom.setInnerHTML(container, "")
+              }
+              reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
+            }
           | None => {
               clearKeyedItems(keyedItems)
 
