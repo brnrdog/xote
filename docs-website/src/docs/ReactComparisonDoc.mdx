@@ -153,20 +153,20 @@ Median of 15 iterations, Chromium 141 on a 4-core Xeon. Lower is better. These a
 
 | Operation | Xote | React |
 | --- | --- | --- |
-| Create 1,000 rows | 80.0 ms | 54.4 ms |
-| Replace 1,000 rows | 91.6 ms | 67.3 ms |
-| Update every 10th row | 5.4 ms | 10.7 ms |
-| Select a row | 1.0 ms | 5.1 ms |
-| Swap two rows | 5.5 ms | 52.9 ms |
-| Remove a row | 5.7 ms | 9.7 ms |
-| Create 10,000 rows | 904 ms | 964 ms |
-| Clear 10,000 rows | 102 ms | 99 ms |
-| Time to first render | 24.5 ms | 39.9 ms |
-| App bundle, gzipped | 8.3 KB | 59.9 KB |
+| Create 1,000 rows | 88.7 ms | 62.1 ms |
+| Replace 1,000 rows | 93.8 ms | 65.6 ms |
+| Update every 10th row | 6.3 ms | 11.7 ms |
+| Select a row | 1.0 ms | 5.8 ms |
+| Swap two rows | 7.3 ms | 64.8 ms |
+| Remove a row | 6.2 ms | 10.6 ms |
+| Create 10,000 rows | 919 ms | 947 ms |
+| Clear 10,000 rows | 109 ms | 96 ms |
+| Time to first render | 24.4 ms | 41.8 ms |
+| App bundle, gzipped | 8.4 KB | 59.9 KB |
 
 The results follow the architecture. Scattered updates and selection are where fine-grained reactivity pays: Xote writes only the text nodes that changed, while React re-renders the list and diffs it, so Xote runs about 2x faster on the update and several times faster on selection. Building large lists goes the other way, because React's element creation path is more optimized than Xote's node-by-node construction.
 
-Clearing a large list used to be Xote's weakest result by some distance. Removal still walks the owner tree to dispose per-node effects, which a virtual DOM renderer does not have to do, but that walk no longer copies each node's children into a throwaway array on the way down, and elements that own nothing no longer carry a scope to dispose at all. The two now finish within a few milliseconds of each other.
+Clearing a large list used to be Xote's weakest result by some distance. Removal still walks the owner tree to dispose per-node effects, which a virtual DOM renderer does not have to do, but that walk no longer copies each node's children into a throwaway array on the way down, and elements that own nothing no longer carry a scope to dispose at all. Xote is now within about ten percent of React on it, rather than the seventy percent behind it used to be.
 
 Swapping two rows is where the architectures separate. Xote's keyed reconciler leaves the rows that are already in the right relative order alone and moves only the two that are not, so the swap costs two `insertBefore` calls — the same as Vue and SolidJS. React's reconciler still walks the list and reinserts everything past the first mismatch, which is why it spends about ten times as long on the same operation.
 

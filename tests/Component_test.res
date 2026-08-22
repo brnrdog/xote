@@ -1,7 +1,5 @@
 open! Zekr
 
-@send external querySelector: ('a, string) => Nullable.t<'b> = "querySelector"
-
 let mountTo = (node, container) => {
   View.mount(node, container)
   container
@@ -387,7 +385,7 @@ let suite = Zekr.suite(
       Signal.set(show, true)
       let listed = Dom.Assert.toHaveTextContent(container, "ab")
       let fallbackGone = assertTrue(
-        querySelector(container, "p")->Nullable.toOption->Option.isNone,
+        Zekr__DomBindings.querySelector(container, "p")->Nullable.toOption->Option.isNone,
       )
       Signal.set(show, false)
       combineResults([
