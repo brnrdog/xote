@@ -29,33 +29,37 @@ let ownComputed = (owner: owner, signal: Signal.t<'a>): unit =>
   }
 
 /* Dispose an element and its reactive state */
-/* Visit each child of `node`, without materialising an array of them.
+/* Visit every node of `root`'s subtree, `root` included.
 
-   Disposal walks every node under what is being removed, and snapshotting the
-   children of each cost one throwaway array per node: measured at ten per row,
-   so clearing a ten-thousand-row list allocated about a hundred thousand arrays
-   purely to iterate. Reading `next` before visiting keeps the walk safe against
-   a cleanup that removes the node it is called on, which is the reason the
-   snapshot was there in the first place. */
-let forEachChild: (Dom.element, Dom.element => unit) => unit = %raw(`function (node, visit) {
-  let child = node.firstChild
-  while (child !== null) {
-    const next = child.nextSibling
-    visit(child)
-    child = next
+   Disposal used to recurse, snapshotting each node's children into an array
+   purely to iterate them — one throwaway array per node, measured at ten per
+   row, so clearing a ten-thousand-row list allocated about a hundred thousand
+   of them. Those snapshots were not pointless, though: a cleanup can mutate the
+   tree while the walk is running, and a plain `nextSibling` walk loses the rest
+   of a sibling chain the moment a cleanup detaches one of them.
+
+   An explicit stack gets both. Each node's children are pushed *before* it is
+   visited, so a node's own cleanup cannot hide them, and once pushed they are
+   held by reference — detaching or moving a node that is already on the stack
+   cannot drop it. One stack for the whole subtree replaces one array per node. */
+let visitSubtree: (Dom.element, Dom.element => unit) => unit = %raw(`function (root, visit) {
+  const stack = [root]
+  while (stack.length > 0) {
+    const node = stack.pop()
+    for (let child = node.firstChild; child !== null; child = child.nextSibling) {
+      stack.push(child)
+    }
+    visit(node)
   }
 }`)
 
-let rec disposeElement = (el: Dom.element): unit => {
-  /* Dispose the owner if it exists */
-  switch getOwner(el) {
-  | Some(owner) => disposeOwner(owner)
-  | None => ()
-  }
-
-  /* Recursively dispose children */
-  forEachChild(el, disposeElement)
-}
+let disposeElement = (el: Dom.element): unit =>
+  visitSubtree(el, node =>
+    switch getOwner(node) {
+    | Some(owner) => disposeOwner(owner)
+    | None => ()
+    }
+  )
 
 let shallowEqualIdentity = (a: Obj.t, b: Obj.t): bool =>
   if a === b {
@@ -195,6 +199,14 @@ let longestIncreasingSubsequence = (values: array<int>, ~skip: int): array<int> 
   result
 }
 
+/* A node can only anchor an `insertBefore` on `parent` if it is actually a
+   child of it. A row that rendered to a fragment is emptied when it is
+   appended and ends up parented nowhere, so it must never become the anchor
+   for the row before it. */
+let isChildOf: (Dom.element, Dom.element) => bool = %raw(`function (parent, node) {
+  return node.parentNode === parent
+}`)
+
 let insertOrAppend = (parent: Dom.element, element: Dom.element, before: Nullable.t<Dom.element>) =>
   switch before->Nullable.toOption {
   | Some(node) => RuntimeDom.insertBefore(parent, element, node)
@@ -228,7 +240,9 @@ let placeInOrder = (
       insertOrAppend(parent, item.element, before.contents)
     }
 
-    before := Nullable.make(item.element)
+    if isChildOf(parent, item.element) {
+      before := Nullable.make(item.element)
+    }
     index := index.contents - 1
   }
 }

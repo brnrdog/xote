@@ -286,6 +286,42 @@ let suite = Zekr.suite(
         assertEqual(Array.length(texts), 100),
       ])
     }),
+    test("keyed rows whose root is a fragment render, and reordering them is inert", () => {
+      let {container} = Dom.render("")
+      let pool = ["1", "2", "3"]->Array.map(id => {id, label: "L" ++ id})
+      let build = ids => ids->Array.filterMap(id => pool->Array.find(item => item.id == id))
+      let items = Signal.make(pool)
+      /* A row rendering to a fragment — which is what a component whose root is
+         `<>…</>` produces — is emptied when it is appended, so it is not a child
+         of the list's parent at all. The ordering pass must not try to anchor an
+         insertion on it: doing so threw "The child can not be found in the
+         parent" before the mount even finished. */
+      let _ = mountTo(
+        Html.div(
+          ~children=[
+            View.eachWithKey(
+              items,
+              item => item.id,
+              item => View.fragment([View.text(item.label), View.text("|")]),
+            ),
+          ],
+          (),
+        ),
+        container,
+      )
+      let initial = Zekr__DomBindings.textContent(container)
+      Signal.set(items, build(["3", "1", "2"]))
+      let reordered = Zekr__DomBindings.textContent(container)
+      /* Reordering such a row does nothing, and has never done anything: the
+         reconciler holds the fragment, and moving an empty fragment moves none
+         of the nodes that came out of it. That is a real limitation (see
+         AGENTS.md), asserted here so the rows at least keep rendering — losing
+         or duplicating them would be the worse failure. */
+      combineResults([
+        assertEqual(initial, "L1|L2|L3|"),
+        assertEqual(reordered, "L1|L2|L3|"),
+      ])
+    }),
     test("reorders around inserted and removed rows", () => {
       let {container} = Dom.render("")
       let build = ids => ids->Array.map(id => {id, label: "L" ++ id})
