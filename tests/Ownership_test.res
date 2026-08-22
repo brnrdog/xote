@@ -68,6 +68,29 @@ module Closer = {
   }
 }
 
+let detachById: string => unit = %raw(`function (id) {
+  const node = document.getElementById(id)
+  if (node !== null) { node.remove() }
+}`)
+
+/* A row that records its own disposal, and — for one of them — detaches a
+   *later* sibling while doing so. Disposal walks the tree, so a cleanup that
+   mutates it mid-walk must not cost the remaining siblings their disposal. */
+module Sibling = {
+  @jsx.component
+  let make = (~name: string, ~log: array<string>, ~detaches: string="") => {
+    Effect.run(() => Some(
+      () => {
+        log->Array.push(name)->ignore
+        if detaches != "" {
+          detachById(detaches)
+        }
+      },
+    ))
+    <span id={name} />
+  }
+}
+
 let suite = Zekr.suite(
   "Ownership",
   [
@@ -305,6 +328,32 @@ let suite = Zekr.suite(
         assertEqual(mountedCleanups, 0),
         /* one cleanup for the one completed run, and no extra run */
         assertEqual(afterUnmount, (1, 1)),
+      ])
+    }),
+    test("disposal reaches every node even when a cleanup detaches a sibling", () => {
+      let {container} = Dom.render("")
+      let visible = Signal.make(true)
+      let log = []
+      let _ = mountTo(
+        <View.Show when_={MaybeSignal.reactive(visible)}>
+          <div>
+            <Sibling name="A" log={log} detaches="C" />
+            <Sibling name="B" log={log} />
+            <Sibling name="C" log={log} />
+            <Sibling name="D" log={log} />
+          </div>
+        </View.Show>,
+        container,
+      )
+      /* Walking the sibling chain live lost everything after the detached node,
+         so C and D kept their effects — subscribed, and writing to DOM that is
+         no longer in the document. */
+      Signal.set(visible, false)
+      combineResults([
+        assertTrue(log->Array.includes("A")),
+        assertTrue(log->Array.includes("B")),
+        assertTrue(log->Array.includes("C")),
+        assertTrue(log->Array.includes("D")),
       ])
     }),
     test("a component's root element releases its attribute effect on unmount", () => {
