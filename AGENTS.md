@@ -21,11 +21,18 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - `npm run preview` - Preview production build
 
 ### Testing
-- `npm run test` - Compile ReScript and run `node tests/Tests.res.mjs`. Tests are built on the [zekr](https://www.npmjs.com/package/zekr) framework (see `tests/Tests.res`) and include snapshot fixtures under `tests/__snapshots__/`.
+- `npm run test` - Compile ReScript, run the zekr suites, then the two public API guardrails. Tests are built on the [zekr](https://www.npmjs.com/package/zekr) framework (see `tests/Tests.res`) and include snapshot fixtures under `tests/__snapshots__/`.
+- `npm run test:exports` - Assert the JS export surface of each public module matches its snapshot.
+- `npm run test:boundary` - Compile `tests/consumer` against a staged copy of the publishable package to check the public API boundary from outside.
 
 ### PPX (`@xote.component`)
 - `npm run ppx:build` - Compile the native PPX binary from `ppx/ppx.ml` (needs `ocamlopt`)
 - `npm run ppx:test` - Build the PPX and run the end-to-end example verification (`ppx/example/`, jsdom)
+
+### Benchmarks
+- `benchmarks/` holds a keyed-list benchmark that runs the same app in Xote, React, Vue and SolidJS and measures operation latency, startup, memory and payload. It is a self-contained npm project with its own `package.json`; see `benchmarks/README.md` for how to run it and `benchmarks/results/RESULTS.md` for the latest numbers.
+- The Xote implementation (`benchmarks/apps/xote/BenchApp.res`) is compiled by the root ReScript project — `benchmarks/apps/xote` is listed in `rescript.json` `sources` as a dev directory, so `npm run res:build` covers it.
+- CI runs the suite **only on pull requests carrying the `benchmark` label** (`.github/workflows/benchmark.yml`) and posts a `main` vs PR comment rendered by `scripts/benchmark-report.mjs`. Adding the label to an open PR starts the run — the workflow listens for `labeled` as well as pushes. It builds the PR's benchmark app against both libraries so only `src/` differs between the two columns, and runs them interleaved in one browser — see `benchmarks/README.md` for why position in the schedule would otherwise dominate the result.
 
 ### Documentation
 - `npm run docs:start` - Start documentation site
@@ -58,31 +65,59 @@ JavaScript package entries are intentionally split by feature:
 - `xote/hydration` exposes hydration only.
 - `xote/mdx` exposes the optional MDX integration.
 
-The root `xote` entry is client-focused and does not export router, SSR, hydration, or MDX. Direct source/module subpaths remain available where listed in `package.json`.
+The root `xote` entry is client-focused and does not export router, SSR, hydration, or MDX. Direct source/module subpaths remain available where listed in `package.json`. There is no catch-all `./src/*` export: `package.json` names one `./src/<Module>.res.mjs` entry per public module, so `import "xote/src/RuntimeDom.res.mjs"` fails to resolve even though the ReScript module is reachable.
+
+### Public API Boundary
+
+**The public API is what the `.resi` interface files in `src/` declare. Nothing else.**
+
+Fifteen modules are public: `View`, `Html`, `XoteJSX`, `MaybeSignal`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Mdx`, `Signal`, `Computed`, `Effect`. All of them except `XoteJSX` ship a `.resi` that lists exactly the values, types and nested modules they export. A `.resi` narrows both the ReScript surface and the emitted JavaScript, so `dist/` stays clean too.
+
+Everything else in `src/` is an internal `Runtime*` module. Public modules use them but never re-export them — no `module DOM = RuntimeDom` style aliases, because an alias inside a public module republishes the internal.
+
+Three things are worth knowing:
+
+- **`rescript.json`'s `sources.public` field has no effect in ReScript 12.** It is kept because it documents intent (and would start enforcing if upstream fixes it), but it is not the boundary. As a consequence the `Runtime*` modules stay reachable as `Xote.RuntimeDom`, `Xote.RuntimeOwner`, and so on. They are internal regardless, and the `Runtime` prefix is the signal.
+- **`XoteJSX` has no `.resi`.** `Elements.props` carries around a hundred type parameters; restating it in an interface would cost far more than it buys. Its prop-conversion helpers are therefore still reachable.
+- **`Obj.magic` defeats all of this**, as it defeats any ReScript abstraction. The boundary is a contract against accident, not against determination.
+
+Two guardrails check the boundary instead of asserting it in prose:
+
+| Command | What it checks |
+|---|---|
+| `npm run test:boundary` | Compiles `tests/consumer` against a staged copy of the publishable package. `allowed/` must compile, `deprecated/` must compile *with a warning*, every file in `forbidden/` must fail. `forbidden/` samples one probe per sealing mechanism rather than listing every internal. |
+| `npm run test:exports` | Snapshots the `export { ... }` list of each public `src/*.res.mjs` against `tests/__snapshots__/public-exports.json`. |
+
+Both run as part of `npm test` and in CI. Widening a `.resi` is an API change: expect `test:exports` to fail, and update the snapshot deliberately with `UPDATE_SNAPSHOTS=1 node tests/PublicExports_test.mjs`.
+
+**Removing something reachable needs a deprecation cycle.** Mark it `@deprecated("... Removed in the next major release.")` in the `.resi`, add a probe under `tests/consumer/deprecated/`, and delete it in the next major. Values that were only ever reachable by accident — never named in `AGENTS.md`, `docs/`, or the docs site — can be sealed outright.
 
 **Reactive Primitives (re-exported from rescript-signals):**
 - **`Xote.Signal`**: Reactive state cells with `make`, `get`, `peek`, `set`, `update`, plus `batch` and `untrack` from the scheduler. `Signal.make` accepts optional `~name` (for debugging) and `~equals` (a custom `('a, 'a) => bool` comparator) parameters. The default equality is JavaScript `===` (reference/strict), not structural — pass `~equals` when you need deep comparison. `set` only notifies dependents when the new value differs from the current one, preventing unnecessary updates and accidental infinite loops.
-- **`Xote.Computed`**: Derived signals that automatically recompute when dependencies change. `Computed.make` accepts optional `~name` (for debugging) and `~equals` (a custom `('a, 'a) => bool` comparator) parameters. As with `Signal.make`, the default equality is JavaScript `===` — pass `~equals` when downstream observers should ignore structurally-equal recomputations. **Lazy with push-based dirty flagging** — when upstream dependencies change, computeds are marked dirty immediately, but only recompute when read (via `Signal.get` or `Signal.peek`). **Disposal is manual**: `rescript-signals` 3.x does not drop a computed when its subscribers reach zero — a computed stays linked to its source signals until `Computed.dispose(signal)` unlinks it.
-- **`Xote.Effect`**: Side effects that run when dependencies change. **Can return cleanup callbacks** — signature is `unit => option<unit => unit>`. Two entry points: `Effect.run` is fire-and-forget and returns `unit`; `Effect.runWithDisposer` returns a `disposer` with a `dispose()` method for manual teardown. Both accept an optional `~name` for debugging.
+- **`Xote.Computed`**: Derived signals that automatically recompute when dependencies change. `Computed.make` accepts optional `~name` (for debugging) and `~equals` (a custom `('a, 'a) => bool` comparator) parameters. Unlike `Signal.set`, a recompute has **no default equality cutoff**: without `~equals`, every recompute notifies downstream observers even when it produced an identical (`===`) value — pass `~equals` (`(a, b) => a === b` for the reference-equality cutoff, or a structural comparator) when downstream observers should ignore equal recomputations. **Lazy with push-based dirty flagging** — when upstream dependencies change, computeds are marked dirty immediately, but only recompute when read (via `Signal.get` or `Signal.peek`). **Disposal is manual**: `rescript-signals` 3.x does not drop a computed when its subscribers reach zero — a computed stays linked to its source signals until `Computed.dispose(signal)` unlinks it.
+- **`Xote.Effect`**: Side effects that run when dependencies change. **Can return cleanup callbacks** — signature is `unit => option<unit => unit>`. Two entry points: `Effect.run` is fire-and-forget and returns `unit`; `Effect.runWithDisposer` returns a `disposer` with a `dispose()` method for manual teardown. Both accept an optional `~name` for debugging. An effect created while a component is rendering belongs to that component and is disposed when it unmounts; one created outside a render lives until its disposer is called. Disposal is final and exact: a disposed effect never runs its body again even if the scheduler had already queued it, and each run's cleanup fires at most once — before the next run, or on disposal, never both.
 
-These three are thin shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.res`) that `include` the corresponding modules from `rescript-signals`.
+These three are explicit re-export shims (`src/Signal.res`, `src/Computed.res`, `src/Effect.res`) over `rescript-signals` — deliberately not `include`, so a new helper upstream does not silently become Xote public API. `Signal.t<'a>` is **abstract**: it is the upstream signal record at runtime, but the type system hides the fields, so `signal.value = x` cannot bypass the scheduler.
 
 **Xote Modules:**
-- **`Xote.View`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `Keyed`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `int`, `float`, `bool`, `fragment`, `signalFragment`, `tracked`, `each`, `eachWithKey`, `element`), the JSX rendering components (`For`, `Show`, `Maybe`, `Value`, `Text`, `Int`, `Float`, `Bool`), attribute helpers (`attr`, `signalAttr`, `computedAttr`, `optionalAttr`, `optionalSignalAttr`, `optionalComputedAttr`, `Attr`), the `null`/`empty` placeholders, and `mount`/`mountById`. The owner-based reactivity system for resource cleanup also lives here.
+- **`Xote.View`**: Core rendering primitives. Defines the virtual node types (`Element`, `Text`, `SignalText`, `Fragment`, `SignalFragment`, `Keyed`, `LazyComponent`, `KeyedList`) and exposes node constructors (`text`, `signalText`, `signalInt`, `signalFloat`, `int`, `float`, `bool`, `fragment`, `signalFragment`, `tracked`, `each`, `eachWithKey`, `element`, and `render` — a `MaybeSignal.t`-to-`node` combinator that renders a `Static` value once and a `Reactive` one through a `SignalFragment`, flattening a `Fragment` result into the pass so keyed children stay reconcilable), the JSX rendering components (`For`, `Show`, `Maybe`, `Value`, `Text`, `Int`, `Float`, `Bool`), attribute helpers (`attr`, `signalAttr`, `computedAttr`, `optionalAttr`, `optionalSignalAttr`, `optionalComputedAttr`, `Attr`), the `null`/`empty` placeholders, and `mount`/`mountById`. It also exposes the two helpers `@xote.component` emits: `child` (runtime coercion of a bare JSX child) and `probe` (hidden-read detection — see the PPX section below). Note that `child` is typed `'a => node`, so it **erases type checking in child position**: under the annotation a record or variant in `{…}` compiles and renders `"[object Object]"` with a development-only console warning (gated on the same `__XOTE_DEV__` / `NODE_ENV` flag as `probe`), where unannotated code would have failed to compile. That is the deliberate price of the zero-ceremony bare child. The renderer itself lives in the internal `RuntimeRender` module, the node types in `RuntimeNode`, and the owner-based cleanup system in `RuntimeOwner`.
 - **`Xote.Html`**: Convenience constructors for common HTML tags (`div`, `span`, `button`, `input`, `h1`-`h3`, `p`, `ul`, `li`, `a`). Thin wrappers over `View.element`. For tags not listed, call `View.element(tag, ...)` directly or use JSX.
 - **`Xote.XoteJSX`**: Generic JSX v4 implementation that enables JSX syntax for creating Xote components. Provides `jsx`, `jsxs`, `jsxKeyed`, `jsxsKeyed` functions and an `Elements` module for lowercase HTML tags with a broad set of supported attributes (standard, form/input, link, media, accessibility, drag-and-drop, and data attributes) plus an `attrs` escape hatch for anything else. Named `XoteJSX` (not `JSX`) to avoid colliding with unrelated modules when consumers use `open Xote`. Note: to defer side-effecting component evaluation out of any surrounding `Computed` context, `XoteJSX.jsx` wraps user-defined components in `View.LazyComponent`.
-- **`Xote.MaybeSignal`**: Static-or-reactive value wrapper exposing the type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` plus `static`, `reactive`, `computed` (derives a `Reactive` from a `unit => 'a`), `get` (tracked read), `peek` (untracked read), `isStatic`/`isReactive`, `map`, `toSignal`, and `ofUnknown`. Use it anywhere an API should accept either a plain value or a signal — JSX props are the most common case, not the only one. Notes on the trickier members:
-  - `map` runs its function once immediately in both cases. For a `Reactive` value the result is backed by a `Computed`, which stays subscribed to the source until `Computed.dispose` is called on it, so prefer holding a mapped value over rebuilding it per update.
-  - `toSignal` returns the source signal for `Reactive`, but lifts `Static` into a **fresh, detached** signal — each call allocates a new one and writing to the result does not reach the original. Treat that result as read-only.
+- **`Xote.MaybeSignal`**: Static-or-reactive value wrapper exposing the type `t<'a> = Reactive(Signal.t<'a>) | Static('a)` plus `static`, `reactive`, `computed` (derives a `Reactive` from a `unit => 'a`), `fold` (the single total branch over the two cases), `get` (tracked read), `peek` (untracked read), `isStatic`/`isReactive`, `map`, `toSignal`, and `ofUnknown`. Use it anywhere an API should accept either a plain value or a signal — JSX props are the most common case, not the only one. Notes on the trickier members:
+  - `fold` takes `~static` and `~reactive` callbacks — the two are exactly the inverses of the `static` and `reactive` constructors, so `~reactive` receives the `Signal.t`, not its value. `get` and `peek` are built on it, and `View.render` is the same branch at the node level. It reads well in a pipe; `switch` on the constructors is equally fine and gives you exhaustiveness checking, so use whichever is clearer at the call site.
+  - `map` and `computed` run their function once immediately. For a `Reactive` value the result is backed by a `Computed` that stays subscribed to the source until `Computed.dispose` — it is **not** marked library-owned, so no node releases it for you (that marking is reserved for computeds the library allocates to back a node). Hold on to long-lived mapped values rather than rebuilding them per update.
+  - `toSignal` returns `Some(source signal)` for `Reactive` and `None` for `Static` — a plain value has no underlying signal, and the old behavior (lifting `Static` into a fresh, detached, writable signal) was a footgun. To lift a `Static` value into a signal explicitly, write `MaybeSignal.fold(value, ~static=v => Signal.make(v), ~reactive=s => s)` — `~static=Signal.make` does not typecheck, because `Signal.make` carries optional `~name`/`~equals` arguments.
   - `ofUnknown` normalizes an untyped value (raw / `Signal.t` / `unit => 'a` thunk / already-wrapped `t`) into a `t`. It is the single coercion behind every JSX surface that accepts untyped props, in both the ReScript and the hand-written JS runtime. It is unchecked by design — use `static`/`reactive`/`computed` in typed code.
   - The JS export for `static` is `$$static` (ReScript escapes the reserved word), which matters for consumers importing `xote/maybe-signal` from JavaScript.
 - **`Xote.Prop`**: **Deprecated** alias of `Xote.MaybeSignal`, kept for backwards compatibility. `Prop.t` is a type alias of `MaybeSignal.t` (same constructors, same runtime representation), so values are interchangeable and migrating is a rename: `Prop.static` → `MaybeSignal.static`, `Prop.signal` and `Prop.reactive` → `MaybeSignal.reactive`, `Prop.get` → `MaybeSignal.get`. The deprecations live in `src/Prop.resi`: ReScript only reports warning 3 for values declared in an interface file, so `@deprecated` on the implementation's `let` bindings alone is silently ignored at call sites. `XoteJSX.Prop` and `Router.Link.Prop` re-export this module (not `MaybeSignal`), so those paths warn too.
 - **`Xote.Router`**: Signal-based client-side router with pattern matching, dynamic routes, base path support, scroll position restoration, and a global singleton state (via `Symbol.for()`) that works across multiple bundles.
-- **`Xote.Route`**: Route matching utilities.
+- **`Xote.Route`**: Route matching. `Route.match(pattern, pathname)` returns `Match(params)` or `NoMatch`. `parsePattern`, `matchPath`, `compile`, `matchCompiled` and `matchPathname` are `@deprecated` and go away in the next major.
 - **`Xote.SSR`**: Server-side rendering to HTML strings with hydration markers (`<!--$-->`, `<!--#-->`, `<!--kl-->`, `<!--k:KEY-->`, `<!--lc-->`).
 - **`Xote.SSRContext`**: Runtime environment detection (`isServer`, `isClient`) and helpers (`onServer`, `onClient`, `match`).
 - **`Xote.SSRState`**: State serialization/restoration between server and client. Includes a `Codec` system for type-safe encoding/decoding and a `sync`/`signal` API for seamless server-client state transfer.
 - **`Xote.Hydration`**: Client-side hydration that walks server-rendered DOM, attaches reactive effects, event listeners, and sets up keyed list reconciliation without re-rendering.
+
+**Internal modules** (prefixed `Runtime`, no compatibility guarantee): `RuntimeNode` (the `node`/`attrValue` types and `resolveAttr`/`peekAttr`), `RuntimeRender` (DOM rendering and keyed reconciliation), `RuntimeDom`, `RuntimeOwner`, `RuntimeHtml`, `RuntimeAttr`, `RuntimeValue`, `RuntimeJsxProp`, `RuntimeHydrationMarkers`.
 
 ### Reactivity Model
 
@@ -98,14 +133,16 @@ All reactive behavior is provided by **rescript-signals**:
 
 **Batching**: `Signal.batch(fn)` defers scheduler flushing until `fn` returns, so a burst of `Signal.set` calls triggers each effect at most once. Batches can be nested and return a value. `Signal.untrack(fn)` disables dependency capture inside `fn`, which is the idiomatic way to read a signal without subscribing the current observer to it (there is also `Signal.peek(signal)` for a single untracked read).
 
-**Owner System**: Components use an owner-based tracking system (the `RuntimeOwner` module, surfaced as `Reactivity` in `View.res`) that stores effect disposers and computed references on DOM elements via the `__xote_owner__` property. Owners are disposed recursively when DOM elements are removed, preventing memory leaks.
+**Owner System**: Components use an owner-based tracking system (the internal `RuntimeOwner` module) that stores effect disposers and computed references on DOM elements via the `__xote_owner__` property. Owners are disposed recursively when DOM elements are removed, preventing memory leaks. Three things register with the scope that is rendering: the effects the renderer creates for reactive text and attributes, the computeds the library allocates to back a node (`View.child`, `tracked`, `each`, `Show`/`Maybe`/`Value`, `signalText`), and any `Effect.run` a component body sets up. A signal or computed the consumer built is never disposed on their behalf.
+
+**Component bodies are their own scope**: rendering happens inside the enclosing region's effect — every `SignalFragment` (a `tracked` block, `Show`, `For`, a ppx-emitted tracked branch) renders its children from one — so a component function is invoked untracked. An eager read in a body is the one-shot read it reads as, and does not subscribe the region that is rendering it; without that, one unrelated update would rebuild the whole region wholesale and take input focus and scroll position with it. Reads deferred into a thunk, a `Computed` or an `Effect` open their own scope and are unaffected, so a `tracked` block still subscribes to everything its own body reads.
 
 ### ReScript Configuration
 
 - **Build system**: ReScript compiler v12+ with `esmodule` output format
 - **Output**: In-source compilation (`.res.mjs` files alongside `.res` files)
-- **Namespacing**: `namespace: true` in `rescript.json` automatically scopes every module under `Xote`. Public modules are listed explicitly in `sources.public` (`View`, `Html`, `XoteJSX`, `MaybeSignal`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Mdx`, `Signal`, `Computed`, `Effect`); everything else (e.g. `DOM`/`Reactivity`, which live inside `View.res`) stays internal.
-- **Dependencies**: `rescript-signals` ^3.1.0 and `@rescript/core` ^1.6.1 (the only runtime dependencies)
+- **Namespacing**: `namespace: true` in `rescript.json` automatically scopes every module under `Xote`. The public API is defined by the `.resi` interface files in `src/` — see [Public API Boundary](#public-api-boundary).
+- **Dependencies**: `rescript-signals` ^3.1.0 (the only runtime dependency)
 - **JSX**: ReScript JSX v4 configured with `module: "XoteJSX"` (generic JSX transform). Consumers must mirror this in their own `rescript.json`.
 
 ### Component System
@@ -138,9 +175,9 @@ Xote supports **two syntax styles**:
 8. **HTML element helpers**: `Html.div`, `Html.button`, `Html.p`, etc. live in the `Xote.Html` module — use them when writing the function-based API. For tags not covered, fall back to `View.element("tag", ...)`.
 9. **Mounting**: `mount(node, container)` or `mountById(node, "element-id")` to attach to DOM
 
-#### The `@xote.component` PPX (standard authoring model)
+#### The `@xote.component` PPX (recommended; semantics not yet frozen)
 
-`@xote.component` (implemented by the native PPX in `ppx/ppx.ml`, enabled by consumers via `"ppx-flags": ["xote/ppx/ppx"]`) is the recommended way to write components. It derives the props record exactly like `@jsx.component` (which it emits under the hood, so its one-component-per-module rule applies) **and** decomposes the returned JSX into fine-grained reactive leaves:
+`@xote.component` (implemented by the native PPX in `ppx/ppx.ml`, enabled by consumers via `"ppx-flags": ["xote/ppx/ppx"]`) is the recommended way to write components. Its semantics are **not frozen** — the per-file opt-in, `View.child`'s untyped child position, and never-thunking user-component props are all still open (see "Not settled yet" in `ppx/README.md`). It derives the props record exactly like `@jsx.component` (which it emits under the hood, so its one-component-per-module rule applies) **and** decomposes the returned JSX into fine-grained reactive leaves:
 
 - an attribute or `<View.Text/Int/Float/Bool>` child that *eagerly* reads a signal is thunked, so only that leaf re-runs;
 - a **bare `{…}` child** (scalar, signal read, array, node) is wrapped in `View.child`, which coerces it at runtime — no value-primitive ceremony;
@@ -148,7 +185,9 @@ Xote supports **two syntax styles**:
 - values that are already reactive (a `() => …` thunk, a `Computed`, `Prop.reactive(…)`) are left alone — the annotation is a safe drop-in;
 - **user-component props are never thunked**: `<Card label={Signal.get(x)} />` is a deliberate one-shot read; pass the signal itself for a reactive prop. Children and JSX-valued props of user components are still decomposed.
 
-Detection follows local aliases (`let g = Signal.get`, `module S = Signal`, `open Signal`, local reactive helpers) but is syntactic: reads hidden behind imported helpers, or hoisted into a plain `let` binding (`let label = Signal.get(count)->Int.toString`), compile to *static one-shot values with no error*. The escape hatch is to wrap the value in `() => …` yourself. Full rules and limitations: `ppx/README.md`. The npm package ships the PPX as prebuilt per-platform binaries selected by `ppx/postinstall.js`; Xote's own `src/` never uses the annotation.
+Detection covers `Signal.get` **and** `MaybeSignal.get`/`Prop.get`, and follows aliases (`let g = Signal.get`, `module S = Signal`, `open Signal`), local reactive helpers, and helpers in a module declared in the same file. It is still syntactic, so reads hidden behind an **imported** helper, or hoisted into a plain `let` binding (`let label = Signal.get(count)->Int.toString`), compile to static one-shot values; the escape hatch is to wrap the value in `() => …` yourself.
+
+Those remaining cases are no longer silent. A value leaf whose expression contains a call the PPX cannot resolve is emitted wrapped in `View.probe`: on its **first** evaluation it runs inside a throwaway computed and, if that computed subscribed to anything, a warning naming the source location is logged (and the value is read back through the computed, so an enclosing `tracked` block's dependencies are unchanged). No dependencies means no warning and no behaviour change, so there are no false positives. Each site is probed once — later evaluations are a plain call — and probing is skipped entirely when `globalThis.__XOTE_DEV__` or `process.env.NODE_ENV` says production. Full rules and limitations: `ppx/README.md`. The npm package ships the PPX as prebuilt per-platform binaries selected by `ppx/postinstall.js`; Xote's own `src/` never uses the annotation.
 
 #### JSX Syntax
 Xote supports ReScript's generic JSX v4 for a declarative component syntax:
@@ -235,23 +274,23 @@ Full server-side rendering with client-side hydration:
 
 ### Attribute & Property Handling
 
-The `DOM.setAttrOrProp` helper (in `View.res`, via the internal `RuntimeDom` module) handles the distinction between HTML attributes and DOM properties:
+The internal `RuntimeDom.setAttrOrProp` helper handles the distinction between HTML attributes and DOM properties:
 - `value`, `checked`, `disabled` are set as DOM properties (not attributes)
 - Boolean attributes (`checked`, `disabled`, `required`, `readonly`, `multiple`, `draggable`, `hidden`, `contenteditable`, `spellcheck`, `autofocus`) are added or removed based on whether the serialized value is `"true"`. ARIA attributes are deliberately **not** on that list — they are enumerated, so `aria-expanded`, `aria-selected`, and `aria-hidden` render their literal `"true"`/`"false"` value
 - A **missing value removes the attribute**: `None` from an optional attribute, or a `null`/`undefined` coming out of an untyped JSX value, calls `removeAttribute` (or resets the property for `value`/`checked`/`disabled`) instead of writing the string `"undefined"`. This is what presence-based styling needs — `data-checked:bg-primary` compiles to `[data-checked]`, so an attribute that is always present, even as `""`, always matches
 - All other attributes use `setAttribute`
 
-`View.attrValue` therefore has six variants: `Static`/`SignalValue`/`Compute` over `string`, and `OptionalStatic`/`OptionalSignalValue`/`OptionalCompute` over `option<string>`. Renderers do not match on them directly — `View.resolveAttr` reduces any of them to `ReadStatic(Nullable.t<string>)` (a value known up front) or `ReadReactive(unit => Nullable.t<string>)` (a read that must run inside an effect), and `View.peekAttr` returns the current value untracked for SSR. Client render, hydration, and SSR all go through those two, so a new variant only has to be handled once.
+`View.attrValue` therefore has six variants: `Static`/`SignalValue`/`Compute` over `string`, and `OptionalStatic`/`OptionalSignalValue`/`OptionalCompute` over `option<string>`. Consumers may match on them, but renderers do not — the internal `RuntimeNode.resolveAttr` reduces any of them to `ReadStatic(Nullable.t<string>)` (a value known up front) or `ReadReactive(unit => Nullable.t<string>)` (a read that must run inside an effect), and `RuntimeNode.peekAttr` returns the current value untracked for SSR. `RuntimeRender`, `Hydration` and `SSR` all go through those two, so a new variant only has to be handled once.
 
 ## Key Concepts for Development
 
 1. **Unified attributes API**: All attributes use the single `attrs` parameter. Use helper functions `attr()`, `signalAttr()`, or `computedAttr()` to create attribute entries.
 
-2. **Signal equality check**: `Signal.set` uses JavaScript strict equality (`===`) by default and only notifies dependents when the new value differs from the current one. This prevents accidental infinite loops and reduces unnecessary work. Pass `~equals` to `Signal.make` or `Computed.make` when you need a custom comparator (e.g. deep equality for records/arrays) — on a computed, `~equals` controls whether recomputed values propagate to downstream observers.
+2. **Signal equality check**: `Signal.set` uses JavaScript strict equality (`===`) by default and only notifies dependents when the new value differs from the current one. This prevents accidental infinite loops and reduces unnecessary work. Pass `~equals` to `Signal.make` or `Computed.make` when you need a custom comparator (e.g. deep equality for records/arrays) — on a computed, `~equals` controls whether recomputed values propagate to downstream observers, and it is the only cutoff there: a computed **without** `~equals` propagates on every recompute, even one that produced an identical (`===`) value.
 
 3. **Effect cleanup callbacks**: Effects can return `Some(cleanupFn)` to register cleanup that runs before re-execution and on disposal. Return `None` when no cleanup is needed. Signature is `unit => option<unit => unit>`.
 
-4. **Computed disposal**: `Computed.make` returns a `Signal.t<'a>` directly, already subscribed to whatever it read during its initial computation. There is no automatic disposal — call `Computed.dispose(signal)` to unlink a computed you no longer need. Xote's owner system tracks `Effect` disposers only, so computeds created during render are not cleaned up for you.
+4. **Computed disposal**: `Computed.make` returns a `Signal.t<'a>` directly, already subscribed to whatever it read during its initial computation. There is no automatic disposal for a computed *you* create — call `Computed.dispose(signal)` to unlink one you no longer need, including one created in a component body. The computeds the library allocates to back a node are a different matter: they are marked as its own and released when that node is removed, so a block that rebuilds does not leave a leaf computed linked to its sources on every pass.
 
 5. **Untracked reads**: Use `Signal.peek(signal)` for a single untracked read, or `Signal.untrack(fn)` to disable dependency capture inside a larger block.
 
@@ -267,17 +306,19 @@ The `DOM.setAttrOrProp` helper (in `View.res`, via the internal `RuntimeDom` mod
 
 11. **ReScript compilation required**: Always compile ReScript before building with Vite. Vite entry points consume the per-module compiled `.res.mjs` files in `src/` (e.g. `src/View.res.mjs`). Hand-written package-entry glue lives in `entries/` so maintained source modules in `src/` stay ReScript-first.
 
-12. **Owner-based cleanup**: Reactive state (effects, computeds) is tracked per-DOM-element via the owner system. When elements are removed, their owners are disposed recursively, preventing memory leaks.
+12. **Owner-based cleanup**: Reactive state (effects, computeds) is tracked per-DOM-element via the owner system. When elements are removed, their owners are disposed recursively, preventing memory leaks. An owner is **allocated on first use, not per element**: rendering opens a `RuntimeOwner.scope`, and only an effect disposer or an owned computed actually registering turns that scope into an owner attached to the node. A static element — most of them — carries no `__xote_owner__` at all. Disposal walks the removed subtree with an explicit stack, reading each node's children before running its cleanups, so a cleanup that mutates the tree cannot cost the remaining nodes their disposal. `Effect.run`/`Effect.runWithDisposer` called while a component renders registers with that component, so unmounting stops the effect; called outside a render (module level, an event handler) there is no scope to belong to and the effect lives until its disposer runs. A node can be the root of two scopes — a component and the element it returns — so they merge rather than overwrite.
 
-13. **Keyed list reconciliation**: `eachWithKey` uses comment-based anchors and a 3-phase algorithm (remove, build new order, reconcile DOM) for efficient updates. Preserves element identity across re-renders.
+13. **Keyed list reconciliation**: `eachWithKey` uses comment-based anchors and a 3-phase algorithm (remove, build new order, reconcile DOM) for efficient updates. Preserves element identity across re-renders. A key whose item identity changed is rebuilt in the build phase, where its own previous element is retired — the ordering pass only moves elements, so an update that reorders *and* replaces cannot dispose a bystander row or leave the replaced one behind. The ordering pass is **minimal**: it leaves in place the longest run of rows already in the right relative order (a longest increasing subsequence of their current DOM positions) and moves only the rest, so swapping two rows of a thousand costs two `insertBefore` calls rather than one per row. Freshly built rows are not yet in the document, so they can never count as in place. `RuntimeRender.placeInOrder` is shared by this pass and the keyed `SignalFragment` path, and `RuntimeRender.reconcileKeyedList` — the whole pass — is shared by the render path and by hydration, so a hydrated list cannot drift from a rendered one.
 
-14. **SSR hydration markers**: Comment nodes mark reactive boundaries in server-rendered HTML. The hydration walker uses these to attach reactivity without re-rendering the DOM.
+14. **SSR hydration markers**: Comment nodes mark reactive boundaries in server-rendered HTML. The hydration walker uses these to attach reactivity without re-rendering the DOM. A keyed list's own `<!--kl-->` / `<!--/kl-->` markers become its anchors — the end marker is the tail the reconciler inserts before — which is what lets hydration **adopt** the server's rows rather than rebuild them: each row is hydrated through the ordinary path so its handlers and reactive attributes attach to the node the server sent, and it is then reconciled in place. A `SignalFragment` is not adopted this way: its first effect pass clears the container and re-renders.
 
 15. **Router global state**: The router uses `Symbol.for("xote.router.state")` to store state on `globalThis`, ensuring all Xote instances (even from different bundles) share the same router state.
 
 16. **SVG element support**: SVG elements are created with `createElementNS` using the SVG namespace. The component renderer detects SVG tags via `isSvgTag` and uses the appropriate DOM creation method automatically.
 
-17. **JSX component laziness**: `XoteJSX.jsx` wraps user component functions in `View.LazyComponent`, deferring evaluation until render time so effects/computeds created inside a component aren't incorrectly tracked by a surrounding `Computed` context.
+17. **JSX component laziness**: `XoteJSX.jsx` wraps user component functions in `View.LazyComponent`, deferring evaluation until render time so effects/computeds created inside a component aren't incorrectly tracked by a surrounding `Computed` context. Render time is inside the enclosing region's *effect*, so the body also runs untracked — see "Component bodies are their own scope" above.
+
+18. **Tracked blocks**: `View.tracked(body)` lowers to `SignalFragment(Computed.make(() => [body()]))`. Every signal read while `body` runs subscribes the block, and dependencies are re-discovered on each run — a read reached only on one branch is unsubscribed when that branch stops being taken. On change the block's children are replaced **wholesale**: no diffing, and local DOM state inside (input focus, scroll) does not survive. Because it lowers to existing node types, SSR emits the standard fragment markers (`<!--#-->` … `<!--/#-->`) and hydration is unchanged. Keep tracked blocks small, use `For`/`eachWithKey` for lists, and prefer `@xote.component` where you want the same inline-read ergonomics without the wholesale rebuild.
 
 ## Common Patterns
 
@@ -513,7 +554,8 @@ let title = MaybeSignal.computed(() => Signal.get(first) ++ " " ++ Signal.get(la
 MaybeSignal.get(label)          // tracked read
 MaybeSignal.peek(label)         // untracked read
 MaybeSignal.map(label, String.toUpperCase) // stays static if the input was static
-MaybeSignal.toSignal(label)     // Signal.t<string>; a Static input yields a detached signal
+MaybeSignal.fold(label, ~static=v => v, ~reactive=Signal.peek) // one total branch
+MaybeSignal.toSignal(label)     // option<Signal.t<string>>; None for a Static input
 MaybeSignal.ofUnknown(anything) // coercion for untyped input (raw / signal / thunk / t)
 ```
 
@@ -579,8 +621,10 @@ Hydration.hydrateById(app, "root")
 1. **SignalFragment updates**: `SignalFragment` replaces all children without diffing (no reconciliation algorithm). Use `eachWithKey` for efficient list updates.
 2. **Hydration is one-way**: After hydration, subsequent updates use full client-side rendering (no incremental/streaming hydration).
 3. **Synchronous scheduler**: All scheduling is synchronous; there is no microtask/animation-frame integration. Use `Signal.batch` to coalesce updates, but understand that effects still run inline when the batch ends.
-4. **Manual JSX key plumbing**: `jsxKeyed`/`jsxsKeyed` currently ignore the `~key` argument — use `View.eachWithKey` (or `<View.For by=...>`) for reconciled lists rather than relying on JSX-level keys.
+4. **Manual JSX key plumbing**: a JSX `~key` (`<li key={id}>`) wraps the element in a `Keyed` node, but that node only takes part in reconciliation when *every* child of a reactive fragment pass is keyed (e.g. the items of `View.each`) — and even there, element identity survives only while the item's props stay shallow-equal between passes, which any child node or freshly-allocated handler closure defeats, so keyed items with children are rebuilt anyway. In a static children array the key has no effect at all. Use `View.eachWithKey` (or `<View.For by=...>`), which keys on *your item* and reconciles by item identity, rather than relying on JSX-level keys.
 5. **`each` re-renders fully**: `View.each` recreates every item on change (it is implemented on top of `SignalFragment`). Prefer `View.eachWithKey` when item identity matters.
+6. **Building a list is node-by-node**: `render` constructs every element and text node individually — 20,000 DOM calls per 1,000 rows, against the ~2,000 a compiled framework spends cloning a template per row (measured by `benchmarks/dom-ops.mjs`). This is the gap behind Xote's creation times and its heap on large lists, and closing it needs compiler-assisted templating rather than a runtime change.
+7. **A keyed row must have a single element root**: `eachWithKey`/`<View.For by=…>` remember one node per key, so a row that renders to a `Fragment` — including a component whose root is `<>…</>` — is remembered as the fragment, which appending empties. Such rows render correctly and are removed correctly, but **reordering them does nothing**, because moving an empty fragment moves none of the nodes that came out of it. Give a keyed row a single wrapping element when its order can change.
 
 ## Agent Workflow
 
@@ -589,7 +633,7 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 ### Before Making Changes
 
 1. **Compile first**: Always run `npm run res:build` before testing or building
-2. **Understand the module boundary**: The public surface is the list of modules in `rescript.json`'s `sources.public` (`View`, `Html`, `XoteJSX`, `MaybeSignal`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Mdx`, `Signal`, `Computed`, `Effect`). Helpers like `DOM`, `Reactivity`, and `Render` are implementation details and should not be relied on by consumers.
+2. **Understand the module boundary**: The public surface is what the `.resi` files in `src/` declare — see [Public API Boundary](#public-api-boundary). Widening one is an API change; run `npm run test:exports` and `npm run test:boundary` after touching any of them.
 
 ### Making Changes
 
@@ -602,7 +646,7 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 
 | File | Purpose |
 |------|---------|
-| `src/View.res` | Core rendering, node primitives, mount, reconciliation |
+| `src/View.res` | Public node API: constructors, attributes, JSX components, mount |
 | `src/Html.res` | Common HTML element constructors (`div`, `button`, ...) |
 | `src/XoteJSX.res` | JSX v4 transform and `Elements` module |
 | `src/Router.res` | Client-side routing |
@@ -613,9 +657,13 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 | `src/SSRContext.res` | Server/client environment detection |
 | `src/MaybeSignal.res` | Static/Reactive value wrapper |
 | `src/Prop.res`, `src/Prop.resi` | Deprecated alias of `MaybeSignal` (the interface file is what makes the deprecations warn) |
-| `src/Signal.res`, `src/Computed.res`, `src/Effect.res` | Re-export shims for `rescript-signals` |
+| `src/Signal.res`, `src/Computed.res`, `src/Effect.res` | Explicit re-export shims for `rescript-signals` |
+| `src/*.resi` | Interface files - the public API boundary |
+| `src/RuntimeNode.res` | Internal `node`/`attrValue` type definitions and attribute resolution |
+| `src/RuntimeRender.res` | Internal renderer, shared by `View.mount` and `Hydration` |
+| `tests/consumer/` | Fixture package that compiles against the published surface |
 | `ppx/ppx.ml` | The `@xote.component` fine-grained PPX (vendored OCaml 4.06 AST + rewriter) |
-| `ppx/example/` | Standalone PPX consumer project; `verify.mjs` is its jsdom regression suite (`npm run ppx:test`) |
+| `ppx/example/` | Standalone PPX consumer project; `verify.mjs` is its jsdom regression suite (`npm run ppx:test`). `src/Store.res` is deliberately a *second* file, so its helpers model the cross-module reads detection cannot follow |
 | `ppx/postinstall.js` | Selects/installs the prebuilt PPX binary at npm install time |
 | `rescript.json` | ReScript compiler configuration (`namespace: true`) |
 | `vite.config.js` | Library build configuration |
@@ -623,9 +671,11 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 ### Common Pitfalls
 
 - **Forgetting to compile**: `.res.mjs` files are generated - edit `.res` files, not `.res.mjs`
+- **Adding a value to a public module**: it is invisible until the module's `.resi` declares it. That is the point - decide whether it is API before exporting it.
+- **`%raw` capturing a ReScript binding**: write raw JavaScript as a self-contained function literal (`let f: string => unit = %raw(\`function (x) { ... }\`)`). Referring to a surrounding binding by name works until the compiler inlines or renames it, and then breaks at runtime with a `ReferenceError`.
 - **Effect return type**: Effects must return `option<unit => unit>`, not `unit`. Return `None` when no cleanup is needed.
 - **Signal reads in effects**: Use `Signal.get` (creates dependency) vs `Signal.peek` (no dependency). Using `get` inside an effect will re-run the effect when the signal changes.
-- **Owner disposal**: When removing DOM elements with reactive state, ensure the owner system cleans up (handled automatically by `Render.disposeElement`)
+- **Owner disposal**: When removing DOM elements with reactive state, ensure the owner system cleans up (handled automatically by `RuntimeRender.disposeElement`)
 - **Router init**: `Router.init()` must be called before any routing functions on the client. For SSR, use `Router.initSSR(~pathname, ())` instead to avoid accessing browser APIs.
 - **Boolean attributes**: Use string `"true"`/`"false"` - the `setAttrOrProp` function handles the conversion to proper DOM behavior. To *remove* an attribute reactively, use the optional helpers (`View.optionalComputedAttr(key, () => ... ? Some("") : None)`) rather than adding the key to `RuntimeAttr.booleanAttributes`
 - **SSR state cleanup**: Call `SSRState.clear()` between multiple renders on the server to reset the state registry
@@ -635,7 +685,7 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 - Follow existing patterns in the codebase
 - Use `/* */` comments (ReScript style), not `//` for documentation comments
 - Source files in `src/` use bare module names; ReScript namespacing handles the `Xote.` prefix at the consumer
-- Keep the public API minimal — only modules listed in `rescript.json`'s `sources.public` should be relied on
+- Keep the public API minimal — a value is public only if a `.resi` declares it
 - Prefer structural types over nominal when possible in ReScript
 
 ### Testing Changes
@@ -643,7 +693,7 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 The project has a test suite using the [zekr](https://github.com/nicholasgasior/zekr) framework. Verify changes by:
 
 1. Successful ReScript compilation (`npm run res:build`)
-2. Run tests (`npm run test`)
+2. Run tests (`npm run test`) - this includes the public API guardrails
 3. Successful Vite build (`npm run build`)
 4. Manual testing with demo apps (`npm run dev`)
 5. For SSR changes, check the `examples/ssr/` setup
@@ -658,6 +708,10 @@ The project has a test suite using the [zekr](https://github.com/nicholasgasior/
 | `tests/JSX_test.res` | JSX transform |
 | `tests/MaybeSignal_test.res` | `MaybeSignal` helpers and the deprecated `Prop` alias |
 | `tests/KeyedList_test.res` | Keyed list reconciliation |
+| `tests/Probe_test.res` | `View.probe` hidden-read detection (reports, false positives, dedupe) |
 | `tests/Route_test.res` | Route matching |
 | `tests/SSR_test.res` | Server-side rendering |
 | `tests/SSRState_test.res` | State serialization |
+| `tests/PublicApi_test.res` | Documented API stays usable from inside the package |
+| `tests/PublicExports_test.mjs` | JS export surface of each public module (snapshot) |
+| `tests/consumer/` | Public API boundary as a downstream package sees it (`allowed/`, `deprecated/`, `forbidden/`) |

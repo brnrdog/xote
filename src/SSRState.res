@@ -10,6 +10,10 @@
  * Built-in Codecs
  * ============================================================================ */
 
+let asJsonArray: JSON.t => option<array<JSON.t>> = %raw(`function (json) {
+  return Array.isArray(json) ? json : undefined
+}`)
+
 module Codec = {
   type t<'a> = {
     encode: 'a => JSON.t,
@@ -83,9 +87,7 @@ module Codec = {
   let tuple2 = (codec1: t<'a>, codec2: t<'b>): t<('a, 'b)> => {
     encode: ((a, b)) => JSON.Encode.array([codec1.encode(a), codec2.encode(b)]),
     decode: json => {
-      ignore(json)
-      let arr: option<array<JSON.t>> = %raw(`Array.isArray(json) ? json : undefined`)
-      switch arr {
+      switch asJsonArray(json) {
       | Some([j1, j2]) =>
         switch (codec1.decode(j1), codec2.decode(j2)) {
         | (Some(a), Some(b)) => Some((a, b))
@@ -100,9 +102,7 @@ module Codec = {
     encode: ((a, b, c)) =>
       JSON.Encode.array([codec1.encode(a), codec2.encode(b), codec3.encode(c)]),
     decode: json => {
-      ignore(json)
-      let arr: option<array<JSON.t>> = %raw(`Array.isArray(json) ? json : undefined`)
-      switch arr {
+      switch asJsonArray(json) {
       | Some([j1, j2, j3]) =>
         switch (codec1.decode(j1), codec2.decode(j2), codec3.decode(j3)) {
         | (Some(a), Some(b), Some(c)) => Some((a, b, c))
@@ -192,7 +192,7 @@ let generateScript = (~nonce: option<string>=?): string => {
   let json = JSON.stringifyAny(registry)->Option.getOr("{}")
   let escapedJson = escapeForScript(json)
   let nonceAttr = switch nonce {
-  | Some(n) => ` nonce="${SSR.Html.escape(n)}"`
+  | Some(n) => ` nonce="${RuntimeHtml.escape(n)}"`
   | None => ""
   }
   `<script${nonceAttr}>window.__XOTE_STATE__=${escapedJson};</script>`

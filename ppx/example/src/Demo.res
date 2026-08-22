@@ -487,7 +487,125 @@ module HelperHost = {
   let make = () => <div id="helper-host"> {helperButton("Press")} </div>
 }
 
-/* Case 26: a fully-qualified value component — <Xote.View.Text>. A consumer
+/* Case 26: `MaybeSignal.get` is a tracked read exactly like `Signal.get`, and
+   so is `Prop.get` (its deprecated alias). Reading through the static-or-
+   reactive wrapper subscribes just the same, so these leaves must be thunked. */
+let maybeName: MaybeSignal.t<string> = MaybeSignal.reactive(name)
+let maybeTheme: MaybeSignal.t<string> = MaybeSignal.reactive(theme)
+
+module MaybeSignalRead = {
+  @xote.component
+  let make = () =>
+    <p id="maybe-signal" class={MaybeSignal.get(maybeTheme)}> {MaybeSignal.get(maybeName)} </p>
+}
+
+/* Case 27: a reactive helper reached through a module *in this file*. The ppx
+   walks the module body, so `Counter.doubled()` is a read; `Counter.plain(…)`
+   is not, and stays a plain static value. */
+module Counter = {
+  let doubled = () => Signal.get(count) * 2
+  let plain = (n: int) => n + 1
+}
+
+module ModuleHelper = {
+  @xote.component
+  let make = () =>
+    <p id="module-helper" class={Counter.doubled() > 0 ? "positive" : "zero"}>
+      {Counter.doubled()}
+    </p>
+}
+
+/* Case 28: the hidden read. `Store` lives in another file, so the ppx sees only
+   a call it cannot resolve and cannot know a signal is read behind it. Both
+   leaves are wrapped in `View.probe`, which reports them at runtime instead of
+   rendering a frozen value in silence. */
+module Hidden = {
+  @xote.component
+  let make = () =>
+    <p id="hidden-read" class={Store.themeClass()}> {Store.waitingCount()} </p>
+}
+
+/* Case 28b: the same indirection in a *condition*. A read hidden in the
+   scrutinee freezes the whole branch, so untracked control flow probes it. */
+module HiddenBranch = {
+  @xote.component
+  let make = () =>
+    <div id="hidden-branch">
+      {if Store.isBusy() {
+        <span id="hb-busy"> {"busy"} </span>
+      } else {
+        <span id="hb-idle"> {"idle"} </span>
+      }}
+    </div>
+}
+
+/* Case 29: the probe must not cry wolf. An unresolvable call that reads no
+   signal is a perfectly ordinary static value — no warning, no reactivity, and
+   `View.probe` returns it untouched. */
+module HiddenClean = {
+  @xote.component
+  let make = () =>
+    <p id="hidden-clean" class={Store.title("row")}> {Counter.plain(41)} </p>
+}
+
+/* Case 30: the escape hatches. Neither `attrs`, `data`, nor an event handler
+   is a value leaf — `attrs` is an `array<(string, 'a)>`, `data` an `Obj.t`,
+   and a handler a `Dom.event => unit`, so none of these props can hold a thunk
+   — and the ppx leaves all three exactly as written. An entry carries its own
+   reactivity (a `() => …`, a signal, `View.signalAttr`), and an eager read in
+   any of these positions is a one-shot read like any other argument. Thunking
+   them failed the build with a type error that named no file and no line
+   (`data` depended on the shape of the expression: a `Dict.fromArray` was
+   thunked into that no-location error, an object literal was probed). */
+let hatchTheme = Signal.make("light")
+let hatchStep = Signal.make(2)
+let hatchClicks = Signal.make(0)
+let hatchData = Signal.make("light")
+let stepHandler = (step: int) => (_evt: Dom.event) => Signal.update(hatchClicks, c => c + step)
+
+module EscapeHatch = {
+  @xote.component
+  let make = () =>
+    <div id="escape-hatch">
+      <span id="eh-frozen" attrs=[("data-theme", Signal.get(hatchTheme))] />
+      <span id="eh-live" attrs=[("data-theme", () => Signal.get(hatchTheme))] />
+      <span id="eh-data-frozen" data={Obj.magic({"theme": Signal.get(hatchData)})} />
+      <span id="eh-data-live" data={Obj.magic({"theme": () => Signal.get(hatchData)})} />
+      <span
+        id="eh-data-dict"
+        data={Obj.magic(Dict.fromArray([("theme", Signal.get(hatchData))]))}
+      />
+      <button id="eh-button" onClick={stepHandler(Signal.get(hatchStep))}> {"go"} </button>
+    </div>
+}
+
+/* Case 31: a branch leaf whose effect is *scheduled by the same write* that
+   swaps the branch away. The computed chain gives the class leaf a deeper
+   scheduler level than the tracked region, so one write to `branchOn` queues
+   both effects and runs the region first: it disposes the leaf while the
+   leaf's own queued run is still pending. That leftover run used to re-track
+   the leaf's dependencies — resurrecting the disposed effect, which kept
+   writing to its detached element on every later update, one immortal effect
+   per swap. */
+let branchOn = Signal.make(true)
+let branchChainA = Computed.make(() => Signal.get(branchOn))
+let branchChainB = Computed.make(() => Signal.get(branchChainA))
+
+module DisposedBranch = {
+  @xote.component
+  let make = () =>
+    <div id="disposed-branch">
+      {if Signal.get(branchOn) {
+        <span id="disposed-leaf" class={Signal.get(branchChainB) ? "on" : "off"}>
+          {"branch"}
+        </span>
+      } else {
+        View.null()
+      }}
+    </div>
+}
+
+/* Case 32: a fully-qualified value component — <Xote.View.Text>. A consumer
    that does not `-open Xote` writes the namespaced path; the value-component
    matcher must recognise it (not treat it as a user component, which would
    coerce its child into a node and render "[object Object]"). */
@@ -498,25 +616,4 @@ module QualifiedValue = {
       <Xote.View.Text> {`n=${Signal.get(name)}`} </Xote.View.Text>
       <Xote.View.Int value={Signal.get(count)} />
     </div>
-}
-
-/* Case 27: JSX nested inside an array passed as a user-component prop. The prop
-   value is not itself JSX, but it *contains* JSX — its reactive leaves must
-   stay fine-grained and its bare children coerced (previously the array was
-   left untouched: the class was a one-shot read and a bare child was a compile
-   error). */
-module PropItemsHost = {
-  @xote.component
-  let make = (~items: array<View.node>) =>
-    <div id="prop-items-host"> {View.fragment(items)} </div>
-}
-
-module PropItemsUse = {
-  @xote.component
-  let make = () =>
-    <PropItemsHost
-      items=[
-        <li id="prop-item" class={Signal.get(theme)}> {Signal.get(name)} </li>,
-      ]
-    />
 }

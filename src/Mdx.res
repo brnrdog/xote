@@ -6,10 +6,10 @@ type props = {components?: components}
 
 type document = props => View.node
 
-let component = (make: 'props => View.node): (Obj.t => View.node) =>
-  props => make(Obj.magic(props))
+let component = (make: 'props => View.node): (Obj.t => View.node) => props => make(Obj.magic(props))
 
-let components = (entries: array<(string, Obj.t => View.node)>): components => Dict.fromArray(entries)
+let components = (entries: array<(string, Obj.t => View.node)>): components =>
+  Dict.fromArray(entries)
 
 let render = (document: document, ~components=?, ()): View.node =>
   switch components {
@@ -20,14 +20,12 @@ let render = (document: document, ~components=?, ()): View.node =>
 @val @scope("Array") external isArray: 'a => bool = "isArray"
 @val external toString: 'a => string = "String"
 
-let isEmptyChild = (value: 'a): bool => {
-  ignore(value)
-  %raw(`value === null || value === undefined || typeof value === "boolean"`)
-}
+let isEmptyChild: 'a => bool = %raw(`function (value) {
+  return value === null || value === undefined || typeof value === "boolean"
+}`)
 
-let isXoteNode = (value: 'a): bool => {
-  ignore(value)
-  %raw(`value && typeof value === "object" && (
+let isXoteNode: 'a => bool = %raw(`function (value) {
+  return !!(value && typeof value === "object" && (
     value.TAG === "Element" ||
     value.TAG === "Text" ||
     value.TAG === "SignalText" ||
@@ -36,8 +34,8 @@ let isXoteNode = (value: 'a): bool => {
     value.TAG === "Keyed" ||
     value.TAG === "LazyComponent" ||
     value.TAG === "KeyedList"
-  )`)
-}
+  ))
+}`)
 
 let rec nodeToText = (node: View.node): string =>
   switch node {

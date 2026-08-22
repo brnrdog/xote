@@ -1,0 +1,44 @@
+/*
+ * Shared stylesheet. Every app renders the same DOM with the same styles so
+ * layout and paint cost is constant across frameworks and only the
+ * framework's own work shows up in the numbers.
+ */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.42857143;
+  color: #333;
+}
+
+.container { padding: 0 15px; max-width: 1140px; margin: 0 auto; }
+
+.jumbotron { padding: 24px 0; border-bottom: 1px solid #e5e5e5; }
+.jumbotron h1 { font-size: 28px; margin: 0 0 16px; }
+
+.actions button {
+  display: inline-block;
+  margin: 0 6px 6px 0;
+  padding: 6px 12px;
+  font-size: 14px;
+  border: 1px solid #204d74;
+  border-radius: 4px;
+  background: #337ab7;
+  color: #fff;
+  cursor: pointer;
+}
+
+table { width: 100%; border-collapse: collapse; }
+table td { padding: 8px; border-top: 1px solid #ddd; vertical-align: top; }
+table tr.danger td { background: #f2dede; }
+
+.col-md-1 { width: 8.33%; }
+.col-md-4 { width: 33.33%; }
+.col-md-6 { width: 50%; }
+
+a { color: #337ab7; cursor: pointer; text-decoration: none; }
+
+.glyphicon-remove::before { content: "\00d7"; font-size: 18px; line-height: 1; }

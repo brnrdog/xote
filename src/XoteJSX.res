@@ -49,6 +49,8 @@ let array = (children: array<element>): element => View.fragment(children)
 
 let null = (): element => View.text("")
 
+@val @scope("Object") external objectEntries: Obj.t => array<(string, Obj.t)> = "entries"
+
 /* Elements module for lowercase HTML tags */
 module Elements = {
   /* Props type for HTML elements - accepts both raw values and MaybeSignal.t for
@@ -490,8 +492,7 @@ module Elements = {
     /* Data attributes */
     switch props.data {
     | Some(dataObj) => {
-        ignore(dataObj)
-        let entries: array<(string, Obj.t)> = %raw(`Object.entries(dataObj)`)
+        let entries = objectEntries(dataObj)
         entries->Array.forEach(((key, value)) => {
           attrs->Array.push(RuntimeJsxProp.toStringAttr("data-" ++ key, value))->ignore
         })

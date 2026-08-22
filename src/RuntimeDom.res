@@ -1,5 +1,3 @@
-module Core = RescriptCore
-
 let svgNamespace = "http://www.w3.org/2000/svg"
 
 let svgTags = [
@@ -65,8 +63,13 @@ external getElementById: string => Nullable.t<Dom.element> = "getElementById"
 @get external getParentNode: Dom.element => Nullable.t<Dom.element> = "parentNode"
 @get external childNodes: Dom.element => Array.arrayLike<Dom.element> = "childNodes"
 
+let isDocumentFragment: Dom.element => bool = %raw(`function (node) {
+  return node != null && node.nodeType === 11
+}`)
+
 let childNodesToArray = (el: Dom.element): array<Dom.element> => {
-  el->childNodes->Core.Array.fromArrayLike
+  ignore(el)
+  %raw(`Array.from(el.childNodes || [])`)
 }
 
 @send

@@ -15,8 +15,7 @@ link ../..                            xote-tracked-ppx
 link ../../../node_modules/rescript   rescript
 link ../../../node_modules/rescript-signals rescript-signals
 link ../../../node_modules/jsdom      jsdom
-# @rescript/core and the platform binaries live under the @rescript scope
-ln -sfn ../../../../node_modules/@rescript/core          node_modules/@rescript/core
+# the platform binaries live under the @rescript scope
 ln -sfn ../../../../node_modules/@rescript/linux-x64     node_modules/@rescript/linux-x64 2>/dev/null || true
 
 echo "example/ linked. Now: sh ../build.sh && npm run build && npm run verify"

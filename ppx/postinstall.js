@@ -88,8 +88,51 @@ function buildFromSource() {
   return build.status === 0 && fs.existsSync(dest) && runs(dest);
 }
 
+/* When no binary could be installed, leave an executable stub at the path
+ * ppx-flags points to.
+ *
+ * Without it ReScript fails resolution rather than execution, and says so in
+ * its own terms:
+ *
+ *   try_package_path: upward traversal did not find 'xote/ppx/ppx'
+ *   Incremental build failed. Error: Could not parse Source Files
+ *
+ * which names neither xote, nor this script, nor the fix. The stub turns that
+ * into a message the reader can act on, and it is the likeliest thing anyone
+ * hits first: pnpm skips dependency install scripts by default, so the very
+ * setups that need this message are the ones that never ran this file.
+ *
+ * Skipped on Windows, where the path is ppx.exe and a shell script will not
+ * execute — there the resolution error stands.
+ */
+function installStub() {
+  if (isWindows) return false;
+  /* Deliberately terse: ReScript runs the ppx once per source file, so this is
+   * printed once per file in the project. Three short lines is noisy; the
+   * fifteen-line version this replaced buried the compiler's own error. */
+  const stub = [
+    '#!/bin/sh',
+    '# Placeholder written by xote/ppx/postinstall.js when no ppx binary could',
+    '# be installed. Replaced by the real binary once one is available.',
+    'cat >&2 <<\'MSG\'',
+    'xote: @xote.component ppx binary missing (the install script did not run).',
+    '  fix: node node_modules/xote/ppx/postinstall.js   [pnpm: pnpm approve-builds first]',
+    '  see: node_modules/xote/ppx/README.md#distribution',
+    'MSG',
+    'exit 1',
+  ].join('\n');
+  try {
+    fs.writeFileSync(dest, stub + '\n', { mode: 0o755 });
+    return true;
+  } catch (_err) {
+    /* best effort: the warning below is still printed */
+    return false;
+  }
+}
+
 function main() {
   if (!installPrebuilt() && !buildFromSource()) {
+    installStub();
     console.warn(
       [
         `xote: no ppx binary available for ${target}.`,

@@ -40,7 +40,7 @@ Then, add it to your ReScript project's `rescript.json`. You'll need to declare 
 
 The compiler flag `-open Xote` is optional, it makes the Xote modules available unqualified inside your source files.
 
-The `ppx-flags` line enables the **`@xote.component`** annotation — the standard authoring model. It derives props from labeled arguments (like `@jsx.component`) and additionally lets you read signals **inline** in JSX with fine-grained updates: no `() => …` thunks, no value-primitive wrappers. The npm package ships the PPX prebuilt for linux-x64/arm64, macOS x64/arm64, and Windows x64, selected automatically at install time — no OCaml toolchain needed. See [`ppx/README.md`](ppx/README.md) for how it works and the (few) limitations; to skip the PPX entirely, omit `ppx-flags` and use `@jsx.component` with explicit thunks and `<View.Text>`/`<View.Int>` primitives, as shown further below.
+The `ppx-flags` line enables the **`@xote.component`** annotation — the recommended way to write components today, though its semantics are not frozen yet. It derives props from labeled arguments (like `@jsx.component`) and additionally lets you read signals **inline** in JSX with fine-grained updates: no `() => …` thunks, no value-primitive wrappers. The npm package ships the PPX prebuilt for linux-x64/arm64, macOS x64/arm64, and Windows x64, selected automatically at install time — no OCaml toolchain needed. See [`ppx/README.md`](ppx/README.md) for how it works and the (few) limitations; to skip the PPX entirely, omit `ppx-flags` and use `@jsx.component` with explicit thunks and `<View.Text>`/`<View.Int>` primitives, as shown further below.
 
 This README uses the application-facing names for public code:
 
@@ -168,6 +168,39 @@ The explicit value primitives are still there for code that does not use the PPX
 
 Built-in attributes take a plain value, a signal, or a `unit => 'a` function, so
 a signal can be passed straight through without wrapping it.
+
+#### Keep signal reads visible
+
+`@xote.component` decides what to make reactive by *reading your source*. It
+follows `Signal.get` and `MaybeSignal.get`, aliases (`let g = Signal.get`,
+`module S = Signal`, `open Signal`), local helpers that read a signal, and
+helpers in a module in the same file. It cannot follow a call into **another
+module** — nothing in `Store.waitingCount(store)` says "signal" — so that leaf is
+compiled as a plain value and renders its first result forever:
+
+```rescript
+<p> {Store.waitingCount(store)} </p>   // ⚠️ one-shot: never updates
+<p> {() => Store.waitingCount(store)} </p>   // ✅ reactive
+```
+
+The same applies to a read hoisted into a `let` (`let n = Signal.get(count)`,
+then `{n}`): reactivity follows the expression written in JSX position. In both
+cases the fix is a thunk — `() => …` — and the PPX never double-wraps one you
+wrote yourself.
+
+You do not have to catch these by eye. A leaf whose expression contains a call
+the PPX cannot resolve is emitted wrapped in `View.probe`, which checks at
+runtime whether evaluating it actually subscribed to a signal and, if it did,
+logs the source location once:
+
+```
+[Xote] Queue.res:42:19: this value reads a signal through a call
+@xote.component cannot see … Wrap it in a thunk (`{() => ...}`).
+```
+
+There are no false positives — the check is on what the evaluation really read,
+not on how it looks — and probing is skipped in production builds. Full rules:
+[`ppx/README.md`](ppx/README.md#hidden-reads).
 
 For rendering collections in JSX, prefer `View.For`. Add `by` when items have stable identity and should reconcile by key:
 
@@ -342,6 +375,26 @@ View.mountById(app, "app");
 Use `xote/client` for browser UI, `xote/router` for routing, `xote/ssr` for server rendering, `xote/hydration` for hydrating server-rendered pages, and `xote/mdx` for MDX integration.
 
 Check the [website](https://brnrdog.github.io/xote/) for more comprehensive documentations about Xote and Signals.
+
+## Benchmarks
+
+The [`benchmarks/`](benchmarks) directory contains a keyed-list benchmark that runs the same table application in Xote, React, Vue, and SolidJS. Every implementation renders identical DOM from the same generated data and is written the way its own library recommends, so the comparison reflects the architectures rather than the wiring.
+
+Median of 15 iterations, Chromium 141 on a 4-core Xeon. Lower is better, and these are ratios from one machine rather than absolute performance claims. Treat close results as ties: re-running on the same code moves individual ratios by 10-25%, so only the large gaps below are worth reading as differences.
+
+| | Xote | React | Vue | Solid |
+| --- | ---: | ---: | ---: | ---: |
+| Update every 10th row | 6.3 ms | 11.7 ms | 7.4 ms | **5.4 ms** |
+| Select a row | 1.0 ms | 5.8 ms | 1.9 ms | **0.8 ms** |
+| Create 1,000 rows | 88.7 ms | 62.1 ms | 59.2 ms | **52.5 ms** |
+| Swap two rows | 7.3 ms | 64.8 ms | 7.8 ms | **6.3 ms** |
+| Clear 10,000 rows | 109 ms | 96 ms | 75 ms | **62 ms** |
+| Time to first render | 24.4 ms | 41.8 ms | 28.5 ms | **22.8 ms** |
+| App bundle, gzipped | 8.4 KB | 59.9 KB | 24.9 KB | **4.7 KB** |
+
+Fine-grained updates are where Xote does well: a scattered update writes only the text nodes that changed, which puts it level with Solid and about 2x ahead of React, and the whole application ships in 8.4 KB against React's 59.9. Startup is in the same range as Solid's, and reordering is a tie with the compiled frameworks — the keyed reconciler moves only the rows a reorder actually displaces, so a two-row swap costs two node moves rather than most of the list. Building large lists remains slower than the compiled frameworks, which clone a template per row instead of constructing nodes one at a time; that is also why Xote holds a larger heap on a 10,000-row list.
+
+Full results, methodology, and the DOM-operation profile that explains these numbers are in [`benchmarks/README.md`](benchmarks/README.md) and [`benchmarks/results/RESULTS.md`](benchmarks/results/RESULTS.md). Per-framework detail lives in the [React](https://xote.dev/docs/comparisons/react) and [SolidJS](https://xote.dev/docs/comparisons/solidjs) comparison pages.
 
 ## Releasing
 

@@ -1,6 +1,3 @@
-module Html = RuntimeHtml
-module Markers = RuntimeHydrationMarkers
-
 /* ============================================================================
  * Render Options
  * ============================================================================ */
@@ -19,7 +16,7 @@ module Attributes = {
   let renderAttr = ((key, value): (string, View.attrValue)): string => {
     /* A missing value means the attribute is not rendered at all, matching the
      `removeAttribute` the client does for the same value. */
-    switch View.peekAttr(value)->Nullable.toOption {
+    switch RuntimeNode.peekAttr(value)->Nullable.toOption {
     | None => ""
     | Some(attrValue) =>
       if RuntimeAttr.isBoolean(key) {
@@ -29,7 +26,7 @@ module Attributes = {
           ""
         }
       } else {
-        `${key}="${Html.escape(attrValue)}"`
+        `${key}="${RuntimeHtml.escape(attrValue)}"`
       }
     }
   }
@@ -56,12 +53,14 @@ module Attributes = {
 /* Render a virtual node to an HTML string */
 let rec renderNodeToString = (node: View.node): string => {
   switch node {
-  | View.Text(content) => Html.escape(content)
+  | View.Text(content) => RuntimeHtml.escape(content)
 
   | View.SignalText(signal) => {
       /* Read current signal value and wrap with hydration markers */
       let value = Signal.peek(signal)
-      Markers.signalTextStart ++ Html.escape(value) ++ Markers.signalTextEnd
+      RuntimeHydrationMarkers.signalTextStart ++
+      RuntimeHtml.escape(value) ++
+      RuntimeHydrationMarkers.signalTextEnd
     }
 
   | View.Fragment(children) => children->Array.map(renderNodeToString)->Array.join("")
@@ -70,7 +69,9 @@ let rec renderNodeToString = (node: View.node): string => {
       /* Read current signal value and wrap with hydration markers */
       let children = Signal.peek(signal)
       let content = children->Array.map(renderNodeToString)->Array.join("")
-      Markers.signalFragmentStart ++ content ++ Markers.signalFragmentEnd
+      RuntimeHydrationMarkers.signalFragmentStart ++
+      content ++
+      RuntimeHydrationMarkers.signalFragmentEnd
     }
 
   | View.Keyed({child, key: _, identity: _}) => renderNodeToString(child)
@@ -78,7 +79,7 @@ let rec renderNodeToString = (node: View.node): string => {
   | View.Element({tag, attrs, children, events: _}) => {
       let attrsStr = Attributes.renderAttrs(attrs)
 
-      if Html.isVoidElement(tag) {
+      if RuntimeHtml.isVoidElement(tag) {
         `<${tag}${attrsStr} />`
       } else {
         let childrenStr = children->Array.map(renderNodeToString)->Array.join("")
@@ -89,7 +90,9 @@ let rec renderNodeToString = (node: View.node): string => {
   | View.LazyComponent(fn) => {
       /* Execute the lazy component and render its result */
       let childNode = fn()
-      Markers.lazyComponentStart ++ renderNodeToString(childNode) ++ Markers.lazyComponentEnd
+      RuntimeHydrationMarkers.lazyComponentStart ++
+      renderNodeToString(childNode) ++
+      RuntimeHydrationMarkers.lazyComponentEnd
     }
 
   | View.KeyedList({signal, keyFn, renderItem}) => {
@@ -99,11 +102,13 @@ let rec renderNodeToString = (node: View.node): string => {
         ->Array.map(item => {
           let key = keyFn(item)
           let itemHtml = renderNodeToString(renderItem(item))
-          Markers.keyedItemStart(key) ++ itemHtml ++ Markers.keyedItemEnd
+          RuntimeHydrationMarkers.keyedItemStart(key) ++
+          itemHtml ++
+          RuntimeHydrationMarkers.keyedItemEnd
         })
         ->Array.join("")
 
-      Markers.keyedListStart ++ content ++ Markers.keyedListEnd
+      RuntimeHydrationMarkers.keyedListStart ++ content ++ RuntimeHydrationMarkers.keyedListEnd
     }
   }
 }
@@ -136,7 +141,7 @@ let renderToStringWithRoot = (
 /* Generate the hydration script tag (placeholder for Phase 4) */
 let generateHydrationScript = (~nonce: option<string>=?): string => {
   let nonceAttr = switch nonce {
-  | Some(n) => ` nonce="${Html.escape(n)}"`
+  | Some(n) => ` nonce="${RuntimeHtml.escape(n)}"`
   | None => ""
   }
 
@@ -158,17 +163,17 @@ let renderDocument = (
 
   let styleLinks =
     styles
-    ->Array.map(href => `<link rel="stylesheet" href="${Html.escape(href)}" />`)
+    ->Array.map(href => `<link rel="stylesheet" href="${RuntimeHtml.escape(href)}" />`)
     ->Array.join("\n    ")
 
   let scriptTags =
     scripts
     ->Array.map(src => {
       let nonceAttr = switch nonce {
-      | Some(n) => ` nonce="${Html.escape(n)}"`
+      | Some(n) => ` nonce="${RuntimeHtml.escape(n)}"`
       | None => ""
       }
-      `<script type="module" src="${Html.escape(src)}"${nonceAttr}></script>`
+      `<script type="module" src="${RuntimeHtml.escape(src)}"${nonceAttr}></script>`
     })
     ->Array.join("\n    ")
 

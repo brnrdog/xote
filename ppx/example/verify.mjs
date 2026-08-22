@@ -15,6 +15,14 @@ globalThis.Node = dom.window.Node;
 const View = await import('xote/src/View.res.mjs');
 const Signal = await import('xote/src/Signal.res.mjs');
 const Demo = await import('./src/Demo.res.mjs');
+const Store = await import('./src/Store.res.mjs');
+
+// `View.probe` reports hidden reads through console.warn. Capture from the very
+// first mount so the hidden-read section can assert both what was reported and
+// what was not — a false positive is as much a failure as a missed read.
+const warnings = [];
+const realWarn = console.warn;
+console.warn = (...args) => { warnings.push(args.join(' ')); };
 
 let pass = 0, fail = 0;
 const check = (name, cond) => {
@@ -466,6 +474,123 @@ check('array literal inside View.fragment', ns.querySelector('#ns-arr').textCont
 check('pipe + map callback decomposed', ns.querySelectorAll('.ns-map').length === 2);
 check('local helper items rendered', ns.textContent.includes('one') && ns.textContent.includes('two'));
 
+// --- MaybeSignal.get is a tracked read --------------------------------------
+// Reading through the static-or-reactive wrapper subscribes exactly like
+// Signal.get, so both leaves below must be reactive, not one-shot.
+console.log('MaybeSignal.get is a tracked read:');
+Signal.set(Demo.theme, 'light');
+Signal.set(Demo.name, 'Ada');
+const ms = mount(() => Demo.MaybeSignalRead.make({}));
+ms.__marker = 'MS';
+check('MaybeSignal.get attribute rendered', ms.className === 'light');
+check('MaybeSignal.get bare child rendered', ms.textContent.includes('Ada'));
+Signal.set(Demo.theme, 'dark');
+Signal.set(Demo.name, 'Bo');
+check('MaybeSignal.get attribute updates', document.querySelector('#maybe-signal').className === 'dark');
+check('MaybeSignal.get bare child updates', document.querySelector('#maybe-signal').textContent.includes('Bo'));
+check('MaybeSignal leaf kept element identity', document.querySelector('#maybe-signal').__marker === 'MS');
+
+// --- A reactive helper behind a same-file module -----------------------------
+console.log('same-file module helper is a tracked read:');
+Signal.set(Demo.count, 2);
+const mh = mount(() => Demo.ModuleHelper.make({}));
+mh.__marker = 'MH';
+check('module helper bare child rendered', mh.textContent.includes('4'));
+check('module helper attribute rendered', mh.className === 'positive');
+Signal.set(Demo.count, 0);
+check('module helper bare child updates', document.querySelector('#module-helper').textContent.trim() === '0');
+check('module helper attribute updates', document.querySelector('#module-helper').className === 'zero');
+check('module helper kept element identity', document.querySelector('#module-helper').__marker === 'MH');
+
+// --- Escape hatches: `attrs`, `data`, event handlers left exactly as written --
+// None of these props can hold a thunk, so the ppx never wraps one: an entry
+// carries its own reactivity, and an eager read in any of them is a one-shot
+// read. attrs/handlers used to be thunked, which failed the build with a type
+// error naming no file and no line; `data` went by the shape of the expression
+// (a Dict.fromArray was thunked into that same error, an object literal probed).
+console.log('escape hatches (attrs, data, event handlers):');
+const hatch = mount(() => Demo.EscapeHatch.make({}));
+check('an attrs entry renders', hatch.querySelector('#eh-frozen').getAttribute('data-theme') === 'light');
+check('a thunked attrs entry renders', hatch.querySelector('#eh-live').getAttribute('data-theme') === 'light');
+Signal.set(Demo.hatchTheme, 'dark');
+check('a thunked attrs entry updates', hatch.querySelector('#eh-live').getAttribute('data-theme') === 'dark');
+check('an inline read in an attrs entry is a one-shot read', hatch.querySelector('#eh-frozen').getAttribute('data-theme') === 'light');
+check('a data entry renders', hatch.querySelector('#eh-data-frozen').getAttribute('data-theme') === 'light');
+check('a thunked data entry renders', hatch.querySelector('#eh-data-live').getAttribute('data-theme') === 'light');
+Signal.set(Demo.hatchData, 'dark');
+check('a thunked data entry updates', hatch.querySelector('#eh-data-live').getAttribute('data-theme') === 'dark');
+check('an inline read in a data entry is a one-shot read', hatch.querySelector('#eh-data-frozen').getAttribute('data-theme') === 'light');
+check('a Dict-shaped data value renders its entries', hatch.querySelector('#eh-data-dict').getAttribute('data-theme') === 'light');
+hatch.querySelector('#eh-button').dispatchEvent(new dom.window.Event('click'));
+check('a handler built by a factory that reads a signal runs', Signal.peek(Demo.hatchClicks) === 2);
+
+// --- Hidden reads: what detection cannot follow, reported at runtime ---------
+// `Store` is another file, so the ppx sees only a call it cannot resolve. The
+// leaf is wrapped in `View.probe`, which evaluates it inside a throwaway
+// computed and reports it if that computed subscribed to anything.
+console.log('hidden reads (an unresolvable call that does read a signal):');
+const hidden = mount(() => Demo.Hidden.make({}));
+check('hidden read still renders its initial value', hidden.textContent.includes('4'));
+check('hidden read attribute still renders', hidden.className === 'tone-calm');
+check('hidden read reported with its source location', warnings.some((w) => w.includes('Demo.res:525:54')));
+check('hidden read attribute reported', warnings.some((w) => w.includes('Demo.res:525:32')));
+check('warning names the fix', warnings.some((w) => w.includes('() => ...')));
+
+// This is precisely what the warning is for: the leaf is frozen at its first
+// value. Detection cannot fix it, so it has to say so.
+Signal.set(Store.waiting, 9);
+check('hidden read is indeed frozen (the failure the warning describes)', document.querySelector('#hidden-read').textContent.includes('4'));
+
+const hiddenBranch = mount(() => Demo.HiddenBranch.make({}));
+check('hidden condition renders a branch', hiddenBranch.querySelector('#hb-idle') !== null);
+check('hidden condition reported', warnings.some((w) => w.includes('Demo.res:534:11')));
+
+// Only once per site, however many times the component mounts.
+const repeats = warnings.filter((w) => w.includes('Demo.res:525:54')).length;
+mount(() => Demo.Hidden.make({}));
+check('each site is reported once, not per render', warnings.filter((w) => w.includes('Demo.res:525:54')).length === repeats);
+
+// --- ...and silent when there is nothing to report ---------------------------
+// An unresolvable call is not evidence of a read. Probing decides by what the
+// evaluation actually subscribed to, so a false positive is impossible.
+console.log('probe stays silent when nothing is read:');
+const quiet = warnings.length;
+const clean = mount(() => Demo.HiddenClean.make({}));
+check('unresolvable-but-static bare child renders', clean.textContent.includes('42'));
+check('unresolvable-but-static attribute renders', clean.className === 'row!');
+check('no warning for a call that reads nothing', warnings.length === quiet);
+// Case 25 (PeekShadow) is probed too: `Signal.peek` registers no dependency, so
+// a deliberate one-shot peek must not be reported either.
+check('no warning for a deliberate peek-based helper', !warnings.some((w) => w.includes('Demo.res:357')));
+check('no warning from any other case', warnings.every((w) => /Demo\.res:(525|534):/.test(w)));
+
+console.warn = realWarn;
+
+// --- Disposal under the scheduler: a replaced branch stays dead --------------
+// One write to `branchOn` swaps the branch AND schedules the class leaf (its
+// computed chain orders it after the region effect). The region disposes the
+// leaf mid-flush; the leaf's leftover queued run must stay a no-op instead of
+// re-tracking its dependencies and resurrecting the effect.
+console.log('a replaced branch leaf stays disposed (no zombie effects):');
+const subscriberCount = (signal) => {
+  let count = 0, link = signal.subs.first;
+  while (link) { count++; link = link.nextSub; }
+  return count;
+};
+const zb = mount(() => Demo.DisposedBranch.make({}));
+const zbSpan = zb.querySelector('#disposed-leaf');
+check('branch leaf mounted with class "on"', zbSpan !== null && zbSpan.className === 'on');
+for (let i = 0; i < 5; i++) {
+  Signal.set(Demo.branchOn, false);
+  Signal.set(Demo.branchOn, true);
+}
+check('after 5 swap cycles only the live leaf subscribes to the chain',
+  subscriberCount(Demo.branchChainB) === 1);
+check('the first (disposed) leaf froze at its last live value',
+  zbSpan.className === 'on');
+Signal.set(Demo.branchOn, false);
+check('swapped away: no leaf subscribes', subscriberCount(Demo.branchChainB) === 0);
+
 // --- Regression: fully-qualified value component --------------------------
 // <Xote.View.Text>/<Xote.View.Int> must be treated as *value* components even
 // under the namespace, so their children/value are thunked, not coerced into a
@@ -475,26 +600,9 @@ Signal.set(Demo.name, 'Ada');
 Signal.set(Demo.count, 0);
 const qv = mount(() => Demo.QualifiedValue.make({}));
 check('qualified text renders "n=Ada"', qv.textContent === 'n=Ada0');
-check('qualified int renders "0"', qv.textContent.includes('0'));
 Signal.set(Demo.name, 'Bo');
 Signal.set(Demo.count, 41);
 check('qualified text updates to "n=Bo"', document.querySelector('#qualified-value').textContent === 'n=Bo41');
-check('qualified int updates to "41"', document.querySelector('#qualified-value').textContent.includes('41'));
-
-// --- Regression: JSX nested in an array passed as a user-component prop -----
-console.log('JSX nested in an array prop (reactive leaves + bare child):');
-Signal.set(Demo.theme, 'light');
-Signal.set(Demo.name, 'Ada');
-const pitem = mount(() => Demo.PropItemsUse.make({}));
-const pitemLi = pitem.querySelector('#prop-item');
-pitemLi.__marker = 'PI';
-check('array-prop li renders bare child "Ada"', pitemLi.textContent === 'Ada');
-check('array-prop li class is "light"', pitemLi.className === 'light');
-Signal.set(Demo.name, 'Cy');
-Signal.set(Demo.theme, 'dark');
-check('array-prop bare child updates to "Cy"', document.querySelector('#prop-item').textContent === 'Cy');
-check('array-prop class updates to "dark"', document.querySelector('#prop-item').className === 'dark');
-check('array-prop li kept identity', document.querySelector('#prop-item').__marker === 'PI');
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

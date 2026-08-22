@@ -1,9 +1,11 @@
 module DOM = RuntimeDom
-module Reactivity = RuntimeOwner
-module Core = RescriptCore
 
 /* ============================================================================
  * Type Definitions
+ *
+ * The node types live in the internal `RuntimeNode` module so that the renderer
+ * can be internal too; they are re-exported here with their constructors, so
+ * `View.node` / `View.attrValue` stay the public spelling.
  * ============================================================================ */
 
 /* Attribute value source.
@@ -12,7 +14,7 @@ module Core = RescriptCore
  this attribute" rather than "write an empty value". Presence-based styling
  (`[data-open]`, `[data-checked]`) needs that distinction: an attribute that is
  always present, even as `""`, always matches. */
-type attrValue =
+type attrValue = RuntimeNode.attrValue =
   | Static(string)
   | SignalValue(Signal.t<string>)
   | Compute(unit => string)
@@ -21,7 +23,7 @@ type attrValue =
   | OptionalCompute(unit => option<string>)
 
 /* Virtual node types */
-type rec node =
+type rec node = RuntimeNode.node =
   | Element({
       tag: string,
       attrs: array<(string, attrValue)>,
@@ -86,482 +88,6 @@ module Attr = {
   let optionalCompute = optionalComputedAttr
 }
 
-/* An `attrValue` reduced to how it has to be applied: a value that is known up
- front, or a read that must run inside an effect. Both are nullable because a
- missing value removes the attribute. */
-type attrRead =
-  | ReadStatic(Nullable.t<string>)
-  | ReadReactive(unit => Nullable.t<string>)
-
-let resolveAttr = (value: attrValue): attrRead =>
-  switch value {
-  | Static(value) => ReadStatic(Nullable.make(value))
-  | OptionalStatic(value) => ReadStatic(Nullable.fromOption(value))
-  | SignalValue(signal) => ReadReactive(() => Nullable.make(Signal.get(signal)))
-  | OptionalSignalValue(signal) => ReadReactive(() => Nullable.fromOption(Signal.get(signal)))
-  | Compute(compute) => ReadReactive(() => Nullable.make(compute()))
-  | OptionalCompute(compute) => ReadReactive(() => Nullable.fromOption(compute()))
-  }
-
-/* Current value of an attribute without subscribing to it — SSR renders a
- snapshot, so it must not register dependencies. */
-let peekAttr = (value: attrValue): Nullable.t<string> =>
-  switch resolveAttr(value) {
-  | ReadStatic(value) => value
-  | ReadReactive(read) => Signal.untrack(read)
-  }
-
-/* ============================================================================
- * Rendering
- * ============================================================================ */
-
-module Render = {
-  open Reactivity
-
-  /* Type for tracking keyed list items */
-  type keyedItem<'a> = {
-    key: string,
-    item: 'a,
-    element: Dom.element,
-  }
-
-  type keyedChild = {
-    key: string,
-    identity: Obj.t,
-    child: node,
-  }
-
-  /* Dispose an element and its reactive state */
-  let rec disposeElement = (el: Dom.element): unit => {
-    /* Dispose the owner if it exists */
-    switch getOwner(el) {
-    | Some(owner) => disposeOwner(owner)
-    | None => ()
-    }
-
-    /* Recursively dispose children */
-    el->DOM.childNodesToArray->Array.forEach(disposeElement)
-  }
-
-  let shallowEqualIdentity = (a: Obj.t, b: Obj.t): bool =>
-    if a === b {
-      true
-    } else {
-      switch (a->Core.Type.Classify.classify, b->Core.Type.Classify.classify) {
-      | (Object(objA), Object(objB)) => {
-          let dictA: Dict.t<Obj.t> = Obj.magic(objA)
-          let dictB: Dict.t<Obj.t> = Obj.magic(objB)
-          let keysA = dictA->Dict.keysToArray
-          let keysB = dictB->Dict.keysToArray
-
-          if keysA->Array.length !== keysB->Array.length {
-            false
-          } else {
-            keysA->Array.every(key =>
-              switch (dictA->Dict.get(key), dictB->Dict.get(key)) {
-              | (Some(valueA), Some(valueB)) => valueA === valueB
-              | _ => false
-              }
-            )
-          }
-        }
-      | _ => false
-      }
-    }
-
-  let clearKeyedItems = (keyedItems: Dict.t<keyedItem<Obj.t>>): unit => {
-    keyedItems->Dict.keysToArray->Array.forEach(key => keyedItems->Dict.delete(key)->ignore)
-  }
-
-  let getKeyedChildren = (children: array<node>): option<array<keyedChild>> => {
-    if children->Core.Array.length == 0 {
-      None
-    } else {
-      let keyedChildren = children->Core.Array.filterMap(child => {
-        switch child {
-        | Keyed({key, identity, child}) => Some({key, identity, child})
-        | _ => None
-        }
-      })
-
-      if keyedChildren->Core.Array.length == children->Core.Array.length {
-        Some(keyedChildren)
-      } else {
-        None
-      }
-    }
-  }
-
-  let rec reconcileKeyedChildren = (
-    ~keyedChildren: array<keyedChild>,
-    ~keyedItems: Dict.t<keyedItem<Obj.t>>,
-    ~parent: Dom.element,
-  ): unit => {
-    let newKeyMap: Dict.t<keyedChild> = Dict.make()
-    keyedChildren->Array.forEach(child => newKeyMap->Dict.set(child.key, child))
-
-    let keysToRemove = []
-    keyedItems
-    ->Dict.keysToArray
-    ->Array.forEach(key => {
-      switch newKeyMap->Dict.get(key) {
-      | None => keysToRemove->Array.push(key)->ignore
-      | Some(_) => ()
-      }
-    })
-
-    keysToRemove->Array.forEach(key => {
-      switch keyedItems->Dict.get(key) {
-      | Some(keyedItem) => {
-          disposeElement(keyedItem.element)
-          keyedItem.element->DOM.remove
-          keyedItems->Dict.delete(key)->ignore
-        }
-      | None => ()
-      }
-    })
-
-    let newOrder: array<keyedItem<Obj.t>> = []
-    let elementsToReplace: Dict.t<Dom.element> = Dict.make()
-
-    keyedChildren->Array.forEach(keyedChild => {
-      switch keyedItems->Dict.get(keyedChild.key) {
-      | Some(existing) =>
-        if shallowEqualIdentity(existing.item, keyedChild.identity) {
-          newOrder->Array.push(existing)->ignore
-        } else {
-          let element = render(keyedChild.child)
-          let keyedItem: keyedItem<Obj.t> = {
-            key: keyedChild.key,
-            item: keyedChild.identity,
-            element,
-          }
-          elementsToReplace->Dict.set(keyedChild.key, existing.element)
-          newOrder->Array.push(keyedItem)->ignore
-          keyedItems->Dict.set(keyedChild.key, keyedItem)
-        }
-      | None => {
-          let element = render(keyedChild.child)
-          let keyedItem: keyedItem<Obj.t> = {
-            key: keyedChild.key,
-            item: keyedChild.identity,
-            element,
-          }
-          newOrder->Array.push(keyedItem)->ignore
-          keyedItems->Dict.set(keyedChild.key, keyedItem)
-        }
-      }
-    })
-
-    let marker = ref(
-      switch DOM.getFirstChild(parent)->Nullable.toOption {
-      | Some(node) => Some(node)
-      | None => None
-      },
-    )
-
-    newOrder->Array.forEach(keyedItem => {
-      let currentElement = marker.contents
-
-      switch currentElement {
-      | Some(elem) if elem === keyedItem.element =>
-        marker := DOM.getNextSibling(elem)->Nullable.toOption
-      | Some(elem) => {
-          switch elementsToReplace->Dict.get(keyedItem.key) {
-          | Some(previousElement) if elem === previousElement => {
-              disposeElement(previousElement)
-              DOM.replaceChild(parent, keyedItem.element, previousElement)
-              marker := DOM.getNextSibling(keyedItem.element)->Nullable.toOption
-            }
-          | _ => {
-              DOM.insertBefore(parent, keyedItem.element, elem)
-              marker := DOM.getNextSibling(keyedItem.element)->Nullable.toOption
-            }
-          }
-        }
-      | None => {
-          switch elementsToReplace->Dict.get(keyedItem.key) {
-          | Some(previousElement) => {
-              disposeElement(previousElement)
-              previousElement->DOM.remove
-              parent->DOM.appendChild(keyedItem.element)
-            }
-          | None => parent->DOM.appendChild(keyedItem.element)
-          }
-        }
-      }
-    })
-  }
-
-  /* Render a virtual node to a DOM element */
-  and render = (node: node): Dom.element => {
-    switch node {
-    | Text(content) => DOM.createTextNode(content)
-
-    | SignalText(signal) => {
-        let textNode = DOM.createTextNode(Signal.peek(signal))
-        let owner = createOwner()
-        setOwner(textNode, owner)
-
-        runWithOwner(owner, () => {
-          let disposer = Effect.runWithDisposer(() => {
-            DOM.setTextContent(textNode, Signal.get(signal))
-            None
-          })
-          addDisposer(owner, disposer)
-        })
-
-        textNode
-      }
-
-    | Fragment(children) => {
-        let fragment = DOM.createDocumentFragment()
-        children->Array.forEach(child => {
-          let childEl = render(child)
-          fragment->DOM.appendChild(childEl)
-        })
-        fragment
-      }
-
-    | SignalFragment(signal) => {
-        let owner = createOwner()
-        let container = DOM.createElement("div")
-        DOM.setAttribute(container, "style", "display: contents")
-        setOwner(container, owner)
-        let keyedItems: Dict.t<keyedItem<Obj.t>> = Dict.make()
-
-        runWithOwner(owner, () => {
-          let disposer = Effect.runWithDisposer(() => {
-            let children = Signal.get(signal)
-
-            switch getKeyedChildren(children) {
-            | Some(keyedChildren) =>
-              reconcileKeyedChildren(~keyedChildren, ~keyedItems, ~parent=container)
-            | None => {
-                clearKeyedItems(keyedItems)
-
-                /* Dispose existing children */
-                container->DOM.childNodesToArray->Array.forEach(disposeElement)
-
-                /* Clear existing children */
-                DOM.setInnerHTML(container, "")
-
-                /* Render and append new children */
-                children->Array.forEach(
-                  child => {
-                    let childEl = render(child)
-                    container->DOM.appendChild(childEl)
-                  },
-                )
-              }
-            }
-
-            None
-          })
-
-          addDisposer(owner, disposer)
-        })
-
-        container
-      }
-
-    | Element({tag, attrs, events, children}) => {
-        let el = DOM.createElementForTag(tag)
-        let owner = createOwner()
-        setOwner(el, owner)
-
-        runWithOwner(owner, () => {
-          let shouldDeferAttrUntilAfterChildren = ((key, _value)) =>
-            tag == "select" && key == "value"
-
-          let applyAttr = ((key, value)) => {
-            switch resolveAttr(value) {
-            | ReadStatic(value) => DOM.setAttrOrProp(el, key, value)
-            | ReadReactive(read) => {
-                let disposer = Effect.runWithDisposer(
-                  () => {
-                    DOM.setAttrOrProp(el, key, read())
-                    None
-                  },
-                )
-                addDisposer(owner, disposer)
-              }
-            }
-          }
-
-          /* Set attributes that do not depend on mounted children */
-          attrs->Array.forEach(attr => {
-            if !shouldDeferAttrUntilAfterChildren(attr) {
-              applyAttr(attr)
-            }
-          })
-
-          /* Attach event listeners */
-          events->Array.forEach(((eventName, handler)) => {
-            el->DOM.addEventListener(eventName, handler)
-          })
-
-          /* Append children */
-          children->Array.forEach(child => {
-            let childEl = render(child)
-            el->DOM.appendChild(childEl)
-          })
-
-          /* Some DOM properties need the child tree to exist before the browser can resolve them */
-          attrs->Array.forEach(attr => {
-            if shouldDeferAttrUntilAfterChildren(attr) {
-              applyAttr(attr)
-            }
-          })
-        })
-
-        el
-      }
-
-    | Keyed({child, key: _, identity: _}) => render(child)
-
-    | LazyComponent(fn) => {
-        let owner = createOwner()
-        let childNode = runWithOwner(owner, fn)
-        let el = render(childNode)
-        setOwner(el, owner)
-        el
-      }
-
-    | KeyedList({signal, keyFn, renderItem}) => {
-        let owner = createOwner()
-        let startAnchor = DOM.createComment(" keyed-list-start ")
-        let endAnchor = DOM.createComment(" keyed-list-end ")
-
-        setOwner(startAnchor, owner)
-
-        let keyedItems: Dict.t<keyedItem<Obj.t>> = Dict.make()
-
-        /* Reconciliation logic */
-        let reconcile = (): unit => {
-          let parentOpt = DOM.getParentNode(endAnchor)->Nullable.toOption
-
-          switch parentOpt {
-          | None => ()
-          | Some(parent) => {
-              let newItems = Signal.get(signal)
-
-              let newKeyMap: Dict.t<Obj.t> = Dict.make()
-              newItems->Array.forEach(item => {
-                newKeyMap->Dict.set(keyFn(item), item)
-              })
-
-              /* Phase 1: Remove */
-              let keysToRemove = []
-              keyedItems
-              ->Dict.keysToArray
-              ->Array.forEach(key => {
-                switch newKeyMap->Dict.get(key) {
-                | None => keysToRemove->Array.push(key)->ignore
-                | Some(_) => ()
-                }
-              })
-
-              keysToRemove->Array.forEach(key => {
-                switch keyedItems->Dict.get(key) {
-                | Some(keyedItem) => {
-                    disposeElement(keyedItem.element)
-                    keyedItem.element->DOM.remove
-                    keyedItems->Dict.delete(key)->ignore
-                  }
-                | None => ()
-                }
-              })
-
-              /* Phase 2: Build new order */
-              let newOrder: array<keyedItem<Obj.t>> = []
-              let elementsToReplace: Dict.t<bool> = Dict.make()
-
-              newItems->Array.forEach(item => {
-                let key = keyFn(item)
-
-                switch keyedItems->Dict.get(key) {
-                | Some(existing) =>
-                  if existing.item !== item {
-                    elementsToReplace->Dict.set(key, true)
-                    let node = renderItem(item)
-                    let element = render(node)
-                    let keyedItem = {key, item, element}
-                    newOrder->Array.push(keyedItem)->ignore
-                    keyedItems->Dict.set(key, keyedItem)
-                  } else {
-                    newOrder->Array.push(existing)->ignore
-                  }
-                | None => {
-                    let node = renderItem(item)
-                    let element = render(node)
-                    let keyedItem = {key, item, element}
-                    newOrder->Array.push(keyedItem)->ignore
-                    keyedItems->Dict.set(key, keyedItem)
-                  }
-                }
-              })
-
-              /* Phase 3: Reconcile DOM */
-              let marker = ref(DOM.getNextSibling(startAnchor))
-
-              newOrder->Array.forEach(keyedItem => {
-                let currentElement = marker.contents
-
-                switch currentElement->Nullable.toOption {
-                | Some(elem) if elem === endAnchor =>
-                  DOM.insertBefore(parent, keyedItem.element, endAnchor)
-                | Some(elem) if elem === keyedItem.element => marker := DOM.getNextSibling(elem)
-                | Some(elem) => {
-                    let needsReplacement =
-                      elementsToReplace->Dict.get(keyedItem.key)->Option.getOr(false)
-
-                    if needsReplacement {
-                      disposeElement(elem)
-                      DOM.replaceChild(parent, keyedItem.element, elem)
-                      marker := DOM.getNextSibling(keyedItem.element)
-                    } else {
-                      DOM.insertBefore(parent, keyedItem.element, elem)
-                      marker := DOM.getNextSibling(keyedItem.element)
-                    }
-                  }
-                | None => DOM.insertBefore(parent, keyedItem.element, endAnchor)
-                }
-              })
-            }
-          }
-        }
-
-        /* Initial render */
-        let fragment = DOM.createDocumentFragment()
-        fragment->DOM.appendChild(startAnchor)
-
-        let initialItems = Signal.peek(signal)
-        initialItems->Array.forEach(item => {
-          let key = keyFn(item)
-          let node = renderItem(item)
-          let element = render(node)
-          let keyedItem = {key, item, element}
-          keyedItems->Dict.set(key, keyedItem)
-          fragment->DOM.appendChild(element)
-        })
-
-        fragment->DOM.appendChild(endAnchor)
-
-        runWithOwner(owner, () => {
-          let disposer = Effect.runWithDisposer(() => {
-            reconcile()
-            None
-          })
-          addDisposer(owner, disposer)
-        })
-
-        fragment
-      }
-    }
-  }
-}
-
 /* ============================================================================
  * Public API
  * ============================================================================ */
@@ -569,20 +95,17 @@ module Render = {
 /* Text nodes */
 let text = (content: string): node => Text(content)
 
-let signalText = (compute: unit => string): node => {
-  let signal = Computed.make(compute)
-  SignalText(signal)
-}
+let signalText = (compute: unit => string): node => SignalText(
+  RuntimeOwner.ownedComputed(compute),
+)
 
-let signalInt = (compute: unit => int): node => {
-  let signal = Computed.make(() => compute()->Int.toString)
-  SignalText(signal)
-}
+let signalInt = (compute: unit => int): node => SignalText(
+  RuntimeOwner.ownedComputed(() => compute()->Int.toString),
+)
 
-let signalFloat = (compute: unit => float): node => {
-  let signal = Computed.make(() => compute()->Float.toString)
-  SignalText(signal)
-}
+let signalFloat = (compute: unit => float): node => SignalText(
+  RuntimeOwner.ownedComputed(() => compute()->Float.toString),
+)
 
 /* Static text nodes with type-specific helpers */
 let int = (value: int): node => Text(Int.toString(value))
@@ -600,7 +123,9 @@ let signalFragment = (signal: Signal.t<array<node>>): node => SignalFragment(sig
    the block, which re-evaluates `body` and replaces its children wholesale
    (no diffing) whenever a dependency changes. Prefer `eachWithKey`/`For` for
    lists and keep tracked blocks small. */
-let tracked = (body: unit => node): node => SignalFragment(Computed.make(() => [body()]))
+let tracked = (body: unit => node): node => SignalFragment(
+  RuntimeOwner.ownedComputed(() => [body()]),
+)
 
 let childrenToArray = (child: option<node>): array<node> => {
   switch child {
@@ -612,7 +137,7 @@ let childrenToArray = (child: option<node>): array<node> => {
 
 /* Lists */
 let each = (signal: Signal.t<array<'a>>, renderItem: 'a => node): node => {
-  let nodesSignal = Computed.make(() => {
+  let nodesSignal = RuntimeOwner.ownedComputed(() => {
     Signal.get(signal)->Array.map(renderItem)
   })
   SignalFragment(nodesSignal)
@@ -631,6 +156,41 @@ let eachWithKey = (
 }
 
 /* JSX rendering primitives */
+
+/* Renders a static-or-reactive value into a node. A `Static` value renders once;
+   a `Reactive` value re-renders through a `SignalFragment` whenever the source
+   signal changes.
+
+   A `Fragment` returned by `renderItem` is flattened into the pass rather than
+   nested: keyed reconciliation only engages when *every* child of a reactive
+   pass is `Keyed`, so a wrapper node would silently downgrade the multi-child
+   callers (`Show`, `Maybe`) to clear-and-rebuild. */
+let render = (value: MaybeSignal.t<'a>, renderItem: 'a => node): node =>
+  MaybeSignal.fold(value, ~static=renderItem, ~reactive=signal =>
+    signalFragment(
+      RuntimeOwner.ownedComputed(() =>
+        switch renderItem(Signal.get(signal)) {
+        | Fragment(children) => children
+        | node => [node]
+        }
+      ),
+    )
+  )
+
+/* Static branch of a keyed list: plain `Keyed` nodes in a fragment. */
+let staticKeyedFragment = (
+  items: array<'item>,
+  keyFn: 'item => string,
+  renderItem: 'item => node,
+): node =>
+  fragment(
+    items->Array.map(item => Keyed({
+      key: keyFn(item),
+      identity: Obj.magic(item),
+      child: renderItem(item),
+    })),
+  )
+
 module For = {
   type props<'item> = {
     each: MaybeSignal.t<array<'item>>,
@@ -638,19 +198,13 @@ module For = {
     render: 'item => node,
   }
 
-  let make = (props: props<'item>): node => {
+  let make = (props: props<'item>): node =>
     switch (props.each, props.by) {
-    | (Static(items), Some(keyFn)) =>
-      fragment(
-        items->Array.map(item =>
-          Keyed({key: keyFn(item), identity: Obj.magic(item), child: props.render(item)})
-        ),
-      )
+    | (Static(items), Some(keyFn)) => staticKeyedFragment(items, keyFn, props.render)
     | (Static(items), None) => fragment(items->Array.map(props.render))
     | (Reactive(signal), Some(keyFn)) => eachWithKey(signal, keyFn, props.render)
     | (Reactive(signal), None) => each(signal, props.render)
     }
-  }
 }
 
 module KeyedFor = {
@@ -660,17 +214,11 @@ module KeyedFor = {
     render: 'item => node,
   }
 
-  let make = (props: props<'item>): node => {
+  let make = (props: props<'item>): node =>
     switch props.each {
-    | Static(items) =>
-      fragment(
-        items->Array.map(item =>
-          Keyed({key: props.by(item), identity: Obj.magic(item), child: props.render(item)})
-        ),
-      )
+    | Static(items) => staticKeyedFragment(items, props.by, props.render)
     | Reactive(signal) => eachWithKey(signal, props.by, props.render)
     }
-  }
 }
 
 module Show = {
@@ -680,22 +228,10 @@ module Show = {
     fallback?: node,
   }
 
-  let make = (props: props): node => {
-    switch props.when_ {
-    | Static(true) => fragment(childrenToArray(props.children))
-    | Static(false) => fragment(childrenToArray(props.fallback))
-    | Reactive(signal) =>
-      signalFragment(
-        Computed.make(() =>
-          if Signal.get(signal) {
-            childrenToArray(props.children)
-          } else {
-            childrenToArray(props.fallback)
-          }
-        ),
-      )
-    }
-  }
+  let make = (props: props): node =>
+    render(props.when_, visible =>
+      fragment(visible ? childrenToArray(props.children) : childrenToArray(props.fallback))
+    )
 }
 
 module Maybe = {
@@ -705,19 +241,14 @@ module Maybe = {
     fallback?: node,
   }
 
-  let renderValue = (props: props<'value>, value: option<'value>): array<node> => {
+  let renderValue = (props: props<'value>, value: option<'value>): array<node> =>
     switch value {
     | Some(value) => [props.render(value)]
     | None => childrenToArray(props.fallback)
     }
-  }
 
-  let make = (props: props<'value>): node => {
-    switch props.value {
-    | Static(value) => fragment(renderValue(props, value))
-    | Reactive(signal) => signalFragment(Computed.make(() => renderValue(props, Signal.get(signal))))
-    }
-  }
+  let make = (props: props<'value>): node =>
+    render(props.value, value => fragment(renderValue(props, value)))
 }
 
 module Value = {
@@ -726,12 +257,7 @@ module Value = {
     render: 'value => node,
   }
 
-  let make = (props: props<'value>): node => {
-    switch props.value {
-    | Static(value) => props.render(value)
-    | Reactive(signal) => signalFragment(Computed.make(() => [props.render(Signal.get(signal))]))
-    }
-  }
+  let make = (props: props<'value>): node => render(props.value, props.render)
 }
 
 /* Element constructor */
@@ -749,7 +275,7 @@ let empty = null
 
 /* Mounting */
 let mount = (node: node, container: Dom.element): unit => {
-  let el = Render.render(node)
+  let el = RuntimeRender.render(node)
   container->DOM.appendChild(el)
 }
 
@@ -764,12 +290,14 @@ let mountById = (node: node, containerId: string): unit => {
 let isReactiveProp = RuntimeValue.isMaybeSignal
 
 let valuePrimitive = (value: 'input, stringify: 'value => string): node =>
-  switch value->Core.Type.Classify.classify {
-  | Null | Undefined => null()
-  | _ =>
+  if RuntimeValue.isNullish(value) {
+    null()
+  } else {
+    /* `map` always allocates a fresh computed over the source, so the result is
+       the library's to release even when the source signal is the consumer's. */
     switch MaybeSignal.ofUnknown(value)->MaybeSignal.map(stringify) {
     | Static(value) => text(value)
-    | Reactive(signal) => SignalText(signal)
+    | Reactive(signal) => SignalText(RuntimeOwner.markOwned(signal))
     }
   }
 
@@ -820,12 +348,61 @@ let isSignal: 'a => bool = %raw(`function (v) {
 
 let isArray: 'a => bool = %raw(`function (v) { return Array.isArray(v) }`)
 
-let warnUnrenderable: 'a => unit = %raw(`function (v) {
+/* A value that renders as text on its own (string, number, boolean), as
+   opposed to a node, a signal, a collection, or nothing. */
+let isScalar: 'a => bool = %raw(`function (v) {
+  const t = typeof v
+  return t === "string" || t === "number" || t === "boolean"
+}`)
+
+/* ============================================================================
+ * Development-only diagnostics
+ * ============================================================================ */
+
+/* Both diagnostics below cost something in production — the probe allocates a
+   throwaway computed per unresolved leaf, and `warnUnrenderable` formats a
+   console argument on every coerced child — so both are skipped there.
+   `globalThis.__XOTE_DEV__` wins when set; otherwise `process.env.NODE_ENV`
+   (which bundlers inline) decides. When neither is available they stay on: a
+   silently stale UI is worse than an allocation. */
+let readDevFlag: unit => bool = %raw(`function () {
+  try {
+    if (typeof globalThis !== "undefined" && globalThis.__XOTE_DEV__ !== undefined) {
+      return !!globalThis.__XOTE_DEV__
+    }
+    if (typeof process !== "undefined" && process.env && process.env.NODE_ENV) {
+      return process.env.NODE_ENV !== "production"
+    }
+  } catch (_) {}
+  return true
+}`)
+
+let devMode: ref<option<bool>> = ref(None)
+
+let isDevMode = (): bool =>
+  switch devMode.contents {
+  | Some(enabled) => enabled
+  | None => {
+      let enabled = readDevFlag()
+      devMode := Some(enabled)
+      enabled
+    }
+  }
+
+let logUnrenderable: 'a => unit = %raw(`function (v) {
   console.warn(
     "[Xote] View.child: this value is not a node, signal, array, function or scalar and cannot be rendered; it was stringified. Build a node from it (View.text, JSX, ...) instead:",
     v
   )
 }`)
+
+/* Reaching here means the child is already rendering wrong, so the warning is
+   worth an allocation in development — but in production the render is what it
+   is, and the message helps nobody. */
+let warnUnrenderable = (value: 'a): unit =>
+  if isDevMode() {
+    logUnrenderable(value)
+  }
 
 /* Coerce an arbitrary JSX child into a node. This is what `@xote.component`
    emits for a *bare* child in element position — `<div>{Signal.get(count)}</div>`
@@ -856,40 +433,121 @@ let rec child = (value: 'a): node => {
   if isNode(value) {
     (Obj.magic(value): node)
   } else {
-    switch value->Core.Type.Classify.classify {
-    | Function(_) => {
-        let compute: unit => 'b = Obj.magic(value)
-        let signal = Computed.make(compute)
-        switch Signal.peek(signal)->Core.Type.Classify.classify {
-        | String(_) | Number(_) | Bool(_) =>
-          /* scalar-first thunk: a reactive text node. ReScript typing keeps a
-             scalar thunk scalar, so locking text mode here is safe. */
-          SignalText(Computed.make(() => stringifyChild(Signal.get(signal))))
-        | _ =>
-          /* node-, array-, option- or otherwise object-first thunk: a tracked
-             fragment that re-coerces the result on *every* run, so thunks over
-             `option<node>` (None first, Some(node) later) and array-returning
-             thunks stay correct instead of being locked into text mode by
-             their first value. */
-          SignalFragment(Computed.make(() => [child(Obj.magic(Signal.get(signal)))]))
-        }
+    /* Nullish first: `null` is itself an object, so it has to be ruled out
+       before the object branch. */
+    if RuntimeValue.isNullish(value) {
+      null()
+    } else if RuntimeValue.isFunction(value) {
+      let compute: unit => 'b = Obj.magic(value)
+      /* The thunk's first result decides the shape. That probe read is
+         untracked and thrown away — it asks what the leaf *is*, and must not
+         subscribe anything on its own. */
+      if isScalar(Signal.untrack(compute)) {
+        /* scalar-first thunk: a reactive text node. ReScript typing keeps a
+           scalar thunk scalar, so locking text mode here is safe. */
+        SignalText(RuntimeOwner.ownedComputed(() => stringifyChild(compute())))
+      } else {
+        /* node-, array-, option- or otherwise object-first thunk: a tracked
+           fragment that re-coerces the result on *every* run, so thunks over
+           `option<node>` (None first, Some(node) later) and array-returning
+           thunks stay correct instead of being locked into text mode by
+           their first value. */
+        SignalFragment(RuntimeOwner.ownedComputed(() => [child(Obj.magic(compute()))]))
       }
-    | Object(_) =>
+    } else if RuntimeValue.isObject(value) {
       if isSignal(value) {
         let signal: Signal.t<'b> = Obj.magic(value)
-        SignalText(Computed.make(() => stringifyChild(Signal.get(signal))))
+        SignalText(RuntimeOwner.ownedComputed(() => stringifyChild(Signal.get(signal))))
       } else if isArray(value) {
         let items: array<'b> = Obj.magic(value)
-        Fragment(items->Core.Array.map(item => child(item)))
+        Fragment(items->Array.map(item => child(item)))
       } else {
         warnUnrenderable(value)
         text(stringifyChild(value))
       }
-    | Null | Undefined => null()
-    | _ => text(stringifyChild(value))
+    } else {
+      text(stringifyChild(value))
     }
   }
 }
+
+/* ============================================================================
+ * Hidden signal reads (@xote.component)
+ * ============================================================================ */
+
+/* The ppx detects signal reads *syntactically*. A read it cannot see the
+   definition of — an imported helper (`Store.waitingCount(store)`), a read
+   pulled out of a data structure — is compiled as a plain value: the leaf is
+   evaluated once and never updates, and no error or warning is produced. Inside
+   an enclosing `tracked` block the same read silently widens that block's
+   dependencies, so one broadcast re-renders the whole region.
+
+   `probe` is what `@xote.component` emits around a leaf whose expression
+   contains a call it could not resolve. The first time that leaf is evaluated
+   it runs inside a throwaway computed, and what that computed subscribed to
+   settles the question:
+
+     - nothing subscribed: the leaf really is static. The computed is disposed
+       and the value returned, so `probe` is exactly the identity function.
+     - something subscribed: the read was hidden from the ppx. The value is read
+       back *through* the computed, so an enclosing tracked block subscribes
+       exactly as it would have without the probe (behaviour is unchanged), and
+       a one-time warning naming the source location tells the developer to
+       thunk it.
+
+   The warning is only emitted for a *scalar* result — the shape that silently
+   renders a stale number or class name. A reactive result (a signal, a thunk, a
+   `MaybeSignal`) is already handled by the runtime, and a node-shaped result is
+   built fresh by whatever renders it. */
+
+/* Does this computed subscribe to any signal? Reads `subs.firstDep` on the
+   `rescript-signals` computed. If the internal shape is not recognised, report
+   `false`: no warning and no behaviour change is the safe direction. */
+let hasDependencies: 'a => bool = %raw(`function (c) {
+  var subs = c == null ? null : c.subs
+  if (subs === null || typeof subs !== "object" || !("firstDep" in subs)) { return false }
+  return subs.firstDep != null
+}`)
+
+let warnHiddenRead = (site: string): unit =>
+  Console.warn(
+    "[Xote] " ++
+    site ++
+    ": this value reads a signal through a call @xote.component cannot see " ++
+    "(a helper from another module, MaybeSignal.get, a read stored in a data structure), " ++
+    "so it compiled to a one-shot value that will never update — and inside a tracked " ++
+    "block it widens that block and re-renders it wholesale. Wrap it in a thunk " ++
+    "(`{() => ...}`) or inline the Signal.get. " ++
+    "See https://github.com/brnrdog/xote/blob/main/ppx/README.md#hidden-reads",
+  )
+
+/* Each site is probed once. The answer is a property of the source expression,
+   not of this render, so re-probing would only repeat the same finding — and
+   the leaked-read branch has to keep its computed alive to stay subscribed.
+   Every later evaluation of a probed leaf is therefore a plain call, and the
+   report is emitted once however often the component renders. */
+let probedSites: Dict.t<bool> = Dict.make()
+
+let probe = (site: string, compute: unit => 'a): 'a =>
+  if !isDevMode() || probedSites->Dict.get(site)->Option.isSome {
+    compute()
+  } else {
+    probedSites->Dict.set(site, true)
+    let signal = Computed.make(compute)
+    if hasDependencies(signal) {
+      if isScalar(Signal.peek(signal)) {
+        warnHiddenRead(site)
+      }
+      /* Read back through the computed so an enclosing tracked block captures
+         the same dependencies it would have captured without the probe. The
+         computed is deliberately not disposed: it is what carries them. */
+      Signal.get(signal)
+    } else {
+      let value = Signal.peek(signal)
+      Computed.dispose(signal)
+      value
+    }
+  }
 
 module Text = {
   type props<'value, 'children> = {
