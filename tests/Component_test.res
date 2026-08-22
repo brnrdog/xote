@@ -360,6 +360,41 @@ let suite = Zekr.suite(
       Signal.set(state, None)
       combineResults([r1, Dom.Assert.toNotHaveAttribute(el, "data-state")])
     }),
+    test("a keyed list replacing non-keyed children retires them", () => {
+      let {container} = Dom.render("")
+      let show = Signal.make(false)
+      /* false renders the fallback (non-keyed); true renders a static keyed
+         For, whose children are all `Keyed` — the reconciling path. That path
+         can only remove elements it tracked, so the fallback used to stay in
+         the DOM next to the list it was supposed to give way to. Composed with
+         direct calls: JSX defers user components through `LazyComponent`,
+         which hides the all-`Keyed` shape from the reconciler. */
+      let _ = mountTo(
+        View.Show.make({
+          when_: MaybeSignal.reactive(show),
+          children: View.For.make({
+            each: MaybeSignal.static(["a", "b"]),
+            by: item => item,
+            render: item => Html.li(~children=[View.text(item)], ()),
+          }),
+          fallback: Html.p(~children=[View.text("empty")], ()),
+        }),
+        container,
+      )
+      let r1 = Dom.Assert.toHaveTextContent(container, "empty")
+      Signal.set(show, true)
+      let listed = Dom.Assert.toHaveTextContent(container, "ab")
+      let fallbackGone = assertTrue(
+        Zekr__DomBindings.querySelector(container, "p")->Nullable.toOption->Option.isNone,
+      )
+      Signal.set(show, false)
+      combineResults([
+        r1,
+        listed,
+        fallbackGone,
+        Dom.Assert.toHaveTextContent(container, "empty"),
+      ])
+    }),
     test("lazy component defers evaluation", () => {
       let {container} = Dom.render("")
       let evaluated = ref(false)

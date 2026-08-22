@@ -6,7 +6,7 @@ create 1k
   solid   2001 calls   cloneNode=1000 insertBefore=1000 createElement=1
 
 swap rows
-  xote     997 calls   insertBefore=997
+  xote       2 calls   insertBefore=2
   react    997 calls   insertBefore=997
   vue        2 calls   insertBefore=2
   solid      2 calls   insertBefore=2

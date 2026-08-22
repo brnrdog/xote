@@ -52,6 +52,47 @@ module Ticker = {
   }
 }
 
+/* An effect that registers a cleanup, and whose read sits behind a computed
+   chain over the same signal that mounts it — so the write that unmounts the
+   component also schedules this effect, and the disposed effect's leftover
+   run lands after its cleanup has already run. */
+module Closer = {
+  @jsx.component
+  let make = (~depth: Signal.t<int>, ~runs: ref<int>, ~cleanups: ref<int>) => {
+    Effect.run(() => {
+      runs := runs.contents + 1
+      let _ = Signal.get(depth)
+      Some(() => cleanups := cleanups.contents + 1)
+    })
+    <span class="closer" />
+  }
+}
+
+exception RenderFailed
+
+let detachById: string => unit = %raw(`function (id) {
+  const node = document.getElementById(id)
+  if (node !== null) { node.remove() }
+}`)
+
+/* A row that records its own disposal, and — for one of them — detaches a
+   *later* sibling while doing so. Disposal walks the tree, so a cleanup that
+   mutates it mid-walk must not cost the remaining siblings their disposal. */
+module Sibling = {
+  @jsx.component
+  let make = (~name: string, ~log: array<string>, ~detaches: string="") => {
+    Effect.run(() => Some(
+      () => {
+        log->Array.push(name)->ignore
+        if detaches != "" {
+          detachById(detaches)
+        }
+      },
+    ))
+    <span id={name} />
+  }
+}
+
 let suite = Zekr.suite(
   "Ownership",
   [
@@ -208,6 +249,130 @@ let suite = Zekr.suite(
       /* Only the computeds the library allocated for the node are released;
          this one belongs to the caller and still tracks its source. */
       assertEqual(Signal.get(doubled), 10)
+    }),
+    test("an effect still queued when its region replaces it stays disposed", () => {
+      let {container} = Dom.render("")
+      let visible = Signal.make(true)
+      /* The chain gives the class effect a deeper scheduler level than the
+         tracked region's effect, so one write to `visible` queues both and
+         runs the region first: the region disposes the class effect while its
+         own queued run is still waiting. That leftover run used to re-track
+         the effect's dependencies and resurrect it — one immortal effect per
+         branch swap, each still writing to its detached element. */
+      let level1 = Computed.make(() => Signal.get(visible))
+      let level2 = Computed.make(() => Signal.get(level1))
+      let runs = ref(0)
+      let _ = mountTo(
+        Html.div(
+          ~children=[
+            View.tracked(() =>
+              if Signal.get(visible) {
+                Html.span(
+                  ~attrs=[
+                    View.computedAttr("class", () => {
+                      runs := runs.contents + 1
+                      Signal.get(level2) ? "on" : "off"
+                    }),
+                  ],
+                  (),
+                )
+              } else {
+                View.null()
+              }
+            ),
+          ],
+          (),
+        ),
+        container,
+      )
+      [1, 2, 3, 4, 5]->Array.forEach(_ => {
+        Signal.set(visible, false)
+        Signal.set(visible, true)
+      })
+      let subscribersAfterToggles = subscriberCount(level2)
+      let before = runs.contents
+      Signal.set(visible, false)
+      Signal.set(visible, true)
+      combineResults([
+        /* only the live leaf subscribes; zombies grew this by 2 per toggle */
+        assertEqual(subscribersAfterToggles, 1),
+        /* one cycle runs the class thunk once (the new leaf's initial run) */
+        assertEqual(runs.contents - before, 1),
+      ])
+    }),
+    test("an effect's cleanup runs exactly once per run, disposal included", () => {
+      let {container} = Dom.render("")
+      let visible = Signal.make(true)
+      let level1 = Computed.make(() => Signal.get(visible) ? 1 : 0)
+      let level2 = Computed.make(() => Signal.get(level1))
+      let runs = ref(0)
+      let cleanups = ref(0)
+      let _ = mountTo(
+        <div>
+          <View.Show when_={MaybeSignal.reactive(visible)}>
+            <Closer depth={level2} runs={runs} cleanups={cleanups} />
+          </View.Show>
+        </div>,
+        container,
+      )
+      let mountedRuns = runs.contents
+      let mountedCleanups = cleanups.contents
+      /* Unmounts the component and schedules its effect in the same flush.
+         The disposer runs the cleanup; the leftover queued run must not run
+         it a second time, and must not start a new one. */
+      Signal.set(visible, false)
+      let afterUnmount = (runs.contents, cleanups.contents)
+      /* Nothing is listening any more, so a later write changes neither. */
+      Signal.set(visible, true)
+      Signal.set(visible, false)
+      combineResults([
+        assertEqual(mountedRuns, 1),
+        assertEqual(mountedCleanups, 0),
+        /* one cleanup for the one completed run, and no extra run */
+        assertEqual(afterUnmount, (1, 1)),
+      ])
+    }),
+    test("disposal reaches every node even when a cleanup detaches a sibling", () => {
+      let {container} = Dom.render("")
+      let visible = Signal.make(true)
+      let log = []
+      let _ = mountTo(
+        <View.Show when_={MaybeSignal.reactive(visible)}>
+          <div>
+            <Sibling name="A" log={log} detaches="C" />
+            <Sibling name="B" log={log} />
+            <Sibling name="C" log={log} />
+            <Sibling name="D" log={log} />
+          </div>
+        </View.Show>,
+        container,
+      )
+      /* Walking the sibling chain live lost everything after the detached node,
+         so C and D kept their effects — subscribed, and writing to DOM that is
+         no longer in the document. */
+      Signal.set(visible, false)
+      combineResults([
+        assertTrue(log->Array.includes("A")),
+        assertTrue(log->Array.includes("B")),
+        assertTrue(log->Array.includes("C")),
+        assertTrue(log->Array.includes("D")),
+      ])
+    }),
+    test("a render that throws leaves no scope behind", () => {
+      let {container} = Dom.render("")
+      let raised = ref(false)
+      try {
+        let _ = mountTo(View.LazyComponent(() => throw(RenderFailed)), container)
+      } catch {
+      | RenderFailed => raised := true
+      }
+      /* A scope left dangling here would collect every effect created
+         afterwards — anywhere, including outside any render — into an owner
+         attached to nothing, so nothing could ever dispose them. */
+      combineResults([
+        assertTrue(raised.contents),
+        assertTrue(RuntimeOwner.currentScope.contents->Option.isNone),
+      ])
     }),
     test("a component's root element releases its attribute effect on unmount", () => {
       let {container} = Dom.render("")
