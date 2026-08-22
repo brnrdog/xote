@@ -116,12 +116,25 @@ let materialize = (scope: scope): owner =>
     }
   }
 
+/* The scope pointer is restored even when `fn` throws. Without that, a
+   component body that raises leaves this module-global aimed at the abandoned
+   scope, and every effect created afterwards — anywhere, including outside any
+   render — registers with an owner attached to nothing, so it can never be
+   disposed. The scheduler upstream restores its own tracking state the same
+   way, for the same reason. */
 let runInScope = (scope: scope, fn: unit => 'a): 'a => {
   let previous = currentScope.contents
   currentScope := Some(scope)
-  let result = fn()
-  currentScope := previous
-  result
+  try {
+    let result = fn()
+    currentScope := previous
+    result
+  } catch {
+  | exn => {
+      currentScope := previous
+      throw(exn)
+    }
+  }
 }
 
 /* Run `fn` against an owner that already exists — the reactive-node scopes
