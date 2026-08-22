@@ -25,18 +25,26 @@ let reactive = signal => Reactive(signal)
  out `reactive(Computed.make(fn))`. Like `Computed.make`, `fn` runs once
  immediately to establish its dependencies.
 
- Inside a component (under an active `RuntimeOwner`) the backing `Computed` is
- registered with that owner and disposed automatically on unmount. Outside one,
- call `Computed.dispose` on the result when you are done with it. */
+ During a component's render pass (under an active `RuntimeOwner`) the backing
+ `Computed` is registered with that owner and disposed automatically on unmount.
+ Anywhere else — including a re-render of a reactive region, an effect body, or
+ an event handler, none of which run under an owner — call `Computed.dispose` on
+ the result when you are done with it.
+
+ For a derived value that must outlive the component that created it, write
+ `reactive(Computed.make(fn))`: that spelling skips owner registration. */
 let computed = fn => {
   let signal = Computed.make(fn)
   RuntimeOwner.trackComputed(signal)
   Reactive(signal)
 }
 
-/* The single total branch over the two cases. Prefer this to matching on the
- constructors directly: it is how `get` and `peek` are implemented, and it is
- the one place to change if the representation ever grows a third case. */
+/* The total branch over the two cases, and how `get` and `peek` are implemented.
+ The two callbacks are the inverses of the `static` and `reactive` constructors,
+ so `~reactive` receives the `Signal.t` rather than its value.
+
+ `switch` on the constructors is equally idiomatic and gives you exhaustiveness
+ checking; reach for `fold` when it reads better in a pipe. */
 let fold = (value, ~static, ~reactive) =>
   switch value {
   | Reactive(signal) => reactive(signal)
@@ -63,9 +71,11 @@ let isStatic = value => !isReactive(value)
 
  `fn` runs once immediately in both cases — for `Reactive` values the result is
  backed by a `Computed`, which performs an initial computation to establish its
- dependencies and recomputes lazily from then on. Inside a component that
- `Computed` is registered with the active `RuntimeOwner` and disposed on
- unmount; outside one, call `Computed.dispose` on it when you are done. */
+ dependencies and recomputes lazily from then on. During a component's render
+ pass that `Computed` is registered with the active `RuntimeOwner` and disposed
+ on unmount; anywhere else (see `computed` above) call `Computed.dispose` on it
+ when you are done. Note that disposal is silent: reading a mapped value after
+ its owner was disposed returns the last computed value forever. */
 let map = (value, fn) =>
   switch value {
   | Reactive(signal) => {

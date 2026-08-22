@@ -23,8 +23,12 @@ let addDisposer = (owner: owner, disposer: Effect.disposer): unit => {
 }
 
 /* Registers a `Computed` with the active owner (if any) so it is disposed with
- the owner. Used by `MaybeSignal.computed` and `MaybeSignal.map`; a no-op outside
- a component render. */
+ the owner. Used by `MaybeSignal.computed`, `MaybeSignal.map` and `View.render`.
+
+ A no-op when no owner is active, which includes every re-render of a reactive
+ region: `runWithOwner` restores the previous owner when it returns, and effects
+ re-run from the scheduler rather than from inside that call. Only the render
+ pass itself is covered. */
 let trackComputed = (computed: Signal.t<'a>): unit => {
   switch currentOwner.contents {
   | Some(owner) => owner.computeds->Array.push(Obj.magic(computed))->ignore

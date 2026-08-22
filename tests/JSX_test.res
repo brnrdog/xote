@@ -176,6 +176,83 @@ let suite = Zekr.suite(
 
       combineResults([r1, r2])
     }),
+    test("View.render flattens a fragment result into the reactive pass", () => {
+      let visible = Signal.make(true)
+      let node = View.render(
+        MaybeSignal.reactive(visible),
+        _ => View.fragment([View.text("a"), View.text("b")]),
+      )
+
+      /* Keyed reconciliation only engages when *every* child of a reactive pass
+       is `Keyed`, so a wrapper fragment here would silently disable it for the
+       multi-child callers (`Show`, `Maybe`). */
+      let childCount = switch node {
+      | View.SignalFragment(signal) => Signal.get(signal)->Array.length
+      | _ => -1
+      }
+
+      assertEqual(childCount, 2)
+    }),
+    test("View.Maybe keeps keyed DOM identity when the value is replaced by an equal one", () => {
+      let {container} = Dom.render("")
+      /* (id, label): the row is re-fetched, so the value changes identity while
+       the key and the rendered props stay equal. */
+      let selected = Signal.make(Some(("row-1", "Apple")))
+      let _ = mountTo(
+        <ul>
+          <View.Maybe
+            value={MaybeSignal.reactive(selected)}
+            render={((id, _label)) => <li key={id} id={id} />}
+          />
+        </ul>,
+        container,
+      )
+
+      let before = Dom.Query.getAllByRole(container, "listitem")->Array.get(0)->Option.getUnsafe
+      /* The keyed path reuses the element; clear-and-rebuild replaces it. */
+      Signal.set(selected, Some(("row-1", "Apricot")))
+      let after = Dom.Query.getAllByRole(container, "listitem")->Array.get(0)->Option.getUnsafe
+
+      assertTrue(before === after)
+    }),
+    test("View.render disposes its computed when the component unmounts", () => {
+      let {container} = Dom.render("")
+      let mounted = Signal.make(true)
+      let source = Signal.make(1)
+      let renders = ref(0)
+      let captured = ref(None)
+
+      let child = () => {
+        let node = View.render(
+          MaybeSignal.reactive(source),
+          value => {
+            renders := renders.contents + 1
+            View.text(value->Int.toString)
+          },
+        )
+
+        switch node {
+        | View.SignalFragment(signal) => captured := Some(signal)
+        | _ => ()
+        }
+
+        <div> node </div>
+      }
+
+      let _ = mountTo(
+        <View.Show when_={MaybeSignal.reactive(mounted)}> {View.LazyComponent(child)} </View.Show>,
+        container,
+      )
+
+      let whileMounted = renders.contents
+      Signal.set(mounted, false)
+      Signal.set(source, 2)
+      /* A live computed would recompute on read and bump `renders`; one disposed
+       with its owner stays put. */
+      let _ = captured.contents->Option.map(Signal.get)
+
+      combineResults([assertEqual(whileMounted, 1), assertEqual(renders.contents, 1)])
+    }),
     test("View value primitives render static values", () => {
       let {container} = Dom.render("")
       let _ = mountTo(

@@ -626,18 +626,40 @@ let eachWithKey = (
 
 /* Renders a static-or-reactive value into a node. A `Static` value renders once;
  a `Reactive` value re-renders through a `SignalFragment` whenever the source
- signal changes. */
+ signal changes.
+
+ A `Fragment` returned by `renderItem` is flattened into the pass rather than
+ nested: keyed reconciliation only engages when *every* child of a reactive
+ fragment pass is `Keyed` (see `getKeyedChildren`), so a wrapper node would
+ silently downgrade multi-child callers like `Show`/`Maybe` to clear-and-rebuild.
+
+ The backing `Computed` is registered with the active `RuntimeOwner`, so it is
+ disposed when the surrounding component unmounts instead of staying subscribed
+ to the source signal. */
 let render = (value: MaybeSignal.t<'a>, renderItem: 'a => node): node =>
-  MaybeSignal.fold(value, ~static=v => renderItem(v), ~reactive=s =>
-    signalFragment(Computed.make(() => [renderItem(Signal.get(s))])),
-  )
+  MaybeSignal.fold(value, ~static=renderItem, ~reactive=s => {
+    let computed = Computed.make(() =>
+      switch renderItem(Signal.get(s)) {
+      | Fragment(children) => children
+      | node => [node]
+      }
+    )
+    Reactivity.trackComputed(computed)
+    signalFragment(computed)
+  })
 
 /* Static branch of a keyed list: plain `Keyed` nodes in a fragment. */
-let staticKeyedFragment = (items: array<'item>, keyFn: 'item => string, renderItem: 'item => node): node =>
+let staticKeyedFragment = (
+  items: array<'item>,
+  keyFn: 'item => string,
+  renderItem: 'item => node,
+): node =>
   fragment(
-    items->Array.map(item =>
-      Keyed({key: keyFn(item), identity: Obj.magic(item), child: renderItem(item)})
-    ),
+    items->Array.map(item => Keyed({
+      key: keyFn(item),
+      identity: Obj.magic(item),
+      child: renderItem(item),
+    })),
   )
 
 module For = {
