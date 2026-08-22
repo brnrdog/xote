@@ -91,7 +91,7 @@ Applied recursively to the component's returned JSX:
 |---|---|---|
 | Attribute value (`class={…}`) | yes | thunked → `View.computedAttr` (reactive attribute leaf) |
 | Attribute value | no | left as-is (static attribute) |
-| `attrs={…}` / `onClick={…}` and friends | — | left as-is: neither prop can hold a thunk, and an `attrs` entry carries its own reactivity — see [Hidden reads](#hidden-reads) |
+| `attrs={…}` / `data={…}` / `onClick={…}` and friends | — | left as-is: none of these props can hold a thunk, and an `attrs`/`data` entry carries its own reactivity — see [Hidden reads](#hidden-reads) |
 | `<View.Text/Int/Float/Bool>` child | yes | thunked → reactive text node (leaf) |
 | `<View.Text/…>` child | no | left as-is (static text) |
 | Any value leaf | can't tell — the expression contains a call the PPX cannot resolve | wrapped in `View.probe`, which decides at runtime and reports a read it finds — see [Hidden reads](#hidden-reads) |
@@ -352,18 +352,24 @@ production builds: `globalThis.__XOTE_DEV__` decides when set, otherwise
 probe stays on — a silently stale UI is worse than an allocation.
 
 What is *not* probed, because it can never be a hidden scalar read: event
-handlers and the `attrs` escape-hatch array, values containing JSX, and calls
-into `View`/`Html`/`Signal`/`Computed`/`MaybeSignal` themselves.
+handlers, the `attrs` escape-hatch array and the `data` object, values
+containing JSX, and calls into `View`/`Html`/`Signal`/`Computed`/`MaybeSignal`
+themselves.
 
-Event handlers and `attrs` are not thunked either — neither prop can hold a
-thunk (`attrs` is an `array<(string, 'a)>`, a handler a `Dom.event => unit`),
-so both are left exactly as written. An `attrs` entry carries its own
-reactivity, which the runtime reads on every update:
+Event handlers, `attrs` and `data` are not thunked either — none of these
+props can hold a thunk (`attrs` is an `array<(string, 'a)>`, `data` an
+`Obj.t` expanded entry-wise into `data-*` attributes, a handler a
+`Dom.event => unit`), so all three are left exactly as written. An `attrs` or
+`data` entry carries its own reactivity, which the runtime reads on every
+update:
 
 ```rescript
 attrs=[("data-theme", () => Signal.get(theme))]   /* reactive: a thunk */
 attrs=[("data-theme", theme)]                      /* reactive: the signal */
 attrs=[("data-theme", Signal.get(theme))]          /* one-shot, like any argument */
+
+data={Obj.magic({"theme": () => Signal.get(theme)})} /* reactive entry */
+data={Obj.magic({"theme": Signal.get(theme)})}       /* one-shot entry */
 ```
 
 ## How it works

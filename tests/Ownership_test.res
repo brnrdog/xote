@@ -52,6 +52,22 @@ module Ticker = {
   }
 }
 
+/* An effect that registers a cleanup, and whose read sits behind a computed
+   chain over the same signal that mounts it — so the write that unmounts the
+   component also schedules this effect, and the disposed effect's leftover
+   run lands after its cleanup has already run. */
+module Closer = {
+  @jsx.component
+  let make = (~depth: Signal.t<int>, ~runs: ref<int>, ~cleanups: ref<int>) => {
+    Effect.run(() => {
+      runs := runs.contents + 1
+      let _ = Signal.get(depth)
+      Some(() => cleanups := cleanups.contents + 1)
+    })
+    <span class="closer" />
+  }
+}
+
 let suite = Zekr.suite(
   "Ownership",
   [
@@ -208,6 +224,88 @@ let suite = Zekr.suite(
       /* Only the computeds the library allocated for the node are released;
          this one belongs to the caller and still tracks its source. */
       assertEqual(Signal.get(doubled), 10)
+    }),
+    test("an effect still queued when its region replaces it stays disposed", () => {
+      let {container} = Dom.render("")
+      let visible = Signal.make(true)
+      /* The chain gives the class effect a deeper scheduler level than the
+         tracked region's effect, so one write to `visible` queues both and
+         runs the region first: the region disposes the class effect while its
+         own queued run is still waiting. That leftover run used to re-track
+         the effect's dependencies and resurrect it — one immortal effect per
+         branch swap, each still writing to its detached element. */
+      let level1 = Computed.make(() => Signal.get(visible))
+      let level2 = Computed.make(() => Signal.get(level1))
+      let runs = ref(0)
+      let _ = mountTo(
+        Html.div(
+          ~children=[
+            View.tracked(() =>
+              if Signal.get(visible) {
+                Html.span(
+                  ~attrs=[
+                    View.computedAttr("class", () => {
+                      runs := runs.contents + 1
+                      Signal.get(level2) ? "on" : "off"
+                    }),
+                  ],
+                  (),
+                )
+              } else {
+                View.null()
+              }
+            ),
+          ],
+          (),
+        ),
+        container,
+      )
+      [1, 2, 3, 4, 5]->Array.forEach(_ => {
+        Signal.set(visible, false)
+        Signal.set(visible, true)
+      })
+      let subscribersAfterToggles = subscriberCount(level2)
+      let before = runs.contents
+      Signal.set(visible, false)
+      Signal.set(visible, true)
+      combineResults([
+        /* only the live leaf subscribes; zombies grew this by 2 per toggle */
+        assertEqual(subscribersAfterToggles, 1),
+        /* one cycle runs the class thunk once (the new leaf's initial run) */
+        assertEqual(runs.contents - before, 1),
+      ])
+    }),
+    test("an effect's cleanup runs exactly once per run, disposal included", () => {
+      let {container} = Dom.render("")
+      let visible = Signal.make(true)
+      let level1 = Computed.make(() => Signal.get(visible) ? 1 : 0)
+      let level2 = Computed.make(() => Signal.get(level1))
+      let runs = ref(0)
+      let cleanups = ref(0)
+      let _ = mountTo(
+        <div>
+          <View.Show when_={MaybeSignal.reactive(visible)}>
+            <Closer depth={level2} runs={runs} cleanups={cleanups} />
+          </View.Show>
+        </div>,
+        container,
+      )
+      let mountedRuns = runs.contents
+      let mountedCleanups = cleanups.contents
+      /* Unmounts the component and schedules its effect in the same flush.
+         The disposer runs the cleanup; the leftover queued run must not run
+         it a second time, and must not start a new one. */
+      Signal.set(visible, false)
+      let afterUnmount = (runs.contents, cleanups.contents)
+      /* Nothing is listening any more, so a later write changes neither. */
+      Signal.set(visible, true)
+      Signal.set(visible, false)
+      combineResults([
+        assertEqual(mountedRuns, 1),
+        assertEqual(mountedCleanups, 0),
+        /* one cleanup for the one completed run, and no extra run */
+        assertEqual(afterUnmount, (1, 1)),
+      ])
     }),
     test("a component's root element releases its attribute effect on unmount", () => {
       let {container} = Dom.render("")

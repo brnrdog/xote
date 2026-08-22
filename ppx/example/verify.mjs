@@ -502,18 +502,24 @@ check('module helper bare child updates', document.querySelector('#module-helper
 check('module helper attribute updates', document.querySelector('#module-helper').className === 'zero');
 check('module helper kept element identity', document.querySelector('#module-helper').__marker === 'MH');
 
-// --- Escape hatches: `attrs` and event handlers are left exactly as written --
-// Neither prop can hold a thunk, so the ppx never wraps one: an entry carries
-// its own reactivity, and an eager read in either position is a one-shot read.
-// Both used to be thunked, which failed the build with a type error naming no
-// file and no line.
-console.log('escape hatches (attrs, event handlers):');
+// --- Escape hatches: `attrs`, `data`, event handlers left exactly as written --
+// None of these props can hold a thunk, so the ppx never wraps one: an entry
+// carries its own reactivity, and an eager read in any of them is a one-shot
+// read. attrs/handlers used to be thunked, which failed the build with a type
+// error naming no file and no line; `data` went by the shape of the expression
+// (a Dict.fromArray was thunked into that same error, an object literal probed).
+console.log('escape hatches (attrs, data, event handlers):');
 const hatch = mount(() => Demo.EscapeHatch.make({}));
 check('an attrs entry renders', hatch.querySelector('#eh-frozen').getAttribute('data-theme') === 'light');
 check('a thunked attrs entry renders', hatch.querySelector('#eh-live').getAttribute('data-theme') === 'light');
 Signal.set(Demo.hatchTheme, 'dark');
 check('a thunked attrs entry updates', hatch.querySelector('#eh-live').getAttribute('data-theme') === 'dark');
 check('an inline read in an attrs entry is a one-shot read', hatch.querySelector('#eh-frozen').getAttribute('data-theme') === 'light');
+check('a data entry renders', hatch.querySelector('#eh-data-frozen').getAttribute('data-theme') === 'light');
+check('a thunked data entry renders', hatch.querySelector('#eh-data-live').getAttribute('data-theme') === 'light');
+Signal.set(Demo.hatchData, 'dark');
+check('a thunked data entry updates', hatch.querySelector('#eh-data-live').getAttribute('data-theme') === 'dark');
+check('an inline read in a data entry is a one-shot read', hatch.querySelector('#eh-data-frozen').getAttribute('data-theme') === 'light');
 hatch.querySelector('#eh-button').dispatchEvent(new dom.window.Event('click'));
 check('a handler built by a factory that reads a signal runs', Signal.peek(Demo.hatchClicks) === 2);
 
@@ -558,6 +564,31 @@ check('no warning for a deliberate peek-based helper', !warnings.some((w) => w.i
 check('no warning from any other case', warnings.every((w) => /Demo\.res:(525|534):/.test(w)));
 
 console.warn = realWarn;
+
+// --- Disposal under the scheduler: a replaced branch stays dead --------------
+// One write to `branchOn` swaps the branch AND schedules the class leaf (its
+// computed chain orders it after the region effect). The region disposes the
+// leaf mid-flush; the leaf's leftover queued run must stay a no-op instead of
+// re-tracking its dependencies and resurrecting the effect.
+console.log('a replaced branch leaf stays disposed (no zombie effects):');
+const subscriberCount = (signal) => {
+  let count = 0, link = signal.subs.first;
+  while (link) { count++; link = link.nextSub; }
+  return count;
+};
+const zb = mount(() => Demo.DisposedBranch.make({}));
+const zbSpan = zb.querySelector('#disposed-leaf');
+check('branch leaf mounted with class "on"', zbSpan !== null && zbSpan.className === 'on');
+for (let i = 0; i < 5; i++) {
+  Signal.set(Demo.branchOn, false);
+  Signal.set(Demo.branchOn, true);
+}
+check('after 5 swap cycles only the live leaf subscribes to the chain',
+  subscriberCount(Demo.branchChainB) === 1);
+check('the first (disposed) leaf froze at its last live value',
+  zbSpan.className === 'on');
+Signal.set(Demo.branchOn, false);
+check('swapped away: no leaf subscribes', subscriberCount(Demo.branchChainB) === 0);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
