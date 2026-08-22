@@ -29,6 +29,23 @@ let ownComputed = (owner: owner, signal: Signal.t<'a>): unit =>
   }
 
 /* Dispose an element and its reactive state */
+/* Visit each child of `node`, without materialising an array of them.
+
+   Disposal walks every node under what is being removed, and snapshotting the
+   children of each cost one throwaway array per node: measured at ten per row,
+   so clearing a ten-thousand-row list allocated about a hundred thousand arrays
+   purely to iterate. Reading `next` before visiting keeps the walk safe against
+   a cleanup that removes the node it is called on, which is the reason the
+   snapshot was there in the first place. */
+let forEachChild: (Dom.element, Dom.element => unit) => unit = %raw(`function (node, visit) {
+  let child = node.firstChild
+  while (child !== null) {
+    const next = child.nextSibling
+    visit(child)
+    child = next
+  }
+}`)
+
 let rec disposeElement = (el: Dom.element): unit => {
   /* Dispose the owner if it exists */
   switch getOwner(el) {
@@ -37,7 +54,7 @@ let rec disposeElement = (el: Dom.element): unit => {
   }
 
   /* Recursively dispose children */
-  el->RuntimeDom.childNodesToArray->Array.forEach(disposeElement)
+  forEachChild(el, disposeElement)
 }
 
 let shallowEqualIdentity = (a: Obj.t, b: Obj.t): bool =>
