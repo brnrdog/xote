@@ -247,7 +247,7 @@ let suite = Zekr.suite(
     }),
     test("swapping two rows moves two nodes, not the whole list", () => {
       let {container} = Dom.render("")
-      let pool = Belt.Array.makeBy(100, i => {
+      let pool = Array.fromInitializer(~length=100, i => {
         let id = Int.toString(i)
         {id, label: "L" ++ id}
       })
