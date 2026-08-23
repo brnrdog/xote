@@ -10,8 +10,7 @@
 
 <p>
   <a href="https://www.npmjs.com/package/xote"><img src="https://img.shields.io/npm/v/xote" alt="NPM Version" /></a>
-  <a href="https://bundlephobia.com/package/xote"><img src="https://badgen.net/bundlephobia/min/xote" alt="Bundle size" /></a>
-  <a href="https://bundlephobia.com/package/xote"><img src="https://badgen.net/bundlephobia/minzip/xote" alt="Bundle size (gzip)" /></a>
+  <a href="https://bundlejs.com/?q=xote"><img src="https://img.shields.io/bundlejs/size/xote?label=gzipped" alt="Bundle size (gzip)" /></a>
 </p>
 
 Xote is a lightweight [ReScript](https://rescript-lang.org/) library that combines fine-grained reactivity and a declarative component system for building user interfaces for the web.
