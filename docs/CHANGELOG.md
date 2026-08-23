@@ -1,3 +1,40 @@
+# [7.1.0](https://github.com/brnrdog/xote/compare/v7.0.0...v7.1.0) (2026-08-23)
+
+
+### Bug Fixes
+
+* **effect:** keep a disposed effect dead when its queued run fires ([547e86c](https://github.com/brnrdog/xote/commit/547e86cf490a4221175745928e2447e018407d25))
+* **effect:** own effects created while a component renders ([ef49150](https://github.com/brnrdog/xote/commit/ef4915008b0dee33dacbdbc252f874f08545f159))
+* enforce the public API boundary with interface files ([b1d6ded](https://github.com/brnrdog/xote/commit/b1d6ded889d74f711dfabc2db9386a717954dfc2))
+* **hydration:** a hydrated keyed list never subscribed to its signal ([7240c9d](https://github.com/brnrdog/xote/commit/7240c9dcbfae53dab189f1050beff72b58e7ebcc))
+* **owner:** restore the active scope when a component body throws ([291d8e9](https://github.com/brnrdog/xote/commit/291d8e9d41ae21b62b7543b82cccf26c9dcbb9aa))
+* **ppx:** leave attrs and event handlers exactly as written ([7946943](https://github.com/brnrdog/xote/commit/79469433f8bc1aa53b0fe1348a5edd294d9a7bfa))
+* **ppx:** leave the data object exactly as written ([d9c88b2](https://github.com/brnrdog/xote/commit/d9c88b2bc6285f8b4fe0cc0189f82acaf939926d))
+* remove @rescript/core dependency ([fa11c35](https://github.com/brnrdog/xote/commit/fa11c35ae69d3dfb41f4c90ec6095f1c9126c9e6))
+* **render:** make a component body its own reactive scope ([3bab9b7](https://github.com/brnrdog/xote/commit/3bab9b71c09345f0296758fbd6c89b5c4676a2e4)), closes [#17](https://github.com/brnrdog/xote/issues/17)
+* **render:** release the computeds the library builds for a node ([71ec379](https://github.com/brnrdog/xote/commit/71ec379aa447680accfd7edc45076f54e3bd64ff))
+* **render:** retire a replaced keyed row where it lives ([0807262](https://github.com/brnrdog/xote/commit/0807262780bd0e546129452bead566f14c2c501b))
+* **render:** retire non-keyed children replaced by a keyed list ([b56f802](https://github.com/brnrdog/xote/commit/b56f80299153acb6cb21b09d25c3e43d7c085265))
+* **router:** release a route region's computed with its node ([f0cf2dc](https://github.com/brnrdog/xote/commit/f0cf2dc7a976ebf573ac8cb56e718536171bbb81))
+
+
+### Features
+
+* include instructions for agents in the package ([450e210](https://github.com/brnrdog/xote/commit/450e210f3a9df0b2fa649efb73bb7d123784c98d))
+* introduce MaybeSignal, deprecate Prop  ([f5da1e3](https://github.com/brnrdog/xote/commit/f5da1e39496022d0b79f9d7064e134b38052ae60))
+* **jsx:** add attrs escape hatch and removable attributes ([d405274](https://github.com/brnrdog/xote/commit/d4052741612e6771ad144dc04f529898bfef9558))
+* **maybe-signal:** add fold and View.render, fix toSignal ([#161](https://github.com/brnrdog/xote/issues/161)) ([4222f4d](https://github.com/brnrdog/xote/commit/4222f4d3634c1598882efd78f550a976ebaafb42))
+* **ppx:** add [@xote](https://github.com/xote).component for fine-grained components ([1515c2c](https://github.com/brnrdog/xote/commit/1515c2c499f438d4145b93dff7ea86d4d3ab82ca))
+* **ppx:** ship prebuilt binaries so [@xote](https://github.com/xote).component needs no toolchain ([0a55a1f](https://github.com/brnrdog/xote/commit/0a55a1f4b536e387ed459861b838fc1e9637b987))
+* **view:** add tracked() blocks and coerce bare JSX children ([c602626](https://github.com/brnrdog/xote/commit/c6026265ce1e06fcc5d0a98f4193ca7329410619))
+
+
+### Performance Improvements
+
+* **render:** allocate an owner only when something registers ([89a120b](https://github.com/brnrdog/xote/commit/89a120bbd49a34a63c9ce604592c776af5f57a77))
+* **render:** move only the rows a reorder actually displaces ([0992cc4](https://github.com/brnrdog/xote/commit/0992cc4b2ccf3cfeb37609135d4d6a6b43f14cdd))
+* **render:** walk the disposal tree without snapshotting each node ([046e51f](https://github.com/brnrdog/xote/commit/046e51f8fe16282e391e1d6dc4db0e687be6f1ab))
+
 # [7.0.0](https://github.com/brnrdog/xote/compare/v6.4.0...v7.0.0) (2026-07-13)
 
 
