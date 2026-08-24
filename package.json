@@ -105,6 +105,9 @@
     "test": "npx rescript && node tests/Tests.res.mjs && node tests/JSXRuntime_test.mjs && node tests/DevMode_test.mjs && npm run test:exports && npm run test:boundary",
     "test:exports": "node tests/PublicExports_test.mjs",
     "test:boundary": "node scripts/consumer-boundary-test.mjs",
+    "native:test": "npx rescript && node native/test/Native_test.mjs",
+    "native:preview": "vite --config native/example/vite.config.mjs",
+    "native:build": "vite build --config native/example/vite.config.mjs",
     "ppx:build": "sh ppx/build.sh",
     "ppx:test": "sh ppx/example/setup.sh && sh ppx/build.sh && cd ppx/example && npx rescript clean && npm run build && npm run verify && npm run golden"
   },

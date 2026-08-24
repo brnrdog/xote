@@ -37,6 +37,11 @@
       "dir": "benchmarks/apps/xote",
       "subdirs": false,
       "type": "dev"
+    },
+    {
+      "dir": "native",
+      "subdirs": true,
+      "type": "dev"
     }
   ],
   "package-specs": {

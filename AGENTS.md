@@ -34,6 +34,12 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - The Xote implementation (`benchmarks/apps/xote/BenchApp.res`) is compiled by the root ReScript project — `benchmarks/apps/xote` is listed in `rescript.json` `sources` as a dev directory, so `npm run res:build` covers it.
 - CI runs the suite **only on pull requests carrying the `benchmark` label** (`.github/workflows/benchmark.yml`) and posts a `main` vs PR comment rendered by `scripts/benchmark-report.mjs`. Adding the label to an open PR starts the run — the workflow listens for `labeled` as well as pushes. It builds the PR's benchmark app against both libraries so only `src/` differs between the two columns, and runs them interleaved in one browser — see `benchmarks/README.md` for why position in the schedule would otherwise dominate the result.
 
+### Native (prototype)
+- `npm run native:test` - End-to-end test of the native rendering prototype
+- `npm run native:preview` - Serve the example screen against the browser preview host (http://localhost:3100/preview.html)
+- `npm run native:build` - Build the preview bundle
+- `native/` explores rendering Xote to native mobile views the way React Native does for React. It is a **prototype**: not published, not API-stable, and it changes nothing in `src/`. `native` is listed in `rescript.json` `sources` as a dev directory, so `npm run res:build` covers it, and it is absent from `package.json` `files`, so it does not ship. See `native/README.md` for the architecture, the eight-command bridge protocol, and the four core changes it wants.
+
 ### Documentation
 - `npm run docs:start` - Start documentation site
 - `npm run docs:build` - Build documentation site
@@ -612,6 +618,7 @@ Hydration.hydrateById(app, "root")
 - **Technical deep-dive**: See `docs/TECHNICAL_OVERVIEW.md` for detailed architecture
 - **Changelog**: See `docs/CHANGELOG.md` for version history
 - **SSR example**: `examples/ssr/` - Full SSR + hydration setup
+- **Native rendering prototype**: `native/README.md` - what it would take to target native mobile views
 - **rescript-signals**: https://brnrdog.github.io/rescript-signals - The reactive primitives library
 - **TC39 Signals proposal**: https://github.com/tc39/proposal-signals
 - **ReScript JSX**: https://rescript-lang.org/docs/manual/latest/jsx

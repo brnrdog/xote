@@ -1,0 +1,304 @@
+# Xote Native — an exploration
+
+> **Status: prototype.** Everything in this directory runs, and the tests are
+> real, but nothing here is published, nothing is API-stable, and there is no
+> iOS or Android host yet. It exists to answer one question — *what would it
+> actually take to render Xote to native views?* — with running code rather than
+> a proposal.
+
+Run it:
+
+```sh
+npm run native:test      # end-to-end against the reference host
+npm run native:preview   # open http://localhost:3100/preview.html
+```
+
+![The example app running against the preview host, with the bridge traffic beside it](./example/preview.png)
+
+That is a ReScript app, compiled by the same Xote renderer a web app uses,
+rendering through a command protocol into views it has never heard of. The
+panel on the right is everything that crossed the bridge.
+
+---
+
+## The short version
+
+React Native's architecture is shaped by React's: React re-renders component
+subtrees and diffs the result, so something has to own that diff, batch it, and
+ship it to the UI thread. The reconciler is not an implementation detail there —
+it is the reason the bridge exists in the form it does.
+
+Xote does not have that problem. A `Signal.set` runs its dependents
+synchronously, and each dependent performs exactly the mutation its own value
+implies: one text node's contents, one attribute, one keyed row's position.
+There is no tree to diff because there is no re-render. **A renderer built on
+fine-grained reactivity emits the native mutation stream directly.**
+
+So a native Xote is not "Xote plus a reconciler". It is Xote plus a definition
+of what a mutation *is* when the target is a `UIView` instead of a DOM node.
+That turns out to be eight commands.
+
+In the example screen: mounting is 91 commands for 32 views, tapping the counter
+is **1** command, toggling a row is **3**, and adding a row is **13** — the new
+row and nothing else. Those are not optimizations, they are what the reactivity
+graph already computed.
+
+---
+
+## How it works
+
+```mermaid
+flowchart TB
+    subgraph app["app thread — JS engine, no DOM"]
+        A["your ReScript app<br/>NativeJSX, NativeStyle"]
+        B["Xote<br/>View · RuntimeRender · signals"]
+        C["shadow document<br/>the DOM subset the renderer uses"]
+        A --> B --> C
+    end
+    subgraph ui["UI thread"]
+        E["host<br/>view tree · Yoga layout"]
+        F["UIView / android.view.View"]
+        E --> F
+    end
+    C -- "batch of commands" --> E
+    E -- "events" --> C
+```
+
+### 1. The renderer needs less of a DOM than you would think
+
+`RuntimeRender` and `RuntimeDom` between them touch about two dozen DOM
+operations, and that is the whole coupling:
+
+| Kind | What the renderer uses |
+|---|---|
+| Create | `createElement`, `createElementNS`, `createTextNode`, `createComment`, `createDocumentFragment`, `getElementById` |
+| Tree | `appendChild`, `insertBefore`, `removeChild` / `remove` |
+| Walk | `parentNode`, `firstChild`, `nextSibling`, `childNodes`, `nodeType` |
+| Write | `setAttribute`, `removeAttribute`, `textContent`, `innerHTML = ""`, `value`, `checked`, `disabled` |
+| Events | `addEventListener` |
+
+`host/shadow.mjs` implements exactly that list over a plain JavaScript tree and
+turns every mutation into a command. The renderer is untouched and does not know
+it is being watched — which is the point: this prototype required **no changes
+to `src/`**.
+
+### 2. Eight commands (`host/protocol.mjs`)
+
+```
+create(id, type)              createText(id, text)
+setProp(id, key, value)       setText(id, text)
+insert(parentId, id, index)   remove(parentId, id)
+destroy(id)                   listen(id, event)
+```
+
+Ids are integers. Values are whatever structured-cloneable thing the app passed —
+a style object crosses as an object, not as a parsed string. Events come back as
+`(id, name, payload)`.
+
+`remove` and `destroy` are deliberately separate. The keyed reconciler moves a
+row by detaching and re-inserting it in the same pass; a host that destroyed on
+detach would throw away the view in between. `destroy` is emitted at flush time
+for whatever is still parentless, so a move costs nothing.
+
+### 3. Two node kinds never reach the host
+
+- **Comments.** The keyed-list reconciler brackets its rows with comment
+  anchors. They exist only in the shadow tree.
+- **Transparent elements.** Every reactive region renders its children into a
+  `<div style="display: contents">` — a grouping box the web erases at layout
+  time. Native layout has no equivalent, and a stray box in a flex column is a
+  visible bug, so the projection flattens it: a transparent node's children are
+  spliced into its nearest rendered ancestor.
+
+Flattening is why `insert` carries an index instead of a "before" sibling. The
+shadow position and the native position are different numbers, and only the
+shadow document knows both. The test asserts that no `div` and no comment ever
+reaches the host.
+
+### 4. Threading
+
+The app thread needs a JavaScript engine and no DOM; the UI thread needs views.
+On a device that is Hermes or JavaScriptCore next to UIKit. In the preview it is
+a **Web Worker** next to the browser's DOM — not a trick to get around anything,
+but the same architecture at a smaller scale, and a useful forcing function: a
+worker cannot cheat by reaching for the real document, so anything that works
+there works on a device.
+
+(The browser main thread is in fact the one place the shadow document *cannot*
+be installed — `Window.document` is unforgeable. `install()` says so explicitly
+rather than failing later.)
+
+---
+
+## What is in here
+
+| Path | What it is |
+|---|---|
+| `host/protocol.mjs` | The eight opcodes. The entire contract. |
+| `host/shadow.mjs` | The DOM subset, and the projection onto commands. |
+| `host/runtime.mjs` | Installs the shadow document, batches, flushes. |
+| `host/headless.mjs` | Reference host, ~80 lines. The executable spec. |
+| `host/preview.mjs` | Second host: real DOM and flexbox, for looking at things. |
+| `NativeStyle.res` | Typed flexbox styles. Points, percentages, `auto`. |
+| `NativeJSX.res` | The JSX module: `<view>`, `<text>`, `<image>`, `<scroll>`, `<input>`, `<pressable>`. |
+| `NativeProp.res` | Untyped JSX values into `View.attrValue`, without stringifying. |
+| `Native.res` | The same primitives without JSX. |
+| `NativeApp.res` | `mount`. |
+| `example/CounterApp.res` | A screen: counter, keyed list, conditional region. |
+| `example/PanelApp.res` | The same primitives without JSX. |
+| `test/Native_test.mjs` | End-to-end, asserting *how much* crosses the bridge. |
+
+A native screen looks like this — note that `@@jsxConfig` switches JSX modules
+per file, so native screens and web pages can live in one project:
+
+```rescript
+@@jsxConfig({version: 4, module_: "NativeJSX"})
+
+module Style = NativeStyle
+
+<view style={Style.make({flex: 1.0, padding: Style.pt(20.0), gap: 12.0})}>
+  <text style={Style.make({color: "#e8e8ef", fontSize: 28.0, fontWeight: #bold})}>
+    {View.text("Xote Native")}
+  </text>
+  <pressable onPress={_ => Signal.update(count, c => c + 1)}>
+    <text> {View.signalText(() => Int.toString(Signal.get(count)))} </text>
+  </pressable>
+</view>
+```
+
+---
+
+## What the core would have to change
+
+The prototype deliberately changes nothing in `src/`, which means it works
+around four things instead. Each is a small, real change worth making if this
+becomes a supported target.
+
+**1. `attrValue` should carry an opaque payload.** Native props are objects,
+numbers and booleans; `View.attrValue` declares `string`. At runtime the
+renderer never inspects the value — it hands it to `setAttrOrProp` — so
+`NativeProp` casts and the value survives. That works, and it is exactly the
+kind of thing `AGENTS.md` warns `Obj.magic` is for, but a variant that carries
+an unknown payload would make the cast unnecessary and would also let the web
+renderer pass an object to a custom element, which it cannot do today.
+
+**2. A reactive region needs a host-neutral grouping node.** `SignalFragment`
+hard-codes `<div style="display: contents">`. The shadow document recognises the
+`div` and erases it, which is a heuristic sitting on an implementation detail. A
+`Group` node the renderer creates through the host — a real element on the web,
+nothing at all on native — would remove both the heuristic and the flattening
+walk.
+
+**3. The SVG tag table belongs to the DOM host.** `RuntimeDom.isSvgTag` routes
+`text`, `image`, `line`, `mask`, `filter`, `use` and a dozen others through
+`createElementNS`. Half of those are perfectly ordinary native view names. The
+shadow document ignores the namespace, which is fine, but the table is a web
+assumption living in shared code.
+
+**4. Dirty-flag over-propagation costs more here.** A computed with `~equals`
+stops the *notification* when its value is unchanged, but the dirty flag has
+already propagated, so an intermediate computed downstream still recomputes and
+still notifies. On the web that re-renders a region for nothing; on a phone it
+tears down and rebuilds real views. The example works around it by materialising
+the condition into a `Signal` (`Signal.set` does not notify when the value is
+unchanged, so the region is never invalidated) — but the right fix is upstream,
+in `rescript-signals`, and it is worth more on native than on the web.
+
+Beyond those four, the honest structural question is whether the DOM shim should
+stay a shim. It is the cheapest thing that works and it keeps the web hot path
+byte-for-byte unchanged, which matters — `src/RuntimeRender.res` is full of
+measured optimizations. The alternative is a `RuntimeHost` seam: a record of
+create/insert/remove/setProp that `RuntimeRender` calls, with the DOM as one
+implementation. That is cleaner, opens the door to other backends (a Skia
+canvas, a terminal, a test double), and costs an indirection on every mutation
+in the benchmark path. **The shim first, the seam only if a real host proves it
+is needed** — and by then the shim will have documented exactly what the seam's
+interface should be.
+
+---
+
+## What a real host has to do
+
+The JavaScript side is the easy half. A host is roughly:
+
+```swift
+final class XoteHost {
+  private var views: [Int32: UIView] = [:]
+
+  func apply(_ batch: [Command]) {
+    for command in batch {
+      switch command {
+      case .create(let id, let type):        views[id] = makeView(type)
+      case .createText(let id, let text):    views[id] = makeTextRun(text)
+      case .setProp(let id, let key, let v): apply(key, v, to: views[id]!)
+      case .setText(let id, let text):       (views[id] as! TextRun).text = text
+      case .insert(let p, let c, let index): views[p]!.insertSubview(views[c]!, at: index)
+      case .remove(_, let c):                views[c]!.removeFromSuperview()
+      case .destroy(let id):                 views.removeValue(forKey: id)
+      case .listen(let id, let event):       attach(event, to: views[id]!)
+      }
+    }
+    Yoga.layout(root)   // one pass per batch, not per command
+  }
+}
+```
+
+The hard parts are the ones every native framework has:
+
+- **Layout.** Yoga, embedded, driven once per applied batch. Every `view` is a
+  Yoga node; style props are Yoga props. This is the largest single piece and
+  the one with the least room for invention — React Native, Litho and Flutter's
+  early versions all landed on it.
+- **Text measurement.** Text is measured by the platform, so the Yoga node for a
+  text run needs a measure callback into `NSAttributedString` / `StaticLayout`.
+- **Threading discipline.** Batches are applied on the UI thread; the app thread
+  never blocks on layout. Commands are already ordered and self-contained, which
+  is what makes that safe.
+- **View recycling.** `destroy` is a good place to return a view to a pool.
+  Nothing in the protocol prevents it.
+
+---
+
+## Not solved
+
+Named so nobody mistakes the scope of this:
+
+- **Navigation.** `Xote.Router` is `history`-shaped. Native navigation is a
+  stack of screens with platform transitions and back-gesture semantics — a
+  different abstraction, not a port of the existing one.
+- **Gestures and animation.** Anything driven by touch has to run on the UI
+  thread, which means declaring animations rather than stepping them from
+  JavaScript. This is where React Native needed Reanimated, and there is no
+  reason to expect an easier answer.
+- **Long lists.** `eachWithKey` reconciles the whole list. Native lists recycle
+  a window of rows. Windowing has to be a component, and it needs `onScroll`
+  from the host.
+- **Images, fonts, assets.** A resolver, a cache, and a bundler that knows about
+  `@2x`.
+- **Native modules.** ReScript makes this the *nicest* part of the story —
+  externals are already how ReScript talks to a foreign runtime — but there is
+  still an async call protocol and a codegen story to design.
+- **Fast refresh.** Xote has no component boundaries to swap. Re-running an app
+  against a live host is plausible; preserving signal state across it is not
+  obviously possible.
+- **Distribution.** Embedding Hermes, shipping a CLI, the template project.
+
+---
+
+## If this went further
+
+1. **Land the four core changes above.** They are small, they each improve the
+   web renderer on their own merits, and they remove every hack in this
+   directory.
+2. **One real host, iOS first.** Views, Yoga, text measurement, touch. The
+   protocol is fixed by then, so this is a self-contained piece of Swift.
+3. **Publish `xote-native` as its own package**, depending on `xote` rather than
+   living inside it. Nothing here needs to be in the core repository once the
+   seams are in place.
+4. **Then the hard parts** — navigation, lists, animation — in that order,
+   because each of them is a design problem rather than a plumbing one.
+
+The thing worth checking early, before any of that, is whether the mutation
+stream stays small on a screen much larger than this one. The claim that
+fine-grained reactivity makes the bridge cheap is the whole premise, and it
+should be measured against a real app, not a counter.

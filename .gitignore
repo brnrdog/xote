@@ -3,6 +3,7 @@
 /lib/
 /dist/
 /examples/*/dist/
+/native/example/dist/
 /benchmarks/node_modules/
 /benchmarks/dist/
 .bsb.lock
