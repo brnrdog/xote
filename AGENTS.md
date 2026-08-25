@@ -620,6 +620,7 @@ Hydration.hydrateById(app, "root")
 - **Changelog**: See `docs/CHANGELOG.md` for version history
 - **SSR example**: `examples/ssr/` - Full SSR + hydration setup
 - **Native rendering prototype**: `native/README.md` - what it would take to target native mobile views
+- **Native roadmap**: `native/ROADMAP.md` - the gap between the working prototype and something shippable
 - **rescript-signals**: https://brnrdog.github.io/rescript-signals - The reactive primitives library
 - **TC39 Signals proposal**: https://github.com/tc39/proposal-signals
 - **ReScript JSX**: https://rescript-lang.org/docs/manual/latest/jsx

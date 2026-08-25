@@ -61,6 +61,21 @@ final class XoteBox: UIStackView {
   }
 }
 
+/// A label that tells Auto Layout how wide it is allowed to wrap.
+///
+/// A multi-line `UILabel` has no intrinsic height until it knows its width, and
+/// inside a stack view it learns its width only after being laid out — so the
+/// first pass measures it as one line and the text is clipped or the row is the
+/// wrong height. Feeding the resolved width back is the standard fix.
+final class XoteLabel: UILabel {
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    guard numberOfLines != 1, preferredMaxLayoutWidth != bounds.width else { return }
+    preferredMaxLayoutWidth = bounds.width
+    setNeedsUpdateConstraints()
+  }
+}
+
 /// `scroll` is a scroll view wrapped around one box; children land in the box.
 final class XoteScroll: UIScrollView {
   let content = XoteBox()
@@ -113,7 +128,7 @@ final class XoteHost {
   private var runViews: [Int: UILabel] = [:]
   private var widths: [Int: NSLayoutConstraint] = [:]
   private var heights: [Int: NSLayoutConstraint] = [:]
-  private var actions: [XoteAction] = []
+  private var actions: [Int: [XoteAction]] = [:]
 
   private let rootView: XoteBox
 
@@ -158,6 +173,10 @@ final class XoteHost {
         labelRuns[id] = nil
         widths[id] = nil
         heights[id] = nil
+        // Event targets have to be retained by hand, so they have to be
+        // released by hand: a list that churns rows would otherwise grow one
+        // closure per row per pass, for the life of the app.
+        actions[id] = nil
 
       case let .listen(id, event):
         if let view = views[id] {
@@ -174,7 +193,7 @@ final class XoteHost {
       // The root already exists; the app is told about it like any other node.
       view = rootView
     case "text":
-      let label = UILabel()
+      let label = XoteLabel()
       label.numberOfLines = 0
       view = label
     case "image":
@@ -226,7 +245,7 @@ final class XoteHost {
       // index whether or not it draws anything — the reactive placeholder that
       // stands in for an absent branch is an empty text node, and dropping it
       // would put every later sibling one slot out of step.
-      let label = runViews[child] ?? UILabel()
+      let label = runViews[child] ?? XoteLabel()
       label.numberOfLines = 0
       label.translatesAutoresizingMaskIntoConstraints = false
       label.text = text
@@ -351,10 +370,23 @@ final class XoteHost {
     // `flex` grows a child along its parent's axis. UIStackView gives slack to
     // whichever arranged subview hugs its content least, so a flexible child
     // only has to want its size less than its siblings do.
+    //
+    // A view with no `flex` is left at UIKit's own hugging priority rather than
+    // pushed down to `.defaultLow`. That distinction matters for leaves: a
+    // `UILabel` defaults to 251 — one point above `.defaultLow` — which is
+    // precisely how it says "I am as big as my text". Overriding that to 250
+    // makes every label the most stretchable thing in its row, and the text
+    // ends up in a box the wrong size.
     let flex = style.number("flex") ?? style.number("flexGrow") ?? 0
-    let hugging = flex > 0 ? UILayoutPriority(1) : UILayoutPriority.defaultLow
-    view.setContentHuggingPriority(hugging, for: .horizontal)
-    view.setContentHuggingPriority(hugging, for: .vertical)
+    if flex > 0 {
+      view.setContentHuggingPriority(UILayoutPriority(1), for: .horizontal)
+      view.setContentHuggingPriority(UILayoutPriority(1), for: .vertical)
+    } else if view is XoteBox || view is XoteScroll {
+      // A box has no content of its own to hug, so it takes the default that
+      // says so — and this restores it if the view used to be flexible.
+      view.setContentHuggingPriority(.defaultLow, for: .horizontal)
+      view.setContentHuggingPriority(.defaultLow, for: .vertical)
+    }
     (view.superview as? XoteBox)?.updateSlack()
   }
 
@@ -389,14 +421,14 @@ final class XoteHost {
     switch event {
     case "press":
       let action = XoteAction { [weak self] in self?.onEvent?(id, "press", [:]) }
-      actions.append(action)
+      actions[id, default: []].append(action)
       view.addGestureRecognizer(
         UITapGestureRecognizer(target: action, action: #selector(XoteAction.fire)))
       view.isUserInteractionEnabled = true
 
     case "longPress":
       let action = XoteAction { [weak self] in self?.onEvent?(id, "longPress", [:]) }
-      actions.append(action)
+      actions[id, default: []].append(action)
       view.addGestureRecognizer(
         UILongPressGestureRecognizer(target: action, action: #selector(XoteAction.fire)))
       view.isUserInteractionEnabled = true
@@ -406,7 +438,7 @@ final class XoteHost {
       let action = XoteAction { [weak self] in
         self?.onEvent?(id, "changeText", ["value": field.text ?? ""])
       }
-      actions.append(action)
+      actions[id, default: []].append(action)
       field.addTarget(action, action: #selector(XoteAction.fire), for: .editingChanged)
 
     default:

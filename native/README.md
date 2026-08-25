@@ -297,6 +297,12 @@ Named so nobody mistakes the scope of this:
 
 ## If this went further
 
+> Since this was written, the iOS host in [`ios/`](./ios/) has run a real screen
+> on a simulator. [`ROADMAP.md`](./ROADMAP.md) is the assessment that came out
+> of that: what "production-ready" would mean, in what order, and what to
+> measure before committing to any of it.
+
+
 1. **Land the four core changes above.** They are small, they each improve the
    web renderer on their own merits, and they remove every hack in this
    directory.

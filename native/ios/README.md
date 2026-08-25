@@ -1,10 +1,12 @@
 # Running it on an iOS simulator
 
-> **Status.** The JavaScript half is tested (`npm run native:ios:test` runs the
-> shipped bundle in a realm with no DOM, no `console` and no timers — what
-> JavaScriptCore looks like). The Swift half has **never been compiled**: it was
-> written on Linux, where there is no Swift toolchain and no Xcode. Expect to
-> fix a typo or two on first build, and please push the fix back.
+> **Status.** This builds and runs on an iOS simulator — confirmed. Layout has
+> rough edges, all of them the same root cause: `UIStackView` is not flexbox.
+> See "What is approximated" below and [`../ROADMAP.md`](../ROADMAP.md).
+>
+> The Swift is still written without a toolchain to check it against (this
+> repository's development happens on Linux), so changes to it land unverified
+> until someone builds them. If a change here does not compile, that is why.
 
 ## The two-minute version, with no Swift at all
 
@@ -87,6 +89,9 @@ a property you can rely on from Swift.
 
 ## What is approximated, and what is missing
 
+> For the full picture — what it would take to make any of this
+> production-ready, in what order — see [`../ROADMAP.md`](../ROADMAP.md).
+
 **Layout is `UIStackView`, not Yoga.** Every `view` becomes a stack view:
 `flexDirection` is the axis, `gap` is `spacing`, `alignItems` is `alignment`,
 `padding` is `directionalLayoutMargins`, `justifyContent: space-between` is
@@ -105,6 +110,13 @@ real edges:
 
 Replacing this with Yoga is the single highest-value change, and it is why
 `native/README.md` lists layout as the largest piece of a real host.
+
+Two label bugs that came out of first contact with a simulator are fixed:
+non-flex views now keep UIKit's own content-hugging priority rather than being
+pushed to `.defaultLow` (a `UILabel` defaults to 251, and that one point above
+`.defaultLow` is how it says "I am the size of my text"), and `XoteLabel` feeds
+its resolved width back as `preferredMaxLayoutWidth` so a wrapping label has a
+height on the first pass.
 
 **Also missing:** text measurement is `UILabel`'s own (fine, but it means the
 app thread never learns any size), `onLayout` and `onScroll` are not raised,
