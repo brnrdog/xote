@@ -26,6 +26,9 @@ final class XoteHost {
   /// Called when a view reports something. `XoteBridge` forwards it to the app.
   var onEvent: ((Int, String, [String: Any]) -> Void)?
 
+  /// Called with anything that went wrong and was skipped rather than thrown.
+  var onError: ((String) -> Void)?
+
   private var views: [Int: UIView] = [:]
   private var nodes: [Int: XoteLayoutNode] = [:]
   /// A `scroll` lays its children out in an inner box that is free to be taller
@@ -57,7 +60,9 @@ final class XoteHost {
   // MARK: - Applying a batch
 
   func apply(_ json: String) {
-    for command in XoteCommand.decodeBatch(json) {
+    let (commands, problems) = XoteCommand.decodeBatch(json)
+    for problem in problems { onError?(problem) }
+    for command in commands {
       switch command {
       case let .create(id, type):
         create(id: id, type: type)

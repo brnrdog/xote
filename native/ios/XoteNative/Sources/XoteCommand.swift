@@ -16,19 +16,48 @@ enum XoteCommand {
   case destroy(id: Int)
   case listen(id: Int, event: String)
 
-  static func decodeBatch(_ json: String) -> [XoteCommand] {
+  /// How many slots a command of each opcode occupies, opcode included.
+  private static func arity(of op: Int) -> Int {
+    switch op {
+    case 1, 2, 4, 8: return 3
+    case 3, 5: return 4
+    case 6: return 3
+    case 7: return 2
+    default: return Int.max
+    }
+  }
+
+  /// Decode a batch, skipping anything that cannot be read rather than
+  /// discarding the whole thing.
+  ///
+  /// The two halves of this bridge are versioned separately — a JavaScript
+  /// bundle can be newer than the app around it — so an opcode this host does
+  /// not know is a thing to skip and report, not a reason to drop every other
+  /// command in the batch alongside it.
+  static func decodeBatch(_ json: String) -> (commands: [XoteCommand], problems: [String]) {
     guard
       let data = json.data(using: .utf8),
       let raw = try? JSONSerialization.jsonObject(with: data) as? [[Any]]
     else {
-      assertionFailure("Xote: could not decode a batch")
-      return []
+      return ([], ["a batch arrived that is not an array of commands"])
     }
-    return raw.compactMap(decode)
+
+    var commands: [XoteCommand] = []
+    var problems: [String] = []
+    for entry in raw {
+      if let command = decode(entry) {
+        commands.append(command)
+      } else {
+        problems.append("skipped a command this host cannot read: \(entry)")
+      }
+    }
+    return (commands, problems)
   }
 
   private static func decode(_ command: [Any]) -> XoteCommand? {
-    guard let op = command.first as? Int else { return nil }
+    // Every access below is guarded by the arity check: an index out of range
+    // is a trap, not an error, and a truncated batch would take the app down.
+    guard let op = command.first as? Int, command.count >= arity(of: op) else { return nil }
     switch op {
     case 1:
       guard let id = command[1] as? Int, let type = command[2] as? String else { return nil }
@@ -59,7 +88,6 @@ enum XoteCommand {
       guard let id = command[1] as? Int, let event = command[2] as? String else { return nil }
       return .listen(id: id, event: event)
     default:
-      assertionFailure("Xote: unknown opcode \(op)")
       return nil
     }
   }

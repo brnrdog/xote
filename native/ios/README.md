@@ -80,11 +80,22 @@ Five pieces of Swift:
 | `XoteLayout.swift` | Flexbox, transliterated from the reference engine |
 | `XoteStyle.swift` | A style object read with the types layout and UIKit want |
 
-Both directions are synchronous and on the main thread. `apply` is called from
-inside the JavaScript call that produced the batch, so by the time
-`xoteDispatchEvent` returns, the views already reflect the press. That is
-deliberate for a prototype — it makes the whole thing easy to step through in a
-debugger — and it is the first thing a real host would change.
+The app runs on its own serial queue, not the main one. A `Signal.set` and
+everything it sets off — the effects, the renderer, the batch — happens there,
+and only the finished batch crosses to the main queue to be applied. A slow
+update costs a late frame instead of a frozen one. Both queues are serial and
+every hop is `async`, so batches arrive in the order they were produced and
+events in the order they happened. The `JSContext` is touched only from
+`jsQueue`, and the two hops in `XoteBridge` are the whole of that discipline.
+
+Failures are contained rather than propagated, because the thing being
+protected is a long-lived process with a screen on it. A handler that throws
+does not silence the handlers registered after it; a batch the host cannot
+apply is dropped and the next one still gets through; a command this host
+cannot read is skipped and reported rather than discarding the batch around it
+— the two halves of the bridge are versioned separately, so a bundle newer than
+the app is a thing to survive. Everything contained goes to `XoteBridge.onError`,
+which an app can point at whatever it shows people.
 
 `bootstrap.mjs` is the app-thread entry point, bundled to one classic script
 because JavaScriptCore has no module loader. It flushes explicitly rather than

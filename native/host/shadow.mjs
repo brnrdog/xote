@@ -265,6 +265,26 @@ export class ShadowDocument {
     this.orphans = new Set();
     this.nextId = 1;
     this.onFlush = null;
+    /** Called with anything that went wrong instead of being thrown onward. */
+    this.onError = null;
+  }
+
+  /**
+   * Run `fn`, and treat a failure as damage to contain rather than propagate.
+   *
+   * The app is one long-lived process with a screen on it. An exception in one
+   * event handler must not stop the other handlers on the same node, abandon a
+   * half-built batch on this side of the bridge, or take the app down — the
+   * tree is still consistent, because every mutation is applied whole.
+   */
+  guard(what, fn) {
+    try {
+      return fn();
+    } catch (error) {
+      if (this.onError !== null) this.onError(what, error);
+      else console.error(`Xote Native: ${what}`, error);
+      return undefined;
+    }
   }
 
   claimId(node) {
@@ -379,11 +399,13 @@ export class ShadowDocument {
 
   /** Take everything queued since the last flush. */
   flush() {
-    this.sweep();
+    this.guard("sweeping detached nodes", () => this.sweep());
     if (this.batch.length === 0) return [];
     const batch = this.batch;
+    // Cleared before the host sees it: a host that throws must not be handed
+    // the same batch again on the next flush.
     this.batch = [];
-    if (this.onFlush !== null) this.onFlush(batch);
+    if (this.onFlush !== null) this.guard("applying a batch", () => this.onFlush(batch));
     return batch;
   }
 
@@ -394,7 +416,11 @@ export class ShadowDocument {
     const handlers = node.listeners.get(name);
     if (handlers === undefined) return;
     const event = { type: name, target: node, ...payload };
-    for (const handler of handlers.slice()) handler(event);
+    // One handler per `guard`: a listener that throws must not silence the
+    // ones registered after it.
+    for (const handler of handlers.slice()) {
+      this.guard(`handling ${name}`, () => handler(event));
+    }
   }
 }
 

@@ -15,14 +15,15 @@ let installed = null;
 
 /**
  * @param {{ apply: (batch: Array) => void }} host
- * @param {{ autoFlush?: boolean }} [options]
+ * @param {{ autoFlush?: boolean, onError?: (what: string, error: unknown) => void }} [options]
  */
 export function install(host, options = {}) {
-  const { autoFlush = true } = options;
+  const { autoFlush = true, onError } = options;
   const doc = new ShadowDocument();
   let scheduled = false;
 
   doc.onFlush = (batch) => host.apply(batch);
+  if (onError !== undefined) doc.onError = onError;
 
   if (autoFlush) {
     const schedule = () => {
@@ -30,6 +31,8 @@ export function install(host, options = {}) {
       scheduled = true;
       queueMicrotask(() => {
         scheduled = false;
+        // `flush` contains its own failures, so the scheduler cannot be left
+        // permanently disarmed by one bad batch.
         doc.flush();
       });
     };
@@ -64,7 +67,13 @@ export function install(host, options = {}) {
     /** Hosts call this when a native view reports an event. */
     dispatchEvent: (id, name, payload) => {
       doc.dispatchEvent(id, name, payload);
+      // A handler that threw still leaves whatever it managed to change, and
+      // the host should be told about it rather than left showing stale views.
       if (!autoFlush) doc.flush();
+    },
+    /** Report something that went wrong, without unwinding the caller. */
+    onError: (handler) => {
+      doc.onError = handler;
     },
   };
   return installed;
