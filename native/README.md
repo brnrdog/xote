@@ -141,7 +141,10 @@ rather than failing later.)
 | `host/shadow.mjs` | The DOM subset, and the projection onto commands. |
 | `host/runtime.mjs` | Installs the shadow document, batches, flushes. |
 | `host/headless.mjs` | Reference host, ~80 lines. The executable spec. |
+| `host/layout.mjs` | Flexbox, checked frame-for-frame against Chromium. |
+| `host/reference.mjs` | The protocol *and* layout, with nothing to draw on — the executable spec. |
 | `host/preview.mjs` | Second host: real DOM and flexbox, for looking at things. |
+| `conformance/` | Cases every host must satisfy: a batch in, a tree and a set of frames out. |
 | `NativeStyle.res` | Typed flexbox styles. Points, percentages, `auto`. |
 | `NativeJSX.res` | The JSX module: `<view>`, `<text>`, `<image>`, `<scroll>`, `<input>`, `<pressable>`. |
 | `NativeProp.res` | Untyped JSX values into `View.attrValue`, without stringifying. |

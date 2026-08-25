@@ -37,9 +37,17 @@ final class XoteHost {
   private var fonts: [Int: UIFont] = [:]
   private var lineLimits: [Int: Int] = [:]
   private var actions: [Int: [XoteAction]] = [:]
+  /// Every child of every node, runs included — the shape the conformance
+  /// suite compares, and the only place the run order is recorded.
+  private var childIds: [Int: [Int]] = [:]
+  private var idsByNode: [ObjectIdentifier: Int] = [:]
 
   private let rootView: UIView
   private let rootNode = XoteLayoutNode()
+
+  /// Replaces real font metrics while running the conformance suite. Two hosts
+  /// can agree on layout; `UILabel` and Chromium will never agree on fonts.
+  var measureOverride: ((String, CGFloat?, XoteMeasureMode) -> XoteSize)?
 
   init(rootView: UIView) {
     self.rootView = rootView
@@ -85,6 +93,8 @@ final class XoteHost {
         labelRuns[id] = nil
         fonts[id] = nil
         lineLimits[id] = nil
+        childIds[id] = nil
+        if let node = nodes[id] { idsByNode[ObjectIdentifier(node)] = nil }
         // Event targets are retained by hand, so they are released by hand: a
         // list that churns rows would otherwise grow a closure per row per pass.
         actions[id] = nil
@@ -143,6 +153,7 @@ final class XoteHost {
       // The root already exists; the app is told about it like any other node.
       nodes[id] = rootNode
       views[id] = rootView
+      idsByNode[ObjectIdentifier(rootNode)] = id
       return
     case "text":
       let label = UILabel()
@@ -173,6 +184,7 @@ final class XoteHost {
     node.view = view
     views[id] = view
     nodes[id] = node
+    idsByNode[ObjectIdentifier(node)] = id
   }
 
   // MARK: - Tree
@@ -193,6 +205,7 @@ final class XoteHost {
         var ordered = labelRuns[parent] ?? []
         ordered.insert(child, at: min(index, ordered.count))
         labelRuns[parent] = ordered
+        record(child: child, in: parent, at: index)
         renderLabel(parent)
         return
       }
@@ -214,6 +227,7 @@ final class XoteHost {
       }
       nodes[child] = node
       views[child] = label
+      idsByNode[ObjectIdentifier(node)] = child
       attach(childId: child, to: parent, at: index)
       return
     }
@@ -237,9 +251,18 @@ final class XoteHost {
     let at = min(index, parentNode.children.count)
     parentNode.children.insert(childNode, at: at)
     parentView.insertSubview(childView, at: at)
+    record(child: childId, in: parent, at: index)
+  }
+
+  private func record(child: Int, in parent: Int, at index: Int) {
+    var ordered = childIds[parent] ?? []
+    ordered.removeAll { $0 == child }
+    ordered.insert(child, at: min(index, ordered.count))
+    childIds[parent] = ordered
   }
 
   private func remove(child: Int, from parent: Int) {
+    childIds[parent]?.removeAll { $0 == child }
     guard let (parentNode, _) = container(of: parent) else { return }
     if let childNode = nodes[child],
       let index = parentNode.children.firstIndex(where: { $0 === childNode })
@@ -275,6 +298,9 @@ final class XoteHost {
     widthMode: XoteMeasureMode
   ) -> XoteSize {
     let text = (views[id] as? UILabel)?.text ?? ""
+    if let override = measureOverride {
+      return override(text, availableWidth, widthMode)
+    }
     if text.isEmpty { return XoteSize(width: 0, height: 0) }
 
     let font = fonts[id] ?? UIFont.systemFont(ofSize: UIFont.systemFontSize)
@@ -431,5 +457,42 @@ final class XoteHost {
       // indistinguishable from it not happening.
       break
     }
+  }
+
+  // MARK: - Inspection
+
+  /// What the conformance suite compares: the tree, every frame in root
+  /// coordinates, and the text as it would be shown.
+  func conformanceSnapshot() -> (
+    structure: [Int: [Int]], frames: [Int: [CGFloat]], texts: [Int: String]
+  ) {
+    var frames: [Int: [CGFloat]] = [:]
+    func walk(_ node: XoteLayoutNode, _ originX: CGFloat, _ originY: CGFloat) {
+      let left = originX + node.frame.left
+      let top = originY + node.frame.top
+      var childOriginX = CGFloat(0)
+      var childOriginY = CGFloat(0)
+      if let id = idsByNode[ObjectIdentifier(node)] {
+        frames[id] = [left, top, node.frame.width, node.frame.height]
+      } else {
+        // A scroll's content box has no id and no coordinate space of its own.
+        childOriginX = left
+        childOriginY = top
+      }
+      for child in node.children { walk(child, childOriginX, childOriginY) }
+    }
+    walk(rootNode, 0, 0)
+
+    var texts: [Int: String] = [:]
+    for (id, view) in views {
+      if let label = view as? UILabel, runViews[id] == nil || labelRuns[id] != nil {
+        texts[id] = label.text ?? ""
+      }
+    }
+    for (id, label) in runViews {
+      texts[id] = label.text ?? ""
+    }
+
+    return (childIds, frames, texts)
   }
 }

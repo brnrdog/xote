@@ -27,3 +27,19 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         SWIFT_VERSION: "5.0"
         GENERATE_INFOPLIST_FILE: NO
+
+  XoteNativeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: XoteNativeTests
+      # The conformance suite is shared with the JavaScript hosts; the test
+      # bundle carries a copy so it can be replayed against UIKit.
+      - path: ../conformance/suite.json
+        buildPhase: resources
+    dependencies:
+      - target: XoteNativeExample
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.xote.native.example.tests
+        GENERATE_INFOPLIST_FILE: YES
