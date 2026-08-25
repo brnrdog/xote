@@ -1,12 +1,15 @@
 # Running it on an iOS simulator
 
-> **Status.** This builds and runs on an iOS simulator — confirmed. Layout has
-> rough edges, all of them the same root cause: `UIStackView` is not flexbox.
-> See "What is approximated" below and [`../ROADMAP.md`](../ROADMAP.md).
+> **Status.** An earlier version of this host built and ran on an iOS simulator.
+> Layout has since been rewritten from `UIStackView` onto a real flexbox engine
+> (see below), which is a large change to unverified Swift — expect to fix a
+> compile error or two on the next build.
 >
-> The Swift is still written without a toolchain to check it against (this
-> repository's development happens on Linux), so changes to it land unverified
-> until someone builds them. If a change here does not compile, that is why.
+> The Swift is written without a toolchain to check it against: this
+> repository's development happens on Linux, where there is no Swift compiler
+> and `download.swift.org` is unreachable. The layout *algorithm* is not
+> unverified — it is checked against Chromium in `native/test/` — but the Swift
+> spelling of it is.
 
 ## The two-minute version, with no Swift at all
 
@@ -67,14 +70,15 @@ xote-app.js  ──evaluated in──▶  JSContext        (XoteBridge)
                      xoteDispatchEvent(id, …)    events back
 ```
 
-Three pieces of Swift, none of them large:
+Five pieces of Swift:
 
 | File | What it does |
 |---|---|
 | `XoteBridge.swift` | Owns the `JSContext`, injects `XoteHost.apply`, evaluates the bundle, calls `xoteStart()`, forwards events back |
 | `XoteCommand.swift` | Decodes the wire format — a JSON array of arrays, opcode first |
-| `XoteHost.swift` | The eight commands against `UIView`s |
-| `XoteStyle.swift` | A style object read with the types UIKit wants |
+| `XoteHost.swift` | The eight commands against `UIView`s, and one layout pass per batch |
+| `XoteLayout.swift` | Flexbox, transliterated from the reference engine |
+| `XoteStyle.swift` | A style object read with the types layout and UIKit want |
 
 Both directions are synchronous and on the main thread. `apply` is called from
 inside the JavaScript call that produced the batch, so by the time
@@ -87,36 +91,36 @@ because JavaScriptCore has no module loader. It flushes explicitly rather than
 on a microtask, so "the batch is on the other side before this call returns" is
 a property you can rely on from Swift.
 
-## What is approximated, and what is missing
+## How layout works, and what is missing
 
 > For the full picture — what it would take to make any of this
 > production-ready, in what order — see [`../ROADMAP.md`](../ROADMAP.md).
 
-**Layout is `UIStackView`, not Yoga.** Every `view` becomes a stack view:
-`flexDirection` is the axis, `gap` is `spacing`, `alignItems` is `alignment`,
-`padding` is `directionalLayoutMargins`, `justifyContent: space-between` is
-`.equalSpacing`, and `flex` is a low content-hugging priority. That covers the
-example screen and will cover most simple ones, but it is an approximation with
-real edges:
+**Layout is a flexbox engine, ported from a tested one.** Every box is a plain
+`UIView` with a `frame`; there is no Auto Layout and no `UIStackView`. Flexbox
+and Auto Layout are two constraint systems with different answers, and the first
+version of this host spent its whole existence asking one to imitate the other.
 
-- `justifyContent: flex-start` — the flexbox default — has no `UIStackView`
-  spelling, because a stack with `.fill` distribution must consume its axis. A
-  box that needs it appends an invisible trailing view that wants space less
-  than anything else (`XoteBox.slack`). It works; it is not what Yoga does.
-- `position: absolute`, percentage sizes, `flexWrap`, `flexShrink`,
-  `aspectRatio` and per-child `margin` are ignored.
-- Nested `flex` ratios between siblings collapse to "flexible or not", since
-  hugging priority is not a growth factor.
+`XoteLayout.swift` is a transliteration of `native/host/layout.mjs`, which is
+checked frame-for-frame against Chromium's own flexbox — 1183 boxes across 196
+trees, all agreeing. **Keep the two in step**: a change here that is not also a
+change there is a change nothing tests.
 
-Replacing this with Yoga is the single highest-value change, and it is why
-`native/README.md` lists layout as the largest piece of a real host.
+It covers the subset `NativeStyle` can express: direction including reverse,
+`justifyContent`, `alignItems`/`alignSelf`, grow/shrink/basis, min and max,
+points and percentages, margin, padding, border width, gaps, `aspectRatio`,
+absolute positioning, and measured text. It does not cover `flexWrap` (every
+container is one line), baseline alignment, `alignContent`, or percentage
+margins and paddings. Reaching one of those is the signal to swap the engine for
+Yoga — which is now a contained change, because there is a reference
+implementation to check the swap against.
 
-Two label bugs that came out of first contact with a simulator are fixed:
-non-flex views now keep UIKit's own content-hugging priority rather than being
-pushed to `.defaultLow` (a `UILabel` defaults to 251, and that one point above
-`.defaultLow` is how it says "I am the size of my text"), and `XoteLabel` feeds
-its resolved width back as `preferredMaxLayoutWidth` so a wrapping label has a
-height on the first pass.
+Text is the one thing the engine cannot do itself: a `text` node carries a
+measure callback into `NSAttributedString.boundingRect`, so the host answers
+"how tall is this at this width" and layout does the rest.
+
+A `scroll` is two boxes — the frame its parent positions, and a content box free
+to be longer than it — and the style is split between them.
 
 **Also missing:** text measurement is `UILabel`'s own (fine, but it means the
 app thread never learns any size), `onLayout` and `onScroll` are not raised,

@@ -1,105 +1,5 @@
 import UIKit
 
-/// A stack view that also draws, and that knows how to leave slack alone.
-///
-/// Every `view`, `pressable`, and the inside of a `scroll` is one of these.
-/// `UIStackView` renders its own background from iOS 14, so a box needs no
-/// wrapper view.
-final class XoteBox: UIStackView {
-  /// A zero-content view that soaks up leftover space when nothing else will.
-  ///
-  /// `justifyContent: flex-start` is the flexbox default and the one thing
-  /// `UIStackView` has no spelling for: with `.fill` distribution it must
-  /// consume its whole axis, so a column of intrinsically-sized children ends
-  /// up with one of them stretched instead of the column being top-packed.
-  /// A trailing view that wants space less than anything else fixes that.
-  private let slack = UIView()
-
-  /// False for `space-between` and friends, where `UIStackView` distributes the
-  /// leftover space itself and a slack view would eat it first.
-  var packsToStart = true {
-    didSet { updateSlack() }
-  }
-
-  var childCount: Int {
-    arrangedSubviews.count - (slack.superview === self ? 1 : 0)
-  }
-
-  func insertChild(_ view: UIView, at index: Int) {
-    insertArrangedSubview(view, at: min(index, childCount))
-    updateSlack()
-  }
-
-  func removeChild(_ view: UIView) {
-    removeArrangedSubview(view)
-    view.removeFromSuperview()
-    updateSlack()
-  }
-
-  /// Call after a child's hugging priority changes — a child that became
-  /// flexible makes the slack view unnecessary.
-  func updateSlack() {
-    let children = arrangedSubviews.filter { $0 !== slack }
-    let hasFlexibleChild = children.contains {
-      $0.contentHuggingPriority(for: axis) < UILayoutPriority.defaultLow
-    }
-    let wanted = packsToStart && !children.isEmpty && !hasFlexibleChild
-
-    if wanted {
-      slack.setContentHuggingPriority(UILayoutPriority(1), for: .horizontal)
-      slack.setContentHuggingPriority(UILayoutPriority(1), for: .vertical)
-      if slack.superview !== self {
-        addArrangedSubview(slack)
-      } else if arrangedSubviews.last !== slack {
-        removeArrangedSubview(slack)
-        addArrangedSubview(slack)
-      }
-    } else if slack.superview === self {
-      removeArrangedSubview(slack)
-      slack.removeFromSuperview()
-    }
-  }
-}
-
-/// A label that tells Auto Layout how wide it is allowed to wrap.
-///
-/// A multi-line `UILabel` has no intrinsic height until it knows its width, and
-/// inside a stack view it learns its width only after being laid out — so the
-/// first pass measures it as one line and the text is clipped or the row is the
-/// wrong height. Feeding the resolved width back is the standard fix.
-final class XoteLabel: UILabel {
-  override func layoutSubviews() {
-    super.layoutSubviews()
-    guard numberOfLines != 1, preferredMaxLayoutWidth != bounds.width else { return }
-    preferredMaxLayoutWidth = bounds.width
-    setNeedsUpdateConstraints()
-  }
-}
-
-/// `scroll` is a scroll view wrapped around one box; children land in the box.
-final class XoteScroll: UIScrollView {
-  let content = XoteBox()
-
-  override init(frame: CGRect) {
-    super.init(frame: frame)
-    content.axis = .vertical
-    content.alignment = .fill
-    content.translatesAutoresizingMaskIntoConstraints = false
-    addSubview(content)
-    NSLayoutConstraint.activate([
-      content.topAnchor.constraint(equalTo: contentLayoutGuide.topAnchor),
-      content.bottomAnchor.constraint(equalTo: contentLayoutGuide.bottomAnchor),
-      content.leadingAnchor.constraint(equalTo: contentLayoutGuide.leadingAnchor),
-      content.trailingAnchor.constraint(equalTo: contentLayoutGuide.trailingAnchor),
-      content.widthAnchor.constraint(equalTo: frameLayoutGuide.widthAnchor),
-    ])
-  }
-
-  required init?(coder: NSCoder) {
-    fatalError("XoteScroll is built in code, not a nib")
-  }
-}
-
 /// Retains a closure so it can be a target for a gesture recogniser or a control.
 final class XoteAction: NSObject {
   private let run: () -> Void
@@ -115,25 +15,35 @@ final class XoteAction: NSObject {
 
 /// Applies the bridge protocol to UIKit.
 ///
-/// Everything here runs on the main thread. JavaScriptCore calls `apply`
-/// synchronously on whichever thread called into JavaScript, and this host is
-/// only ever driven from the main thread — see `XoteBridge`.
+/// There are two trees: the views, and a `XoteLayoutNode` shadowing each one.
+/// The bridge mutates both, and a batch ends with a single layout pass that
+/// writes a `frame` onto every view. Nothing here uses Auto Layout — flexbox
+/// and Auto Layout are two constraint systems with different answers, and
+/// asking one to imitate the other is what the first version of this host did.
+///
+/// Everything runs on the main thread; see `XoteBridge`.
 final class XoteHost {
   /// Called when a view reports something. `XoteBridge` forwards it to the app.
   var onEvent: ((Int, String, [String: Any]) -> Void)?
 
   private var views: [Int: UIView] = [:]
+  private var nodes: [Int: XoteLayoutNode] = [:]
+  /// A `scroll` lays its children out in an inner box that is free to be taller
+  /// than the scroll view itself. That box is where its children go.
+  private var contentNodes: [Int: XoteLayoutNode] = [:]
   private var runs: [Int: String] = [:]
-  private var labelRuns: [Int: [Int]] = [:]
   private var runViews: [Int: UILabel] = [:]
-  private var widths: [Int: NSLayoutConstraint] = [:]
-  private var heights: [Int: NSLayoutConstraint] = [:]
+  private var labelRuns: [Int: [Int]] = [:]
+  private var fonts: [Int: UIFont] = [:]
+  private var lineLimits: [Int: Int] = [:]
   private var actions: [Int: [XoteAction]] = [:]
 
-  private let rootView: XoteBox
+  private let rootView: UIView
+  private let rootNode = XoteLayoutNode()
 
-  init(rootView: XoteBox) {
+  init(rootView: UIView) {
     self.rootView = rootView
+    rootNode.view = rootView
   }
 
   // MARK: - Applying a batch
@@ -168,14 +78,15 @@ final class XoteHost {
 
       case let .destroy(id):
         views[id] = nil
+        nodes[id] = nil
+        contentNodes[id] = nil
         runs[id] = nil
         runViews[id] = nil
         labelRuns[id] = nil
-        widths[id] = nil
-        heights[id] = nil
-        // Event targets have to be retained by hand, so they have to be
-        // released by hand: a list that churns rows would otherwise grow one
-        // closure per row per pass, for the life of the app.
+        fonts[id] = nil
+        lineLimits[id] = nil
+        // Event targets are retained by hand, so they are released by hand: a
+        // list that churns rows would otherwise grow a closure per row per pass.
         actions[id] = nil
 
       case let .listen(id, event):
@@ -184,18 +95,63 @@ final class XoteHost {
         }
       }
     }
+
+    layoutNow()
+  }
+
+  /// Lay the tree out and write every frame. Called at the end of each batch,
+  /// and again by the view controller when the root's size changes.
+  func layoutNow() {
+    let size = rootView.bounds.size
+    guard size.width > 0, size.height > 0 else { return }
+    XoteLayout.layout(rootNode, width: size.width, height: size.height)
+    applyFrames(rootNode, origin: .zero)
+  }
+
+  /// Walk the layout tree and place the views.
+  ///
+  /// A box with no view of its own — a scroll's content box — does not consume
+  /// a coordinate space, so its children are placed relative to it instead.
+  private func applyFrames(_ node: XoteLayoutNode, origin: CGPoint) {
+    var childOrigin = CGPoint.zero
+    if let view = node.view as? UIView {
+      if view !== rootView {
+        view.frame = CGRect(
+          x: (origin.x + node.frame.left).rounded(),
+          y: (origin.y + node.frame.top).rounded(),
+          width: node.frame.width.rounded(),
+          height: node.frame.height.rounded()
+        )
+      }
+      if let scroll = view as? UIScrollView, let content = node.children.first {
+        scroll.contentSize = CGSize(width: content.frame.width, height: content.frame.height)
+      }
+    } else {
+      childOrigin = CGPoint(x: origin.x + node.frame.left, y: origin.y + node.frame.top)
+    }
+    for child in node.children {
+      applyFrames(child, origin: childOrigin)
+    }
   }
 
   private func create(id: Int, type: String) {
+    let node = XoteLayoutNode()
     let view: UIView
+
     switch type {
     case "root":
       // The root already exists; the app is told about it like any other node.
-      view = rootView
+      nodes[id] = rootNode
+      views[id] = rootView
+      return
     case "text":
-      let label = XoteLabel()
+      let label = UILabel()
       label.numberOfLines = 0
       view = label
+      node.measure = { [weak self] availableWidth, widthMode, _, _ in
+        self?.measureText(id: id, availableWidth: availableWidth, widthMode: widthMode)
+          ?? XoteSize(width: 0, height: 0)
+      }
     case "image":
       let image = UIImageView()
       image.contentMode = .scaleAspectFill
@@ -204,29 +160,28 @@ final class XoteHost {
     case "input":
       view = UITextField()
     case "scroll":
-      view = XoteScroll()
+      let scroll = UIScrollView()
+      let content = XoteLayoutNode()
+      contentNodes[id] = content
+      node.children = [content]
+      view = scroll
     default:
       // `view`, `pressable`, and any primitive this host does not know by name.
-      let box = XoteBox()
-      box.axis = .vertical
-      box.alignment = .fill
-      view = box
+      view = UIView()
     }
-    if view !== rootView {
-      view.translatesAutoresizingMaskIntoConstraints = false
-    }
+
+    node.view = view
     views[id] = view
+    nodes[id] = node
   }
 
   // MARK: - Tree
 
-  /// Where a node's children go. Only a box (or a scroll's box) holds views; a
-  /// label holds text runs instead.
-  private func box(of view: UIView) -> XoteBox? {
-    if let scroll = view as? XoteScroll {
-      return scroll.content
-    }
-    return view as? XoteBox
+  /// Where a node's children go, and which view holds them.
+  private func container(of id: Int) -> (node: XoteLayoutNode, view: UIView)? {
+    guard let view = views[id], let node = nodes[id] else { return nil }
+    if let content = contentNodes[id] { return (content, view) }
+    return (node, view)
   }
 
   private func insert(child: Int, into parent: Int, at index: Int) {
@@ -242,44 +197,61 @@ final class XoteHost {
         return
       }
       // Anywhere else it is a node in its own right, and it has to occupy its
-      // index whether or not it draws anything — the reactive placeholder that
-      // stands in for an absent branch is an empty text node, and dropping it
-      // would put every later sibling one slot out of step.
-      let label = runViews[child] ?? XoteLabel()
+      // index whether or not it draws anything — the placeholder a reactive
+      // region renders for an absent branch is an empty text node, and dropping
+      // it would put every later sibling one slot out of step.
+      let label = runViews[child] ?? UILabel()
       label.numberOfLines = 0
-      label.translatesAutoresizingMaskIntoConstraints = false
       label.text = text
       label.isHidden = text.isEmpty
       runViews[child] = label
-      box(of: parentView)?.insertChild(label, at: index)
+
+      let node = nodes[child] ?? XoteLayoutNode()
+      node.view = label
+      node.measure = { [weak self] availableWidth, widthMode, _, _ in
+        self?.measureText(id: child, availableWidth: availableWidth, widthMode: widthMode)
+          ?? XoteSize(width: 0, height: 0)
+      }
+      nodes[child] = node
+      views[child] = label
+      attach(childId: child, to: parent, at: index)
       return
     }
 
-    guard let childView = views[child] else { return }
+    guard views[child] != nil else { return }
+    attach(childId: child, to: parent, at: index)
+  }
 
-    guard let box = box(of: parentView) else {
-      // Nothing in the current vocabulary produces this, so it is worth hearing
-      // about in a debug build rather than silently dropping the child.
-      assertionFailure("Xote: \(type(of: parentView)) cannot hold child views")
-      return
+  private func attach(childId: Int, to parent: Int, at index: Int) {
+    guard
+      let (parentNode, parentView) = container(of: parent),
+      let childNode = nodes[childId],
+      let childView = views[childId]
+    else { return }
+
+    // Detach first: an insert of an already-parented node is a move, and the
+    // reconciler does exactly that when a keyed row changes position.
+    if let existing = parentNode.children.firstIndex(where: { $0 === childNode }) {
+      parentNode.children.remove(at: existing)
     }
-    box.insertChild(childView, at: index)
+    let at = min(index, parentNode.children.count)
+    parentNode.children.insert(childNode, at: at)
+    parentView.insertSubview(childView, at: at)
   }
 
   private func remove(child: Int, from parent: Int) {
-    guard let parentView = views[parent] else { return }
-
-    if runs[child] != nil {
-      if let label = runViews[child] {
-        box(of: parentView)?.removeChild(label)
-      } else {
-        labelRuns[parent]?.removeAll { $0 == child }
-        renderLabel(parent)
-      }
+    guard let (parentNode, _) = container(of: parent) else { return }
+    if let childNode = nodes[child],
+      let index = parentNode.children.firstIndex(where: { $0 === childNode })
+    {
+      parentNode.children.remove(at: index)
+    }
+    if runs[child] != nil, runViews[child] == nil {
+      labelRuns[parent]?.removeAll { $0 == child }
+      renderLabel(parent)
       return
     }
-    guard let childView = views[child] else { return }
-    box(of: parentView)?.removeChild(childView)
+    views[child]?.removeFromSuperview()
   }
 
   private func renderLabel(_ id: Int) {
@@ -291,6 +263,43 @@ final class XoteHost {
     for (id, ordered) in labelRuns where ordered.contains(run) {
       renderLabel(id)
     }
+  }
+
+  // MARK: - Text measurement
+
+  /// The one thing the host knows and the layout engine cannot: how big a piece
+  /// of text is at a given width.
+  private func measureText(
+    id: Int,
+    availableWidth: CGFloat?,
+    widthMode: XoteMeasureMode
+  ) -> XoteSize {
+    let text = (views[id] as? UILabel)?.text ?? ""
+    if text.isEmpty { return XoteSize(width: 0, height: 0) }
+
+    let font = fonts[id] ?? UIFont.systemFont(ofSize: UIFont.systemFontSize)
+    let constraint: CGFloat
+    if widthMode == .undefined || availableWidth == nil {
+      constraint = .greatestFiniteMagnitude
+    } else {
+      constraint = availableWidth!
+    }
+
+    var bounds = (text as NSString).boundingRect(
+      with: CGSize(width: constraint, height: .greatestFiniteMagnitude),
+      options: [.usesLineFragmentOrigin, .usesFontLeading],
+      attributes: [.font: font],
+      context: nil
+    )
+
+    if let limit = lineLimits[id], limit > 0 {
+      bounds.size.height = min(bounds.size.height, font.lineHeight * CGFloat(limit))
+    }
+
+    return XoteSize(
+      width: widthMode == .exactly ? (availableWidth ?? 0) : ceil(bounds.width),
+      height: ceil(bounds.height)
+    )
   }
 
   // MARK: - Props
@@ -308,9 +317,13 @@ final class XoteHost {
     case "editable":
       (view as? UITextField)?.isEnabled = (value as? Bool) ?? true
     case "numberOfLines":
-      (view as? UILabel)?.numberOfLines = (value as? Int) ?? 0
+      let limit = (value as? Int) ?? 0
+      lineLimits[id] = limit
+      (view as? UILabel)?.numberOfLines = limit
     case "horizontal":
-      (view as? XoteScroll)?.content.axis = (value as? Bool) == true ? .horizontal : .vertical
+      // Redundant with `flexDirection` on the content box, which is what
+      // actually decides which way the content runs.
+      (view as? UIScrollView)?.alwaysBounceHorizontal = (value as? Bool) ?? false
     case "source":
       load(source: value, into: view as? UIImageView)
     case "testID":
@@ -323,86 +336,58 @@ final class XoteHost {
   }
 
   private func apply(style: XoteStyle, to view: UIView, id: Int) {
-    view.alpha = style.number("opacity") ?? 1
+    // Layout reads the style straight off the node, so this only has to paint.
+    if let content = contentNodes[id] {
+      // A scroll view is two boxes: the frame its parent positions, and the
+      // content its children are arranged in, which is free to be longer. The
+      // style is split between them accordingly.
+      let split = splitScrollStyle(style.values)
+      nodes[id]?.style = XoteStyle(split.frame)
+      content.style = XoteStyle(split.content)
+    } else {
+      nodes[id]?.style = style
+    }
 
-    if let background = style.color("backgroundColor") {
-      view.backgroundColor = background
-    }
-    if let radius = style.number("borderRadius") {
-      view.layer.cornerRadius = radius
-      view.clipsToBounds = true
-    }
-    if let width = style.number("borderWidth") {
-      view.layer.borderWidth = width
-    }
-    if let color = style.color("borderColor") {
-      view.layer.borderColor = color.cgColor
-    }
+    view.alpha = style.number("opacity") ?? 1
+    view.backgroundColor = style.color("backgroundColor")
+
+    let radius = style.number("borderRadius") ?? 0
+    view.layer.cornerRadius = radius
+    view.clipsToBounds = radius > 0 || style.string("overflow") == "hidden"
+    view.layer.borderWidth = style.number("borderWidth") ?? 0
+    view.layer.borderColor = style.color("borderColor")?.cgColor
 
     if let label = view as? UILabel {
+      fonts[id] = style.font
       label.font = style.font
       label.textAlignment = style.textAlignment
-      if let color = style.color("color") {
-        label.textColor = color
-      }
+      label.textColor = style.color("color") ?? label.textColor
     }
 
     if let field = view as? UITextField {
+      fonts[id] = style.font
       field.font = style.font
-      if let color = style.color("color") {
-        field.textColor = color
-      }
+      field.textColor = style.color("color") ?? field.textColor
     }
-
-    if let box = box(of: view) {
-      let isRow = style.isRow
-      box.axis = isRow ? .horizontal : .vertical
-      box.spacing = style.number("gap") ?? 0
-      box.alignment = style.alignment(isRow: isRow)
-      box.distribution = style.distribution
-      box.packsToStart = box.distribution == .fill
-      box.isLayoutMarginsRelativeArrangement = true
-      box.directionalLayoutMargins = style.insets("padding")
-    }
-
-    size(view, id: id, width: style.number("width"), height: style.number("height"))
-
-    // `flex` grows a child along its parent's axis. UIStackView gives slack to
-    // whichever arranged subview hugs its content least, so a flexible child
-    // only has to want its size less than its siblings do.
-    //
-    // A view with no `flex` is left at UIKit's own hugging priority rather than
-    // pushed down to `.defaultLow`. That distinction matters for leaves: a
-    // `UILabel` defaults to 251 — one point above `.defaultLow` — which is
-    // precisely how it says "I am as big as my text". Overriding that to 250
-    // makes every label the most stretchable thing in its row, and the text
-    // ends up in a box the wrong size.
-    let flex = style.number("flex") ?? style.number("flexGrow") ?? 0
-    if flex > 0 {
-      view.setContentHuggingPriority(UILayoutPriority(1), for: .horizontal)
-      view.setContentHuggingPriority(UILayoutPriority(1), for: .vertical)
-    } else if view is XoteBox || view is XoteScroll {
-      // A box has no content of its own to hug, so it takes the default that
-      // says so — and this restores it if the view used to be flexible.
-      view.setContentHuggingPriority(.defaultLow, for: .horizontal)
-      view.setContentHuggingPriority(.defaultLow, for: .vertical)
-    }
-    (view.superview as? XoteBox)?.updateSlack()
   }
 
-  private func size(_ view: UIView, id: Int, width: CGFloat?, height: CGFloat?) {
-    if let width = width {
-      let constraint = widths[id] ?? view.widthAnchor.constraint(equalToConstant: width)
-      constraint.constant = width
-      constraint.isActive = true
-      widths[id] = constraint
+  /// Everything about how children are arranged belongs to the content box;
+  /// everything about how big the scroll view is belongs to the frame.
+  private func splitScrollStyle(
+    _ values: [String: Any]
+  ) -> (frame: [String: Any], content: [String: Any]) {
+    let arrangement = [
+      "flexDirection", "justifyContent", "alignItems", "gap", "rowGap", "columnGap",
+      "padding", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft",
+      "paddingHorizontal", "paddingVertical",
+    ]
+    var frame = values
+    var content: [String: Any] = [:]
+    for key in arrangement where values[key] != nil {
+      content[key] = values[key]
+      frame[key] = nil
     }
-    if let height = height {
-      let constraint = heights[id] ?? view.heightAnchor.constraint(equalToConstant: height)
-      constraint.constant = height
-      constraint.isActive = true
-      heights[id] = constraint
-    }
+    return (frame, content)
   }
 
   private func load(source: Any?, into imageView: UIImageView?) {
