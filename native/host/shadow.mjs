@@ -276,8 +276,16 @@ export class ShadowDocument {
     try {
       return fn();
     } catch (error) {
-      if (this.onError !== null) this.onError(what, error);
-      else console.error(`Xote Native: ${what}`, error);
+      // Reporting must not be the thing that takes the app down. A host's
+      // `onError` can throw, and `console` is a host object rather than a
+      // language one — an embedded JavaScriptCore has none until Swift injects
+      // it, so a containment path that assumes one is not contained.
+      try {
+        if (this.onError !== null) this.onError(what, error);
+        else if (typeof console !== "undefined") console.error(`Xote Native: ${what}`, error);
+      } catch {
+        /* nothing left to report it to */
+      }
       return undefined;
     }
   }

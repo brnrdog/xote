@@ -44,8 +44,19 @@ cd native/ios && xcodegen generate
 open XoteNativeExample.xcodeproj
 ```
 
-Pick an iPhone simulator and hit run. You should get the same screen as the
-preview: the counter, the todo list, the conditional hint.
+Pick an iPhone simulator and hit run. You get [the tracker](../example/tracker/):
+five thousand issues, a live search, filters, and a detail screen.
+
+**Choosing which example to run.** `XOTE_APP` picks it at build time, and only
+the chosen one ends up in the bundle:
+
+```sh
+npm run native:ios:build                  # tracker (default)
+XOTE_APP=counter npm run native:ios:build # the smaller counter example
+```
+
+Re-running the build is enough — Xcode picks up the new resource on the next
+launch, with no need to regenerate the project.
 
 The bundle is a build artifact and is not committed, so `native:ios:build` has
 to run **before** `xcodegen generate` — the resources phase globs the directory
@@ -133,10 +144,10 @@ measure callback into `NSAttributedString.boundingRect`, so the host answers
 A `scroll` is two boxes — the frame its parent positions, and a content box free
 to be longer than it — and the style is split between them.
 
-**Also missing:** text measurement is `UILabel`'s own (fine, but it means the
+**Also missing:** `XOTE_APP` is a list in `bootstrap.mjs` rather than an entry
+point an app declares, text measurement is `UILabel`'s own (fine, but it means the
 app thread never learns any size), `onLayout` and `onScroll` are not raised,
-images load with no cache, there is no view recycling on `destroy`, and the app
-that gets mounted is hard-coded to `CounterApp` in `bootstrap.mjs`.
+images load with no cache, and there is no view recycling on `destroy`.
 
 ## When it does not work
 

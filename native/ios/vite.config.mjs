@@ -4,8 +4,11 @@ import { fileURLToPath } from "node:url";
 /* One classic script, no imports, no `export` — what JavaScriptCore can
  * evaluate. Minification is off so the bundle stays readable in the Xcode
  * debugger; a shipping app would turn it on. */
+const app = process.env.XOTE_APP ?? "tracker";
+
 export default defineConfig({
   root: fileURLToPath(new URL(".", import.meta.url)),
+  define: { __XOTE_APP__: JSON.stringify(app) },
   build: {
     outDir: "XoteNative/Resources",
     emptyOutDir: false,
