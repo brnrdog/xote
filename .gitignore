@@ -4,6 +4,7 @@
 /dist/
 /examples/*/dist/
 /native/example/dist/
+/native/ios/XoteNative/Resources/xote-app.js
 /benchmarks/node_modules/
 /benchmarks/dist/
 .bsb.lock

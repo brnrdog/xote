@@ -106,6 +106,8 @@
     "test:exports": "node tests/PublicExports_test.mjs",
     "test:boundary": "node scripts/consumer-boundary-test.mjs",
     "native:test": "npx rescript && node native/test/Native_test.mjs",
+    "native:ios:build": "npx rescript && vite build --config native/ios/vite.config.mjs",
+    "native:ios:test": "npm run native:ios:build && node native/ios/test/bundle_test.mjs",
     "native:preview": "vite --config native/example/vite.config.mjs",
     "native:build": "vite build --config native/example/vite.config.mjs",
     "ppx:build": "sh ppx/build.sh",

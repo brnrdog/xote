@@ -11,7 +11,10 @@ Run it:
 ```sh
 npm run native:test      # end-to-end against the reference host
 npm run native:preview   # open http://localhost:3100/preview.html
+npm run native:ios:test  # the shipped iOS bundle, in a realm with no DOM
 ```
+
+To run it on an iOS simulator, see [`ios/README.md`](./ios/README.md).
 
 ![The example app running against the preview host, with the bridge traffic beside it](./example/preview.png)
 
@@ -147,6 +150,7 @@ rather than failing later.)
 | `example/CounterApp.res` | A screen: counter, keyed list, conditional region. |
 | `example/PanelApp.res` | The same primitives without JSX. |
 | `test/Native_test.mjs` | End-to-end, asserting *how much* crosses the bridge. |
+| `ios/` | A third host: JavaScriptCore + UIKit, for running this on a simulator. See `ios/README.md`. |
 
 A native screen looks like this — note that `@@jsxConfig` switches JSX modules
 per file, so native screens and web pages can live in one project:
@@ -242,6 +246,12 @@ final class XoteHost {
   }
 }
 ```
+
+`native/ios/` is that sketch, filled in: `XoteBridge.swift` owns a `JSContext`,
+`XoteHost.swift` is the switch above against real `UIView`s, and
+`npm run native:ios:build` produces the bundle it evaluates. Its layout is
+`UIStackView` rather than Yoga, which is the approximation that keeps it small
+enough to read in one sitting — and the first thing a real host would replace.
 
 The hard parts are the ones every native framework has:
 

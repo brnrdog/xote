@@ -1,0 +1,29 @@
+# XcodeGen project: `xcodegen generate` in this directory produces
+# XoteNativeExample.xcodeproj. Nothing about the host needs XcodeGen — it is
+# here so the repository does not have to carry a generated .xcodeproj.
+name: XoteNativeExample
+options:
+  bundleIdPrefix: dev.xote
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+
+targets:
+  XoteNativeExample:
+    type: application
+    platform: iOS
+    sources:
+      - path: XoteNative/Sources
+      - path: App
+        excludes:
+          - Info.plist
+      - path: XoteNative/Resources
+        buildPhase: resources
+    info:
+      path: App/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.xote.native.example
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: NO

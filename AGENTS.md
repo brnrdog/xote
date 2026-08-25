@@ -38,6 +38,7 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - `npm run native:test` - End-to-end test of the native rendering prototype
 - `npm run native:preview` - Serve the example screen against the browser preview host (http://localhost:3100/preview.html)
 - `npm run native:build` - Build the preview bundle
+- `npm run native:ios:build` / `npm run native:ios:test` - Bundle the app for the iOS host, and run it in a bare realm (no DOM, no `console`, no timers) that stands in for JavaScriptCore. `native/ios/` also carries an unverified UIKit host — see `native/ios/README.md`.
 - `native/` explores rendering Xote to native mobile views the way React Native does for React. It is a **prototype**: not published, not API-stable, and it changes nothing in `src/`. `native` is listed in `rescript.json` `sources` as a dev directory, so `npm run res:build` covers it, and it is absent from `package.json` `files`, so it does not ship. See `native/README.md` for the architecture, the eight-command bridge protocol, and the four core changes it wants.
 
 ### Documentation
