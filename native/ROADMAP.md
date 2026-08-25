@@ -190,16 +190,31 @@ Roughly in the order you will hit them.
 
 ---
 
-## What to measure before investing further
+## The premise, measured
 
-The premise of the whole thing is that fine-grained reactivity makes the bridge
-cheap: no diff, so a signal change costs the mutations it implies and nothing
-else. On the example screen that is 91 commands to mount, 1 to tap, 3 to toggle
-a row.
+This section used to say the premise had only been demonstrated on a counter,
+and that a real screen should be built before investing further. That screen
+exists: [`native/example/tracker/`](./example/tracker/) is an issue tracker over
+five thousand issues with a live search, filters, a windowed list and a second
+screen, and `npm run native:measure` prints what every interaction costs.
 
-That is a counter. **Build one screen at the scale of a real app** — a few
-hundred nodes, a scrolling list, a form — and measure the same three numbers,
-plus time-to-first-paint and the cost of a scroll frame. If the stream stays
-proportional to what actually changed, the architecture is worth the year. If it
-does not, the finding is more valuable than any of the work above, and it is a
-week to get it.
+**It holds.** Every number tracks what changed on screen, and none of them
+tracks the dataset: the screen holds under 300 views, the largest single
+operation is a screenful, and changing one issue's status is 8 commands with
+nothing created or destroyed. Scrolling within a row is free.
+
+The honest counterweight is in the same table: changing a filter costs ~880
+commands, because changing a filter changes which issues are visible and a
+screenful of rows really is rebuilt. That is proportional to the screen rather
+than to the data behind it, which is the claim — it is not free, which was never
+the claim.
+
+So the architecture is worth the rest of the work. What the exercise also
+produced was two bugs worth keeping in mind, both written up in the example's
+README: a component that creates state has to *be* a component, or its effects
+belong to whatever reactive region called it; and `int` multiplication in
+ReScript is `Math.imul`, which wraps.
+
+What is worth measuring next is a device, not a headless host — command counts
+say nothing about frame time, and the numbers above are the input to that
+question rather than the answer.

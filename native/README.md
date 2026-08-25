@@ -153,6 +153,7 @@ rather than failing later.)
 | `NativeApp.res` | `mount`. |
 | `example/CounterApp.res` | A screen: counter, keyed list, conditional region. |
 | `example/PanelApp.res` | The same primitives without JSX. |
+| `example/tracker/` | An issue tracker over 5,000 issues — the example that measures the premise. |
 | `test/Native_test.mjs` | End-to-end, asserting *how much* crosses the bridge. |
 | `ios/` | A third host: JavaScriptCore + UIKit, for running this on a simulator. See `ios/README.md`. |
 

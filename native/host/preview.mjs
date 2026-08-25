@@ -135,7 +135,15 @@ export function createPreviewHost(mount, { onBatch, dispatch } = {}) {
         node.el.setAttribute("aria-label", value ?? "");
         break;
       case "numberOfLines":
-        node.el.style.webkitLineClamp = value ?? "";
+        // `-webkit-line-clamp` only does anything inside a `-webkit-box`.
+        if (value) {
+          node.el.style.display = "-webkit-box";
+          node.el.style.webkitBoxOrient = "vertical";
+          node.el.style.webkitLineClamp = String(value);
+          node.el.style.overflow = "hidden";
+        } else {
+          node.el.style.webkitLineClamp = "";
+        }
         break;
       default:
         break;

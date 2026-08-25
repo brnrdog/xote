@@ -38,56 +38,71 @@ let make = (
   ~style: option<Style.t>=?,
   ~attrs: array<(string, View.attrValue)>=[],
   (),
-): View.node => {
-  let scrollTop = Signal.make(0.0)
-  let viewport = Signal.make(0.0)
-  let range = Signal.make((0, 0), ~equals=sameRange)
+): View.node => /* The whole body is deferred into a component, and that is not a detail.
+   `Effect.run` executes immediately, so building the list *inside* a reactive
+   region — a `View.tracked` block choosing between the list and an empty
+   state, say — would register the effect's reads as that region's
+   dependencies. The region would then rebuild the list every time the scroll
+   position changed, the rebuilt list would report its layout again, and the
+   two would drive each other in a loop.
 
-  Effect.run(() => {
-    let total = Signal.get(items)->Array.length
-    let top = Signal.get(scrollTop)
-    let height = Signal.get(viewport)
+   A `LazyComponent` body is invoked untracked and in its own scope, which
+   makes the reads private and hands the effect to the node that owns it. */
+View.LazyComponent(
+  () => {
+    let scrollTop = Signal.make(0.0)
+    let viewport = Signal.make(0.0)
+    let range = Signal.make((0, 0), ~equals=sameRange)
 
-    let firstVisible = Int.fromFloat(top /. rowHeight)
-    let first = firstVisible - overscan
-    let first = first < 0 ? 0 : first
-    let onScreen = Int.fromFloat(Math.ceil(height /. rowHeight))
-    let last = first + onScreen + overscan * 2 + 1
-    let last = last > total ? total : last
+    Effect.run(() => {
+      let total = Signal.get(items)->Array.length
+      let top = Signal.get(scrollTop)
+      let height = Signal.get(viewport)
 
-    Signal.set(range, (first, last > first ? last : first))
-    None
-  })
+      let firstVisible = Int.fromFloat(top /. rowHeight)
+      let first = firstVisible - overscan
+      let first = first < 0 ? 0 : first
+      let onScreen = Int.fromFloat(Math.ceil(height /. rowHeight))
+      let last = first + onScreen + overscan * 2 + 1
+      let last = last > total ? total : last
 
-  let window = Computed.make(() => {
-    let (first, last) = Signal.get(range)
-    Signal.get(items)->Array.slice(~start=first, ~end=last)
-  })
-
-  /* The rows that are not rendered are still occupying space, or the scroll
-   would jump every time the window moved. */
-  let spacing = Computed.make(() => {
-    let (first, last) = Signal.get(range)
-    let total = Signal.get(items)->Array.length
-    Style.make({
-      paddingTop: Style.pt(Int.toFloat(first) *. rowHeight),
-      paddingBottom: Style.pt(Int.toFloat(total - last) *. rowHeight),
+      Signal.set(range, (first, last > first ? last : first))
+      None
     })
-  })
 
-  Native.scroll(
-    ~style?,
-    ~attrs,
-    ~events=[
-      ("scroll", NativeEvent.handler((event: NativeEvent.scroll) => Signal.set(scrollTop, event.y))),
-      (
-        "layout",
-        NativeEvent.handler((event: NativeEvent.layout) => Signal.set(viewport, event.height)),
-      ),
-    ],
-    ~children=[
-      Native.view(~styleSignal=spacing, ~children=[View.eachWithKey(window, key, renderRow)], ()),
-    ],
-    (),
-  )
-}
+    let window = Computed.make(() => {
+      let (first, last) = Signal.get(range)
+      Signal.get(items)->Array.slice(~start=first, ~end=last)
+    })
+
+    /* The rows that are not rendered are still occupying space, or the scroll
+     would jump every time the window moved. */
+    let spacing = Computed.make(() => {
+      let (first, last) = Signal.get(range)
+      let total = Signal.get(items)->Array.length
+      Style.make({
+        paddingTop: Style.pt(Int.toFloat(first) *. rowHeight),
+        paddingBottom: Style.pt(Int.toFloat(total - last) *. rowHeight),
+      })
+    })
+
+    Native.scroll(
+      ~style?,
+      ~attrs,
+      ~events=[
+        (
+          "scroll",
+          NativeEvent.handler((event: NativeEvent.scroll) => Signal.set(scrollTop, event.y)),
+        ),
+        (
+          "layout",
+          NativeEvent.handler((event: NativeEvent.layout) => Signal.set(viewport, event.height)),
+        ),
+      ],
+      ~children=[
+        Native.view(~styleSignal=spacing, ~children=[View.eachWithKey(window, key, renderRow)], ()),
+      ],
+      (),
+    )
+  },
+)
