@@ -11,10 +11,6 @@ final class XoteViewController: UIViewController {
     super.viewDidLoad()
 
     view.backgroundColor = .black
-    // Pinned to the full view rather than the safe area, so the app's own
-    // padding decides where content starts — the same as in the web preview.
-    container.frame = view.bounds
-    container.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     view.addSubview(container)
 
     let host = XoteHost(rootView: container)
@@ -26,6 +22,11 @@ final class XoteViewController: UIViewController {
 
   override func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
+    // The container is sized here rather than in `viewDidLoad`, where the
+    // view's own bounds are not final yet. It covers the whole view rather
+    // than the safe area, so the app's own padding decides where content
+    // starts — the same as in the web preview.
+    container.frame = view.bounds
     // Rotation, a split-screen resize, the first pass after the view has a
     // size: the tree is laid out again against whatever the root is now.
     host?.layoutNow()

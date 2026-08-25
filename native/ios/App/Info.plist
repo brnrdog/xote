@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- XcodeGen writes over this file from `project.yml`'s `info.properties`.
+     It is kept in the repository for the build-it-by-hand route, and the two
+     must say the same thing — `UILaunchScreen` above all, without which iOS
+     runs the app letterboxed at a legacy screen size. -->
 <plist version="1.0">
 <dict>
   <key>CFBundleDevelopmentRegion</key>
@@ -22,6 +26,8 @@
   <true/>
   <key>UILaunchScreen</key>
   <dict/>
+  <key>UIApplicationSupportsIndirectInputEvents</key>
+  <true/>
   <key>UIUserInterfaceStyle</key>
   <string>Dark</string>
   <key>UISupportedInterfaceOrientations</key>

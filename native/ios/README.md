@@ -149,6 +149,28 @@ point an app declares, text measurement is `UILabel`'s own (fine, but it means t
 app thread never learns any size), `onLayout` and `onScroll` are not raised,
 images load with no cache, and there is no view recycling on `destroy`.
 
+## Three things that look like layout bugs and are not
+
+All three were found the first time the tracker ran on a simulator, and all
+three are host bugs rather than anything the layout engine computed wrong.
+Worth knowing, because each one *presents* as "flexbox is broken".
+
+**The app runs in a letterboxed band with black above and below.** A missing
+launch screen. Without `UILaunchScreen`, iOS runs an app at a legacy screen size
+and scales it, so the window never fills the device. The trap here is that
+XcodeGen **writes** `App/Info.plist` from `project.yml` rather than reading the
+one in the repository — so a key that is only in the file is a key the build
+does not have. It is declared in `info.properties` now.
+
+**Content scrolls up over the header.** `UIScrollView` clips by default and must
+keep doing so: its content is larger than its frame by definition, and the parts
+scrolled out of view are still drawn — over whatever is above it. The host was
+applying `overflow: visible` (the flexbox default, and the right default for a
+box) to scroll views as well.
+
+**Text renders on top of other text.** The same bug. A list drawn across the
+header looks exactly like two versions of a label at once.
+
 ## When it does not work
 
 - **`fatalError: xote-app.js is not in the bundle`** — the resources phase does
@@ -159,5 +181,7 @@ images load with no cache, and there is no view recycling on `destroy`.
 - **Everything renders but nothing responds** — a `listen` command reached a
   view that cannot take a gesture recogniser. Check the opcode stream with
   `npm run native:preview`, which prints every batch beside the screen.
-- **The layout is subtly wrong** — expected; see above. Compare against the
-  preview, which is real flexbox, to tell an approximation bug from an app bug.
+- **The layout is wrong** — check the three cases above first. Otherwise compare
+  against `npm run native:preview`, which lays the same app out with real
+  browser flexbox: if the preview is right and the device is not, the bug is in
+  `XoteLayout.swift` or the host, and `XoteConformanceTests` is where to pin it.

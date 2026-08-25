@@ -169,11 +169,19 @@ final class XoteHost {
     var childOrigin = CGPoint.zero
     if let view = node.view as? UIView {
       if view !== rootView {
+        // Round the *edges*, not the position and size separately. Rounding a
+        // size independently of where it starts lets two boxes that share an
+        // edge in the layout end up a point apart on screen — a seam under one
+        // row, an overlap under the next.
+        let left = origin.x + node.frame.left
+        let top = origin.y + node.frame.top
+        let x = left.rounded()
+        let y = top.rounded()
         view.frame = CGRect(
-          x: (origin.x + node.frame.left).rounded(),
-          y: (origin.y + node.frame.top).rounded(),
-          width: node.frame.width.rounded(),
-          height: node.frame.height.rounded()
+          x: x,
+          y: y,
+          width: (left + node.frame.width).rounded() - x,
+          height: (top + node.frame.height).rounded() - y
         )
       }
       if let scroll = view as? UIScrollView, let content = node.children.first {
@@ -215,6 +223,10 @@ final class XoteHost {
       view = UITextField()
     case "scroll":
       let scroll = UIScrollView()
+      // Every frame in the tree is computed by the layout engine, so UIKit
+      // must not add safe-area insets of its own on top of them — that shifts
+      // the content by the notch and nothing else knows it happened.
+      scroll.contentInsetAdjustmentBehavior = .never
       let content = XoteLayoutNode()
       contentNodes[id] = content
       node.children = [content]
@@ -422,9 +434,19 @@ final class XoteHost {
 
     let radius = style.number("borderRadius") ?? 0
     view.layer.cornerRadius = radius
-    view.clipsToBounds = radius > 0 || style.string("overflow") == "hidden"
     view.layer.borderWidth = style.number("borderWidth") ?? 0
     view.layer.borderColor = style.color("borderColor")?.cgColor
+
+    // `overflow: visible` is the flexbox default and the right default for a
+    // box — but a scroll view is not a box. It clips as a condition of working:
+    // its content is larger than its frame by definition, and the parts that
+    // have scrolled out are still drawn, over whatever is above it. Turning
+    // that off is how a list ends up painted across the header.
+    if view is UIScrollView {
+      view.clipsToBounds = true
+    } else {
+      view.clipsToBounds = radius > 0 || style.string("overflow") == "hidden"
+    }
 
     if let label = view as? UILabel {
       fonts[id] = style.font

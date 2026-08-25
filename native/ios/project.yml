@@ -19,8 +19,21 @@ targets:
           - Info.plist
       - path: XoteNative/Resources
         buildPhase: resources
+    # XcodeGen *writes* this file rather than reading it, so every key the app
+    # needs has to be declared here. `UILaunchScreen` is the one that matters:
+    # without it iOS runs the app letterboxed at a legacy screen size, which
+    # looks like a layout bug — black bands above and below, and a window that
+    # will not fill the device.
     info:
       path: App/Info.plist
+      properties:
+        UILaunchScreen: {}
+        UIUserInterfaceStyle: Dark
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIApplicationSupportsIndirectInputEvents: true
+        CFBundleShortVersionString: "0.1"
+        CFBundleVersion: "1"
+        LSRequiresIPhoneOS: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.xote.native.example
