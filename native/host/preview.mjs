@@ -67,6 +67,8 @@ const toCss = (style) => {
 
 const EVENT_MAP = {
   press: "click",
+  layout: null, // reported after a batch rather than by a DOM event
+
   pressIn: "pointerdown",
   pressOut: "pointerup",
   changeText: "input",
@@ -83,6 +85,8 @@ const EVENT_MAP = {
 export function createPreviewHost(mount, { onBatch, dispatch } = {}) {
   const dom = mount.ownerDocument;
   const nodes = new Map();
+  const layoutListeners = new Set();
+  const reported = new Map();
 
   const element = (type) => {
     switch (type) {
@@ -139,8 +143,12 @@ export function createPreviewHost(mount, { onBatch, dispatch } = {}) {
   };
 
   const listen = (node, name) => {
+    if (name === "layout") {
+      layoutListeners.add(node);
+      return;
+    }
     const domEvent = EVENT_MAP[name];
-    if (domEvent === undefined) return;
+    if (domEvent === undefined || domEvent === null) return;
     node.el.addEventListener(domEvent, (event) => {
       if (name === "press") event.stopPropagation();
       dispatch(node.id, name, payloadFor(name, event, node));
@@ -203,6 +211,21 @@ export function createPreviewHost(mount, { onBatch, dispatch } = {}) {
           default:
             throw new Error(`Xote Native preview: unknown opcode ${op}`);
         }
+      }
+      // Nodes that asked where they ended up are told after the batch, and only
+      // when it changed — a list driven by its own layout event would otherwise
+      // never settle.
+      for (const node of layoutListeners) {
+        const box = node.el.getBoundingClientRect();
+        const frame = `${box.width}x${box.height}`;
+        if (reported.get(node.id) === frame) continue;
+        reported.set(node.id, frame);
+        dispatch(node.id, "layout", {
+          x: node.el.offsetLeft,
+          y: node.el.offsetTop,
+          width: box.width,
+          height: box.height,
+        });
       }
       if (onBatch) onBatch(batch);
     },

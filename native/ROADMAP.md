@@ -16,102 +16,87 @@ is shared with B; the things that are only B are marked.
 
 ---
 
-## The thing you already hit
+## What has been done since
 
-Text sizing was not a random rough edge. Two real bugs, both now fixed:
+Items 1–5 of the plan below are largely done, and the sections are marked
+accordingly. The short version:
 
-1. **Every non-flex view was pushed to `.defaultLow` (250) hugging priority.** A
-   `UILabel` defaults to **251** — one point higher — and that single point is
-   how a label says "I am exactly as big as my text". Overriding it made every
-   label the most stretchable thing in its row, so labels got handed space they
-   should have refused. Non-flex views now keep UIKit's own defaults.
-2. **Multi-line labels had no `preferredMaxLayoutWidth`.** A wrapping `UILabel`
-   has no intrinsic height until it knows its width, and inside a stack view it
-   learns its width only after layout — so the first pass measured one line.
-   `XoteLabel` feeds the resolved width back.
+- Layout is a real flexbox engine, checked frame-for-frame against Chromium and
+  transliterated to Swift. `UIStackView`, Auto Layout, and every approximation
+  built on them are gone.
+- There is a host conformance suite: a batch in, a tree and a set of frames out,
+  replayed against both the JavaScript hosts and UIKit.
+- The app runs off the main thread, and failures are contained rather than
+  propagated.
+- The core changes in `xote` are in — opaque attribute values, and host hooks
+  for what a tag means and what a grouping box is.
+- Lists render a window rather than a dataset.
 
-Both are worth understanding as a category, not as two bugs: they are what it
-costs to express flexbox in a layout system that is not flexbox. Which is item
-one below.
+What is left is below.
 
 ---
 
 ## Tier 1 — the rendering model
 
-The foundation. Nothing above this matters if this is wrong.
+**1. Layout. Done.** `native/host/layout.mjs` is a flexbox engine checked
+frame-for-frame against Chromium — 1183 boxes across 196 trees, all agreeing —
+and `XoteLayout.swift` is a transliteration of it. Every box is a plain `UIView`
+with a `frame`.
 
-**1. Replace `UIStackView` with Yoga.** The single highest-value change, by a
-wide margin. Everything currently approximated becomes exact: `position:
-absolute`, percentages, `flexWrap`, `flexShrink`, real per-sibling grow ratios,
-`aspectRatio`, per-child `margin`. It also deletes `XoteBox.slack` and the
-hugging-priority reasoning above, which exist only to talk UIStackView into
-flexbox semantics. Every "minor rendering detail" you will hit from here is the
-same root cause, and this is the fix for all of them at once.
+The roadmap said Yoga, and for a shipping host that is still the right answer.
+This route was taken because the repository cannot verify Swift at all, so an
+unverifiable C++ integration plus an unverifiable bridge was two unknowns
+stacked; a JavaScript engine could be checked against the specification by the
+specification's own implementation. Swapping in Yoga is now a contained change
+with a reference to check it against — and the signal to do it is reaching one
+of the deliberate omissions: `flexWrap`, baseline alignment, `alignContent`, or
+percentage margins and paddings.
 
-**2. Text measurement through Yoga's measure callback.** Once Yoga owns layout,
-a text node is a leaf with a measure function into `NSAttributedString` (and
-`StaticLayout` on Android). That is also where line height, letter spacing,
-truncation modes and nested text runs with mixed styling become expressible —
-none of which the current label path can represent.
+**2. Text measurement. Done.** A `text` node carries a measure callback into
+`NSAttributedString.boundingRect`, and layout asks it how tall the text is at a
+given width. Line height, letter spacing and truncation modes are expressible
+from here; none of them are wired yet.
 
-**3. View flattening.** Every node currently becomes a `UIView`. React Native
+**3. View flattening. Open.** Every node still becomes a `UIView`. React Native
 flattens layout-only views away, because a screen with 400 nodes and 150 real
-drawing surfaces scrolls very differently from one with 400. Xote's projection
-already flattens grouping nodes on the JavaScript side; this is the same idea
-one level down, and it needs Yoga first (the Yoga tree keeps the node, the view
-tree does not).
+drawing surfaces scrolls very differently from one with 400. The layout tree and
+the view tree are already separate objects, which is what this needs — a node
+can stay in one and vanish from the other.
 
-**4. Threading.** `apply` currently runs synchronously on the main thread from
-inside the JavaScript call that produced the batch. That is a deliberate
-prototype choice — it makes the whole thing steppable in a debugger — and it
-means a slow update blocks the UI. Production is: app thread produces batches,
-UI thread applies them and runs one layout pass per batch. The protocol is
-already ordered and self-contained, which is what makes that safe.
+**4. Threading. Done.** The app runs on its own serial queue; only finished
+batches cross to the main queue. A slow update costs a late frame, not a frozen
+one.
 
-**5. View recycling.** `destroy` is the natural place to return a view to a
-pool. Nothing in the protocol prevents it; nothing currently does it.
+**5. View recycling. Open.** `destroy` is the natural place to return a view to
+a pool, and with a windowed list there is now something that would use one.
 
-**6. Error containment.** A JavaScript exception today logs and leaves a frozen
-screen. Real apps need the equivalent of an error boundary — a failed batch that
-does not corrupt the view tree, and a way to report it.
+**6. Error containment. Done.** A handler that throws does not silence its
+siblings, a batch the host cannot apply is dropped without jamming the bridge,
+and a command the host cannot read is skipped rather than discarding the batch.
 
 ---
 
-## Tier 2 — the five core changes in Xote itself
+## Tier 2 — the core changes in Xote itself
 
-Four were in `README.md` before the iOS host existed. The host raises the
-priority of two of them and adds a fifth.
+**1. An opaque `attrValue` payload. Done.** `Opaque`, `OpaqueSignal` and
+`OpaqueCompute` carry a payload the renderer assigns and never inspects.
 
-**1. `attrValue` should carry an opaque payload.** Unchanged, and now proven
-harmless in practice — style objects cross the bridge and arrive as objects.
-Still a cast that should not have to exist.
+**2. A host-neutral grouping node. Done.** `document.createXoteGroup()`. The
+`div`-sniffing heuristic — a correctness hazard sitting on an implementation
+detail of `SignalFragment` — is gone.
 
-**2. A host-neutral grouping node.** This is now a **correctness hazard**, not a
-tidiness one. The shadow document identifies Xote's reactive-region wrapper by
-its tag being `div`. If `SignalFragment` ever renders something else, every
-native app silently grows stray boxes in its layout. A prototype can live with
-a heuristic on an implementation detail; a released package cannot.
+**3. The SVG tag table. Done.** `document.createXoteElement(tag)` lets a host
+decide what its own tags mean.
 
-**3. The SVG tag table in `RuntimeDom`.** Unchanged: `text`, `image`, `line`,
-`mask`, `filter` and `use` are ordinary native view names being routed through
-`createElementNS`. Harmless today because the shadow document ignores the
-namespace, still wrong in shared code.
+**4. Dirty-flag over-propagation in `rescript-signals`. Not ours.** It is a
+dependency. `native/test/signals_pin_test.mjs` pins the behaviour so that the
+day it is fixed upstream, a test fails and the workaround in the example can go.
 
-**4. Dirty-flag over-propagation in `rescript-signals`.** A computed's `~equals`
-stops the notification but not the flag that already propagated, so a downstream
-computed recomputes and notifies anyway. On the web that re-renders a region for
-nothing. On a phone it destroys and rebuilds `UIView`s — with Yoga, a layout
-pass too. The workaround (materialise the condition into a `Signal`) is a thing
-app authors have to know, which is the definition of a leak.
-
-**5. A `RuntimeHost` seam.** Previously "only if a real host proves it is
-needed". A real host now exists, and it proved the shim's implicit interface is
-exactly the two dozen operations already documented — so the seam can be
-designed from evidence rather than guessed. Two things push it over the line:
-the shadow document has to own the process-global `document`, so two Xote apps
-in one JavaScript realm collide; and the DOM path pays for a shim it does not
-need. Benchmark it before committing — the web hot path is measured, and an
-indirection per mutation is not free.
+**5. A `RuntimeHost` seam. Started.** The two hooks above are the seam, at the
+only two points that needed one. Still open: the process-global `document` means
+two Xote apps in one JavaScript realm collide, and whether the remaining
+operations are worth routing through a record at all. Benchmark before
+committing to that — the web hot path is measured.
 
 ---
 
@@ -119,9 +104,13 @@ indirection per mutation is not free.
 
 Roughly in the order you will hit them.
 
-- **Lists.** `eachWithKey` reconciles the whole list; native lists recycle a
-  window of rows. This is the first wall any real app hits, and it needs
-  `onScroll` from the host plus a windowing component. Largest item in this tier.
+- ~~**Lists.**~~ **Done for fixed-height rows.** `NativeList` computes the window
+  instead of the list: the rows on screen are the only ones that exist, and the
+  space above and below is padding on the content box. 10,000 rows cost 54
+  views, and scrolling within a row costs nothing at all, because the range is
+  held in a signal with a structural comparison. Hosts now raise `scroll` and
+  `layout`. **Variable row heights are still open** — they need measured rows and
+  a running offset table, and that is a different component.
 - **Navigation.** `Xote.Router` is `history`-shaped. Native navigation is a stack
   of screens with platform transitions, back gestures and lifecycle. A different
   abstraction, not a port.
@@ -186,19 +175,18 @@ Roughly in the order you will hit them.
 
 ---
 
-## The order I would actually do it in
+## The order from here
 
-1. **Yoga + text measurement.** Everything visual is downstream. Until this
-   lands, every layout bug report is the same bug.
-2. **The host conformance suite.** Cheap, and it makes step 4 and the Android
-   host tractable.
-3. **Threading and error containment.** Small, and they change the shape of the
-   host — better before there is more host.
-4. **The Tier 2 changes in `xote` and `rescript-signals`.** Especially the
-   grouping node, which is a live correctness hazard.
-5. **Lists.** The first wall a real app hits.
-6. **Extract the package, version the protocol.**
-7. **Navigation, then everything else in Tier 3.**
+1. **Extract the package and version the protocol.** The seams are in place and
+   there are now four implementations of the protocol to keep honest.
+2. **Navigation.** The next thing an app cannot be built without.
+3. **Text input, safe area, appearance.** Small individually, and between them
+   the difference between a demo and a screen.
+4. **View flattening and recycling.** Both are performance work, and both want a
+   real screen to measure against first.
+5. **An Android host.** The conformance suite makes this a transliteration and a
+   day of plumbing rather than a week of guessing.
+6. **Gestures and animation.** The hardest remaining design problem.
 
 ---
 

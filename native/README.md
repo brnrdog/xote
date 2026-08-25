@@ -149,6 +149,7 @@ rather than failing later.)
 | `NativeJSX.res` | The JSX module: `<view>`, `<text>`, `<image>`, `<scroll>`, `<input>`, `<pressable>`. |
 | `NativeProp.res` | Untyped JSX values into `View.attrValue`, without stringifying. |
 | `Native.res` | The same primitives without JSX. |
+| `NativeList.res` | A list that renders a window rather than a dataset. |
 | `NativeApp.res` | `mount`. |
 | `example/CounterApp.res` | A screen: counter, keyed list, conditional region. |
 | `example/PanelApp.res` | The same primitives without JSX. |

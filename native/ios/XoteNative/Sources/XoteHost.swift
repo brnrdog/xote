@@ -1,5 +1,18 @@
 import UIKit
 
+/// Reports a scroll view's offset back to the app.
+final class XoteScrollReporter: NSObject, UIScrollViewDelegate {
+  private let report: (CGPoint) -> Void
+
+  init(_ report: @escaping (CGPoint) -> Void) {
+    self.report = report
+  }
+
+  func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    report(scrollView.contentOffset)
+  }
+}
+
 /// Retains a closure so it can be a target for a gesture recogniser or a control.
 final class XoteAction: NSObject {
   private let run: () -> Void
@@ -40,6 +53,11 @@ final class XoteHost {
   private var fonts: [Int: UIFont] = [:]
   private var lineLimits: [Int: Int] = [:]
   private var actions: [Int: [XoteAction]] = [:]
+  private var scrollReporters: [Int: XoteScrollReporter] = [:]
+  /// Nodes that asked to hear about their own frame, and what they were last
+  /// told, so a layout pass that changed nothing says nothing.
+  private var layoutListeners: Set<Int> = []
+  private var reportedFrames: [Int: CGRect] = [:]
   /// Every child of every node, runs included — the shape the conformance
   /// suite compares, and the only place the run order is recorded.
   private var childIds: [Int: [Int]] = [:]
@@ -99,6 +117,9 @@ final class XoteHost {
         fonts[id] = nil
         lineLimits[id] = nil
         childIds[id] = nil
+        scrollReporters[id] = nil
+        layoutListeners.remove(id)
+        reportedFrames[id] = nil
         if let node = nodes[id] { idsByNode[ObjectIdentifier(node)] = nil }
         // Event targets are retained by hand, so they are released by hand: a
         // list that churns rows would otherwise grow a closure per row per pass.
@@ -121,6 +142,23 @@ final class XoteHost {
     guard size.width > 0, size.height > 0 else { return }
     XoteLayout.layout(rootNode, width: size.width, height: size.height)
     applyFrames(rootNode, origin: .zero)
+    reportLayouts()
+  }
+
+  /// Tell the nodes that asked where they ended up. Only when it changed: a
+  /// list driven by its own `layout` event would otherwise never settle.
+  private func reportLayouts() {
+    guard !layoutListeners.isEmpty else { return }
+    let snapshot = conformanceSnapshot().frames
+    for id in layoutListeners {
+      guard let frame = snapshot[id] else { continue }
+      let rect = CGRect(x: frame[0], y: frame[1], width: frame[2], height: frame[3])
+      if reportedFrames[id] == rect { continue }
+      reportedFrames[id] = rect
+      onEvent?(
+        id, "layout",
+        ["x": rect.origin.x, "y": rect.origin.y, "width": rect.width, "height": rect.height])
+    }
   }
 
   /// Walk the layout tree and place the views.
@@ -448,6 +486,17 @@ final class XoteHost {
       view.addGestureRecognizer(
         UILongPressGestureRecognizer(target: action, action: #selector(XoteAction.fire)))
       view.isUserInteractionEnabled = true
+
+    case "scroll":
+      guard let scroll = view as? UIScrollView else { return }
+      let reporter = XoteScrollReporter { [weak self] offset in
+        self?.onEvent?(id, "scroll", ["x": offset.x, "y": offset.y])
+      }
+      scrollReporters[id] = reporter
+      scroll.delegate = reporter
+
+    case "layout":
+      layoutListeners.insert(id)
 
     case "changeText":
       guard let field = view as? UITextField else { return }
