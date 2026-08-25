@@ -193,9 +193,10 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
         RuntimeHydrationMarkers.signalFragmentEndContent,
       )
 
-      /* Create a container div to hold the signal fragment */
-      let container = RuntimeDom.createElement("div")
-      RuntimeDom.setAttribute(container, "style", "display: contents")
+      /* The container a reactive region renders into — the same grouping box
+       the client renderer uses, so a host that has its own concept of one gets
+       it here too. */
+      let container = RuntimeDom.createGroup()
 
       /* Get parent before moving nodes (we need it for insertion) */
       let parent: option<Dom.element> = switch contentNodes->Array.get(0) {
@@ -249,6 +250,14 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
           attrs->Array.forEach(((key, value)) => {
             switch RuntimeNode.resolveAttr(value) {
             | RuntimeNode.ReadStatic(_) => ()
+            /* Server markup carries no opaque value, so hydration writes it
+             rather than trusting what is already there. */
+            | RuntimeNode.ReadOpaque(value) => RuntimeDom.setOpaqueProp(domNode, key, value)
+            | RuntimeNode.ReadOpaqueReactive(read) =>
+              Effect.run(() => {
+                RuntimeDom.setOpaqueProp(domNode, key, read())
+                None
+              })
             | RuntimeNode.ReadReactive(read) =>
               Effect.run(() => {
                 RuntimeDom.setAttrOrProp(domNode, key, read())

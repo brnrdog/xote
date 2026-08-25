@@ -21,6 +21,9 @@ type attrValue = RuntimeNode.attrValue =
   | OptionalStatic(option<string>)
   | OptionalSignalValue(Signal.t<option<string>>)
   | OptionalCompute(unit => option<string>)
+  | Opaque(Obj.t)
+  | OpaqueSignal(Signal.t<Obj.t>)
+  | OpaqueCompute(unit => Obj.t)
 
 /* Virtual node types */
 type rec node = RuntimeNode.node =

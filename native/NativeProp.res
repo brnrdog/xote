@@ -1,17 +1,13 @@
 /* Untyped prop values into `View.attrValue`, without stringifying them.
 
- This is the one place the native layer leans on a representation detail of the
- core. `View.attrValue` declares its payload as `string` because the DOM writes
- strings; at runtime the renderer only ever hands the value straight to
- `setAttrOrProp`, so a style object, a number or a boolean survives the trip
- untouched and arrives at the shadow document as itself.
+ A native prop is a style object, a number, a boolean — things with no HTML
+ spelling and no reason to acquire one. `View.Opaque` is the variant for exactly
+ that: the renderer assigns it and never inspects it, so none of the
+ HTML-attribute rules apply and nothing has to lie about the payload's type.
 
- Nothing about that is accidental — it is exactly `Obj.magic` doing what
- `AGENTS.md` says it does, contained to four functions and hidden behind typed
- props. It is also the strongest argument for the core change this prototype
- wants: an `attrValue` that carries an opaque payload would make every line
- below unnecessary, and would let the web renderer pass objects to custom
- elements for the same reason. */
+ This used to be `Obj.magic` into `Static`, which worked because the renderer
+ never looked — but it was a cast in every direction, and it made the native
+ layer depend on a representation detail of the core rather than on its API. */
 
 let isFunction = (value: 'a): bool => {
   ignore(value)
@@ -23,25 +19,28 @@ let isFunction = (value: 'a): bool => {
  a reactive prop costs no extra computed. */
 let ofUnknown = (key: string, value: 'a): (string, View.attrValue) =>
   if isFunction(value) {
-    (key, View.Compute(Obj.magic(value)))
+    /* A thunk is read inside the attribute's own effect, so a reactive prop
+     costs no extra computed. */
+    (key, View.OpaqueCompute(Obj.magic(value)))
   } else {
     switch MaybeSignal.ofUnknown(value) {
-    | Static(value) => (key, View.Static(Obj.magic(value)))
-    | Reactive(signal) => (key, View.SignalValue(Obj.magic(signal)))
+    | Static(value) => (key, View.Opaque(Obj.magic(value)))
+    | Reactive(signal) => (key, View.OpaqueSignal(Obj.magic(signal)))
     }
   }
 
-/* Typed constructors for the function-based API. */
-let value = (key: string, v: 'a): (string, View.attrValue) => (key, View.Static(Obj.magic(v)))
+/* Typed constructors for the function-based API. `Obj.t` is the erased payload
+ the variant carries, so these are casts of representation, not of meaning. */
+let value = (key: string, v: 'a): (string, View.attrValue) => (key, View.Opaque(Obj.magic(v)))
 
 let signal = (key: string, s: Signal.t<'a>): (string, View.attrValue) => (
   key,
-  View.SignalValue(Obj.magic(s)),
+  View.OpaqueSignal(Obj.magic(s)),
 )
 
 let compute = (key: string, f: unit => 'a): (string, View.attrValue) => (
   key,
-  View.Compute(Obj.magic(f)),
+  View.OpaqueCompute(Obj.magic(f)),
 )
 
 let optional = (key: string, v: option<'a>): array<(string, View.attrValue)> =>

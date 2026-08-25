@@ -21,6 +21,14 @@ type attrValue = RuntimeNode.attrValue =
   | OptionalStatic(option<string>)
   | OptionalSignalValue(Signal.t<option<string>>)
   | OptionalCompute(unit => option<string>)
+  /* A value that is not a string and is not meant to become one: a style
+   object for a native host, a number, a record handed to a custom element's
+   property. The renderer assigns it and never inspects it, so none of the
+   HTML-attribute rules — boolean presence, `"true"`/`"false"` — apply, and
+   server rendering emits it only when it is a scalar. */
+  | Opaque(Obj.t)
+  | OpaqueSignal(Signal.t<Obj.t>)
+  | OpaqueCompute(unit => Obj.t)
 
 /* Virtual node types */
 type rec node = RuntimeNode.node =

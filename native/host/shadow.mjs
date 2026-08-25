@@ -28,16 +28,11 @@ const TEXT_NODE = 3;
 const COMMENT_NODE = 8;
 const DOCUMENT_FRAGMENT_NODE = 11;
 
-/**
- * Tags the projection erases. `div` is the one Xote's core emits on its own —
- * the `SignalFragment` container. A native app never writes `<div>` itself, so
- * treating every `div` as a grouping box is unambiguous.
- */
-const TRANSPARENT_TAGS = new Set(["div"]);
+/** A grouping box is marked as one when it is created, not recognised later. */
+const GROUP_TAG = "#group";
 
 const isProjected = (node) =>
-  node.nodeType === TEXT_NODE ||
-  (node.nodeType === ELEMENT_NODE && !TRANSPARENT_TAGS.has(node.tag));
+  node.nodeType === TEXT_NODE || (node.nodeType === ELEMENT_NODE && node.tag !== GROUP_TAG);
 
 class ShadowNode {
   constructor(doc, nodeType, tag, text) {
@@ -306,6 +301,30 @@ export class ShadowDocument {
 
   createElement(tag) {
     return new ShadowNode(this, ELEMENT_NODE, tag, "");
+  }
+
+  /**
+   * The renderer's hook for "make me an element of this tag".
+   *
+   * Implementing it takes the DOM's SVG namespace table out of the decision —
+   * `text`, `image`, `line`, `mask` and `filter` are SVG on the web and
+   * ordinary view names here.
+   */
+  createXoteElement(tag) {
+    return this.createElement(tag);
+  }
+
+  /**
+   * The renderer's hook for "make me a box to group a reactive region in".
+   *
+   * On the web this is a `<div style="display: contents">`. Here it is a node
+   * that never reaches the host at all: its children are spliced into its
+   * nearest rendered ancestor, because native layout has no such escape and a
+   * stray box in a flex column is a visible bug. Getting told is much better
+   * than the tag-sniffing this replaced.
+   */
+  createXoteGroup() {
+    return new ShadowNode(this, ELEMENT_NODE, GROUP_TAG, "");
   }
 
   // Namespaces are a web concept. Xote routes a fixed list of tag names —

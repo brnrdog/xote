@@ -86,8 +86,57 @@ external addEventListener: (Dom.element, string, Dom.event => unit) => unit = "a
 @set external setChecked: (Dom.element, bool) => unit = "checked"
 @set external setDisabled: (Dom.element, bool) => unit = "disabled"
 
+/* Element creation, and the two places a non-DOM host needs a say.
+
+ `createXoteElement` and `createXoteGroup` are the whole host seam: a document
+ that implements them decides what a tag means and how a reactive region is
+ grouped, and one that does not gets the browser behaviour below, unchanged.
+ Both are one `typeof` per element created, which is nothing next to creating
+ one. */
+let hostCreateElement: string => Nullable.t<Dom.element> = %raw(`function (tag) {
+  return typeof document.createXoteElement === "function" ? document.createXoteElement(tag) : null
+}`)
+
+let hostCreateGroup: unit => Nullable.t<Dom.element> = %raw(`function () {
+  return typeof document.createXoteGroup === "function" ? document.createXoteGroup() : null
+}`)
+
+/* The SVG table is the reason the first hook exists. `text`, `image`, `line`,
+ `mask`, `filter` and `use` are SVG on the web and perfectly ordinary view names
+ elsewhere, so "which namespace is this tag in" is a question only a DOM can
+ answer — and it should not be answered in shared code on everyone's behalf. */
 let createElementForTag = (tag: string): Dom.element =>
-  isSvgTag(tag) ? createElementNS(svgNamespace, tag) : createElement(tag)
+  switch hostCreateElement(tag)->Nullable.toOption {
+  | Some(element) => element
+  | None => isSvgTag(tag) ? createElementNS(svgNamespace, tag) : createElement(tag)
+  }
+
+/* The container a reactive region renders its children into.
+
+ On the web that is a `<div style="display: contents">` — a grouping box the
+ browser erases at layout time. Nothing else has such an escape, so a host that
+ implements `createXoteGroup` is handed the concept directly instead of having
+ to recognise one of these by its tag name. */
+let createGroup = (): Dom.element =>
+  switch hostCreateGroup()->Nullable.toOption {
+  | Some(element) => element
+  | None => {
+      let element = createElement("div")
+      setAttribute(element, "style", "display: contents")
+      element
+    }
+  }
+
+/* Assign a value the renderer never inspects. An opaque attribute is a host
+ property, not an HTML attribute, so none of the presence-or-string rules in
+ `setAttrOrProp` apply to it. */
+let setOpaqueProp: (Dom.element, string, Nullable.t<Obj.t>) => unit = %raw(`function (element, key, value) {
+  if (value === null || value === undefined) {
+    if (typeof element.removeAttribute === "function") element.removeAttribute(key)
+    return
+  }
+  element.setAttribute(key, value)
+}`)
 
 let removeAttrOrProp = (el: Dom.element, key: string): unit => {
   switch key {

@@ -342,8 +342,7 @@ and render = (node: node): Dom.element => {
 
   | SignalFragment(signal) => {
       let owner = createOwner()
-      let container = RuntimeDom.createElement("div")
-      RuntimeDom.setAttribute(container, "style", "display: contents")
+      let container = RuntimeDom.createGroup()
       setOwner(container, owner)
       ownComputed(owner, signal)
       let keyedItems: Dict.t<keyedItem<Obj.t>> = Dict.make()
@@ -376,6 +375,12 @@ and render = (node: node): Dom.element => {
           | ReadReactive(read) =>
             Effect.run(() => {
               RuntimeDom.setAttrOrProp(el, key, read())
+              None
+            })
+          | ReadOpaque(value) => RuntimeDom.setOpaqueProp(el, key, value)
+          | ReadOpaqueReactive(read) =>
+            Effect.run(() => {
+              RuntimeDom.setOpaqueProp(el, key, read())
               None
             })
           }
