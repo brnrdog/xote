@@ -1,5 +1,10 @@
 # What is left
 
+> The findings behind this list — the architecture, the packaging design for a
+> separate `xote-native`, the core changes, and the demo's own good/bad/gaps —
+> are in [`REPORT.md`](./REPORT.md). This file is the ordered work.
+
+
 The prototype renders a real app on a real simulator. That is a much smaller
 claim than "production-ready", and the distance between them depends almost
 entirely on which of these you mean:

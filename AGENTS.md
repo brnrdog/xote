@@ -39,7 +39,7 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - `npm run native:preview` - Serve the example screen against the browser preview host (http://localhost:3100/preview.html)
 - `npm run native:build` - Build the preview bundle
 - `npm run native:ios:build` / `npm run native:ios:test` - Bundle the app for the iOS host, and run it in a bare realm (no DOM, no `console`, no timers) that stands in for JavaScriptCore. `native/ios/` also carries an unverified UIKit host — see `native/ios/README.md`.
-- `native/` explores rendering Xote to native mobile views the way React Native does for React. It is a **prototype**: not published, not API-stable, and it changes nothing in `src/`. `native` is listed in `rescript.json` `sources` as a dev directory, so `npm run res:build` covers it, and it is absent from `package.json` `files`, so it does not ship. See `native/README.md` for the architecture, the eight-command bridge protocol, and the four core changes it wants.
+- `native/` explores rendering Xote to native mobile views the way React Native does for React. It is a **prototype**: not published and not API-stable. `native/REPORT.md` is the write-up of what it found. `native` is listed in `rescript.json` `sources` as a dev directory, so `npm run res:build` covers it, and it is absent from `package.json` `files`, so it does not ship. See `native/README.md` for the architecture and the eight-command bridge protocol; the core changes it wanted are landed and described above.
 
 ### Documentation
 - `npm run docs:start` - Start documentation site
@@ -624,6 +624,7 @@ Hydration.hydrateById(app, "root")
 - **Changelog**: See `docs/CHANGELOG.md` for version history
 - **SSR example**: `examples/ssr/` - Full SSR + hydration setup
 - **Native rendering prototype**: `native/README.md` - what it would take to target native mobile views
+- **Native findings report**: `native/REPORT.md` - how a `xote-native` package would be built on Xote's primitives and packaged separately from the web library, what `xote` had to change, and an assessment of the demo
 - **Native roadmap**: `native/ROADMAP.md` - the gap between the working prototype and something shippable
 - **rescript-signals**: https://brnrdog.github.io/rescript-signals - The reactive primitives library
 - **TC39 Signals proposal**: https://github.com/tc39/proposal-signals

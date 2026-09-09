@@ -1,10 +1,16 @@
 # Xote Native — an exploration
 
 > **Status: prototype.** Everything in this directory runs, and the tests are
-> real, but nothing here is published, nothing is API-stable, and there is no
-> iOS or Android host yet. It exists to answer one question — *what would it
-> actually take to render Xote to native views?* — with running code rather than
-> a proposal.
+> real, but nothing here is published and nothing is API-stable. There is an
+> iOS host in [`ios/`](./ios/) that has run a real screen on a simulator; there
+> is no Android host. It exists to answer one question — *what would it actually
+> take to render Xote to native views?* — with running code rather than a
+> proposal.
+>
+> **The findings are written up in [`REPORT.md`](./REPORT.md)**: how a
+> `xote-native` package would be built on Xote's primitives, how it would be
+> packaged separately from the web library, what `xote` had to change, and an
+> assessment of the demo — the good, the bad, the gaps and the limitations.
 
 Run it:
 
@@ -179,9 +185,17 @@ module Style = NativeStyle
 
 ## What the core would have to change
 
-The prototype deliberately changes nothing in `src/`, which means it works
-around four things instead. Each is a small, real change worth making if this
-becomes a supported target.
+> **Since written: three of these four have landed** — 105 insertions across six
+> files in `src/`. `Opaque`/`OpaqueSignal`/`OpaqueCompute` are real constructors
+> on `View.attrValue`, and `document.createXoteGroup()` /
+> `document.createXoteElement(tag)` are the two host hooks. The fourth is
+> upstream in `rescript-signals` and is pinned by a test rather than worked
+> around. [`REPORT.md` §6](./REPORT.md) is the current state; the four
+> statements below are kept because they are the reasoning that produced them.
+
+The prototype was built deliberately changing nothing in `src/`, which meant it
+worked around four things instead. Each is a small, real change worth making if
+this becomes a supported target.
 
 **1. `attrValue` should carry an opaque payload.** Native props are objects,
 numbers and booleans; `View.attrValue` declares `string`. At runtime the
@@ -254,9 +268,12 @@ final class XoteHost {
 
 `native/ios/` is that sketch, filled in: `XoteBridge.swift` owns a `JSContext`,
 `XoteHost.swift` is the switch above against real `UIView`s, and
-`npm run native:ios:build` produces the bundle it evaluates. Its layout is
-`UIStackView` rather than Yoga, which is the approximation that keeps it small
-enough to read in one sitting — and the first thing a real host would replace.
+`npm run native:ios:build` produces the bundle it evaluates. Its layout is not
+Yoga but a transliteration of `host/layout.mjs` — the flexbox engine checked
+frame-for-frame against Chromium — so every box is a plain `UIView` with a
+`frame` and there is no Auto Layout anywhere. Yoga is still the right answer for
+a shipping host; swapping it in is now a contained change with a reference
+implementation to check it against.
 
 The hard parts are the ones every native framework has:
 
