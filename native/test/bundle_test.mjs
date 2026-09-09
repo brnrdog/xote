@@ -1,11 +1,14 @@
 /**
- * Runs the shipped bundle the way JavaScriptCore will.
+ * Runs the shipped bundle the way an embedded engine will.
  *
- * The Swift host cannot be compiled here, but the half that usually breaks can
- * be: a `vm` context is a fresh realm with the ECMAScript built-ins and nothing
- * else — no DOM, no `console`, no `setTimeout`, no module loader — which is
- * what an embedded `JSContext` looks like before Swift injects anything. If the
- * bundle runs here against nothing but `XoteHost`, it runs there.
+ * Neither host can be compiled here, but the half that usually breaks can be: a
+ * `vm` context is a fresh realm with the ECMAScript built-ins and nothing else
+ * — no DOM, no `console`, no `setTimeout`, no module loader — which is what an
+ * embedded JavaScriptCore, QuickJS or Hermes looks like before the platform
+ * injects anything. If the bundle runs here against nothing but `XoteHost`, it
+ * runs there.
+ *
+ * There is one bundle for both platforms, so this is one test for both.
  */
 
 import assert from "node:assert/strict";
@@ -14,7 +17,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const bundle = readFileSync(
-  fileURLToPath(new URL("../XoteNative/Resources/xote-app.js", import.meta.url)),
+  fileURLToPath(new URL("../bundle/dist/xote-app.js", import.meta.url)),
   "utf8",
 );
 
@@ -85,5 +88,5 @@ if (batches.length === 1) {
 }
 
 console.log(
-  `iOS bundle tests passed — mount is ${mount.length} commands, ${listens.length} listeners`,
+  `bundle tests passed — mount is ${mount.length} commands, ${listens.length} listeners`,
 );

@@ -2,8 +2,8 @@
 
 > **Status: prototype.** Everything in this directory runs, and the tests are
 > real, but nothing here is published and nothing is API-stable. There is an
-> iOS host in [`ios/`](./ios/) that has run a real screen on a simulator; there
-> is no Android host. It exists to answer one question — *what would it actually
+> iOS host in [`hosts/ios/`](./hosts/ios/) that has run a real screen on a
+> simulator, and an Android host in [`hosts/android/`](./hosts/android/). It exists to answer one question — *what would it actually
 > take to render Xote to native views?* — with running code rather than a
 > proposal.
 >
@@ -17,10 +17,11 @@ Run it:
 ```sh
 npm run native:test      # end-to-end against the reference host
 npm run native:preview   # open http://localhost:3100/preview.html
-npm run native:ios:test  # the shipped iOS bundle, in a realm with no DOM
+npm run native:bundle:test  # the shipped bundle, in a realm with no DOM
 ```
 
-To run it on an iOS simulator, see [`ios/README.md`](./ios/README.md).
+To run it on a device, see [`hosts/ios/README.md`](./hosts/ios/README.md) or
+[`hosts/android/README.md`](./hosts/android/README.md).
 
 ![The example app running against the preview host, with the bridge traffic beside it](./example/preview.png)
 
@@ -191,7 +192,9 @@ rather than failing later.)
 | `test/surface_test.mjs` | The types may not promise more than the hosts deliver. |
 | `test/protocol_test.mjs` | The handshake between a bundle and a host that ship separately. |
 | `test/package_test.mjs` | `xote-native` compiled and consumed as its own package. |
-| `ios/` | A third host: JavaScriptCore + UIKit, for running this on a simulator. See `ios/README.md`. |
+| `bundle/` | The app-thread entry point and the bundler. One bundle, every platform. |
+| `hosts/ios/` | JavaScriptCore + UIKit. See `hosts/ios/README.md`. |
+| `hosts/android/` | A JavaScript engine + `android.view`. See `hosts/android/README.md`. |
 
 **The types do not over-promise, and that is enforced.** `NativeStyle` and
 `NativeJSX` declare only what a native host actually reads, because a prop that
@@ -314,9 +317,9 @@ final class XoteHost {
 }
 ```
 
-`native/ios/` is that sketch, filled in: `XoteBridge.swift` owns a `JSContext`,
+`native/hosts/ios/` is that sketch, filled in: `XoteBridge.swift` owns a `JSContext`,
 `XoteHost.swift` is the switch above against real `UIView`s, and
-`npm run native:ios:build` produces the bundle it evaluates. Its layout is not
+`npm run native:bundle` produces the bundle it evaluates. Its layout is not
 Yoga but a transliteration of `host/layout.mjs` — the flexbox engine checked
 frame-for-frame against Chromium — so every box is a plain `UIView` with a
 `frame` and there is no Auto Layout anywhere. Yoga is still the right answer for
@@ -367,7 +370,7 @@ Named so nobody mistakes the scope of this:
 
 ## If this went further
 
-> Since this was written, the iOS host in [`ios/`](./ios/) has run a real screen
+> Since this was written, the iOS host in [`hosts/ios/`](./hosts/ios/) has run a real screen
 > on a simulator. [`ROADMAP.md`](./ROADMAP.md) is the assessment that came out
 > of that: what "production-ready" would mean, in what order, and what to
 > measure before committing to any of it.

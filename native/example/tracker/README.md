@@ -6,10 +6,10 @@ windowed list, a second screen, and a status control that writes one signal.
 ```sh
 npm run native:preview     # http://localhost:3100/tracker.html
 npm run native:measure     # the table below, from a headless host
-npm run native:ios:build   # bundle it for the iOS host — see ../../ios/README.md
+npm run native:bundle      # bundle it for a device — see ../../hosts/
 ```
 
-The tracker is what `npm run native:ios:build` bundles by default; `XOTE_APP=counter`
+The tracker is what `npm run native:bundle` bundles by default; `XOTE_APP=counter`
 picks the smaller example instead.
 
 ![The list screen, with the bridge traffic beside it](./tracker-list.png)

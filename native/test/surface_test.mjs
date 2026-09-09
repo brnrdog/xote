@@ -13,13 +13,18 @@
  *
  * Nothing that renders can catch this: a style key nobody reads produces a
  * correct screen for the app it was not written for. So this reads the ReScript
- * source, the layout engine and the Swift host as text, and asserts they agree
- * about what exists.
+ * source, the layout engine and every native host as text, and asserts they
+ * agree about what exists.
  *
- * It also covers the Swift, which is the only kind of check this repository can
- * run against it — there is no Swift toolchain here (see `ios/README.md`). A
- * name in `capabilities.mjs` that is not a `case` in `XoteHost.swift` fails
- * here rather than on a device.
+ * It also covers the hosts, which is the only kind of check this repository can
+ * run against them — there is no Swift toolchain here and no Android one
+ * either. A name in `capabilities.mjs` that no host dispatches on fails here
+ * rather than on a device.
+ *
+ * And it checks **every** host, not the first one. `xote-native` targets iOS and
+ * Android, and a prop that works on one and silently does nothing on the other
+ * is the same bug as a prop that works nowhere — discovered later, by someone
+ * else, on the platform they happen to be holding.
  */
 
 import assert from "node:assert/strict";
@@ -27,6 +32,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   EVENTS,
+  HOSTS,
   LAYOUT_EDGE_PREFIXES,
   LAYOUT_STYLE,
   PAINT_STYLE,
@@ -35,13 +41,18 @@ import {
 } from "../host/capabilities.mjs";
 
 const read = (path) => readFileSync(fileURLToPath(new URL(`../${path}`, import.meta.url)), "utf8");
+const readAll = (paths) => paths.map(read).join("\n");
 
 const NativeStyle = read("NativeStyle.res");
 const NativeJSX = read("NativeJSX.res");
 const layoutEngine = read("host/layout.mjs");
-const swiftLayout = read("ios/XoteNative/Sources/XoteLayout.swift");
-const swiftHost = read("ios/XoteNative/Sources/XoteHost.swift");
-const swiftStyle = read("ios/XoteNative/Sources/XoteStyle.swift");
+
+assert.ok(HOSTS.length > 0, "there are no native hosts to check against");
+const hosts = HOSTS.map((host) => ({
+  ...host,
+  engineSource: readAll(host.engine),
+  hostSource: readAll(host.host),
+}));
 
 /**
  * The fields of a ReScript record, given the source and how the type is
@@ -98,32 +109,41 @@ for (const alignment of alignments) {
     layoutEngine.includes(`"${alignment}"`),
     `NativeStyle offers alignment ${alignment}, which layout.mjs does not handle`,
   );
-  assert.ok(
-    swiftLayout.includes(`"${alignment}"`),
-    `NativeStyle offers alignment ${alignment}, which XoteLayout.swift does not handle`,
-  );
+  for (const host of hosts) {
+    assert.ok(
+      host.engineSource.includes(`"${alignment}"`),
+      `NativeStyle offers alignment ${alignment}, which the ${host.name} engine does not handle`,
+    );
+  }
 }
 
 /* ---- the two layout engines agree about what they read --------------------- */
 
-// The Swift splits what JavaScript keeps in one file: `XoteStyle` is the reader
-// and `XoteLayout` is the algorithm, so a key can legitimately be named in
-// either. Searching both is the honest translation of "the engine reads it".
-const swiftEngine = swiftLayout + swiftStyle;
-
+// A host splits what JavaScript keeps in one file — a style *reader* and a
+// layout *algorithm* — so a key can legitimately be named in either. Each
+// host's `engine` list is the honest translation of "the engine reads it".
 for (const key of LAYOUT_STYLE) {
   assert.ok(layoutEngine.includes(`.${key}`), `layout.mjs does not read ${key}`);
-  assert.ok(swiftEngine.includes(`"${key}"`), `no Swift engine source reads ${key}`);
+  for (const host of hosts) {
+    assert.ok(
+      host.engineSource.includes(`"${key}"`),
+      `the ${host.name} engine does not read ${key}`,
+    );
+  }
 }
 for (const prefix of LAYOUT_EDGE_PREFIXES) {
   assert.ok(layoutEngine.includes(`"${prefix}"`), `layout.mjs does not read ${prefix}`);
-  assert.ok(swiftEngine.includes(`"${prefix}"`), `no Swift engine source reads ${prefix}`);
+  for (const host of hosts) {
+    assert.ok(
+      host.engineSource.includes(`"${prefix}"`),
+      `the ${host.name} engine does not read ${prefix}`,
+    );
+  }
 }
 for (const key of PAINT_STYLE) {
-  assert.ok(
-    swiftHost.includes(`"${key}"`) || swiftStyle.includes(`"${key}"`),
-    `no Swift source paints ${key}`,
-  );
+  for (const host of hosts) {
+    assert.ok(host.hostSource.includes(`"${key}"`), `the ${host.name} host does not paint ${key}`);
+  }
 }
 
 /* ---- props and events ------------------------------------------------------ */
@@ -155,22 +175,34 @@ assert.deepEqual(
 );
 
 for (const key of PROPS) {
-  assert.ok(swiftHost.includes(`case "${key}"`), `XoteHost.swift has no case for prop ${key}`);
   assert.ok(
     declaredProps.includes(key),
     `host/capabilities.mjs claims prop ${key}, which NativeJSX does not declare`,
   );
+  for (const host of hosts) {
+    assert.ok(
+      host.hostSource.includes(host.dispatch(key)),
+      `the ${host.name} host does not handle prop ${key}`,
+    );
+  }
 }
 for (const name of EVENTS) {
-  assert.ok(swiftHost.includes(`case "${name}"`), `XoteHost.swift has no case for event ${name}`);
   const handler = `on${name[0].toUpperCase()}${name.slice(1)}`;
   assert.ok(
     declaredProps.includes(handler),
     `host/capabilities.mjs claims event ${name}, which NativeJSX does not expose as ${handler}`,
   );
+  for (const host of hosts) {
+    assert.ok(
+      host.hostSource.includes(host.dispatch(name)),
+      `the ${host.name} host does not raise event ${name}`,
+    );
+  }
 }
 
 console.log(
   `surface tests passed — ${declaredStyle.length} style keys, ${propNames.length} props and ` +
-    `${eventNames.length} events, every one of them implemented`,
+    `${eventNames.length} events, every one of them implemented by all ` +
+    `${hosts.length} native host${hosts.length === 1 ? "" : "s"} ` +
+    `(${hosts.map((host) => host.name).join(", ")})`,
 );

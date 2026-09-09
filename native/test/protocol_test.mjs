@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { PROTOCOL_VERSION, checkProtocol, OP, OP_NAME } from "../host/protocol.mjs";
+import { HOSTS } from "../host/capabilities.mjs";
 import { install } from "../host/runtime.mjs";
 
 /* ---- the comparison itself ------------------------------------------------ */
@@ -97,29 +98,36 @@ for (const [name, code] of Object.entries(OP)) {
   assert.equal(typeof OP_NAME[code], "string", `opcode ${name} has no name`);
 }
 
-/* ---- the Swift host declares a range that includes this bundle ------------ */
+/* ---- every host declares a range that includes this bundle ---------------- */
 
-// There is no Swift toolchain here, so this reads the source. It is the only
-// way this repository can find out that the binary and the bundle disagree
-// about the protocol before a device does.
-const swiftHost = readFileSync(
-  fileURLToPath(new URL("../ios/XoteNative/Sources/XoteHost.swift", import.meta.url)),
-  "utf8",
-);
-const declared = (name) => {
-  const found = new RegExp(`${name} = (\\d+)`).exec(swiftHost);
-  assert.ok(found, `XoteHost.swift no longer declares ${name}`);
-  return Number(found[1]);
-};
-const min = declared("protocolMin");
-const max = declared("protocolMax");
-assert.ok(min <= max, `XoteHost.swift declares an empty protocol range ${min}–${max}`);
-assert.ok(
-  min <= PROTOCOL_VERSION && PROTOCOL_VERSION <= max,
-  `the bundle emits protocol ${PROTOCOL_VERSION} and XoteHost.swift speaks ${min}–${max}`,
-);
+// There is no Swift toolchain here and no Android one, so this reads the
+// sources. It is the only way this repository can find out that a binary and
+// the bundle disagree about the protocol before a device does — and it has to
+// cover every host, because a bundle that one platform can apply and the other
+// cannot is a shipped app that works on half the phones.
+assert.ok(HOSTS.length > 0, "there are no native hosts to check against");
+
+const ranges = HOSTS.map((host) => {
+  const source = readFileSync(
+    fileURLToPath(new URL(`../${host.protocol.source}`, import.meta.url)),
+    "utf8",
+  );
+  const declared = (name) => {
+    const found = new RegExp(`${name}\\s*=\\s*(\\d+)`).exec(source);
+    assert.ok(found, `the ${host.name} host no longer declares ${name}`);
+    return Number(found[1]);
+  };
+  const min = declared(host.protocol.min);
+  const max = declared(host.protocol.max);
+  assert.ok(min <= max, `the ${host.name} host declares an empty protocol range ${min}–${max}`);
+  assert.ok(
+    min <= PROTOCOL_VERSION && PROTOCOL_VERSION <= max,
+    `the bundle emits protocol ${PROTOCOL_VERSION} and the ${host.name} host speaks ${min}–${max}`,
+  );
+  return `${host.name} ${min}\u2013${max}`;
+});
 
 console.log(
   `protocol tests passed — bundle speaks version ${PROTOCOL_VERSION}, ` +
-    `${Object.keys(OP).length} opcodes, the UIKit host speaks ${min}\u2013${max}`,
+    `${Object.keys(OP).length} opcodes, hosts speak ${ranges.join(", ")}`,
 );

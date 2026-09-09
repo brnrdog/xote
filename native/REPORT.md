@@ -377,19 +377,38 @@ that the day it is fixed, a test fails and the workaround can go.
 
 ### 5.1 The shape
 
+`xote-native` targets **iOS and Android**, which decides the shape more than
+anything else does: a platform host cannot live inside it. What is portable —
+the ReScript surface, the shadow document, the protocol, the flexbox engine, the
+flattening policy, the view pool, the conformance suite — is one JavaScript
+package. Each platform host is its own artifact in its own toolchain, and the
+conformance suite is the contract between them.
+
 ```
-xote-native/                      xote/  (unchanged, web)
-├── package.json    depends on ──▶ package.json
-├── rescript.json   depends on ──▶ rescript.json   (name: xote, namespace: Xote)
+xote-native/                          xote/  (unchanged, web)
+├── package.json      depends on ──▶ package.json
+├── rescript.json     depends on ──▶ rescript.json  (name: xote, namespace: Xote)
 │     name: xote-native
 │     namespace: true  → XoteNative
-├── src/*.res              NativeStyle, NativeProp, NativeJSX,
-│                          NativeEvent, Native, NativeList, NativeApp
-├── host/*.mjs             shadow document, protocol, layout, hosts
-├── conformance/           the shared suite — the contract for any host
-├── ios/                   the UIKit host (its own package eventually)
+│     compiler-flags: ["-open Xote"]
+├── src/*.res                NativeStyle, NativeProp, NativeJSX,
+│                            NativeEvent, Native, NativeList, NativeApp
+├── src/host/*.mjs           shadow document, protocol, layout, flatten,
+│                            pool, capabilities, the JavaScript hosts
+├── bundle/                  the app-thread entry point and the bundler —
+│                            one bundle, byte-for-byte, for both platforms
+├── conformance/             the suite every host must satisfy
 └── test/
+
+xote-native-ios/       Swift package   ─┐  each consumes the bundle and the
+xote-native-android/   Gradle module  ─┘  conformance suite; neither is a
+                                          dependency of the other
 ```
+
+The alternative — one package with `ios/` and `android/` inside it — makes an
+npm package the distribution channel for a Swift package and a Gradle module,
+which is not what either ecosystem does and would make the JavaScript package
+unpublishable without them.
 
 Today those modules compile as `NativeJSX$Xote` and import `../src/View.res.mjs`
 by relative path, because they live inside the `xote` ReScript package as a dev
@@ -488,7 +507,7 @@ that too, so it stays true.
 |---|---|
 | **Moves** to `xote-native` | `native/*.res`, `native/host/`, `native/conformance/`, `native/test/`, `native/example/`, and the five native npm scripts |
 | **Stays** in `xote` | The two host hooks in `RuntimeDom`, the three `Opaque*` constructors in `RuntimeNode`/`View`, and `tests/OpaqueAttrs_test.mjs` — all of which are web-renderer features that native happens to be the first caller of (§6) |
-| **Moves out again, later** | `native/ios/` wants to be its own artifact — a Swift package, not a directory in a JavaScript one. It is `xote-native`'s reference host, not part of `xote-native` |
+| **Moves out separately** | `native/hosts/ios/` and `native/hosts/android/` each want to be their own artifact — a Swift package and a Gradle module, not directories in a JavaScript one. They are `xote-native`'s reference hosts, not part of it. `native/` is already laid out that way |
 | **Genuinely shared, and a standing cost** | Three pairs are now the same thing written twice — `host/layout.mjs`/`XoteLayout.swift`, `host/flatten.mjs`/`XoteFlatten.swift`, `host/pool.mjs`/`XotePool.swift`. A change to one that is not a change to the other is a change nothing tests. `conformance/suite.json` is the artifact that makes that survivable, and it is why the suite compares the view tree and not only the frames |
 
 ### 5.4 Versioning the protocol
@@ -543,7 +562,7 @@ device.
 
 The rest of the guardrails carry over unchanged: `npm run test:exports` pins the
 public surface, `native:test` replays the layout oracle and the conformance
-suite, and `native:ios:test` runs the shipped bundle in a bare realm with no
+suite, and `native:bundle:test` runs the shipped bundle in a bare realm with no
 DOM, no `console` and no timers, which is what an embedded `JSContext` looks
 like before Swift injects anything.
 
@@ -556,8 +575,9 @@ like before Swift injects anything.
 3. **Lift `native/` into `xote-native`.** The build now says what this costs:
    a `rescript.json` with `-open Xote`, a `package.json` with an `exports` map,
    and `host/` living inside `src/`. No source file changes.
-4. **Split `ios/` out** into a Swift package with the conformance suite as its
-   acceptance test.
+4. **Split the hosts out** — `hosts/ios/` into a Swift package, `hosts/android/`
+   into a Gradle module, each with the conformance suite as its acceptance test.
+   `native/` is already arranged so this is a move rather than an untangling.
 5. **Only then** publish anything.
 
 Steps 1 and 2 were worth doing regardless of whether the package is ever
@@ -811,7 +831,7 @@ containment had a fallback that logged to `console`, inside the `catch` that was
 containing the error. In JSC, before Swift injects a shim, that fallback threw
 *during* containment. It is a nested `try`/`catch` now. The general rule: the
 last line of an error path may not assume anything about its environment.
-`native:ios:test` exists precisely to catch this class — it runs the shipped
+`native:bundle:test` exists precisely to catch this class — it runs the shipped
 bundle in a realm with no `console`, no timers, no `document` and no module
 loader.
 

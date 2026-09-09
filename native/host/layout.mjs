@@ -11,7 +11,7 @@
  * that: `native/test/layout_test.mjs` lays out the same trees in Chromium with
  * real CSS flexbox and asserts the frames match. So the algorithm below is
  * checked against the actual specification, by the actual implementation, and
- * the Swift port in `native/ios/.../XoteLayout.swift` is a transliteration of
+ * the Swift port in `native/hosts/ios/.../XoteLayout.swift` is a transliteration of
  * something known to be right — leaving only Swift syntax unverified instead of
  * the semantics too. It also means the Android host is a second transliteration
  * rather than a second integration.

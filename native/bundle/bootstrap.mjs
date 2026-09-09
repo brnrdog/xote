@@ -1,12 +1,17 @@
-/* The app-thread entry point for the iOS host.
+/* The app-thread entry point, shared by every native host.
  *
- * JavaScriptCore embedded in an app has no DOM, no module loader and no host
- * objects beyond what Swift injects, so this is bundled to a single classic
- * script and talks to Swift through three globals:
+ * An embedded JavaScript engine — JavaScriptCore on iOS, QuickJS or Hermes on
+ * Android — has no DOM, no module loader and no host objects beyond what the
+ * platform injects. So this is bundled to a single classic script and talks to
+ * the platform through three globals, and only three:
  *
- *   XoteHost.apply(json)        injected by Swift — a batch of commands
- *   xoteStart()                 called by Swift once the root view exists
- *   xoteDispatchEvent(...)      called by Swift when a view reports an event
+ *   XoteHost.apply(json)        injected by the host — a batch of commands
+ *   xoteStart()                 called by the host once the root view exists
+ *   xoteDispatchEvent(...)      called by the host when a view reports an event
+ *
+ * Nothing here is platform-specific, and that is the point: the same bundle
+ * byte-for-byte runs on both. A host is a thing that provides those three
+ * globals and can apply eight commands.
  *
  * Flushing is explicit rather than microtask-driven. An embedded JSContext
  * drains its microtask queue when the current call into JavaScript returns,
@@ -34,9 +39,9 @@ const app = apps[__XOTE_APP__] ?? TrackerApp;
 const runtime = install(
   {
     apply: (batch) => globalThis.XoteHost.apply(JSON.stringify(batch)),
-    // Swift declares which protocol versions it can apply; `install` compares
-    // it against what this bundle emits. A host older than the bundle is a
-    // warning, one that has dropped this protocol is a refusal.
+    // The host declares which protocol versions it can apply; `install`
+    // compares it against what this bundle emits. A host older than the bundle
+    // is a warning, one that has dropped this protocol is a refusal.
     protocol: globalThis.XoteHost.protocol,
   },
   { autoFlush: false },

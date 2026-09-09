@@ -17,7 +17,10 @@ targets:
       - path: App
         excludes:
           - Info.plist
-      - path: XoteNative/Resources
+      # The bundle is shared with the Android host and built once, by
+      # `npm run native:bundle`. Referencing the file rather than a directory
+      # means there is no glob to be empty at generation time.
+      - path: ../../bundle/dist/xote-app.js
         buildPhase: resources
     # XcodeGen *writes* this file rather than reading it, so every key the app
     # needs has to be declared here. `UILaunchScreen` is the one that matters:

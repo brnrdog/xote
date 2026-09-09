@@ -8,6 +8,12 @@
  * `NativeJSX` declare has to appear here, and every name here has to appear in
  * the engine or the host that claims to implement it.
  *
+ * It also names the hosts, and where in each of them the implementing code
+ * lives. There is more than one on purpose: `xote-native` targets iOS and
+ * Android, and a capability only counts when *every* native host has it. A prop
+ * that works on one platform and silently does nothing on the other is the same
+ * bug as a prop that works nowhere, discovered later and by someone else.
+ *
  * **The DOM preview host is deliberately not counted.** It assigns the style
  * object straight onto a CSS `style` attribute, so it implements every property
  * CSS happens to share a name with — `lineHeight`, `letterSpacing` and
@@ -21,8 +27,41 @@
  */
 
 /**
- * Style keys the flexbox engine reads. Checked against both `layout.mjs` and
- * `XoteLayout.swift`, which are the same algorithm written twice.
+ * The native hosts, and where each one keeps the code a capability is checked
+ * against. Adding a host is an entry here; the tests loop.
+ *
+ * `dispatch` is how that language spells "handle the prop or event called
+ * `name`" — a `switch` arm in Swift, a `when` branch in Kotlin. Crude, and it
+ * is a real check: there is no Swift or Kotlin toolchain in this repository, so
+ * reading the source as text is the only way a name in this file and a name in
+ * a host can be found to disagree before a device finds out.
+ */
+export const HOSTS = [
+  {
+    name: "ios",
+    language: "Swift",
+    /** The flexbox engine and the style reader. */
+    engine: [
+      "hosts/ios/XoteNative/Sources/XoteLayout.swift",
+      "hosts/ios/XoteNative/Sources/XoteStyle.swift",
+    ],
+    /** Where props are applied, events are raised, and paint happens. */
+    host: [
+      "hosts/ios/XoteNative/Sources/XoteHost.swift",
+      "hosts/ios/XoteNative/Sources/XoteStyle.swift",
+    ],
+    dispatch: (name) => `case "${name}"`,
+    protocol: {
+      source: "hosts/ios/XoteNative/Sources/XoteHost.swift",
+      min: "protocolMin",
+      max: "protocolMax",
+    },
+  },
+];
+
+/**
+ * Style keys the flexbox engine reads. Checked against `layout.mjs` and against
+ * every host's own engine — the same algorithm written once per language.
  *
  * Longhands the engine composes rather than reads by name — `marginTop`,
  * `paddingHorizontal` and the rest — are listed under `LAYOUT_EDGE_PREFIXES`.
@@ -70,7 +109,7 @@ export const LAYOUT_EDGE_SUFFIXES = [
   "Vertical",
 ];
 
-/** Style keys a native host paints. Checked against the Swift sources. */
+/** Style keys a native host paints. Checked against every host's sources. */
 export const PAINT_STYLE = [
   "backgroundColor",
   "opacity",
@@ -87,7 +126,7 @@ export const PAINT_STYLE = [
 
 /**
  * Element props a native host applies, beyond `style`. Checked against the
- * `case "…"` arms of `XoteHost.setProp`.
+ * prop-dispatch arm of every host.
  */
 export const PROPS = [
   "testID",
@@ -103,8 +142,8 @@ export const PROPS = [
 ];
 
 /**
- * Events a native host raises. Checked against the `case "…"` arms of
- * `XoteHost.listen`.
+ * Events a native host raises. Checked against the event-dispatch arm of every
+ * host.
  */
 export const EVENTS = [
   "press",

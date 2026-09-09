@@ -5,7 +5,7 @@
  * the answers it recorded, and it means a case that is wrong fails in
  * JavaScript — where it can be debugged — rather than only in Xcode.
  *
- * `native/ios/XoteNativeTests/XoteConformanceTests.swift` replays the same
+ * `native/hosts/ios/XoteNativeTests/XoteConformanceTests.swift` replays the same
  * JSON against the UIKit host.
  */
 

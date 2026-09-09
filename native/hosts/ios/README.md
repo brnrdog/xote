@@ -39,35 +39,36 @@ native host.
 
 ```sh
 npm install
-npm run native:ios:build         # ReScript → bundle → XoteNative/Resources/xote-app.js
+npm run native:bundle            # ReScript → native/bundle/dist/xote-app.js
 cd native/ios && xcodegen generate
 open XoteNativeExample.xcodeproj
 ```
 
-Pick an iPhone simulator and hit run. You get [the tracker](../example/tracker/):
+Pick an iPhone simulator and hit run. You get [the tracker](../../example/tracker/):
 five thousand issues, a live search, filters, and a detail screen.
 
 **Choosing which example to run.** `XOTE_APP` picks it at build time, and only
 the chosen one ends up in the bundle:
 
 ```sh
-npm run native:ios:build                  # tracker (default)
-XOTE_APP=counter npm run native:ios:build # the smaller counter example
+npm run native:bundle                  # tracker (default)
+XOTE_APP=counter npm run native:bundle # the smaller counter example
 ```
 
 Re-running the build is enough — Xcode picks up the new resource on the next
 launch, with no need to regenerate the project.
 
-The bundle is a build artifact and is not committed, so `native:ios:build` has
-to run **before** `xcodegen generate` — the resources phase globs the directory
-at generation time. Re-running the build after that is enough; Xcode picks up
-the new file on the next launch.
+The bundle is a build artifact and is not committed, so `native:bundle` has to
+run **before** `xcodegen generate`. It is shared with the Android host and lives
+in `native/bundle/dist/`; the resources phase references the file directly, so
+re-running the build after generation is enough and Xcode picks it up on the
+next launch.
 
 **Without XcodeGen:** make a new iOS App project in Xcode (Swift, Storyboard:
 None), delete its `ViewController.swift` and `SceneDelegate.swift`, remove the
 `UIApplicationSceneManifest` key from its `Info.plist`, then drag in
 `XoteNative/Sources/*.swift`, `App/AppDelegate.swift`, and
-`XoteNative/Resources/xote-app.js` (as a resource, "Copy items if needed" off).
+`../../bundle/dist/xote-app.js` (as a resource, "Copy items if needed" off).
 
 ## How it fits together
 
@@ -110,7 +111,8 @@ cannot read is skipped and reported rather than discarding the batch around it
 the app is a thing to survive. Everything contained goes to `XoteBridge.onError`,
 which an app can point at whatever it shows people.
 
-`bootstrap.mjs` is the app-thread entry point, bundled to one classic script
+`../../bundle/bootstrap.mjs` is the app-thread entry point — shared with the
+Android host, because nothing in it is platform-specific — bundled to one classic script
 because JavaScriptCore has no module loader. It flushes explicitly rather than
 on a microtask, so "the batch is on the other side before this call returns" is
 a property you can rely on from Swift.
@@ -118,7 +120,7 @@ a property you can rely on from Swift.
 ## How layout works, and what is missing
 
 > For the full picture — what it would take to make any of this
-> production-ready, in what order — see [`../ROADMAP.md`](../ROADMAP.md).
+> production-ready, in what order — see [`../../ROADMAP.md`](../../ROADMAP.md).
 
 **Layout is a flexbox engine, ported from a tested one.** Every box is a plain
 `UIView` with a `frame`; there is no Auto Layout and no `UIStackView`. Flexbox
@@ -168,7 +170,7 @@ where it was. Both directions, and the round trip, are in the `flattening` case
 of the conformance suite, which compares the **view tree** as well as the frames
 precisely because a flattening mistake leaves every frame correct.
 
-**Also missing:** `XOTE_APP` is a list in `bootstrap.mjs` rather than an entry
+**Also missing:** `XOTE_APP` is a list in `bundle/bootstrap.mjs` rather than an entry
 point an app declares, text measurement is `UILabel`'s own (fine, but it means
 the app thread never learns any size), and images load with no cache.
 
@@ -197,7 +199,7 @@ header looks exactly like two versions of a label at once.
 ## When it does not work
 
 - **`fatalError: xote-app.js is not in the bundle`** — the resources phase does
-  not have it. Run `npm run native:ios:build`, then regenerate the project.
+  not have it. Run `npm run native:bundle`, then regenerate the project.
 - **A blank black screen** — look in the Xcode console for
   `Xote: JavaScript exception`. `XoteBridge` installs a `console` shim, so
   anything the app logs shows up as `Xote JS:`.
