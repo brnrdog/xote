@@ -74,6 +74,16 @@ public final class XoteBridge {
     }
     let hostObject = JSValue(newObjectIn: context)
     hostObject?.setObject(apply, forKeyedSubscript: "apply" as NSString)
+
+    // What this host can apply. `install()` on the other side compares it
+    // against the version the bundle emits and refuses, warns, or says nothing.
+    // The two halves ship separately, so this is the only place either learns
+    // that it is talking to the other one's future.
+    let supported = JSValue(newObjectIn: context)
+    supported?.setObject(XoteHost.protocolMin, forKeyedSubscript: "min" as NSString)
+    supported?.setObject(XoteHost.protocolMax, forKeyedSubscript: "max" as NSString)
+    hostObject?.setObject(supported, forKeyedSubscript: "protocol" as NSString)
+
     context.setObject(hostObject, forKeyedSubscript: "XoteHost" as NSString)
   }
 

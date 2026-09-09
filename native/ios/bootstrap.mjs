@@ -32,7 +32,13 @@ const apps = { counter: CounterApp, tracker: TrackerApp };
 const app = apps[__XOTE_APP__] ?? TrackerApp;
 
 const runtime = install(
-  { apply: (batch) => globalThis.XoteHost.apply(JSON.stringify(batch)) },
+  {
+    apply: (batch) => globalThis.XoteHost.apply(JSON.stringify(batch)),
+    // Swift declares which protocol versions it can apply; `install` compares
+    // it against what this bundle emits. A host older than the bundle is a
+    // warning, one that has dropped this protocol is a refusal.
+    protocol: globalThis.XoteHost.protocol,
+  },
   { autoFlush: false },
 );
 

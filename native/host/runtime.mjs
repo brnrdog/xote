@@ -10,15 +10,34 @@
  */
 
 import { ShadowDocument } from "./shadow.mjs";
+import { PROTOCOL_VERSION, checkProtocol } from "./protocol.mjs";
 
 let installed = null;
 
 /**
- * @param {{ apply: (batch: Array) => void }} host
+ * @param {{ apply: (batch: Array) => void, protocol?: {min: number, max: number} }} host
+ *   `protocol` is the range of bundle protocol versions this host can apply. A
+ *   host that declares nothing is assumed to speak version 1.
  * @param {{ autoFlush?: boolean, onError?: (what: string, error: unknown) => void }} [options]
  */
 export function install(host, options = {}) {
   const { autoFlush = true, onError } = options;
+
+  // The handshake, before anything is rendered into a host that cannot apply
+  // it. A host older than the bundle is a warning: it skips what it does not
+  // know and reports each one, so the screen may be missing something and the
+  // app is still running. A host that has dropped this protocol entirely is an
+  // error, because every alternative to throwing is a silently wrong screen.
+  const agreement = checkProtocol(host?.protocol);
+  if (!agreement.ok) {
+    throw new Error(`Xote Native: incompatible host — ${agreement.reason}`);
+  }
+  if (agreement.degraded) {
+    const message = `Xote Native: ${agreement.reason}`;
+    if (onError !== undefined) onError("protocol", new Error(agreement.reason));
+    else if (typeof console !== "undefined") console.warn(message);
+  }
+
   const doc = new ShadowDocument();
   let scheduled = false;
 
@@ -63,6 +82,8 @@ export function install(host, options = {}) {
   }
   installed = {
     document: doc,
+    /** What this bundle emits, and what the host said it can apply. */
+    protocol: { bundle: PROTOCOL_VERSION, host: host?.protocol ?? null, agreement },
     flush: () => doc.flush(),
     /** Hosts call this when a native view reports an event. */
     dispatchEvent: (id, name, payload) => {

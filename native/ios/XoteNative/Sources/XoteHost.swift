@@ -48,6 +48,17 @@ final class XoteAction: NSObject {
 ///
 /// Everything runs on the main thread; see `XoteBridge`.
 final class XoteHost {
+  /// The range of bundle protocol versions this host can apply.
+  ///
+  /// Declared to the JavaScript side through `XoteBridge`, which is where the
+  /// handshake happens. `max` must keep step with `PROTOCOL_VERSION` in
+  /// `native/host/protocol.mjs`; `native/test/protocol_test.mjs` reads both and
+  /// fails if they drift. `min` moves only when this host genuinely drops
+  /// support for an older bundle, which is the one case that is not survivable
+  /// and the reason there is a floor at all.
+  static let protocolMin = 1
+  static let protocolMax = 1
+
   /// Called when a view reports something. `XoteBridge` forwards it to the app.
   var onEvent: ((Int, String, [String: Any]) -> Void)?
 

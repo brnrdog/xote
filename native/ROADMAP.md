@@ -220,13 +220,18 @@ Roughly in the order you will hit them.
 
 - **Extract `xote-native` into its own package.** It depends on `xote`; it does
   not belong inside it. Blocked on the Tier 2 seams.
-- **Version the protocol.** Three hosts today, two of them in this repository. As
-  soon as one lives in someone else's app, "which opcodes does this host speak"
-  becomes a real question with a real answer.
-- **A host conformance suite.** Host-agnostic: a fixed batch, an expected tree, a
-  set of events. Cheap to write, and it is what makes an Android host — or
-  someone else's host — a day of work instead of a week of guessing. Do this
-  early; it pays for itself immediately.
+- ~~**Version the protocol.**~~ **Done.** `PROTOCOL_VERSION` is 1, a host
+  declares the range of bundle versions it can apply, and `install()` compares
+  them before anything renders. A host *older* than the bundle is a warning —
+  it skips opcodes it does not know and reports each one, so the app runs and
+  the screen may be missing something. A host that has dropped this protocol
+  entirely is a refusal, because every alternative to throwing is a silently
+  wrong screen. The rule that makes the first case survivable is written down
+  where the opcodes are: **opcodes are append-only**, and changing what one
+  means is a different protocol rather than a new version.
+- ~~**A host conformance suite.**~~ **Done.** Host-agnostic: a fixed batch, and
+  the node tree, frames, text and view tree a correct host ends up with.
+  Replayed against the reference host in JavaScript and against UIKit in Xcode.
 - **Snapshot tests against the preview.** The DOM preview host is *real*
   flexbox. Rendering the same screen in both and diffing is a layout-regression
   test that needs no device, and it would have caught the label bug.
@@ -236,8 +241,9 @@ Roughly in the order you will hit them.
 
 ## The order from here
 
-1. **Extract the package and version the protocol.** The seams are in place and
-   there are now four implementations of the protocol to keep honest.
+1. **Extract the package.** The protocol is versioned and the seams are in
+   place; what is left is the packaging itself — see
+   [`REPORT.md` §5.6](./REPORT.md).
 2. **Navigation.** The next thing an app cannot be built without.
 3. **Text input, safe area, appearance.** Small individually, and between them
    the difference between a demo and a screen.

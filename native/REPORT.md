@@ -468,19 +468,33 @@ moment a host lives in someone else's app — a JavaScript bundle updates
 independently of the binary around it, which is the entire point of shipping
 JavaScript.
 
-The forward-compatible half is already built: `XoteCommand.decodeBatch` checks
+The forward-compatible half was already built: `XoteCommand.decodeBatch` checks
 arity, skips an opcode it does not recognise, and reports it, rather than
-discarding the batch around it. What is missing is a number. The proposal:
+discarding the batch around it. What was missing was a number. **That is now
+done**, and the shape it took is worth recording because the interesting part is
+which mismatch is fatal:
 
-- `protocol.mjs` exports `PROTOCOL_VERSION`, starting at `1`.
-- A host declares the range it supports when it installs.
-- `install()` performs the handshake and reports a mismatch through `onError`
-  instead of failing at the first unknown opcode on some later screen.
-- **Opcodes are append-only.** A new capability is a new opcode; changing what
-  an existing opcode means is a major version, because an old host will apply it
-  silently and wrongly.
+- `protocol.mjs` exports `PROTOCOL_VERSION`, at `1`.
+- A host declares `{min, max}` — the range of bundle versions it can apply. A
+  host that declares nothing is assumed to speak 1, which is what every host
+  written before this did.
+- `install()` performs the handshake before anything renders. A host **older**
+  than the bundle is a warning through `onError`: it skips what it does not know
+  and reports each one, so the app runs and the screen may be missing something.
+  Refusing there would turn a partly-drawn screen into no screen at all. A host
+  that has **dropped** this protocol is a refusal, because every alternative to
+  throwing is a silently wrong screen.
+- **Opcodes are append-only.** A new capability is a new opcode and a bump.
+  Changing what an existing opcode *means*, or the arity or order of its
+  arguments, is not a bump — it is a different protocol, because an old host
+  will apply it silently and wrongly, and that is the one failure nothing
+  downstream can detect. There is no mechanism that prevents it; the rule is the
+  mechanism.
 
-That rule is cheap to adopt now and impossible to adopt later.
+On the Swift side `XoteHost.protocolMin`/`protocolMax` are declared and injected
+through the bridge, and `test/protocol_test.mjs` reads them out of the source
+and fails if the binary and the bundle drift apart — which is, again, the only
+kind of check this repository can run against Swift.
 
 ### 5.5 How to know the extraction worked
 
@@ -504,8 +518,7 @@ like before Swift injects anything.
 
 ### 5.6 The order
 
-1. **Version the protocol.** Cheap now, and it is the one thing that gets harder
-   with every host that ships.
+1. ~~**Version the protocol.**~~ **Done** — see above.
 2. **Extend the boundary test to two packages**, still in this repository, with
    `native/` still where it is. This is the step that finds the problems.
 3. **Lift `native/` into `xote-native`**, with the `Xote.` → `XoteNative.`
