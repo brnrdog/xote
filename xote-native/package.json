@@ -1,0 +1,68 @@
+{
+  "name": "xote-native",
+  "version": "0.0.0",
+  "description": "Render Xote to native mobile views",
+  "type": "module",
+  "repository": {
+    "url": "https://github.com/brnrdog/xote",
+    "directory": "xote-native"
+  },
+  "keywords": [
+    "rescript",
+    "signals",
+    "xote",
+    "native",
+    "ios",
+    "android"
+  ],
+  "author": "Bernardo Gurgel <brnrdog@hey.com>",
+  "license": "SEE LICENSE IN ../LICENSE",
+  "private": true,
+  "sideEffects": false,
+  "exports": {
+    "./package.json": "./package.json",
+    "./rescript.json": "./rescript.json",
+    "./style": "./src/NativeStyle.res.mjs",
+    "./prop": "./src/NativeProp.res.mjs",
+    "./event": "./src/NativeEvent.res.mjs",
+    "./jsx": "./src/NativeJSX.res.mjs",
+    "./native": "./src/Native.res.mjs",
+    "./list": "./src/NativeList.res.mjs",
+    "./app": "./src/NativeApp.res.mjs",
+    "./src/Native.res.mjs": "./src/Native.res.mjs",
+    "./src/NativeApp.res.mjs": "./src/NativeApp.res.mjs",
+    "./src/NativeEvent.res.mjs": "./src/NativeEvent.res.mjs",
+    "./src/NativeJSX.res.mjs": "./src/NativeJSX.res.mjs",
+    "./src/NativeList.res.mjs": "./src/NativeList.res.mjs",
+    "./src/NativeProp.res.mjs": "./src/NativeProp.res.mjs",
+    "./src/NativeStyle.res.mjs": "./src/NativeStyle.res.mjs",
+    "./host/*": "./src/host/*"
+  },
+  "files": [
+    "src/**/*.res",
+    "src/**/*.resi",
+    "src/**/*.res.mjs",
+    "src/host/*.mjs",
+    "conformance/suite.json",
+    "rescript.json",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "rescript-signals": "^3.1.0",
+    "xote": "*"
+  },
+  "scripts": {
+    "link": "node scripts/link-workspace.mjs",
+    "res:build": "npm run link && npx rescript",
+    "res:clean": "npx rescript clean",
+    "test": "npm run res:build && node test/surface_test.mjs && node test/protocol_test.mjs && node test/package_test.mjs && node test/layout_test.mjs && node test/conformance_test.mjs && node test/resilience_test.mjs && node test/signals_pin_test.mjs && node test/list_test.mjs && node test/flatten_test.mjs && node test/tracker_test.mjs && node test/Native_test.mjs",
+    "test:package": "npm run res:build && node test/package_test.mjs",
+    "conformance": "node conformance/generate.mjs",
+    "layout:oracle": "node test/layout_oracle.mjs",
+    "measure": "npm run res:build && node test/tracker_test.mjs",
+    "bundle": "npm run res:build && npx vite build --config bundle/vite.config.mjs",
+    "bundle:test": "npm run bundle && node test/bundle_test.mjs",
+    "preview": "npx vite --config example/vite.config.mjs",
+    "preview:build": "npx vite build --config example/vite.config.mjs"
+  }
+}

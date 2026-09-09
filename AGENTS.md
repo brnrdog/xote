@@ -39,8 +39,9 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - `npm run native:package` - Stage `xote` and a synthetic `xote-native` into a temporary `node_modules` and compile a downstream app against both
 - `npm run native:preview` - Serve the example screen against the browser preview host (http://localhost:3100/preview.html)
 - `npm run native:build` - Build the preview bundle
-- `npm run native:bundle` / `npm run native:bundle:test` - Build the one bundle both platforms share, and run it in a bare realm (no DOM, no `console`, no timers) that stands in for an embedded JavaScript engine. `native/hosts/` carries the platform hosts, neither of which this repository can compile — see their READMEs.
-- `native/` explores rendering Xote to native mobile views the way React Native does for React. It is a **prototype**: not published and not API-stable. `native/REPORT.md` is the write-up of what it found. `native` is listed in `rescript.json` `sources` as a dev directory, so `npm run res:build` covers it, and it is absent from `package.json` `files`, so it does not ship. See `native/README.md` for the architecture and the eight-command bridge protocol; the core changes it wanted are landed and described above.
+- `npm run native:bundle` / `npm run native:bundle:test` - Build the one bundle both platforms share, and run it in a bare realm (no DOM, no `console`, no timers) that stands in for an embedded JavaScript engine. `xote-native/hosts/` carries the platform hosts, neither of which this repository can compile — see their READMEs.
+- `xote-native/` renders Xote to native mobile views the way React Native does for React, targeting iOS and Android. It is **its own ReScript and npm package**, not a directory of this one: its own `rescript.json` (namespace `XoteNative`, `-open Xote`, `xote` as a dependency), its own `package.json`, its own tests. `npm run res:build` at the root does **not** build it — `npm --prefix xote-native run res:build` does, and the `native:*` scripts above delegate. It is still a **prototype**: not published and not API-stable. `xote-native/REPORT.md` is the write-up of what it found; `xote-native/README.md` is the architecture and the eight-command bridge protocol.
+- The two packages live in one repository and `xote-native` depends on `xote`, so it needs a `node_modules/xote` to resolve. `xote-native/scripts/link-workspace.mjs` makes that symlink and every script there runs it first; a downstream consumer gets the same thing from `npm install`.
 
 ### Documentation
 - `npm run docs:start` - Start documentation site
@@ -127,7 +128,7 @@ These three are explicit re-export shims (`src/Signal.res`, `src/Computed.res`, 
 
 **Attribute values that are not strings**: `View.attrValue` also carries `Opaque(Obj.t)`, `OpaqueSignal(Signal.t<Obj.t>)` and `OpaqueCompute(unit => Obj.t)`. The renderer assigns these and never inspects them, so none of the HTML-attribute rules apply — no boolean presence, no `"true"`/`"false"`, no stringification. They exist for values with no HTML spelling: a native host's style object, a number, a record handed to a custom element's property. `null`/`undefined` removes the attribute as usual. **SSR emits an opaque value only when it is a scalar** — an object is left out of the markup rather than rendered as `[object Object]`, and hydration writes it on the client. Adding these constructors makes an exhaustive `switch` over `attrValue` in consumer code incomplete; it is an additive change to the type, and leaves the export surface unchanged.
 
-**Host hooks**: `RuntimeDom` consults two optional methods on the ambient `document` before falling back to browser behaviour. `document.createXoteElement(tag)` decides what a tag means, which is what keeps the SVG namespace table (`text`, `image`, `line`, `mask`, `filter`, `use`) from being applied on a non-DOM host's behalf. `document.createXoteGroup()` returns the container a reactive region renders into — a `<div style="display: contents">` on the web — so a host is *told* which boxes are grouping boxes rather than having to recognise them by tag. Both cost one `typeof` per element created, and a document implementing neither behaves exactly as before. `native/host/shadow.mjs` implements both.
+**Host hooks**: `RuntimeDom` consults two optional methods on the ambient `document` before falling back to browser behaviour. `document.createXoteElement(tag)` decides what a tag means, which is what keeps the SVG namespace table (`text`, `image`, `line`, `mask`, `filter`, `use`) from being applied on a non-DOM host's behalf. `document.createXoteGroup()` returns the container a reactive region renders into — a `<div style="display: contents">` on the web — so a host is *told* which boxes are grouping boxes rather than having to recognise them by tag. Both cost one `typeof` per element created, and a document implementing neither behaves exactly as before. `xote-native/src/host/shadow.mjs` implements both.
 
 **Internal modules** (prefixed `Runtime`, no compatibility guarantee): `RuntimeNode` (the `node`/`attrValue` types and `resolveAttr`/`peekAttr`), `RuntimeRender` (DOM rendering and keyed reconciliation), `RuntimeDom`, `RuntimeOwner`, `RuntimeHtml`, `RuntimeAttr`, `RuntimeValue`, `RuntimeJsxProp`, `RuntimeHydrationMarkers`.
 
@@ -624,9 +625,9 @@ Hydration.hydrateById(app, "root")
 - **Technical deep-dive**: See `docs/TECHNICAL_OVERVIEW.md` for detailed architecture
 - **Changelog**: See `docs/CHANGELOG.md` for version history
 - **SSR example**: `examples/ssr/` - Full SSR + hydration setup
-- **Native rendering prototype**: `native/README.md` - what it would take to target native mobile views
-- **Native findings report**: `native/REPORT.md` - how a `xote-native` package would be built on Xote's primitives and packaged separately from the web library, what `xote` had to change, and an assessment of the demo
-- **Native roadmap**: `native/ROADMAP.md` - the gap between the working prototype and something shippable
+- **Native rendering**: `xote-native/README.md` - the architecture, the bridge protocol, and the two hosts
+- **Native findings report**: `xote-native/REPORT.md` - how a `xote-native` package would be built on Xote's primitives and packaged separately from the web library, what `xote` had to change, and an assessment of the demo
+- **Native roadmap**: `xote-native/ROADMAP.md` - the gap between the working prototype and something shippable
 - **rescript-signals**: https://brnrdog.github.io/rescript-signals - The reactive primitives library
 - **TC39 Signals proposal**: https://github.com/tc39/proposal-signals
 - **ReScript JSX**: https://rescript-lang.org/docs/manual/latest/jsx

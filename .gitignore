@@ -3,8 +3,14 @@
 /lib/
 /dist/
 /examples/*/dist/
-/native/example/dist/
-/native/bundle/dist/
+
+# The xote-native package: its own build output, and the `node_modules/xote`
+# symlink `scripts/link-workspace.mjs` makes so it can resolve the package next
+# door.
+/xote-native/node_modules/
+/xote-native/lib/
+/xote-native/bundle/dist/
+/xote-native/example/dist/
 /benchmarks/node_modules/
 /benchmarks/dist/
 .bsb.lock
@@ -35,7 +41,7 @@ bundle-size-*.json
 /tests/consumer/probe/
 
 # Android host build output — the SDK and Gradle are not available here.
-/native/hosts/android/.gradle/
-/native/hosts/android/build/
-/native/hosts/android/app/build/
-/native/hosts/android/local.properties
+/xote-native/hosts/android/.gradle/
+/xote-native/hosts/android/build/
+/xote-native/hosts/android/app/build/
+/xote-native/hosts/android/local.properties
