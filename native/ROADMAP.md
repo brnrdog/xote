@@ -195,12 +195,27 @@ Roughly in the order you will hit them.
 
 ## Tier 4 — platform and tooling
 
-- **Android.** The protocol has three independent implementations already
-  (headless, DOM preview, UIKit), which is decent evidence it is genuinely
-  host-agnostic. A Kotlin host is the fourth, and it is the test of that claim.
-- **Hermes instead of JavaScriptCore.** Bytecode precompilation, much better
-  startup and memory. JSC was the right call for a prototype because it ships
-  with iOS; it is not the right call for an app.
+- ~~**Android.**~~ **Written, never run.** `hosts/android/` is a Kotlin host:
+  the eight commands against `android.view`, the layout engine transliterated a
+  third time, the same flattening policy and view pool, text through
+  `StaticLayout`, and `XoteConformanceTest` replaying the shared suite against
+  real views.
+
+  It was the test of whether the protocol is host-agnostic, and the answer is
+  mostly yes: nothing in `native/host/`, `native/*.res` or the bundle changed to
+  accommodate it, and the capability manifest and protocol handshake passed
+  against the Kotlin on the first run. Four things differ and none is visible to
+  an app — a box must be a `ViewGroup`, points are not pixels, a `scroll` has to
+  scroll itself, and there is no JavaScript engine in the platform. See
+  [`hosts/android/README.md`](./hosts/android/README.md).
+
+  It has never been compiled. That is a weaker claim than iOS can make, and the
+  conformance suite is what would close it.
+- **A real JavaScript engine.** Bytecode precompilation, much better startup and
+  memory. JavaScriptCore was the right call for the iOS prototype because it
+  ships with iOS; `WebView` is the equivalent shortcut on Android and a worse
+  one. Hermes or QuickJS is the answer on both, and the Android host already has
+  the seam for it — `XoteJsRuntime` is two methods.
 - **Bundler.** Today: Vite to one IIFE, no source maps, no code splitting, no
   asset resolution, and the mounted app is hard-coded in `bootstrap.mjs`. Needs
   at minimum an entry-point API, source maps that survive into the JSC console,
@@ -254,8 +269,8 @@ Roughly in the order you will hit them.
 2. **Navigation.** The next thing an app cannot be built without.
 3. **Text input, safe area, appearance.** Small individually, and between them
    the difference between a demo and a screen.
-4. **An Android host.** The conformance suite makes this a transliteration and a
-   day of plumbing rather than a week of guessing.
+4. **Run the Android host.** It is written; nothing here can build it. One
+   afternoon with an SDK and the conformance suite would settle it.
 5. **Gestures and animation.** The hardest remaining design problem.
 
 Flattening and recycling used to sit at position 4 on this list, waiting for a

@@ -37,7 +37,7 @@ reconciler and no diff anywhere in the pipeline.
 |---|---|
 | Changes to `src/` | **105 insertions, 6 deletions, 6 files.** Nothing removed, nothing renamed, no export surface change |
 | The bridge | **8 opcodes**, one flat array each |
-| Host implementations | **4** — headless reference, DOM preview, UIKit, and the layout-only reference |
+| Host implementations | **5** — headless reference, layout-only reference, DOM preview, UIKit, Android |
 | ReScript surface added | 590 lines across 7 modules (`native/*.res`) |
 | JavaScript host runtime | 2,442 lines (`native/host/*.mjs`) |
 | Swift | 2,154 lines (`native/ios/`), **never compiled in this repository** |
@@ -798,7 +798,7 @@ What is left, roughly in the order an app author would hit it:
 | Accessibility | `accessibilityLabel` and `testID` exist. Traits, focus order, actions, VoiceOver navigation and reduced-motion do not |
 | Images | Load with no cache, no decode off the main thread, no placeholder, no `@2x`/`@3x` pipeline |
 | Native modules | The *best* part of the story on paper — externals are already how ReScript talks to a foreign runtime, so a binding is idiomatic rather than generated — and entirely undesigned. Needs an async call protocol |
-| Android | The protocol has four independent implementations, which is decent evidence it is host-agnostic. A Kotlin host is the test of that claim |
+| A JavaScript engine on Android | iOS gets JavaScriptCore from the platform; Android gets nothing. The host ships a `WebView`-backed runtime behind a two-method interface, which works and is not what an app should ship. Hermes or QuickJS is the answer |
 | Hermes | JavaScriptCore was right for a prototype because it ships with iOS. Bytecode precompilation and startup say it is not right for an app |
 | Bundler | Vite to one IIFE. No source maps into the JSC console, no code splitting, no asset resolution, and the entry point is a list in `bootstrap.mjs` rather than something an app declares |
 | Fast refresh | Genuinely hard, and worth saying so: Xote has no component boundaries to swap and signal state has no serialisable identity. Reload-preserving-nothing is the realistic first step |
@@ -864,9 +864,16 @@ enough to matter.
 This matters more than the list of missing features, because a gap you know
 about is a plan and a blind spot is a bug you have not met yet.
 
-**The Swift has never been compiled in this repository.** Linux, no toolchain,
-no network route to one. The layout *algorithm* is verified against Chromium;
-the Swift spelling of it is not. Expect compile errors on the next real build.
+**Neither host has been compiled in this repository.** Linux, no Swift
+toolchain, no Android SDK, no network route to either. The layout *algorithm* is
+verified against Chromium; the Swift and Kotlin spellings of it are not. The iOS
+host has at least run on a simulator in an earlier form; the Android host has
+never run at all.
+
+The algorithm now exists three times — `layout.mjs`, `XoteLayout.swift`,
+`XoteLayout.kt` — which is a standing tax on every change to it and the
+strongest argument for consolidating all three on Yoga. The conformance suite is
+what makes three copies survivable rather than reckless.
 
 **The conformance suite compares four things and only four things:** the node
 tree (parent → child ids), the frames in root coordinates, the text, and — since
@@ -908,9 +915,11 @@ presented as though they have:
 2. **Is the shim or the seam right?** The shim keeps the web hot path untouched
    and costs a shadow tree. The seam costs an indirection per mutation in a path
    that is benchmarked. This is decidable by benchmark and has not been decided.
-3. **Does the protocol survive a second platform?** Four host implementations is
-   evidence. A Kotlin host written by someone who did not design the protocol is
-   proof.
+3. **Does the protocol survive a second platform?** Mostly answered. A Kotlin
+   host now exists (§7.4), and writing it changed nothing in `native/host/`, in
+   the ReScript surface or in the bundle. What it did not do is *run*, and a
+   host written by someone who did not design the protocol would still be
+   better evidence than one written by someone who did.
 4. **Can animation be declarative enough?** Every framework that got here needed
    a second system for it. There is no reason to expect Xote to be the exception,
    and no design yet.

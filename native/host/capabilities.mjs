@@ -57,6 +57,24 @@ export const HOSTS = [
       max: "protocolMax",
     },
   },
+  {
+    name: "android",
+    language: "Kotlin",
+    engine: [
+      "hosts/android/app/src/main/java/dev/xote/host/XoteLayout.kt",
+      "hosts/android/app/src/main/java/dev/xote/host/XoteStyle.kt",
+    ],
+    host: [
+      "hosts/android/app/src/main/java/dev/xote/host/XoteHost.kt",
+      "hosts/android/app/src/main/java/dev/xote/host/XoteStyle.kt",
+    ],
+    dispatch: (name) => `"${name}" ->`,
+    protocol: {
+      source: "hosts/android/app/src/main/java/dev/xote/host/XoteHost.kt",
+      min: "PROTOCOL_MIN",
+      max: "PROTOCOL_MAX",
+    },
+  },
 ];
 
 /**

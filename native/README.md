@@ -178,7 +178,8 @@ rather than failing later.)
 | `host/capabilities.mjs` | What the hosts implement — the list the ReScript types are checked against. |
 | `host/reference.mjs` | The protocol *and* layout, with nothing to draw on — the executable spec. |
 | `host/preview.mjs` | Second host: real DOM and flexbox, for looking at things. |
-| `conformance/` | Cases every host must satisfy: a batch in, a tree and a set of frames out. |
+| `conformance/` | Cases every host must satisfy: a batch in, a node tree, frames, text and a view tree out. |
+| `host/capabilities.mjs` | What the hosts implement — the list the ReScript types are checked against. |
 | `NativeStyle.res` | Typed flexbox styles. Points, percentages, `auto`. Every field is one some host reads — see below. |
 | `NativeJSX.res` | The JSX module: `<view>`, `<text>`, `<image>`, `<scroll>`, `<input>`, `<pressable>`. |
 | `NativeProp.res` | Untyped JSX values into `View.attrValue`, without stringifying. |

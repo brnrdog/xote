@@ -33,3 +33,9 @@ bundle-size-*.json
 /tests/consumer/node_modules/
 /tests/consumer/lib/
 /tests/consumer/probe/
+
+# Android host build output — the SDK and Gradle are not available here.
+/native/hosts/android/.gradle/
+/native/hosts/android/build/
+/native/hosts/android/app/build/
+/native/hosts/android/local.properties
