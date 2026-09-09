@@ -16,6 +16,20 @@ let pct = (value: float): size => Obj.magic(Float.toString(value) ++ "%")
 
 let auto: size = Obj.magic("auto")
 
+/* Every field here is one some host actually reads, and that is enforced:
+ `native/test/surface_test.mjs` fails if this record declares a key the layout
+ engine and the native hosts do not implement.
+
+ Deliberately absent, and each absence is a signal rather than an oversight.
+ `flexWrap`, `alignContent` and baseline alignment are the three things the
+ layout engine does not do — reaching for one of them is the point at which the
+ engine should be swapped for Yoga, and a compile error says so where a silently
+ ignored property would not. `lineHeight`, `letterSpacing`, `fontStyle` and
+ `textTransform` all change how big a string is, so they need the measure
+ callback to change with them; they are real work, not a missing line.
+
+ An app that needs one before it exists can pass it through `attrs` and teach
+ its own host about it. */
 type t = {
   /* Flex container */
   flex?: float,
@@ -23,7 +37,6 @@ type t = {
   flexShrink?: float,
   flexBasis?: size,
   flexDirection?: [#row | #column | #"row-reverse" | #"column-reverse"],
-  flexWrap?: [#wrap | #nowrap | #"wrap-reverse"],
   justifyContent?: [
     | #"flex-start"
     | #center
@@ -32,16 +45,8 @@ type t = {
     | #"space-around"
     | #"space-evenly"
   ],
-  alignItems?: [#"flex-start" | #center | #"flex-end" | #stretch | #baseline],
-  alignSelf?: [#auto | #"flex-start" | #center | #"flex-end" | #stretch | #baseline],
-  alignContent?: [
-    | #"flex-start"
-    | #center
-    | #"flex-end"
-    | #stretch
-    | #"space-between"
-    | #"space-around"
-  ],
+  alignItems?: [#"flex-start" | #center | #"flex-end" | #stretch],
+  alignSelf?: [#auto | #"flex-start" | #center | #"flex-end" | #stretch],
   gap?: float,
   rowGap?: float,
   columnGap?: float,
@@ -89,11 +94,7 @@ type t = {
    layout value on the other side. Names also map onto what the platforms
    actually expose (`UIFont.Weight`, Android's `FontWeight`). */
   fontWeight?: [#thin | #light | #regular | #medium | #semibold | #bold | #heavy],
-  fontStyle?: [#normal | #italic],
-  lineHeight?: float,
-  letterSpacing?: float,
   textAlign?: [#auto | #left | #center | #right | #justify],
-  textTransform?: [#none | #uppercase | #lowercase | #capitalize],
 }
 
 /* Identity, but it gives the record literal a type to be inferred against at a

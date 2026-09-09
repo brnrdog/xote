@@ -69,13 +69,15 @@ let make = (props: props) => {
             ? Style.make({backgroundColor: Theme.accent, borderColor: Theme.accent})
             : Style.make({}),
         ])}
-      onPress={_ => Signal.set(filter, Signal.get(filter) == wanted ? None : wanted)}>
+      onPress={_ => Signal.set(filter, Signal.get(filter) == wanted ? None : wanted)}
+    >
       <text
         style={() =>
           Style.merge([
             Theme.chipLabel,
             Style.make({color: Signal.get(filter) == wanted ? "#ffffff" : Theme.muted}),
-          ])}>
+          ])}
+      >
         {View.text(label)}
       </text>
     </pressable>
@@ -92,7 +94,8 @@ let make = (props: props) => {
         // into the row below it.
         overflow: #hidden,
       })}
-      onPress={_ => TrackerNav.push(Detail(issue))}>
+      onPress={_ => TrackerNav.push(Detail(issue))}
+    >
       <view style={Style.make({flexDirection: #row, alignItems: #center, gap: 8.0})}>
         // A dot whose colour is the issue's own status signal: toggling it in
         // the detail screen writes this one prop and nothing else.
@@ -116,11 +119,10 @@ let make = (props: props) => {
         numberOfLines={1}
         style={() =>
           Style.merge([
-            Style.make({color: Theme.ink, fontSize: 15.0, lineHeight: 20.0}),
-            Signal.get(issue.status) == Done
-              ? Style.make({color: Theme.dim})
-              : Style.make({}),
-          ])}>
+            Style.make({color: Theme.ink, fontSize: 15.0}),
+            Signal.get(issue.status) == Done ? Style.make({color: Theme.dim}) : Style.make({}),
+          ])}
+      >
         {View.text(issue.title)}
       </text>
       <view style={Style.make({flexDirection: #row, gap: 6.0, alignItems: #center})}>
@@ -169,7 +171,8 @@ let make = (props: props) => {
             backgroundColor: Theme.accent,
             alignItems: #center,
             justifyContent: #center,
-          })}>
+          })}
+        >
           <text style={Style.make({color: "#ffffff", fontSize: 10.0, fontWeight: #bold})}>
             {View.text("3")}
           </text>
@@ -197,7 +200,8 @@ let make = (props: props) => {
               alignItems: #center,
               justifyContent: #center,
               gap: 6.0,
-            })}>
+            })}
+          >
             <text style={Style.make({color: Theme.muted, fontSize: 16.0})}>
               {View.text("Nothing matches")}
             </text>

@@ -65,13 +65,16 @@ const toCss = (style) => {
   return out;
 };
 
+// Only the events a native host raises. The DOM could deliver more — and used
+// to be asked to — but an event that works here and does nothing on a device is
+// the trap `native/test/surface_test.mjs` exists to close.
 const EVENT_MAP = {
   press: "click",
+  longPress: null, // no DOM equivalent worth faking
   layout: null, // reported after a batch rather than by a DOM event
 
-  pressIn: "pointerdown",
-  pressOut: "pointerup",
   changeText: "input",
+  submit: "change",
   focus: "focusin",
   blur: "focusout",
   scroll: "scroll",
@@ -85,6 +88,16 @@ const EVENT_MAP = {
 export function createPreviewHost(mount, { onBatch, dispatch } = {}) {
   const dom = mount.ownerDocument;
   const nodes = new Map();
+
+  // `::placeholder` cannot be reached from an element's inline style, so the
+  // inline style sets a custom property and one rule reads it.
+  if (dom.head !== null && dom.getElementById("xote-preview-rules") === null) {
+    const rules = dom.createElement("style");
+    rules.id = "xote-preview-rules";
+    rules.textContent = "input::placeholder{color:var(--xote-placeholder,inherit)}";
+    dom.head.appendChild(rules);
+  }
+
   const layoutListeners = new Set();
   const reported = new Map();
 
@@ -128,6 +141,9 @@ export function createPreviewHost(mount, { onBatch, dispatch } = {}) {
       case "placeholder":
         node.el.placeholder = value ?? "";
         break;
+      case "placeholderTextColor":
+        node.el.style.setProperty("--xote-placeholder", value ?? "");
+        break;
       case "testID":
         node.el.dataset.testid = value ?? "";
         break;
@@ -164,7 +180,11 @@ export function createPreviewHost(mount, { onBatch, dispatch } = {}) {
   };
 
   const payloadFor = (name, event, node) => {
-    if (name === "changeText") return { value: node.el.value };
+    // `changeText`, `submit`, `focus` and `blur` all carry the field's current
+    // text — `NativeEvent.focus` is `{value: string}`, not a position.
+    if (name === "changeText" || name === "submit" || name === "focus" || name === "blur") {
+      return { value: node.el.value ?? "" };
+    }
     if (name === "scroll") return { x: node.el.scrollLeft, y: node.el.scrollTop };
     return { pageX: event.pageX ?? 0, pageY: event.pageY ?? 0 };
   };

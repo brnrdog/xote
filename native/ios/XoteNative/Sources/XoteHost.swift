@@ -65,6 +65,10 @@ final class XoteHost {
   private var runViews: [Int: UILabel] = [:]
   private var labelRuns: [Int: [Int]] = [:]
   private var fonts: [Int: UIFont] = [:]
+  /// Kept because `attributedPlaceholder` replaces `placeholder` wholesale, so
+  /// the colour and the string have to be written together whichever arrives
+  /// second.
+  private var placeholderColors: [Int: UIColor] = [:]
   private var lineLimits: [Int: Int] = [:]
   private var actions: [Int: [XoteAction]] = [:]
   private var scrollReporters: [Int: XoteScrollReporter] = [:]
@@ -612,6 +616,7 @@ final class XoteHost {
     runViews[id] = nil
     labelRuns[id] = nil
     fonts[id] = nil
+    placeholderColors[id] = nil
     lineLimits[id] = nil
     childIds[id] = nil
     parentIds[id] = nil
@@ -715,6 +720,10 @@ final class XoteHost {
       (view as? UITextField)?.text = value as? String
     case "placeholder":
       (view as? UITextField)?.placeholder = value as? String
+      refreshPlaceholder(view as? UITextField, id: id)
+    case "placeholderTextColor":
+      placeholderColors[id] = (value as? String).flatMap { XoteStyle.color(fromHex: $0) }
+      refreshPlaceholder(view as? UITextField, id: id)
     case "secureTextEntry":
       (view as? UITextField)?.isSecureTextEntry = (value as? Bool) ?? false
     case "editable":
@@ -734,6 +743,19 @@ final class XoteHost {
     default:
       break
     }
+  }
+
+  /// `attributedPlaceholder` and `placeholder` are the same storage read two
+  /// ways, so setting either alone loses the other. Both go through here.
+  private func refreshPlaceholder(_ field: UITextField?, id: Int) {
+    guard
+      let field = field,
+      let color = placeholderColors[id],
+      let text = field.placeholder,
+      !text.isEmpty
+    else { return }
+    field.attributedPlaceholder = NSAttributedString(
+      string: text, attributes: [.foregroundColor: color])
   }
 
   private func paint(style: XoteStyle, on view: UIView, id: Int) {
@@ -830,6 +852,10 @@ final class XoteHost {
     case "layout":
       layoutListeners.insert(id)
 
+    // The four `UITextField` events are the same three lines with a different
+    // `UIControl.Event`. `addTarget` holds its target weakly, and `actions[id]`
+    // holds it strongly until `destroy`, so the closure capturing `field` is
+    // not a cycle.
     case "changeText":
       guard let field = view as? UITextField else { return }
       let action = XoteAction { [weak self] in
@@ -837,6 +863,30 @@ final class XoteHost {
       }
       actions[id, default: []].append(action)
       field.addTarget(action, action: #selector(XoteAction.fire), for: .editingChanged)
+
+    case "submit":
+      guard let field = view as? UITextField else { return }
+      let action = XoteAction { [weak self] in
+        self?.onEvent?(id, "submit", ["value": field.text ?? ""])
+      }
+      actions[id, default: []].append(action)
+      field.addTarget(action, action: #selector(XoteAction.fire), for: .editingDidEndOnExit)
+
+    case "focus":
+      guard let field = view as? UITextField else { return }
+      let action = XoteAction { [weak self] in
+        self?.onEvent?(id, "focus", ["value": field.text ?? ""])
+      }
+      actions[id, default: []].append(action)
+      field.addTarget(action, action: #selector(XoteAction.fire), for: .editingDidBegin)
+
+    case "blur":
+      guard let field = view as? UITextField else { return }
+      let action = XoteAction { [weak self] in
+        self?.onEvent?(id, "blur", ["value": field.text ?? ""])
+      }
+      actions[id, default: []].append(action)
+      field.addTarget(action, action: #selector(XoteAction.fire), for: .editingDidEnd)
 
     default:
       // An event this host does not raise yet. The app is never told, which is

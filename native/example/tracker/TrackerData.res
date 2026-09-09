@@ -94,11 +94,7 @@ let make = (count: int): array<issue> => {
   seed := 20260825.0
   Array.fromInitializer(~length=count, index => {
     let qualifier = pick(qualifiers)
-    let title =
-      pick(verbs) ++
-      " " ++
-      pick(subjects) ++
-      (qualifier == "" ? "" : " " ++ qualifier)
+    let title = pick(verbs) ++ " " ++ pick(subjects) ++ (qualifier == "" ? "" : " " ++ qualifier)
     let labelCount = 1 + randomInt(3)
     {
       id: index + 1,

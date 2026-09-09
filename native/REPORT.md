@@ -39,9 +39,9 @@ reconciler and no diff anywhere in the pipeline.
 | The bridge | **8 opcodes**, one flat array each |
 | Host implementations | **4** — headless reference, DOM preview, UIKit, and the layout-only reference |
 | ReScript surface added | 590 lines across 7 modules (`native/*.res`) |
-| JavaScript host runtime | 2,288 lines (`native/host/*.mjs`) |
-| Swift | 2,104 lines (`native/ios/`), **never compiled in this repository** |
-| Tests | 2,177 lines; 1,183 layout boxes checked against Chromium, 113 conformance frames, 173 core tests |
+| JavaScript host runtime | 2,442 lines (`native/host/*.mjs`) |
+| Swift | 2,154 lines (`native/ios/`), **never compiled in this repository** |
+| Tests | 2,353 lines; 1,183 layout boxes checked against Chromium, 113 conformance frames, 173 core tests |
 | Demo | An issue tracker over 5,000 issues, 826 lines of app code |
 
 Three things are worth stating plainly before anything else.
@@ -660,21 +660,31 @@ host did not know. Neither killed the app.
 
 ### 7.3 The bad
 
-**The type surface promises more than any host delivers.** This is the worst
-thing in the directory, because it fails *silently*. `NativeStyle.t` declares
-`flexWrap`, `alignContent`, and `baseline` alignment; the layout engine
-implements none of them and says so only in a comment. It declares
-`letterSpacing`, `textTransform` and `fontStyle`; nothing reads them anywhere.
-`NativeJSX` declares `onPressIn`, `onPressOut`, `onSubmit`, `onFocus` and
-`onBlur`; the iOS host raises `press`, `longPress`, `scroll`, `layout` and
-`changeText`. It declares `pointerEvents`, `ellipsizeMode`, `resizeMode`,
-`keyboardType`, `autoFocus`, `multiline`, `showsScrollIndicator`, `disabled` and
-`selected`; the iOS host handles ten props and none of those are among them.
+**The type surface promised more than any host delivered — fixed, and now
+enforced.** This was the worst thing in the directory, because it failed
+*silently*. `NativeStyle.t` declared `flexWrap`, `alignContent` and `baseline`
+alignment, which the layout engine does not implement; `letterSpacing`,
+`textTransform`, `fontStyle` and `lineHeight`, which nothing read anywhere.
+`NativeJSX` declared ten props and two events no native host applied.
 
-A type that compiles and then does nothing is worse than a missing type. The fix
-is not hard — narrow the records to what is implemented, and grow them
-deliberately — but it has to happen before anyone else writes an app against
-this.
+All of them are gone, except `placeholderTextColor` and the `submit`, `focus`
+and `blur` events — those an app really does need, and each was three lines of a
+pattern `changeText` had already proved, so they were implemented instead.
+
+The part worth keeping is the guardrail rather than the edit.
+`host/capabilities.mjs` lists what the engine and the native hosts implement,
+and `test/surface_test.mjs` reads `NativeStyle.res`, `NativeJSX.res`,
+`layout.mjs` and the Swift sources **as text** and asserts the three agree.
+Nothing that renders can catch this class of bug: a style key nobody reads
+produces a correct screen for every app that does not use it. Switching the test
+on immediately found two `lineHeight` uses in the tracker itself that had never
+done anything.
+
+It also happens to be the only check this repository can run against the Swift
+at all — a name in the manifest that is not a `case` in `XoteHost.swift` now
+fails here instead of on a device. And removing the three layout omissions from
+the type turns them into a signal: reaching for `flexWrap` is a compile error,
+and that is precisely when the engine should become Yoga.
 
 **`toggle a filter chip` is 884 commands.** Proportional to the screen and not
 to the data, which is the claim, and still the number that would show up first
@@ -809,6 +819,7 @@ It is also, structurally, why every one of the bugs in §7.5(4) got through.
 | Safe-area and content insets | The suite supplies a viewport, not a device |
 | Anything in the app shell | Launch screens, `Info.plist`, orientation, the view controller |
 | Threading, event delivery, error containment | Tested separately in JavaScript, not against UIKit |
+| Whether the Swift *compiles* | Nothing here can check that. `test/surface_test.mjs` reads it as text and checks the names line up, which is a real check and not a substitute for one |
 | Frame time | Not measured at all, on any host |
 
 Two cheap things would close most of that: snapshot-diffing the same screen

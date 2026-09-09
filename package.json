@@ -105,7 +105,7 @@
     "test": "npx rescript && node tests/Tests.res.mjs && node tests/JSXRuntime_test.mjs && node tests/DevMode_test.mjs && node tests/OpaqueAttrs_test.mjs && npm run test:exports && npm run test:boundary",
     "test:exports": "node tests/PublicExports_test.mjs",
     "test:boundary": "node scripts/consumer-boundary-test.mjs",
-    "native:test": "npx rescript && node native/test/layout_test.mjs && node native/test/conformance_test.mjs && node native/test/resilience_test.mjs && node native/test/signals_pin_test.mjs && node native/test/list_test.mjs && node native/test/flatten_test.mjs && node native/test/tracker_test.mjs && node native/test/Native_test.mjs",
+    "native:test": "npx rescript && node native/test/surface_test.mjs && node native/test/layout_test.mjs && node native/test/conformance_test.mjs && node native/test/resilience_test.mjs && node native/test/signals_pin_test.mjs && node native/test/list_test.mjs && node native/test/flatten_test.mjs && node native/test/tracker_test.mjs && node native/test/Native_test.mjs",
     "native:conformance": "node native/conformance/generate.mjs",
     "native:layout:oracle": "node native/test/layout_oracle.mjs",
     "native:ios:build": "npx rescript && vite build --config native/ios/vite.config.mjs",

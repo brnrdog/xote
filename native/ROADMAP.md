@@ -38,6 +38,8 @@ is shared with B; the things that are only B are marked.
 - Lists render a window rather than a dataset.
 - Layout-only boxes no longer become views, and views destroyed by one screen
   are handed to the next.
+- The types no longer promise more than the hosts deliver, and a test enforces
+  it.
 
 What is left is below.
 
@@ -62,7 +64,9 @@ percentage margins and paddings.
 **2. Text measurement. Done.** A `text` node carries a measure callback into
 `NSAttributedString.boundingRect`, and layout asks it how tall the text is at a
 given width. Line height, letter spacing and truncation modes are expressible
-from here; none of them are wired yet.
+from here and none of them are wired — which is why none of them are in
+`NativeStyle` either (Tier 2, item 5). They change how big a string is, so
+wiring one means changing the measure callback with it.
 
 **3. View flattening. Done.** A box that only arranges its children keeps its
 layout node and loses its view; its children attach to the nearest ancestor that
@@ -126,7 +130,28 @@ decide what its own tags mean.
 dependency. `native/test/signals_pin_test.mjs` pins the behaviour so that the
 day it is fixed upstream, a test fails and the workaround in the example can go.
 
-**5. A `RuntimeHost` seam. Started.** The two hooks above are the seam, at the
+**5. The type surface, enforced. Done.** `NativeStyle` declared `flexWrap`,
+`alignContent`, baseline alignment, `lineHeight`, `letterSpacing`, `fontStyle`
+and `textTransform`; nothing read any of them. `NativeJSX` declared ten props
+and two events no native host applied. All of them are gone, except
+`placeholderTextColor` and the `submit`/`focus`/`blur` events, which an app
+really does need and which were three lines each of a pattern `changeText`
+already proved — those were implemented rather than removed.
+
+`host/capabilities.mjs` is now the list of what the engine and the native hosts
+implement, and `test/surface_test.mjs` reads `NativeStyle.res`, `NativeJSX.res`,
+`layout.mjs` and the Swift sources as text and asserts the three agree. It is
+the only check this repository can run against the Swift at all, and switching
+it on immediately turned up two `lineHeight` uses in the tracker that had never
+done anything. Growing the surface is now a deliberate act in a fixed order:
+implement it, list it, then declare it.
+
+The three layout omissions are the ones worth restating, because removing them
+from the type is what turns them into a signal: reaching for `flexWrap`,
+`alignContent` or baseline alignment is now a compile error, and that is
+precisely the point at which the engine should be swapped for Yoga.
+
+**6. A `RuntimeHost` seam. Started.** The two hooks above are the seam, at the
 only two points that needed one. Still open: the process-global `document` means
 two Xote apps in one JavaScript realm collide, and whether the remaining
 operations are worth routing through a record at all. Benchmark before
@@ -213,19 +238,12 @@ Roughly in the order you will hit them.
 
 1. **Extract the package and version the protocol.** The seams are in place and
    there are now four implementations of the protocol to keep honest.
-2. **Narrow the type surface to what is implemented.** `NativeStyle` declares
-   `flexWrap`, `alignContent`, baseline alignment, `letterSpacing`,
-   `textTransform` and `fontStyle`; nothing reads any of them. `NativeJSX`
-   declares `onPressIn`, `onPressOut`, `onSubmit`, `onFocus` and `onBlur`; the
-   iOS host raises five events and none of those are among them. A type that
-   compiles and then does nothing is worse than a missing type, and this is
-   half a day.
-3. **Navigation.** The next thing an app cannot be built without.
-4. **Text input, safe area, appearance.** Small individually, and between them
+2. **Navigation.** The next thing an app cannot be built without.
+3. **Text input, safe area, appearance.** Small individually, and between them
    the difference between a demo and a screen.
-5. **An Android host.** The conformance suite makes this a transliteration and a
+4. **An Android host.** The conformance suite makes this a transliteration and a
    day of plumbing rather than a week of guessing.
-6. **Gestures and animation.** The hardest remaining design problem.
+5. **Gestures and animation.** The hardest remaining design problem.
 
 Flattening and recycling used to sit at position 4 on this list, waiting for a
 real screen to measure against. The tracker is that screen, so they are done —

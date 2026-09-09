@@ -174,10 +174,11 @@ rather than failing later.)
 | `host/layout.mjs` | Flexbox, checked frame-for-frame against Chromium. |
 | `host/flatten.mjs` | Which nodes need a view of their own, and which are only arranging things. |
 | `host/pool.mjs` | The view pool a `destroy` returns to and a `create` takes from. |
+| `host/capabilities.mjs` | What the hosts implement — the list the ReScript types are checked against. |
 | `host/reference.mjs` | The protocol *and* layout, with nothing to draw on — the executable spec. |
 | `host/preview.mjs` | Second host: real DOM and flexbox, for looking at things. |
 | `conformance/` | Cases every host must satisfy: a batch in, a tree and a set of frames out. |
-| `NativeStyle.res` | Typed flexbox styles. Points, percentages, `auto`. |
+| `NativeStyle.res` | Typed flexbox styles. Points, percentages, `auto`. Every field is one some host reads — see below. |
 | `NativeJSX.res` | The JSX module: `<view>`, `<text>`, `<image>`, `<scroll>`, `<input>`, `<pressable>`. |
 | `NativeProp.res` | Untyped JSX values into `View.attrValue`, without stringifying. |
 | `Native.res` | The same primitives without JSX. |
@@ -187,7 +188,26 @@ rather than failing later.)
 | `example/PanelApp.res` | The same primitives without JSX. |
 | `example/tracker/` | An issue tracker over 5,000 issues — the example that measures the premise. |
 | `test/Native_test.mjs` | End-to-end, asserting *how much* crosses the bridge. |
+| `test/surface_test.mjs` | The types may not promise more than the hosts deliver. |
 | `ios/` | A third host: JavaScriptCore + UIKit, for running this on a simulator. See `ios/README.md`. |
+
+**The types do not over-promise, and that is enforced.** `NativeStyle` and
+`NativeJSX` declare only what a native host actually reads, because a prop that
+type-checks and then does nothing is worse than a missing one — a missing one is
+a compile error and a five-minute answer, and a silent one is an afternoon.
+`host/capabilities.mjs` is the list, and `test/surface_test.mjs` reads the
+ReScript sources, the layout engine and the Swift host as text and asserts the
+three agree. It is also the only check this repository can run against the Swift
+at all, since there is no toolchain here.
+
+So `flexWrap`, `alignContent` and baseline alignment are absent: they are the
+three things the layout engine does not do, and reaching for one is now a
+compile error rather than a silently ignored property — which is exactly the
+point at which the engine should be swapped for Yoga. `lineHeight`,
+`letterSpacing`, `fontStyle` and `textTransform` are absent because they change
+how big a string is, so they need the measure callback to change with them.
+Anything not named can still be passed through `attrs` to a host that knows
+about it.
 
 A native screen looks like this — note that `@@jsxConfig` switches JSX modules
 per file, so native screens and web pages can live in one project:

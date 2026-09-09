@@ -45,62 +45,48 @@ let null = XoteJSX.null
 module Elements = {
   /* Every prop is polymorphic for the same reason it is in `XoteJSX`: a prop
    accepts a plain value, a `Signal.t`, a `unit => 'a` thunk or a
-   `MaybeSignal.t`, and `NativeProp.ofUnknown` sorts out which it got. */
+   `MaybeSignal.t`, and `NativeProp.ofUnknown` sorts out which it got.
+
+   Every prop here is one a native host actually applies, and every handler is
+   an event a native host actually raises — `native/test/surface_test.mjs` fails
+   if that stops being true. A prop that type-checks and then does nothing is
+   worse than a missing one, because a missing one is a compile error and a
+   five-minute answer.
+
+   `attrs` is how an app reaches a prop this module does not name, so nothing is
+   unreachable — only unpromised. */
   type props<
     'style,
     'testID,
     'accessibilityLabel,
-    'accessible,
-    'pointerEvents,
     'numberOfLines,
-    'ellipsizeMode,
     'source,
-    'resizeMode,
     'value,
     'placeholder,
     'placeholderTextColor,
-    'keyboardType,
     'secureTextEntry,
-    'autoFocus,
     'editable,
-    'multiline,
     'horizontal,
-    'showsScrollIndicator,
-    'disabled,
-    'selected,
   > = {
     /* Common */
     style?: 'style,
     testID?: 'testID,
     accessibilityLabel?: 'accessibilityLabel,
-    accessible?: 'accessible,
-    pointerEvents?: 'pointerEvents,
     /* text */
     numberOfLines?: 'numberOfLines,
-    ellipsizeMode?: 'ellipsizeMode,
     /* image */
     source?: 'source,
-    resizeMode?: 'resizeMode,
     /* input */
     value?: 'value,
     placeholder?: 'placeholder,
     placeholderTextColor?: 'placeholderTextColor,
-    keyboardType?: 'keyboardType,
     secureTextEntry?: 'secureTextEntry,
-    autoFocus?: 'autoFocus,
     editable?: 'editable,
-    multiline?: 'multiline,
     /* scroll */
     horizontal?: 'horizontal,
-    showsScrollIndicator?: 'showsScrollIndicator,
-    /* pressable */
-    disabled?: 'disabled,
-    selected?: 'selected,
     /* Events */
     onPress?: NativeEvent.press => unit,
     onLongPress?: NativeEvent.press => unit,
-    onPressIn?: NativeEvent.press => unit,
-    onPressOut?: NativeEvent.press => unit,
     onChangeText?: NativeEvent.text => unit,
     onSubmit?: NativeEvent.text => unit,
     onFocus?: NativeEvent.focus => unit,
@@ -124,24 +110,14 @@ module Elements = {
     addProp(attrs, props.style, "style")
     addProp(attrs, props.testID, "testID")
     addProp(attrs, props.accessibilityLabel, "accessibilityLabel")
-    addProp(attrs, props.accessible, "accessible")
-    addProp(attrs, props.pointerEvents, "pointerEvents")
     addProp(attrs, props.numberOfLines, "numberOfLines")
-    addProp(attrs, props.ellipsizeMode, "ellipsizeMode")
     addProp(attrs, props.source, "source")
-    addProp(attrs, props.resizeMode, "resizeMode")
     addProp(attrs, props.value, "value")
     addProp(attrs, props.placeholder, "placeholder")
     addProp(attrs, props.placeholderTextColor, "placeholderTextColor")
-    addProp(attrs, props.keyboardType, "keyboardType")
     addProp(attrs, props.secureTextEntry, "secureTextEntry")
-    addProp(attrs, props.autoFocus, "autoFocus")
     addProp(attrs, props.editable, "editable")
-    addProp(attrs, props.multiline, "multiline")
     addProp(attrs, props.horizontal, "horizontal")
-    addProp(attrs, props.showsScrollIndicator, "showsScrollIndicator")
-    addProp(attrs, props.disabled, "disabled")
-    addProp(attrs, props.selected, "selected")
 
     switch props.attrs {
     | Some(extra) => extra->Array.forEach(entry => attrs->Array.push(entry))
@@ -162,8 +138,6 @@ module Elements = {
 
     addEvent(events, props.onPress, "press")
     addEvent(events, props.onLongPress, "longPress")
-    addEvent(events, props.onPressIn, "pressIn")
-    addEvent(events, props.onPressOut, "pressOut")
     addEvent(events, props.onChangeText, "changeText")
     addEvent(events, props.onSubmit, "submit")
     addEvent(events, props.onFocus, "focus")

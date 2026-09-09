@@ -43,7 +43,8 @@ let make = (props: props) => {
               })
             : Style.make({}),
         ])}
-      onPress={_ => Signal.set(issue.status, wanted)}>
+      onPress={_ => Signal.set(issue.status, wanted)}
+    >
       <text
         style={() =>
           Style.merge([
@@ -51,7 +52,8 @@ let make = (props: props) => {
             Style.make({
               color: Signal.get(issue.status) == wanted ? "#0a0a11" : Theme.muted,
             }),
-          ])}>
+          ])}
+      >
         {View.text(TrackerData.statusLabel(wanted))}
       </text>
     </pressable>
@@ -63,7 +65,8 @@ let make = (props: props) => {
           paddingVertical: Style.pt(6.0),
           paddingRight: Style.pt(12.0),
         })}
-        onPress={_ => TrackerNav.pop()}>
+        onPress={_ => TrackerNav.pop()}
+      >
         <text style={Style.make({color: Theme.accent, fontSize: 16.0, fontWeight: #semibold})}>
           {View.text("← Issues")}
         </text>
@@ -127,7 +130,7 @@ let make = (props: props) => {
             <text style={Style.make({color: Theme.accent, fontSize: 12.0, fontWeight: #semibold})}>
               {View.text(who)}
             </text>
-            <text style={Style.make({color: Theme.muted, fontSize: 14.0, lineHeight: 20.0})}>
+            <text style={Style.make({color: Theme.muted, fontSize: 14.0})}>
               {View.text(note)}
             </text>
           </view>

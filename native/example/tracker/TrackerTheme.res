@@ -43,7 +43,7 @@ let title = Style.make({color: ink, fontSize: 26.0, fontWeight: #bold})
 
 let subtitle = Style.make({color: muted, fontSize: 13.0})
 
-let body = Style.make({color: ink, fontSize: 15.0, lineHeight: 21.0})
+let body = Style.make({color: ink, fontSize: 15.0})
 
 let card = Style.make({
   backgroundColor: surface,
