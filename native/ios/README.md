@@ -89,6 +89,8 @@ Five pieces of Swift:
 | `XoteCommand.swift` | Decodes the wire format — a JSON array of arrays, opcode first |
 | `XoteHost.swift` | The eight commands against `UIView`s, and one layout pass per batch |
 | `XoteLayout.swift` | Flexbox, transliterated from the reference engine |
+| `XoteFlatten.swift` | Which nodes get a `UIView`, transliterated from `host/flatten.mjs` |
+| `XotePool.swift` | The view pool, transliterated from `host/pool.mjs` |
 | `XoteStyle.swift` | A style object read with the types layout and UIKit want |
 
 The app runs on its own serial queue, not the main one. A `Signal.set` and
@@ -144,10 +146,31 @@ measure callback into `NSAttributedString.boundingRect`, so the host answers
 A `scroll` is two boxes — the frame its parent positions, and a content box free
 to be longer than it — and the style is split between them.
 
+## Two trees, and why there are two
+
+`XoteHost` keeps a `XoteLayoutNode` for every node the app made and a `UIView`
+only for the ones that need one. `XoteFlatten` decides: a `view` that paints
+nothing, carries no accessibility or hit-testing prop, and has no listener
+needing a surface is *flattened* — it stays in the layout tree and never becomes
+a `UIView`. Its children become subviews of the nearest ancestor that did, at
+the index they would have occupied, and `applyFrames` adds its offset to theirs
+on the way past. On the tracker's list screen that is 34 of 192 views.
+
+Views come from `XoteViewPool` and go back on `destroy`, reset on the way in so
+a parked view holds no text, image, delegate or gesture closure belonging to the
+screen that put it there. Across a scroll sweep the tracker allocates 296 views
+instead of 881.
+
+The parts that are easy to get wrong are the transitions — a box that starts
+painting halfway through its life has to take whatever was standing in for it
+and move it inside a new view, and one that stops has to put its children back
+where it was. Both directions, and the round trip, are in the `flattening` case
+of the conformance suite, which compares the **view tree** as well as the frames
+precisely because a flattening mistake leaves every frame correct.
+
 **Also missing:** `XOTE_APP` is a list in `bootstrap.mjs` rather than an entry
-point an app declares, text measurement is `UILabel`'s own (fine, but it means the
-app thread never learns any size), `onLayout` and `onScroll` are not raised,
-images load with no cache, and there is no view recycling on `destroy`.
+point an app declares, text measurement is `UILabel`'s own (fine, but it means
+the app thread never learns any size), and images load with no cache.
 
 ## Three things that look like layout bugs and are not
 

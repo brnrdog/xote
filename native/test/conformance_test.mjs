@@ -30,6 +30,12 @@ for (const { name, viewport, steps, expected } of suite) {
 
     assert.deepEqual(host.structure(), want.structure, `${step}: tree`);
     assert.deepEqual(host.texts(), want.texts, `${step}: text`);
+    // The *view* tree, which is not the node tree: a layout-only box is in one
+    // and not the other. Two hosts that flatten differently draw the same
+    // content into different surfaces, with different clipping and different
+    // hit testing, and every frame still agrees — so this is the only place a
+    // flattening disagreement shows up.
+    assert.deepEqual(host.nativeTree(), want.views, `${step}: views`);
 
     const got = host.frames();
     assert.deepEqual(Object.keys(got).sort(), Object.keys(want.frames).sort(), `${step}: boxes`);
@@ -45,4 +51,11 @@ for (const { name, viewport, steps, expected } of suite) {
   });
 }
 
-console.log(`conformance tests passed — ${suite.length} cases, ${frames} frames`);
+const views = suite.reduce(
+  (sum, c) => sum + c.expected.reduce((s, e) => s + Object.keys(e.views).length, 0),
+  0,
+);
+
+console.log(
+  `conformance tests passed — ${suite.length} cases, ${frames} frames, ${views} views`,
+);

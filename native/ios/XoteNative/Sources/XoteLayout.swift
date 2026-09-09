@@ -48,8 +48,11 @@ final class XoteLayoutNode {
   var children: [XoteLayoutNode] = []
   var frame = XoteFrame()
 
-  /// The `UIView` this box positions, when there is one. A scroll view's inner
-  /// content box has none — its children are the scroll view's subviews.
+  /// The `UIView` this box positions, when there is one — and there is not
+  /// always one. A scroll view's inner content box has none, and neither does a
+  /// box that was flattened away (`XoteFlatten`): both arrange their children
+  /// without occupying a coordinate space, so the children are placed relative
+  /// to them by the caller instead.
   weak var view: AnyObject?
 
   /// Set on a text node. Given the space available, how big does it want to be?

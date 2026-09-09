@@ -35,7 +35,7 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 - CI runs the suite **only on pull requests carrying the `benchmark` label** (`.github/workflows/benchmark.yml`) and posts a `main` vs PR comment rendered by `scripts/benchmark-report.mjs`. Adding the label to an open PR starts the run — the workflow listens for `labeled` as well as pushes. It builds the PR's benchmark app against both libraries so only `src/` differs between the two columns, and runs them interleaved in one browser — see `benchmarks/README.md` for why position in the schedule would otherwise dominate the result.
 
 ### Native (prototype)
-- `npm run native:test` - End-to-end test of the native rendering prototype
+- `npm run native:test` - End-to-end test of the native rendering prototype: the layout oracle, the host conformance suite, resilience, the windowed list, view flattening and recycling, and the tracker measurements
 - `npm run native:preview` - Serve the example screen against the browser preview host (http://localhost:3100/preview.html)
 - `npm run native:build` - Build the preview bundle
 - `npm run native:ios:build` / `npm run native:ios:test` - Bundle the app for the iOS host, and run it in a bare realm (no DOM, no `console`, no timers) that stands in for JavaScriptCore. `native/ios/` also carries an unverified UIKit host — see `native/ios/README.md`.

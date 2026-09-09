@@ -23,19 +23,21 @@ is shared with B; the things that are only B are marked.
 
 ## What has been done since
 
-Items 1–5 of the plan below are largely done, and the sections are marked
-accordingly. The short version:
+**Tier 1 is complete**, and the core changes in Tier 2 are in. The short version:
 
 - Layout is a real flexbox engine, checked frame-for-frame against Chromium and
   transliterated to Swift. `UIStackView`, Auto Layout, and every approximation
   built on them are gone.
-- There is a host conformance suite: a batch in, a tree and a set of frames out,
-  replayed against both the JavaScript hosts and UIKit.
+- There is a host conformance suite: a batch in, a node tree, a set of frames, a
+  view tree and the text out, replayed against both the JavaScript hosts and
+  UIKit.
 - The app runs off the main thread, and failures are contained rather than
   propagated.
 - The core changes in `xote` are in — opaque attribute values, and host hooks
   for what a tag means and what a grouping box is.
 - Lists render a window rather than a dataset.
+- Layout-only boxes no longer become views, and views destroyed by one screen
+  are handed to the next.
 
 What is left is below.
 
@@ -62,18 +64,45 @@ percentage margins and paddings.
 given width. Line height, letter spacing and truncation modes are expressible
 from here; none of them are wired yet.
 
-**3. View flattening. Open.** Every node still becomes a `UIView`. React Native
-flattens layout-only views away, because a screen with 400 nodes and 150 real
-drawing surfaces scrolls very differently from one with 400. The layout tree and
-the view tree are already separate objects, which is what this needs — a node
-can stay in one and vanish from the other.
+**3. View flattening. Done.** A box that only arranges its children keeps its
+layout node and loses its view; its children attach to the nearest ancestor that
+has one. The policy is `host/flatten.mjs` — only a `view` is ever a candidate,
+and only when it paints nothing, carries no accessibility or hit-testing prop,
+and has no listener that needs a surface to be delivered from. `layout` is
+deliberately not such a listener: a frame comes from the layout tree, which a
+flattened node is still in, so a `NativeList` measuring its own viewport costs
+no view.
+
+On the tracker's list screen that is **34 of 192 views**, or 42% of the plain
+boxes. The saving is real and it is not dramatic, because this app already
+writes few wrappers; an app with more would save more.
+
+Flattening may not move anything, and `test/flatten_test.mjs` is that assertion:
+the same command stream replayed into a flattening host and a non-flattening one
+produces byte-identical frames, node tree and text. The conformance suite gained
+a `views` expectation and a `flattening` case that materialises a box, then
+dematerialises one, then does it again — the splices that are easy to get wrong
+and invisible in a frame.
+
+Not available to the DOM preview host, which is not an oversight: CSS has no way
+to express a box with no element, so flattening is only open to a host whose
+layout tree and view tree are separate objects.
 
 **4. Threading. Done.** The app runs on its own serial queue; only finished
 batches cross to the main queue. A slow update costs a late frame, not a frozen
 one.
 
-**5. View recycling. Open.** `destroy` is the natural place to return a view to
-a pool, and with a windowed list there is now something that would use one.
+**5. View recycling. Done.** `destroy` returns a view to a bounded per-kind pool
+and `create` takes one back out — the protocol already guarantees the id will
+never be referenced again, which is exactly the guarantee a pool needs. Views are
+reset on release rather than on acquire, so a parked view never holds a string,
+an image, a delegate or a gesture closure belonging to the screen that put it
+there.
+
+Driving the tracker through a scroll sweep, a filter toggle and a navigation:
+**881 view allocations become 296**, with 66% of acquisitions served from the
+pool. The bound is per kind, so a list that destroys five thousand rows does not
+hold five thousand views waiting for a sixth thousand that never comes.
 
 **6. Error containment. Done.** A handler that throws does not silence its
 siblings, a batch the host cannot apply is dropped without jamming the bridge,
@@ -184,14 +213,24 @@ Roughly in the order you will hit them.
 
 1. **Extract the package and version the protocol.** The seams are in place and
    there are now four implementations of the protocol to keep honest.
-2. **Navigation.** The next thing an app cannot be built without.
-3. **Text input, safe area, appearance.** Small individually, and between them
+2. **Narrow the type surface to what is implemented.** `NativeStyle` declares
+   `flexWrap`, `alignContent`, baseline alignment, `letterSpacing`,
+   `textTransform` and `fontStyle`; nothing reads any of them. `NativeJSX`
+   declares `onPressIn`, `onPressOut`, `onSubmit`, `onFocus` and `onBlur`; the
+   iOS host raises five events and none of those are among them. A type that
+   compiles and then does nothing is worse than a missing type, and this is
+   half a day.
+3. **Navigation.** The next thing an app cannot be built without.
+4. **Text input, safe area, appearance.** Small individually, and between them
    the difference between a demo and a screen.
-4. **View flattening and recycling.** Both are performance work, and both want a
-   real screen to measure against first.
 5. **An Android host.** The conformance suite makes this a transliteration and a
    day of plumbing rather than a week of guessing.
 6. **Gestures and animation.** The hardest remaining design problem.
+
+Flattening and recycling used to sit at position 4 on this list, waiting for a
+real screen to measure against. The tracker is that screen, so they are done —
+and the measurement says flattening saves less here than it would in an app with
+more wrappers, while recycling cuts allocations by two thirds.
 
 ---
 

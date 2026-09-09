@@ -244,6 +244,67 @@ function nested() {
   return { name: "nested screen", viewport: VIEWPORT, steps: [b.take()] };
 }
 
+/**
+ * Flattening, and the two directions it has to move in.
+ *
+ * A layout-only box keeps its place in the layout tree and loses its view, so
+ * its children attach to the nearest ancestor that has one. That is easy while
+ * nothing changes. What is not easy is a box that *starts* painting halfway
+ * through its life — its children have to be taken out of wherever they were
+ * standing and moved inside it, at the index it occupies — or one that stops.
+ *
+ * All four steps here leave every frame exactly where it was: a background
+ * colour and a tap handler change what is on screen, not where. A host whose
+ * frames move across these steps has a bug that the other cases cannot see.
+ */
+function flattening() {
+  const b = builder();
+  const root = b.root();
+  // Layout-only: padding and a gap, painting nothing.
+  const screen = b.node("view", { flex: 1, padding: 10, gap: 6 });
+  const banner = b.node("view", { height: 20, backgroundColor: "#111111" });
+  // Layout-only, and holding two boxes that are not.
+  const wrapperStyle = { flexDirection: "row", gap: 4 };
+  const wrapper = b.node("view", wrapperStyle);
+  const left = b.node("view", { width: 10, height: 10, backgroundColor: "#222222" });
+  // Layout-only *and* childless: it should leave nothing behind at all.
+  const spacer = b.node("view", { width: 10, height: 10 });
+  const right = b.node("view", { width: 10, height: 10, backgroundColor: "#333333" });
+  const footer = b.node("view", { height: 20 });
+  const label = b.node("text", { fontSize: 12 });
+
+  b.insert(label, b.text("flat"), 0);
+  b.fill(wrapper, [left, spacer, right]);
+  b.fill(screen, [banner, wrapper, footer, label]);
+  b.insert(root, screen, 0);
+
+  const steps = [b.take()];
+
+  // The wrapper starts painting: `left` and `right` were standing in for it in
+  // the root's subviews and now have to move inside it, at its index.
+  b.prop(wrapper, "style", { ...wrapperStyle, backgroundColor: "#444444" });
+  steps.push(b.take());
+
+  // The banner stops painting, and should vanish from the view tree entirely.
+  b.prop(banner, "style", { height: 20 });
+  steps.push(b.take());
+
+  // A tap handler is a reason to exist even with nothing painted. A `layout`
+  // listener is not — a frame comes from the layout tree, which a flattened
+  // node is still in.
+  b.listen(footer, "press");
+  b.listen(screen, "layout");
+  steps.push(b.take());
+
+  // And back again. A box that has already been through the cycle once is
+  // where a host that pools views gets to hand out one it reset — and where a
+  // host that re-registers handlers on materialise delivers every press twice.
+  b.prop(banner, "style", { height: 20, backgroundColor: "#111111" });
+  steps.push(b.take());
+
+  return { name: "flattening", viewport: VIEWPORT, steps };
+}
+
 export const cases = [
   boxes(),
   reverseAndOverflow(),
@@ -251,4 +312,5 @@ export const cases = [
   keyedReorder(),
   scrolling(),
   nested(),
+  flattening(),
 ];

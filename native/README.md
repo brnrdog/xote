@@ -109,7 +109,31 @@ row by detaching and re-inserting it in the same pass; a host that destroyed on
 detach would throw away the view in between. `destroy` is emitted at flush time
 for whatever is still parentless, so a move costs nothing.
 
-### 3. Two node kinds never reach the host
+### 3. Two trees, not one
+
+A host keeps a layout node for every node the app made, and a view only for the
+ones that need one. Most boxes on a screen exist to arrange their children — a
+column with a gap, a row with padding, a wrapper carrying `flex: 1` — and they
+have to be in the first tree because they do arrange things, and do not have to
+be in the second because they draw nothing. `host/flatten.mjs` is the policy;
+the children of a flattened box attach to the nearest ancestor that has a view,
+offset by where it ended up.
+
+Frames come from the layout tree, so flattening cannot move anything. That is
+the property worth stating as a rule rather than a hope: the conformance suite
+compares the frames and the view tree *separately*, and `test/flatten_test.mjs`
+replays one command stream into a flattening host and a non-flattening one and
+asserts the frames come out identical.
+
+Views are also pooled (`host/pool.mjs`): `destroy` gives one back, `create`
+takes one out. The protocol already guarantees a destroyed id is never
+referenced again, which is exactly the guarantee a pool needs.
+
+Neither is available to the DOM preview host, and that is not an oversight —
+CSS has no way to express a box with no element, so both are only open to a host
+whose layout tree and view tree are separate objects.
+
+### 4. Two node kinds never reach the host
 
 - **Comments.** The keyed-list reconciler brackets its rows with comment
   anchors. They exist only in the shadow tree.
@@ -124,7 +148,7 @@ shadow position and the native position are different numbers, and only the
 shadow document knows both. The test asserts that no `div` and no comment ever
 reaches the host.
 
-### 4. Threading
+### 5. Threading
 
 The app thread needs a JavaScript engine and no DOM; the UI thread needs views.
 On a device that is Hermes or JavaScriptCore next to UIKit. In the preview it is
@@ -148,6 +172,8 @@ rather than failing later.)
 | `host/runtime.mjs` | Installs the shadow document, batches, flushes. |
 | `host/headless.mjs` | Reference host, ~80 lines. The executable spec. |
 | `host/layout.mjs` | Flexbox, checked frame-for-frame against Chromium. |
+| `host/flatten.mjs` | Which nodes need a view of their own, and which are only arranging things. |
+| `host/pool.mjs` | The view pool a `destroy` returns to and a `create` takes from. |
 | `host/reference.mjs` | The protocol *and* layout, with nothing to draw on — the executable spec. |
 | `host/preview.mjs` | Second host: real DOM and flexbox, for looking at things. |
 | `conformance/` | Cases every host must satisfy: a batch in, a tree and a set of frames out. |

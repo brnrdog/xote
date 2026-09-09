@@ -39,9 +39,9 @@ reconciler and no diff anywhere in the pipeline.
 | The bridge | **8 opcodes**, one flat array each |
 | Host implementations | **4** — headless reference, DOM preview, UIKit, and the layout-only reference |
 | ReScript surface added | 590 lines across 7 modules (`native/*.res`) |
-| JavaScript host runtime | 1,805 lines (`native/host/*.mjs`) |
-| Swift | 1,579 lines (`native/ios/`), **never compiled in this repository** |
-| Tests | 1,838 lines; 1,183 layout boxes checked against Chromium, 68 conformance frames, 173 core tests |
+| JavaScript host runtime | 2,288 lines (`native/host/*.mjs`) |
+| Swift | 2,104 lines (`native/ios/`), **never compiled in this repository** |
+| Tests | 2,177 lines; 1,183 layout boxes checked against Chromium, 113 conformance frames, 173 core tests |
 | Demo | An issue tracker over 5,000 issues, 826 lines of app code |
 
 Three things are worth stating plainly before anything else.
@@ -182,10 +182,11 @@ detaching and re-inserting it in the same batch. A host that released the view
 on detach would throw it away in between. `destroy` is emitted at flush time for
 whatever is still parentless, so a move costs nothing at all.
 
-**`insert` carries an index, not a before-sibling.** Because of flattening
-(§3.3) the shadow position and the native position are different numbers, and
-only the shadow document knows both. Handing the host an index means the host
-never has to reason about nodes it cannot see.
+**`insert` carries an index, not a before-sibling.** Because of *group*
+flattening (§3.3) the shadow position and the native position are different
+numbers, and only the shadow document knows both. Handing the host an index
+means the host never has to reason about nodes it cannot see — and it is what
+lets the host do its own, separate flattening (§3.5) without the two colliding.
 
 ### 3.3 Two node kinds never reach the host
 
@@ -216,7 +217,44 @@ is forward-compatibility by construction — the two halves of the bridge are
 versioned separately, so a bundle newer than the app around it is a thing to
 survive rather than a crash.
 
-### 3.5 Layout is the largest single piece
+### 3.5 Two flattenings, at two different layers
+
+The word does two jobs here and they are worth separating, because they happen
+on opposite sides of the bridge and neither knows about the other.
+
+**Group flattening** (§3.3) is on the app side. A reactive region renders into a
+grouping box that the web erases at layout time and that native has no
+equivalent for, so the shadow document splices its children into the nearest
+node that *is* projected, and the box never crosses.
+
+**View flattening** is on the host side, and was the open Tier 1 item. A `view`
+that paints nothing, carries no accessibility or hit-testing prop and has no
+listener needing a surface keeps its layout node and gets no `UIView`; its
+children become subviews of the nearest ancestor that has one. `host/flatten.mjs`
+is the policy and `XoteFlatten.swift` is its transliteration.
+
+They compose because the protocol carries an *index* rather than a sibling: the
+app side has already decided what crosses, and the host side then decides what
+of that gets a drawing surface, without either needing to see the other's tree.
+
+Frames come from the layout tree, so host flattening cannot move anything. The
+conformance suite compares the frames and the view tree separately, and
+`test/flatten_test.mjs` replays one command stream into a flattening host and a
+non-flattening one and asserts the frames come out identical. On the tracker's
+list screen it removes 34 of 192 views — 42% of the plain boxes. That is a real
+saving and not a dramatic one, because this app writes few wrappers; an app that
+writes more would save more.
+
+Views are pooled on the same seam: `destroy` returns one, `create` takes one
+out, and the protocol's guarantee that a destroyed id is never referenced again
+is exactly the guarantee a pool needs. Across a scroll sweep, a filter toggle and
+a navigation, the tracker allocates 296 views instead of 881.
+
+Neither is available to the DOM preview host, which is not an oversight: CSS has
+no way to express a box with no element, so both are open only to a host whose
+layout tree and view tree are separate objects.
+
+### 3.6 Layout is the largest single piece
 
 `host/layout.mjs` is a flexbox engine — 622 lines — checked frame-for-frame
 against Chromium's own implementation: **1,183 boxes across 196 trees, all
@@ -420,7 +458,7 @@ against the import graph, not assumed.
 | **Moves** to `xote-native` | `native/*.res`, `native/host/`, `native/conformance/`, `native/test/`, `native/example/`, and the five native npm scripts |
 | **Stays** in `xote` | The two host hooks in `RuntimeDom`, the three `Opaque*` constructors in `RuntimeNode`/`View`, and `tests/OpaqueAttrs_test.mjs` — all of which are web-renderer features that native happens to be the first caller of (§6) |
 | **Moves out again, later** | `native/ios/` wants to be its own artifact — a Swift package, not a directory in a JavaScript one. It is `xote-native`'s reference host, not part of `xote-native` |
-| **Genuinely shared, and a standing cost** | `host/layout.mjs` and `XoteLayout.swift` are the same algorithm written twice. A change to one that is not a change to the other is a change nothing tests. `conformance/suite.json` is the artifact that makes that survivable |
+| **Genuinely shared, and a standing cost** | Three pairs are now the same thing written twice — `host/layout.mjs`/`XoteLayout.swift`, `host/flatten.mjs`/`XoteFlatten.swift`, `host/pool.mjs`/`XotePool.swift`. A change to one that is not a change to the other is a change nothing tests. `conformance/suite.json` is the artifact that makes that survivable, and it is why the suite compares the view tree and not only the frames |
 
 ### 5.4 Versioning the protocol
 
@@ -640,8 +678,10 @@ this.
 
 **`toggle a filter chip` is 884 commands.** Proportional to the screen and not
 to the data, which is the claim, and still the number that would show up first
-in a profile. A view pool on `destroy` and layout-only view flattening are the
-two obvious answers and neither is built.
+in a profile. Recycling now absorbs the allocation cost of that rebuild — the
+views come back from a pool — but the 884 commands themselves are unchanged,
+because they are what the reactivity graph computed. Making that number smaller
+means changing what the filter invalidates, not how the host applies it.
 
 **The layout engine exists twice.** 622 lines of JavaScript and 574 lines of
 Swift computing the same thing. The conformance suite is what makes that
@@ -660,7 +700,17 @@ echo problem is unaddressed.
 
 ### 7.4 The gaps
 
-Roughly in the order an app author would hit them:
+Two entries that used to be in this table are gone. **View flattening** and
+**view recycling** — Tier 1 items 3 and 5 — are implemented: a box that only
+arranges its children keeps its layout node and loses its view, and a destroyed
+view goes back to a bounded pool instead of to the allocator. On the tracker's
+list screen that is 34 of 192 views flattened away, and 881 view allocations
+across a scroll sweep become 296. Neither may move anything, which is asserted
+rather than assumed: the same command stream is replayed into a flattening host
+and a non-flattening one and the frames must come out identical. See
+[`ROADMAP.md`](./ROADMAP.md) Tier 1.
+
+What is left, roughly in the order an app author would hit it:
 
 | Gap | State |
 |---|---|
@@ -670,8 +720,6 @@ Roughly in the order an app author would hit them:
 | Safe area, appearance, dynamic type, rotation | None are readable by the app. All of them need to be reactive inputs |
 | Accessibility | `accessibilityLabel` and `testID` exist. Traits, focus order, actions, VoiceOver navigation and reduced-motion do not |
 | Images | Load with no cache, no decode off the main thread, no placeholder, no `@2x`/`@3x` pipeline |
-| View flattening | Every node is a `UIView`. React Native flattens layout-only views away, and the layout tree and view tree are already separate objects here — the mechanism is in place, the policy is not |
-| View recycling | `destroy` is the natural place to return a view to a pool. Nothing does |
 | Native modules | The *best* part of the story on paper — externals are already how ReScript talks to a foreign runtime, so a binding is idiomatic rather than generated — and entirely undesigned. Needs an async call protocol |
 | Android | The protocol has four independent implementations, which is decent evidence it is host-agnostic. A Kotlin host is the test of that claim |
 | Hermes | JavaScriptCore was right for a prototype because it ships with iOS. Bytecode precompilation and startup say it is not right for an app |
@@ -743,11 +791,12 @@ about is a plan and a blind spot is a bug you have not met yet.
 no network route to one. The layout *algorithm* is verified against Chromium;
 the Swift spelling of it is not. Expect compile errors on the next real build.
 
-**The conformance suite compares three things and only three things:** the tree
-(parent → child ids), the frames in root coordinates, and the text. That is a
-deliberate and defensible choice — it is what two hosts in two languages can
-agree on, with text measured by a stub because `UILabel`, `StaticLayout` and
-Chromium will never agree on font metrics.
+**The conformance suite compares four things and only four things:** the node
+tree (parent → child ids), the frames in root coordinates, the text, and — since
+flattening landed — the *view* tree, which is not the same as the node tree.
+That is a deliberate and defensible choice: it is what two hosts in two
+languages can agree on, with text measured by a stub because `UILabel`,
+`StaticLayout` and Chromium will never agree on font metrics.
 
 It is also, structurally, why every one of the bugs in §7.5(4) got through.
 **Nothing in the suite can catch:**
@@ -755,7 +804,7 @@ It is also, structurally, why every one of the bugs in §7.5(4) got through.
 | Not covered | Why it is invisible to the suite |
 |---|---|
 | Clipping and overflow | Both hosts compute the same frame; only one of them draws outside it |
-| Z-order and paint order | The tree is compared as a parent → children map, not as a painting order |
+| Z-order and paint order | Both trees are compared as parent → children maps, not as a painting order |
 | Colours, fonts, opacity, corner radius | Never compared — the suite is geometry |
 | Safe-area and content insets | The suite supplies a viewport, not a device |
 | Anything in the app shell | Launch screens, `Info.plist`, orientation, the view controller |
@@ -804,12 +853,10 @@ here so this document stands alone:
 3. **Navigation.** The next thing an app cannot be built without.
 4. **Text input, safe area, appearance.** Small individually; between them, the
    difference between a demo and a screen.
-5. **View flattening and recycling.** Both are performance work and both want a
-   device measurement first.
-6. **An Android host.** The conformance suite makes this a transliteration and a
+5. **An Android host.** The conformance suite makes this a transliteration and a
    day of plumbing rather than a week of guessing — and it is the real test of
    the protocol.
-7. **Gestures and animation.** The hardest remaining design problem, and the one
+6. **Gestures and animation.** The hardest remaining design problem, and the one
    to do last because everything above it constrains the answer.
 
 The honest summary is that the architectural bet paid off and the product work

@@ -22,6 +22,7 @@ const suite = cases.map(({ name, viewport, steps }) => {
       structure: host.structure(),
       frames: host.frames(),
       texts: host.texts(),
+      views: host.nativeTree(),
     };
   });
   return { name, viewport, steps, expected };

@@ -22,6 +22,12 @@ final class XoteConformanceTests: XCTestCase {
       let structure: [String: [Int]]
       let frames: [String: [CGFloat]]
       let texts: [String: String]
+      /// The *view* tree — which nodes got a `UIView` and which view holds
+      /// which. Not the same as `structure`: a layout-only box is in one and
+      /// not the other. Two hosts can agree on every frame and still draw the
+      /// same content into different surfaces, with different clipping and
+      /// different hit testing, so this is compared separately.
+      let views: [String: [Int]]
     }
     let name: String
     let viewport: Viewport
@@ -129,6 +135,18 @@ final class XoteConformanceTests: XCTestCase {
               got[axis], frame[axis], accuracy: 0.5,
               "\(step): node \(id) frame \(got) should be \(frame)")
           }
+        }
+
+        // Flattening: which boxes became views, and where they ended up in the
+        // hierarchy. The `flattening` case moves a box into and out of the view
+        // tree while every frame stays put, which is the pair of directions
+        // that is easy to get wrong and impossible to see in a frame.
+        XCTAssertEqual(
+          Set(snapshot.views.keys), Set(expected.views.keys.map { Int($0)! }),
+          "\(step): the set of nodes with a view of their own")
+        for (id, children) in expected.views {
+          XCTAssertEqual(
+            snapshot.views[Int(id)!] ?? [], children, "\(step): subviews of \(id)")
         }
       }
     }
