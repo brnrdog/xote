@@ -9,7 +9,4 @@
 
   <!-- Wordmark -->
   <text x="108" y="56" font-family="Georgia, 'Times New Roman', serif" font-size="44" font-weight="600" fill="#fafaf7" letter-spacing="-0.02em">xote</text>
-
-  <!-- Tagline -->
-  <text x="108" y="78" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, monospace" font-size="11" fill="#8a887f" letter-spacing="0.1em">SOUND REACTIVITY UI LIBRARY</text>
 </svg>
