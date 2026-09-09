@@ -219,7 +219,14 @@ Roughly in the order you will hit them.
 ## Tier 5 — shipping it as a thing other people install
 
 - **Extract `xote-native` into its own package.** It depends on `xote`; it does
-  not belong inside it. Blocked on the Tier 2 seams.
+  not belong inside it. No longer blocked and no longer a guess:
+  `native/test/package_test.mjs` stages both packages into a temporary
+  `node_modules` and compiles a downstream app against them, so the cost is
+  known — a `rescript.json` carrying `-open Xote`, a `package.json` with an
+  `exports` map, and `host/` living inside `src/` so `@module("./host/…")`
+  stays correct. **No source file changes**, and nothing in `xote` has to move:
+  the six modules `xote-native` reaches for are all already in the published
+  `exports` map. What is left is the move itself.
 - ~~**Version the protocol.**~~ **Done.** `PROTOCOL_VERSION` is 1, a host
   declares the range of bundle versions it can apply, and `install()` compares
   them before anything renders. A host *older* than the bundle is a warning —

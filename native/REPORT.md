@@ -399,7 +399,8 @@ import `xote/src/View.res.mjs` by bare specifier — which is exactly what the
 
 ### 5.2 The mechanics
 
-**`xote-native/rescript.json`:**
+**`xote-native/rescript.json`** — this is the file the test actually builds
+with, not a sketch:
 
 ```json
 {
@@ -408,7 +409,8 @@ import `xote/src/View.res.mjs` by bare specifier — which is exactly what the
   "sources": [{ "dir": "src", "subdirs": false }],
   "package-specs": { "module": "esmodule", "in-source": true },
   "suffix": ".res.mjs",
-  "dependencies": ["rescript-signals", "xote"]
+  "dependencies": ["rescript-signals", "xote"],
+  "compiler-flags": ["-open Xote"]
 }
 ```
 
@@ -440,16 +442,45 @@ today and is the single nicest ergonomic property of the whole design:
 @@jsxConfig({version: 4, module_: "NativeJSX"})
 ```
 
-The consumer half of that arrangement is the pattern `tests/consumer` already
-proves for `xote` alone — `dependencies: ["xote"]`, `-open Xote`, and
-`"module": "XoteJSX"`. Extending it to a second package is §5.6 step 2, and it
-is unverified until that runs.
+**This is no longer a proposal.** `native/test/package_test.mjs` stages `xote`
+and a synthetic `xote-native` into a temporary `node_modules`, compiles the
+fixture app in `native/test/__fixtures__/package/` against both, and asserts
+what comes out. It runs in under a second, on Linux, with no device. What it
+establishes:
 
-What *is* verified: **nothing needs to change in `xote`'s export surface for any
-of this.** Every module `native/` imports at runtime — `View`, `Signal`,
-`Computed`, `Effect`, `XoteJSX`, `MaybeSignal` — already has both a friendly
-name and a `./src/*.res.mjs` entry in `package.json` `exports`. That was checked
-against the import graph, not assumed.
+- A downstream app **does** compile against the two packages, JSX module switch
+  and all.
+- The emitted imports **are** bare specifiers — `xote/src/View.res.mjs`,
+  `xote-native/src/NativeJSX.res.mjs` — and the test walks every one of them,
+  asserting the subpath is served by `xote`'s published `exports` map. Six
+  modules are reached: `View`, `Signal`, `Computed`, `Effect`, `XoteJSX`,
+  `MaybeSignal`. All six are already exported. **Nothing in `xote` has to
+  change.**
+- The namespace really does move: `NativeJSX$Xote` becomes
+  `NativeJSX$XoteNative`, and every import in the app follows.
+
+And two things it found that the design above had wrong or unsaid:
+
+**`xote-native` needs `-open Xote`.** Every one of the seven modules refers to
+`View`, `Signal`, `Computed`, `Effect`, `XoteJSX` and `MaybeSignal`
+unqualified, because inside `xote` the namespace puts them directly in scope.
+From its own package they are `Xote.View`, and the build fails on the first line
+of `NativeProp`. `"compiler-flags": ["-open Xote"]` fixes it with **no source
+changes** — the same arrangement `tests/consumer` already uses. The alternative,
+qualifying several hundred references, buys nothing.
+
+**`host/` has to travel inside the source directory.** `NativeApp.res` reaches
+the runtime through `@module("./host/runtime.mjs")`, a path relative to the
+emitted `.res.mjs`. Stage the package as `src/*.res` plus `src/host/*.mjs` and
+that external is already correct; put `host/` at the package root instead and
+every one of those externals needs an extra `../`. A layout decision that looks
+cosmetic and is not.
+
+One pleasant thing fell out: `NativeStyle` does not appear in the emitted code
+at all. `make` and `pt` are `%identity`, so a style is an object literal at the
+call site and the module vanishes at compile time — a style costs nothing at
+runtime and crosses the bridge as the object the app wrote. The test asserts
+that too, so it stays true.
 
 ### 5.3 What moves, what stays, and what is genuinely shared
 
@@ -518,17 +549,20 @@ like before Swift injects anything.
 
 ### 5.6 The order
 
-1. ~~**Version the protocol.**~~ **Done** — see above.
-2. **Extend the boundary test to two packages**, still in this repository, with
-   `native/` still where it is. This is the step that finds the problems.
-3. **Lift `native/` into `xote-native`**, with the `Xote.` → `XoteNative.`
-   namespace change and relative → bare import change falling out of the build.
+1. ~~**Version the protocol.**~~ **Done** — see §5.4.
+2. ~~**Extend the boundary test to two packages**, still in this repository,
+   with `native/` still where it is.~~ **Done** — `native/test/package_test.mjs`,
+   and it found the two problems above.
+3. **Lift `native/` into `xote-native`.** The build now says what this costs:
+   a `rescript.json` with `-open Xote`, a `package.json` with an `exports` map,
+   and `host/` living inside `src/`. No source file changes.
 4. **Split `ios/` out** into a Swift package with the conformance suite as its
    acceptance test.
 5. **Only then** publish anything.
 
-Steps 1 and 2 are worth doing regardless of whether the package is ever
-extracted, because they are the tests that would have caught the drift.
+Steps 1 and 2 were worth doing regardless of whether the package is ever
+extracted, because they are the tests that would have caught the drift. Step 3
+is now a move rather than an experiment.
 
 ---
 

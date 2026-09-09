@@ -189,6 +189,8 @@ rather than failing later.)
 | `example/tracker/` | An issue tracker over 5,000 issues — the example that measures the premise. |
 | `test/Native_test.mjs` | End-to-end, asserting *how much* crosses the bridge. |
 | `test/surface_test.mjs` | The types may not promise more than the hosts deliver. |
+| `test/protocol_test.mjs` | The handshake between a bundle and a host that ship separately. |
+| `test/package_test.mjs` | `xote-native` compiled and consumed as its own package. |
 | `ios/` | A third host: JavaScriptCore + UIKit, for running this on a simulator. See `ios/README.md`. |
 
 **The types do not over-promise, and that is enforced.** `NativeStyle` and
