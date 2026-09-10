@@ -148,6 +148,12 @@ const attrValueTags = new Set([
   "OptionalStatic",
   "OptionalSignalValue",
   "OptionalCompute",
+  // The opaque payloads have to be here or the escape hatch defeats them: an
+  // Opaque falling through to attrFromValue is the "[object Object]" the
+  // constructor exists to avoid, and an OpaqueSignal loses its reactivity.
+  "Opaque",
+  "OpaqueSignal",
+  "OpaqueCompute",
 ]);
 
 function toAttrEntry(name, value) {

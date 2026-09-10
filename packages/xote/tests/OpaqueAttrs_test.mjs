@@ -102,4 +102,47 @@ assert.equal(
   "a computed opaque value is not read into the markup either",
 );
 
+/* ---- through the JSX `attrs` escape hatch --------------------------------- */
+
+/**
+ * `attrs` is the documented way to reach a prop the typed props do not name, so
+ * an opaque value has to survive it — and it does not survive by accident. The
+ * escape hatch re-coerces anything it does not recognise as a `View.attrValue`,
+ * against a hand-maintained list of tags, and a list that has not kept up with
+ * the type silently sends the value back through the HTML-attribute rules the
+ * constructor exists to escape.
+ *
+ * This is asserted on the value the escape hatch returns rather than on the
+ * rendered attribute, because a real DOM stringifies on `setAttribute` and both
+ * paths land on `"[object Object]"` — the coercion is invisible downstream and
+ * only the identity of the payload gives it away.
+ */
+const RuntimeJsxProp = await import("../src/RuntimeJsxProp.res.mjs");
+
+const payload = { flex: 1, gap: 8 };
+for (const tag of ["Opaque", "OpaqueSignal", "OpaqueCompute"]) {
+  const value = { TAG: tag, _0: payload };
+  const [key, out] = RuntimeJsxProp.toAttrEntry("data-config", value);
+  assert.equal(key, "data-config");
+  assert.equal(out, value, `${tag} passes through \`attrs\` untouched`);
+}
+
+// The tags the escape hatch recognises have to be exactly the constructors the
+// type has, minus `Static` — which deliberately shares MaybeSignal's path. A
+// constructor added to `View.attrValue` and not here is this bug again.
+assert.deepEqual(
+  [...RuntimeJsxProp.attrValueTags].sort(),
+  [
+    "Compute",
+    "Opaque",
+    "OpaqueCompute",
+    "OpaqueSignal",
+    "OptionalCompute",
+    "OptionalSignalValue",
+    "OptionalStatic",
+    "SignalValue",
+  ],
+  "every attrValue constructor except Static is recognised by the escape hatch",
+);
+
 console.log("opaque attribute tests passed");

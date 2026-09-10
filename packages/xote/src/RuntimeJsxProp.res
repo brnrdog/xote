@@ -39,6 +39,13 @@ let attrValueTags = [
   "OptionalStatic",
   "OptionalSignalValue",
   "OptionalCompute",
+  /* The opaque payloads have to be here or the escape hatch defeats them: an
+   `Opaque` falling through to `toStringAttr` is sent back through the very
+   HTML-attribute rules the constructor exists to escape, and an `OpaqueSignal`
+   loses its reactivity on the way. */
+  "Opaque",
+  "OpaqueSignal",
+  "OpaqueCompute",
 ]
 
 /* One entry of the untyped `attrs` escape hatch. The value may be a
