@@ -229,7 +229,18 @@ export function createPreviewHost(mount, { onBatch, dispatch } = {}) {
             break;
           }
           case OP.DESTROY: {
-            nodes.delete(args[0]);
+            const [id] = args;
+            const node = nodes.get(id);
+            if (node !== undefined) {
+              // A well-behaved bundle removes before it destroys, but the
+              // bookkeeping outlives the element either way: left in
+              // `layoutListeners` the host keeps measuring a detached node and
+              // dispatching `layout` for an id the app has forgotten.
+              node.el.remove?.();
+              layoutListeners.delete(node);
+              reported.delete(id);
+            }
+            nodes.delete(id);
             break;
           }
           case OP.LISTEN: {
