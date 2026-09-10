@@ -305,6 +305,47 @@ function flattening() {
   return { name: "flattening", viewport: VIEWPORT, steps };
 }
 
+/**
+ * Auto-sized absolutely positioned children.
+ *
+ * The space one of these shrink-to-fits into is the containing block less
+ * whichever edges it was given, and only a measured leaf can narrow into it —
+ * a box tree's min-content is its max-content, so it keeps its content width
+ * and overflows. Chromium was asked all of this directly; see the absolute
+ * cases in `test/layout-cases.mjs` and `test/layout_test.mjs`.
+ */
+function absolutePositioning() {
+  const b = builder();
+  const root = b.root();
+  const screen = b.node("view", { flex: 1, padding: 20 });
+
+  // Pinned on one edge each, with text inside: the caption has to wrap into
+  // what is left of the block, not run on at its natural width.
+  const fromLeft = b.node("text", { position: "absolute", left: 240, top: 0 });
+  b.insert(fromLeft, b.text("wrap me into what is left"), 0);
+
+  const fromRight = b.node("text", { position: "absolute", right: 240, top: 120 });
+  b.insert(fromRight, b.text("and me, from the other side"), 0);
+
+  // Pinned on neither: the whole block is available, so it keeps its natural
+  // width and one line.
+  const unpinned = b.node("text", { position: "absolute", top: 260 });
+  b.insert(unpinned, b.text("no edges"), 0);
+
+  // A box tree in the same position overflows rather than narrowing.
+  const boxed = b.node("view", { position: "absolute", left: 240, top: 300 });
+  b.fill(boxed, [b.node("view", { width: 120, height: 10 })]);
+
+  // Bottom-pinned, so the vertical axis gets the same treatment.
+  const fromBottom = b.node("view", { position: "absolute", left: 0, bottom: 30 });
+  b.fill(fromBottom, [b.node("view", { width: 40, height: 25 })]);
+
+  b.fill(screen, [fromLeft, fromRight, unpinned, boxed, fromBottom]);
+  b.insert(root, screen, 0);
+
+  return { name: "absolute positioning", viewport: VIEWPORT, steps: [b.take()] };
+}
+
 export const cases = [
   boxes(),
   reverseAndOverflow(),
@@ -313,4 +354,5 @@ export const cases = [
   scrolling(),
   nested(),
   flattening(),
+  absolutePositioning(),
 ];

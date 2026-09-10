@@ -132,4 +132,53 @@ const wrapping = (chars, charWidth = 10, lineHeight = 16) => ({
   assert.equal(root.layout.height, 32, "and the column grew to hold it");
 }
 
+/* ---- auto-sized absolute children -----------------------------------------
+ *
+ * An absolutely positioned child with no width shrink-to-fits, and the space
+ * it fits into is the containing block less whichever edges it was given. Only
+ * a measured leaf can actually narrow into that space — a box tree's
+ * min-content is its max-content, so it keeps its content width and overflows,
+ * which is what the box cases in the Chromium fixture pin. Chromium was asked
+ * all four of these directly (`aaaa bbbb cccc dddd` in a 300-wide block):
+ * pinned 250 from either edge it came back 50 wide and four lines tall, pinned
+ * on neither it kept its natural 183, and padding on the block changed
+ * nothing, because an absolute child's containing block is the padding box.
+ */
+
+const absolute = (style) => {
+  const leaf = wrapping(20);
+  const child = { style: { position: "absolute", ...style }, children: [leaf] };
+  const root = { style: { width: 300, height: 200 }, children: [child] };
+  layout(root, 300, 200);
+  return child.layout;
+};
+
+{
+  const frame = absolute({ left: 250, top: 0 });
+  assert.equal(frame.width, 50, "pinned on the left, the text fits the 50 that are left");
+  assert.equal(frame.height, 64, "wrapping to four lines to do it");
+  assert.equal(frame.left, 250, "and staying where it was pinned");
+}
+
+{
+  const frame = absolute({ right: 250, top: 0 });
+  assert.equal(frame.width, 50, "pinned on the right, it fits the 50 that are left");
+  assert.equal(frame.height, 64, "wrapping the same four lines");
+  assert.equal(frame.left, 0, "and sitting its own width in from the right edge");
+}
+
+{
+  const frame = absolute({ top: 0 });
+  assert.equal(frame.width, 200, "pinned on neither edge, the whole block is available");
+  assert.equal(frame.height, 16, "so the text keeps its natural width and one line");
+}
+
+{
+  const leaf = wrapping(20);
+  const child = { style: { position: "absolute", left: 250, top: 0 }, children: [leaf] };
+  const root = { style: { width: 300, height: 200, padding: 20 }, children: [child] };
+  layout(root, 300, 200);
+  assert.equal(child.layout.width, 50, "the containing block is the padding box, padding and all");
+}
+
 console.log(`layout tests passed — ${boxes} boxes against Chromium-recorded frames`);

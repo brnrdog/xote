@@ -603,11 +603,21 @@ function layoutAbsolute(child, pad, parentWidth, parentHeight) {
     height = Math.max(0, boxH - top - bottom);
   }
 
+  /* Auto-sized, the child shrink-to-fits, and the space it fits into is the
+   * containing block less whichever edges were given — `boxW - left` for a
+   * child pinned only on the left, `boxW - right` for one pinned only on the
+   * right, the whole block for one pinned on neither. `AT_MOST` with nothing
+   * to be at most of measures the content unconstrained, which is how an
+   * absolutely positioned line of text came out on one long line instead of
+   * wrapping into the box. */
+  const availW = width === undefined ? Math.max(0, boxW - (left ?? 0) - (right ?? 0)) : width;
+  const availH = height === undefined ? Math.max(0, boxH - (top ?? 0) - (bottom ?? 0)) : height;
+
   computeLayout(
     child,
-    width,
+    availW,
     width === undefined ? AT_MOST : EXACTLY,
-    height,
+    availH,
     height === undefined ? AT_MOST : EXACTLY,
     boxW,
     boxH,

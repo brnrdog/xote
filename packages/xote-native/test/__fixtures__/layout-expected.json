@@ -601,6 +601,66 @@
    "height": 12
   }
  },
+ "absolute auto width keeps its content width": {
+  "0": {
+   "left": 0,
+   "top": 0,
+   "width": 300,
+   "height": 200
+  },
+  "0.0": {
+   "left": 250,
+   "top": 0,
+   "width": 120,
+   "height": 10
+  },
+  "0.0.0": {
+   "left": 0,
+   "top": 0,
+   "width": 120,
+   "height": 10
+  }
+ },
+ "absolute pinned only on the right sits its own width in from it": {
+  "0": {
+   "left": 0,
+   "top": 0,
+   "width": 300,
+   "height": 200
+  },
+  "0.0": {
+   "left": 10,
+   "top": 0,
+   "width": 40,
+   "height": 10
+  },
+  "0.0.0": {
+   "left": 0,
+   "top": 0,
+   "width": 40,
+   "height": 10
+  }
+ },
+ "absolute pinned only on the bottom sits its own height up from it": {
+  "0": {
+   "left": 0,
+   "top": 0,
+   "width": 300,
+   "height": 200
+  },
+  "0.0": {
+   "left": 0,
+   "top": 145,
+   "width": 40,
+   "height": 25
+  },
+  "0.0.0": {
+   "left": 0,
+   "top": 0,
+   "width": 40,
+   "height": 25
+  }
+ },
  "nested three deep": {
   "0": {
    "left": 0,

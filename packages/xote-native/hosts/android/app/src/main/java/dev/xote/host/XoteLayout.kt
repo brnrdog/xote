@@ -614,11 +614,17 @@ object XoteLayout {
     if (width == null && left != null && right != null) width = max(0f, boxW - left - right)
     if (height == null && top != null && bottom != null) height = max(0f, boxH - top - bottom)
 
+    /* Auto-sized, the child shrink-to-fits, and the space it fits into is the
+     containing block less whichever edges it was given. AT_MOST with nothing
+     to be at most of measures the content unconstrained. */
+    val availW = width ?: max(0f, boxW - (left ?: 0f) - (right ?: 0f))
+    val availH = height ?: max(0f, boxH - (top ?: 0f) - (bottom ?: 0f))
+
     compute(
       child,
-      availableWidth = width,
+      availableWidth = availW,
       widthMode = if (width == null) XoteMeasureMode.AT_MOST else XoteMeasureMode.EXACTLY,
-      availableHeight = height,
+      availableHeight = availH,
       heightMode = if (height == null) XoteMeasureMode.AT_MOST else XoteMeasureMode.EXACTLY,
       ownerWidth = boxW,
       ownerHeight = boxH,

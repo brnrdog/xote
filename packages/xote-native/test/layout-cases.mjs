@@ -175,6 +175,28 @@ const curated = [
     box({ padding: 10 }, [box({ position: "absolute", left: 0, right: 0, top: 0, height: 12 })]),
   ],
   [
+    // Auto-sized against `boxW - left`, but a box tree's min-content is its
+    // max-content, so shrink-to-fit lands on the content and overflows. (Text
+    // is the case that actually narrows; the browser has no stand-in for the
+    // engine's measure callback, so those live in `layout_test.mjs`.)
+    "absolute auto width keeps its content width",
+    box({ width: 300, height: 200 }, [
+      box({ position: "absolute", left: 250, top: 0 }, [box({ width: 120, height: 10 })]),
+    ]),
+  ],
+  [
+    "absolute pinned only on the right sits its own width in from it",
+    box({ width: 300, height: 200 }, [
+      box({ position: "absolute", right: 250, top: 0 }, [box({ width: 40, height: 10 })]),
+    ]),
+  ],
+  [
+    "absolute pinned only on the bottom sits its own height up from it",
+    box({ width: 300, height: 200 }, [
+      box({ position: "absolute", left: 0, bottom: 30 }, [box({ width: 40, height: 25 })]),
+    ]),
+  ],
+  [
     "nested three deep",
     box({ padding: 8, gap: 4 }, [
       box({ flexDirection: "row", gap: 6 }, [

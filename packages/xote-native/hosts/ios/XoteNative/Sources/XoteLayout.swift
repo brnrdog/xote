@@ -564,10 +564,16 @@ enum XoteLayout {
     if width == nil, let left = left, let right = right { width = max(0, boxW - left - right) }
     if height == nil, let top = top, let bottom = bottom { height = max(0, boxH - top - bottom) }
 
+    /* Auto-sized, the child shrink-to-fits, and the space it fits into is the
+     containing block less whichever edges it was given. `.atMost` with nothing
+     to be at most of measures the content unconstrained. */
+    let availW = width ?? max(0, boxW - (left ?? 0) - (right ?? 0))
+    let availH = height ?? max(0, boxH - (top ?? 0) - (bottom ?? 0))
+
     compute(
       child,
-      availableWidth: width, widthMode: width == nil ? .atMost : .exactly,
-      availableHeight: height, heightMode: height == nil ? .atMost : .exactly,
+      availableWidth: availW, widthMode: width == nil ? .atMost : .exactly,
+      availableHeight: availH, heightMode: height == nil ? .atMost : .exactly,
       ownerWidth: boxW, ownerHeight: boxH
     )
 
