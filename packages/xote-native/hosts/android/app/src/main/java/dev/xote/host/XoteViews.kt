@@ -139,7 +139,13 @@ class XoteScrollView(context: Context) : XoteBox(context) {
  * had when gesture targets were appended to an array that was never emptied.
  */
 object XoteTextWatchers {
-  private val attached = HashMap<EditText, MutableList<TextWatcher>>()
+  // Weak keys: this map is process-wide and `clear` is only reached from
+  // `XoteViewPool.reset`, which `release` skips once a pool is full. A strong
+  // key would then retain the `EditText` — and through it the whole Activity —
+  // for the life of the process, which is the Android shape of the leak the
+  // iOS host had when gesture targets were appended to an array nothing
+  // emptied.
+  private val attached = java.util.WeakHashMap<EditText, MutableList<TextWatcher>>()
 
   fun add(field: EditText, watcher: TextWatcher) {
     attached.getOrPut(field) { mutableListOf() }.add(watcher)

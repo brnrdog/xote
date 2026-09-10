@@ -21,6 +21,11 @@ import android.widget.TextView
  * screen that put it there, which is the leak this would otherwise introduce.
  */
 class XoteViewPool(private val limit: Int = 64) {
+  private companion object {
+    /** Android's own default, so a reset view measures as a fresh one would. */
+    const val DEFAULT_TEXT_SIZE_SP = 14f
+  }
+
   private val free = HashMap<String, MutableList<View>>()
 
   var created = 0
@@ -89,6 +94,16 @@ class XoteViewPool(private val limit: Int = 64) {
       view.setTextColor(android.graphics.Color.BLACK)
       view.gravity = android.view.Gravity.START
       view.typeface = android.graphics.Typeface.DEFAULT
+      // The size has to go back too, and it is the one that bites hardest:
+      // `XoteHost.paint` only assigns it when the style names `fontSize`, so a
+      // recycled row without one keeps the previous row's size — and
+      // `measureText` then measures against the wrong `TextPaint`, so the frame
+      // is wrong as well as the text. (iOS is immune: it assigns `label.font`
+      // unconditionally.)
+      view.setTextSize(
+        android.util.TypedValue.COMPLEX_UNIT_SP,
+        DEFAULT_TEXT_SIZE_SP,
+      )
     }
     if (view is ImageView) {
       view.setImageDrawable(null)
