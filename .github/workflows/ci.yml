@@ -39,20 +39,27 @@ jobs:
       - name: ReScript Build
         run: npm run res:build
 
-      - name: Run tests
-        run: node packages/xote/tests/Tests.res.mjs
+      # Run each package's own suite rather than a list of files. The list was
+      # how `tests/OpaqueAttrs_test.mjs` came to exist without ever running
+      # here: adding a test to the package and adding it to CI were two steps,
+      # and only the first happened. One step per package means they cannot
+      # drift again — `npm test` already chains the unit tests, the export
+      # surface and the consumer boundary.
+      - name: Test xote
+        run: npm test
 
-      - name: Run JSX runtime tests
-        run: node packages/xote/tests/JSXRuntime_test.mjs
+      # xote-native is a package with its own suites: the layout oracle against
+      # Chromium-recorded frames, the host conformance suite, the type-surface
+      # and protocol checks that read the Swift and Kotlin as text, and the
+      # two-package install. None of it gated anything before this step existed.
+      - name: Test xote-native
+        run: npm run native:test
 
-      - name: Check public JS export surface
-        run: npm run test:exports
-
-      - name: Check public API boundary from a consumer package
-        run: npm run test:boundary
-
-      - name: Run dev-mode diagnostics tests
-        run: node packages/xote/tests/DevMode_test.mjs
+      # The shipped bundle in a realm with no DOM, no console, no timers and no
+      # module loader — what an embedded JavaScript engine looks like before the
+      # platform injects anything.
+      - name: Test the native bundle in a bare realm
+        run: npm run native:bundle:test
 
       # The @xote.component ppx (packages/xote/ppx/) ships in the npm package as prebuilt
       # binaries (see ppx-binaries.yml / release.yml). Build it from source
