@@ -81,8 +81,15 @@ jobs:
       - name: Vite Build
         run: npm run build
 
+      # Every file that crosses a step boundary is named absolutely. `bundle:size`
+      # is a delegating alias, so it runs with the working directory set to
+      # packages/xote, while the steps around it run at the workspace root — a
+      # relative name means two different files depending on who wrote it.
       - name: Snapshot bundle size
-        run: GITHUB_STEP_SUMMARY= npm run bundle:size -- --json bundle-size-current.json
+        run: |
+          GITHUB_STEP_SUMMARY= npm run bundle:size -- \
+            --json "$GITHUB_WORKSPACE/bundle-size-current.json" \
+            --markdown "$GITHUB_WORKSPACE/bundle-size-report.md"
 
       - name: Snapshot base bundle size
         if: github.event_name == 'pull_request'
@@ -121,21 +128,24 @@ jobs:
           GITHUB_STEP_SUMMARY= node "$GITHUB_WORKSPACE/packages/xote/scripts/bundle-size-report.mjs" \
             --dist "$base_pkg/dist" \
             --package "$base_pkg/package.json" \
-            --json bundle-size-base.json \
+            --json "$GITHUB_WORKSPACE/bundle-size-base.json" \
             --markdown /tmp/bundle-size-base-report.md
 
       - name: Generate bundle size report
         env:
           BASE_REF: ${{ github.base_ref || 'main' }}
         run: |
-          if [ -f bundle-size-base.json ]; then
+          if [ -f "$GITHUB_WORKSPACE/bundle-size-base.json" ]; then
             npm run bundle:size -- \
-              --json bundle-size-current.json \
-              --baseline bundle-size-base.json \
+              --json "$GITHUB_WORKSPACE/bundle-size-current.json" \
+              --markdown "$GITHUB_WORKSPACE/bundle-size-report.md" \
+              --baseline "$GITHUB_WORKSPACE/bundle-size-base.json" \
               --baseline-label "$BASE_REF" \
               --current-label PR
           else
-            npm run bundle:size -- --json bundle-size-current.json
+            npm run bundle:size -- \
+              --json "$GITHUB_WORKSPACE/bundle-size-current.json" \
+              --markdown "$GITHUB_WORKSPACE/bundle-size-report.md"
           fi
 
       - name: Comment bundle size on PR
