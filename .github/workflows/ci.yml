@@ -107,9 +107,20 @@ jobs:
             npm run build
           )
 
+          # The base commit may be from either layout. Before the monorepo
+          # split `xote` was the repository root; after it the package is in
+          # packages/xote, and so are its dist/ and package.json. The scripts
+          # above are named the same in both (the root delegates), but these
+          # two paths are not.
+          if [ -f "$base_dir/packages/xote/package.json" ]; then
+            base_pkg="$base_dir/packages/xote"
+          else
+            base_pkg="$base_dir"
+          fi
+
           GITHUB_STEP_SUMMARY= node "$GITHUB_WORKSPACE/packages/xote/scripts/bundle-size-report.mjs" \
-            --dist "$base_dir/dist" \
-            --package "$base_dir/package.json" \
+            --dist "$base_pkg/dist" \
+            --package "$base_pkg/package.json" \
             --json bundle-size-base.json \
             --markdown /tmp/bundle-size-base-report.md
 
