@@ -17,8 +17,8 @@ const runtime = install(host, { autoFlush: false });
 const NativeApp = await import("../src/NativeApp.res.mjs");
 const NativeList = await import("../src/NativeList.res.mjs");
 const Native = await import("../src/Native.res.mjs");
-const View = await import("../../src/View.res.mjs");
-const Signal = await import("../../src/Signal.res.mjs");
+const View = await import("xote/src/View.res.mjs");
+const Signal = await import("xote/src/Signal.res.mjs");
 
 const ROW_HEIGHT = 40;
 const VIEWPORT = 600;

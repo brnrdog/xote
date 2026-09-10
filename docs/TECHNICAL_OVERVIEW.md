@@ -1,5 +1,11 @@
 ## Xote Technical Overview
 
+> Paths in this document are relative to **`packages/xote/`**, the library's
+> own package. The repository also holds `packages/xote-native/`, which is
+> written up separately in
+> [`packages/xote-native/REPORT.md`](../packages/xote-native/REPORT.md).
+
+
 This document describes the current architecture and public API of Xote, a lightweight ReScript UI library for building components with fine-grained signal reactivity.
 
 Xote uses [rescript-signals](https://brnrdog.github.io/rescript-signals) for reactive primitives and layers a small DOM renderer, JSX support, routing, server-side rendering, hydration, and SSR state transfer on top.

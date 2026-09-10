@@ -40,10 +40,10 @@ jobs:
         run: npm run res:build
 
       - name: Run tests
-        run: node tests/Tests.res.mjs
+        run: node packages/xote/tests/Tests.res.mjs
 
       - name: Run JSX runtime tests
-        run: node tests/JSXRuntime_test.mjs
+        run: node packages/xote/tests/JSXRuntime_test.mjs
 
       - name: Check public JS export surface
         run: npm run test:exports
@@ -52,9 +52,9 @@ jobs:
         run: npm run test:boundary
 
       - name: Run dev-mode diagnostics tests
-        run: node tests/DevMode_test.mjs
+        run: node packages/xote/tests/DevMode_test.mjs
 
-      # The @xote.component ppx (ppx/) ships in the npm package as prebuilt
+      # The @xote.component ppx (packages/xote/ppx/) ships in the npm package as prebuilt
       # binaries (see ppx-binaries.yml / release.yml). Build it from source
       # and run the example's jsdom verification here so the transform can't
       # rot; needs only ocamlopt (no opam).
@@ -107,7 +107,7 @@ jobs:
             npm run build
           )
 
-          GITHUB_STEP_SUMMARY= node "$GITHUB_WORKSPACE/scripts/bundle-size-report.mjs" \
+          GITHUB_STEP_SUMMARY= node "$GITHUB_WORKSPACE/packages/xote/scripts/bundle-size-report.mjs" \
             --dist "$base_dir/dist" \
             --package "$base_dir/package.json" \
             --json bundle-size-base.json \

@@ -16,8 +16,14 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const fixtureRoot = join(repoRoot, "tests", "consumer");
+/**
+ * This package, and the repository above it. They are not the same directory
+ * any more: `xote` lives in `packages/xote`, and `node_modules` — including the
+ * `rescript` binary and `rescript-signals` — is hoisted to the workspace root.
+ */
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = resolve(packageRoot, "..", "..");
+const fixtureRoot = join(packageRoot, "tests", "consumer");
 const forbiddenDir = join(fixtureRoot, "forbidden");
 const deprecatedDir = join(fixtureRoot, "deprecated");
 const probeDir = join(fixtureRoot, "probe");
@@ -40,7 +46,7 @@ function stagePackage() {
   mkdirSync(pkgDir, { recursive: true });
 
   for (const entry of PUBLISHED) {
-    cpSync(join(repoRoot, entry), join(pkgDir, entry), {
+    cpSync(join(packageRoot, entry), join(pkgDir, entry), {
       recursive: true,
       /* Compiled output and lockfiles are not part of the published surface. */
       filter: (src) => !src.includes(`${"/"}lib${"/"}`) && !src.endsWith("/lib"),

@@ -18,9 +18,9 @@
  */
 
 import assert from "node:assert/strict";
-import * as Signal from "../../src/Signal.res.mjs";
-import * as Computed from "../../src/Computed.res.mjs";
-import * as Effect from "../../src/Effect.res.mjs";
+import * as Signal from "xote/src/Signal.res.mjs";
+import * as Computed from "xote/src/Computed.res.mjs";
+import * as Effect from "xote/src/Effect.res.mjs";
 
 /* ---- the bug ------------------------------------------------------------- */
 

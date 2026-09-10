@@ -17,14 +17,14 @@
 `xote-native` is **its own ReScript and npm package**, not a directory of
 `xote`. It has its own `rescript.json` — namespace `XoteNative`, `xote` as a
 dependency, `-open Xote` so its modules can say `View` rather than `Xote.View` —
-and its own `package.json`, `exports` map and tests. `npm run res:build` at the
-repository root does not compile it.
+and its own `package.json`, `exports` map and tests. `npm run res:build` for
+`xote` does not compile it.
 
-The two live side by side, and the root directory *is* the `xote` package, so
-there is no `node_modules/xote` for ReScript or Node to resolve. `scripts/link-workspace.mjs`
-makes that one symlink and every script here runs it first; it is idempotent and
-needs no network. A downstream consumer gets the same arrangement from `npm
-install` and needs none of this.
+The two sit side by side under `packages/`, and the repository root is an npm
+workspaces root: `npm install` there links `node_modules/xote` at
+`packages/xote`, which is how this package resolves it — **by package name,
+exactly as a downstream consumer would**. There is no special arrangement to
+know about.
 
 Run it, from either the repository root or here:
 

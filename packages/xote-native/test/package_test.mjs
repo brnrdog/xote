@@ -41,7 +41,9 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const repoRoot = resolve(packageRoot, "..");
+/** The `xote` package next door, and the workspace root that holds both. */
+const xoteRoot = resolve(packageRoot, "..", "xote");
+const repoRoot = resolve(packageRoot, "..", "..");
 const rescriptBin = join(repoRoot, "node_modules", ".bin", "rescript");
 
 /** Dependencies both staged packages and the fixture resolve against. */
@@ -99,7 +101,7 @@ function stageFixture() {
 }
 
 mkdirSync(modules, { recursive: true });
-stage("xote", repoRoot, ["src", "rescript.json", "package.json"]);
+stage("xote", xoteRoot, ["src", "rescript.json", "package.json"]);
 const nativePackage = stage("xote-native", packageRoot, [
   "src",
   "rescript.json",

@@ -1,128 +1,43 @@
 {
-  "name": "xote",
-  "version": "0.0.0",
+  "name": "xote-monorepo",
+  "private": true,
+  "description": "Xote and xote-native, in one repository",
   "repository": {
     "url": "https://github.com/brnrdog/xote"
   },
-  "main": "./dist/xote.cjs",
-  "module": "./dist/xote.mjs",
-  "exports": {
-    ".": {
-      "import": "./dist/xote.mjs",
-      "require": "./dist/xote.cjs",
-      "default": "./dist/xote.mjs"
-    },
-    "./client": {
-      "import": "./dist/client.mjs",
-      "require": "./dist/client.cjs",
-      "default": "./dist/client.mjs"
-    },
-    "./view": "./src/View.res.mjs",
-    "./html": "./src/Html.res.mjs",
-    "./jsx": "./src/XoteJSX.res.mjs",
-    "./maybe-signal": "./src/MaybeSignal.res.mjs",
-    "./prop": "./src/Prop.res.mjs",
-    "./route": "./src/Route.res.mjs",
-    "./router": {
-      "import": "./dist/router.mjs",
-      "require": "./dist/router.cjs",
-      "default": "./dist/router.mjs"
-    },
-    "./ssr": {
-      "import": "./dist/ssr.mjs",
-      "require": "./dist/ssr.cjs",
-      "default": "./dist/ssr.mjs"
-    },
-    "./ssr-context": "./src/SSRContext.res.mjs",
-    "./ssr-state": "./src/SSRState.res.mjs",
-    "./hydration": {
-      "import": "./dist/hydration.mjs",
-      "require": "./dist/hydration.cjs",
-      "default": "./dist/hydration.mjs"
-    },
-    "./mdx": {
-      "import": "./dist/mdx.mjs",
-      "require": "./dist/mdx.cjs",
-      "default": "./dist/mdx.mjs"
-    },
-    "./signal": "./src/Signal.res.mjs",
-    "./computed": "./src/Computed.res.mjs",
-    "./effect": "./src/Effect.res.mjs",
-    "./jsx-runtime": "./src/jsx-runtime.mjs",
-    "./jsx-dev-runtime": "./src/jsx-dev-runtime.mjs",
-    "./src/View.res.mjs": "./src/View.res.mjs",
-    "./src/Html.res.mjs": "./src/Html.res.mjs",
-    "./src/XoteJSX.res.mjs": "./src/XoteJSX.res.mjs",
-    "./src/MaybeSignal.res.mjs": "./src/MaybeSignal.res.mjs",
-    "./src/Prop.res.mjs": "./src/Prop.res.mjs",
-    "./src/Route.res.mjs": "./src/Route.res.mjs",
-    "./src/Router.res.mjs": "./src/Router.res.mjs",
-    "./src/SSR.res.mjs": "./src/SSR.res.mjs",
-    "./src/SSRContext.res.mjs": "./src/SSRContext.res.mjs",
-    "./src/SSRState.res.mjs": "./src/SSRState.res.mjs",
-    "./src/Hydration.res.mjs": "./src/Hydration.res.mjs",
-    "./src/Mdx.res.mjs": "./src/Mdx.res.mjs",
-    "./src/Signal.res.mjs": "./src/Signal.res.mjs",
-    "./src/Computed.res.mjs": "./src/Computed.res.mjs",
-    "./src/Effect.res.mjs": "./src/Effect.res.mjs",
-    "./src/jsx-runtime.mjs": "./src/jsx-runtime.mjs",
-    "./src/jsx-dev-runtime.mjs": "./src/jsx-dev-runtime.mjs",
-    "./package.json": "./package.json",
-    "./rescript.json": "./rescript.json"
-  },
-  "sideEffects": false,
-  "files": [
-    "dist",
-    "src/**/*.res",
-    "src/**/*.resi",
-    "src/**/*.res.mjs",
-    "src/*.mjs",
-    "rescript.json",
-    "AGENTS.md",
-    "ppx/ppx.ml",
-    "ppx/ast.ml",
-    "ppx/build.sh",
-    "ppx/postinstall.js",
-    "ppx/bin",
-    "ppx/README.md",
-    "ppx/LICENSE.OCaml"
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Bernardo Gurgel <brnrdog@hey.com>",
+  "workspaces": [
+    "packages/*"
   ],
   "scripts": {
-    "postinstall": "node ppx/postinstall.js",
-    "prepublishOnly": "node scripts/check-ppx-binaries.mjs",
-    "res:build": "rescript",
-    "res:clean": "rescript clean",
-    "res:dev": "rescript -w",
-    "format": "rescript format",
-    "dev": "vite",
-    "build": "vite build && vite build --config vite.subpath.config.js",
-    "bundle:size": "node scripts/bundle-size-report.mjs",
-    "preview": "vite preview",
-    "mdx:poc": "npm run res:build && vite build --config examples/mdx/vite.config.mjs",
-    "docs:start": "cd docs-website && npm run dev",
-    "docs:build": "cd docs-website && npm run build",
-    "docs:serve": "cd docs-website && npm run preview",
-    "test": "npx rescript && node tests/Tests.res.mjs && node tests/JSXRuntime_test.mjs && node tests/DevMode_test.mjs && node tests/OpaqueAttrs_test.mjs && npm run test:exports && npm run test:boundary",
-    "test:exports": "node tests/PublicExports_test.mjs",
-    "test:boundary": "node scripts/consumer-boundary-test.mjs",
-    "native:test": "npm --prefix xote-native test",
-    "native:conformance": "npm --prefix xote-native run conformance",
-    "native:package": "npm --prefix xote-native run test:package",
-    "native:layout:oracle": "npm --prefix xote-native run layout:oracle",
-    "native:bundle": "npm --prefix xote-native run bundle",
-    "native:bundle:test": "npm --prefix xote-native run bundle:test",
-    "native:preview": "npm --prefix xote-native run preview",
-    "native:measure": "npm --prefix xote-native run measure",
-    "native:build": "npm --prefix xote-native run preview:build",
-    "ppx:build": "sh ppx/build.sh",
-    "ppx:test": "sh ppx/example/setup.sh && sh ppx/build.sh && cd ppx/example && npx rescript clean && npm run build && npm run verify && npm run golden"
+    "res:build": "npm -w xote run res:build",
+    "res:clean": "npm -w xote run res:clean",
+    "res:dev": "npm -w xote run res:dev",
+    "format": "npm -w xote run format",
+    "dev": "npm -w xote run dev",
+    "build": "npm -w xote run build",
+    "bundle:size": "npm -w xote run bundle:size",
+    "preview": "npm -w xote run preview",
+    "mdx:poc": "npm -w xote run mdx:poc",
+    "test": "npm -w xote test",
+    "test:exports": "npm -w xote run test:exports",
+    "test:boundary": "npm -w xote run test:boundary",
+    "ppx:build": "npm -w xote run ppx:build",
+    "ppx:test": "npm -w xote run ppx:test",
+    "native:test": "npm -w xote-native test",
+    "native:conformance": "npm -w xote-native run conformance",
+    "native:package": "npm -w xote-native run test:package",
+    "native:layout:oracle": "npm -w xote-native run layout:oracle",
+    "native:bundle": "npm -w xote-native run bundle",
+    "native:bundle:test": "npm -w xote-native run bundle:test",
+    "native:preview": "npm -w xote-native run preview",
+    "native:measure": "npm -w xote-native run measure",
+    "native:build": "npm -w xote-native run preview:build",
+    "docs:start": "npm --prefix docs-website run dev",
+    "docs:build": "npm --prefix docs-website run build",
+    "docs:serve": "npm --prefix docs-website run preview"
   },
-  "keywords": [
-    "rescript",
-    "signals",
-    "xote",
-    "reactivity"
-  ],
   "release": {
     "branches": [
       "main",
@@ -153,11 +68,14 @@
         }
       ],
       "@semantic-release/github",
-      "@semantic-release/npm"
+      [
+        "@semantic-release/npm",
+        {
+          "pkgRoot": "packages/xote"
+        }
+      ]
     ]
   },
-  "author": "Bernardo Gurgel <brnrdog@hey.com>",
-  "license": "SEE LICENSE IN LICENSE",
   "devDependencies": {
     "@mdx-js/rollup": "^3.1.1",
     "@semantic-release/changelog": "^6.0.3",
@@ -173,8 +91,5 @@
     "semantic-release": "^25.0.1",
     "vite": "^8.0.16",
     "zekr": "^1.7.0"
-  },
-  "dependencies": {
-    "rescript-signals": "^3.1.0"
   }
 }

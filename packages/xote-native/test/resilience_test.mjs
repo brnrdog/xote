@@ -19,8 +19,8 @@ const runtime = install(host, {
 });
 
 const NativeApp = await import("../src/NativeApp.res.mjs");
-const View = await import("../../src/View.res.mjs");
-const Signal = await import("../../src/Signal.res.mjs");
+const View = await import("xote/src/View.res.mjs");
+const Signal = await import("xote/src/Signal.res.mjs");
 
 /* ---- a handler that throws does not take its siblings with it ------------ */
 

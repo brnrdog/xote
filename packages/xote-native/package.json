@@ -52,8 +52,7 @@
     "xote": "*"
   },
   "scripts": {
-    "link": "node scripts/link-workspace.mjs",
-    "res:build": "npm run link && npx rescript",
+    "res:build": "npx rescript",
     "res:clean": "npx rescript clean",
     "test": "npm run res:build && node test/surface_test.mjs && node test/protocol_test.mjs && node test/package_test.mjs && node test/layout_test.mjs && node test/conformance_test.mjs && node test/resilience_test.mjs && node test/signals_pin_test.mjs && node test/list_test.mjs && node test/flatten_test.mjs && node test/tracker_test.mjs && node test/Native_test.mjs",
     "test:package": "npm run res:build && node test/package_test.mjs",
@@ -64,5 +63,8 @@
     "bundle:test": "npm run bundle && node test/bundle_test.mjs",
     "preview": "npx vite --config example/vite.config.mjs",
     "preview:build": "npx vite build --config example/vite.config.mjs"
+  },
+  "devDependencies": {
+    "xote": "*"
   }
 }
