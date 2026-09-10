@@ -5,6 +5,7 @@ import android.os.Looper
 import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import org.json.JSONObject
 
 /**
@@ -113,8 +114,35 @@ class XoteBridge(private val host: XoteHost, private val runtime: XoteJsRuntime)
         .trimIndent()
 
     runtime.evaluate(prelude)
-    runtime.evaluate(bundle)
+    runtime.evaluate(SHADOW_PROLOGUE + bundle + SHADOW_EPILOGUE)
     runtime.evaluate("xoteStart()")
+  }
+
+  companion object {
+    /**
+     * The bundle installs a shadow document as the ambient `document`, and in
+     * an engine with no DOM it does that by assigning the global. [WebViewRuntime]
+     * has a DOM: it evaluates in a page realm, where `Window.document` is
+     * unforgeable and the assignment cannot land, so the app would never start.
+     *
+     * Evaluating the bundle inside a function whose parameter is named
+     * `document` shadows the page's for every reference the bundle makes, and
+     * `xoteBindDocument` is how the bundle writes to a binding it cannot reach
+     * by name. It returns what it bound so the bundle can check the seam
+     * actually took — see the note in `src/host/runtime.mjs`.
+     *
+     * This wraps whatever engine is behind [XoteJsRuntime], because it costs
+     * one stack frame in an engine that does not need it and swapping in
+     * QuickJS or Hermes should not change how the app is started. `xoteStart`
+     * and `xoteDispatchEvent` are assigned to `globalThis` by the bundle, so
+     * they stay reachable from outside the wrapper.
+     */
+    val SHADOW_PROLOGUE = """
+      (function (document) {
+      globalThis.xoteBindDocument = function (d) { return (document = d); };
+    """.trimIndent() + "\n"
+
+    val SHADOW_EPILOGUE = "\n})(undefined);"
   }
 
   /** A view reported something. Deliver it on the app thread, where the app is. */
@@ -146,9 +174,15 @@ class XoteBridge(private val host: XoteHost, private val runtime: XoteJsRuntime)
  *   Script *execution* happens off it, and `@JavascriptInterface` methods arrive
  *   on a private binder thread — so the app really does run off the main thread,
  *   which is the property that matters.
+ * - An interface added with `addJavascriptInterface` only appears to JavaScript
+ *   on the *next* page load, and a fresh `WebView` has loaded nothing at all —
+ *   so [expose] loads `about:blank` and [evaluate] queues until it has. Without
+ *   that the bundle would evaluate against a `XoteBridge` that does not exist.
  * - `addJavascriptInterface` is a documented remote-code surface when a
- *   `WebView` loads untrusted content. This one loads none: no URL, no
- *   `loadUrl`, JavaScript on and everything else off.
+ *   `WebView` loads untrusted content. This one loads none but `about:blank`:
+ *   no network, JavaScript on and everything else off.
+ * - It runs in a page realm, which already has a `document`. That is what
+ *   [XoteBridge.SHADOW_PROLOGUE] is for.
  * - There is no bytecode cache, so startup pays for parsing the bundle every
  *   launch. QuickJS or Hermes is the answer to that, and swapping one in is
  *   this interface and about twenty lines.
@@ -157,22 +191,44 @@ class WebViewRuntime(context: android.content.Context) : XoteJsRuntime {
   private val main = Handler(Looper.getMainLooper())
   private val webView = WebView(context)
 
+  /** Scripts handed over before the blank page finished loading, in order. */
+  private val pending = ArrayDeque<String>()
+  private var loaded = false
+
   init {
     webView.settings.javaScriptEnabled = true
     webView.settings.domStorageEnabled = false
     webView.settings.allowFileAccess = false
     webView.settings.allowContentAccess = false
+    webView.webViewClient =
+      object : WebViewClient() {
+        override fun onPageFinished(view: WebView, url: String) {
+          loaded = true
+          while (pending.isNotEmpty()) view.evaluateJavascript(pending.removeFirst(), null)
+        }
+      }
   }
 
+  /**
+   * Only ever called once, during bootstrap — a second call would reload the
+   * page and take everything the first one evaluated with it.
+   */
   override fun expose(name: String, target: Any) {
-    main.post { webView.addJavascriptInterface(target, name) }
+    main.post {
+      webView.addJavascriptInterface(target, name)
+      loaded = false
+      webView.loadUrl("about:blank")
+    }
   }
 
   override fun evaluate(source: String) {
-    main.post { webView.evaluateJavascript(source, null) }
+    main.post { if (loaded) webView.evaluateJavascript(source, null) else pending.addLast(source) }
   }
 
   override fun release() {
-    main.post { webView.destroy() }
+    main.post {
+      pending.clear()
+      webView.destroy()
+    }
   }
 }

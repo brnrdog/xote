@@ -809,7 +809,7 @@ What is left, roughly in the order an app author would hit it:
 | Accessibility | `accessibilityLabel` and `testID` exist. Traits, focus order, actions, VoiceOver navigation and reduced-motion do not |
 | Images | Load with no cache, no decode off the main thread, no placeholder, no `@2x`/`@3x` pipeline |
 | Native modules | The *best* part of the story on paper — externals are already how ReScript talks to a foreign runtime, so a binding is idiomatic rather than generated — and entirely undesigned. Needs an async call protocol |
-| A JavaScript engine on Android | iOS gets JavaScriptCore from the platform; Android gets nothing. The host ships a `WebView`-backed runtime behind a two-method interface, which works and is not what an app should ship. Hermes or QuickJS is the answer |
+| A JavaScript engine on Android | iOS gets JavaScriptCore from the platform; Android gets nothing. The host ships a `WebView`-backed runtime behind a two-method interface, which works and is not what an app should ship — a page realm has a `document` of its own, so the bundle has to be evaluated inside a scope that shadows it, and there is no bytecode cache. Hermes or QuickJS is the answer |
 | Hermes | JavaScriptCore was right for a prototype because it ships with iOS. Bytecode precompilation and startup say it is not right for an app |
 | Bundler | Vite to one IIFE. No source maps into the JSC console, no code splitting, no asset resolution, and the entry point is a list in `bootstrap.mjs` rather than something an app declares |
 | Fast refresh | Genuinely hard, and worth saying so: Xote has no component boundaries to swap and signal state has no serialisable identity. Reload-preserving-nothing is the realistic first step |

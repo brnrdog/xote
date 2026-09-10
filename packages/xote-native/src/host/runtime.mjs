@@ -62,23 +62,41 @@ export function install(host, options = {}) {
     };
   }
 
-  // The renderer reaches for `document` by name, so the shadow document has to
-  // *be* it. On a device that is free — a JavaScript engine embedded in an app
-  // has no `document` to begin with. A browser tab is the one place it is not:
-  // `Window.document` is unforgeable there, which is why the preview runs the
-  // app in a worker. That is not a workaround so much as the real architecture
-  // in miniature: app code on one thread, views on another, a batch of commands
-  // in between.
-  try {
-    globalThis.document = doc;
-  } catch {
-    throw new Error(
-      "Xote Native: cannot install the shadow document — `document` is read-only here. " +
-        "Run the app in a worker (or any realm without a DOM) and forward batches to the host.",
-    );
-  }
-  if (globalThis.document !== doc) {
-    throw new Error("Xote Native: `document` did not take the shadow document");
+  /* The renderer reaches for `document` by name, so the shadow document has to
+   *be* it. On a device that is free — a JavaScript engine embedded in an app
+   has no `document` to begin with, and assigning the global is all it takes.
+
+   A realm that already has a DOM is the one place it is not: `Window.document`
+   is unforgeable, so the assignment cannot land. There are two ways out of
+   that, and both are in this repository. The preview takes the first: run the
+   app in a worker, which has no DOM at all — not a workaround so much as the
+   real architecture in miniature, app code on one thread, views on another, a
+   batch of commands in between. A host that cannot spawn one takes the second:
+   evaluate the bundle inside a scope that *shadows* `document`, and leave
+   behind `xoteBindDocument` to write to that binding. `WebViewRuntime` on
+   Android is the case that needs it — see `XoteBridge.start`.
+
+   The binder returns what it bound, because a shadowed binding is by
+   definition not readable from here, and a seam that cannot be checked is a
+   seam that quietly does nothing. */
+  const bind = globalThis.xoteBindDocument;
+  if (typeof bind === "function") {
+    if (bind(doc) !== doc) {
+      throw new Error("Xote Native: `xoteBindDocument` did not take the shadow document");
+    }
+  } else {
+    try {
+      globalThis.document = doc;
+    } catch {
+      throw new Error(
+        "Xote Native: cannot install the shadow document — `document` is read-only here. " +
+          "Run the app in a worker (or any realm without a DOM) and forward batches to the host, " +
+          "or evaluate the bundle in a scope that shadows `document` and expose `xoteBindDocument`.",
+      );
+    }
+    if (globalThis.document !== doc) {
+      throw new Error("Xote Native: `document` did not take the shadow document");
+    }
   }
   installed = {
     document: doc,

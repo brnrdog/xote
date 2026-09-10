@@ -177,9 +177,13 @@ but the same architecture at a smaller scale, and a useful forcing function: a
 worker cannot cheat by reaching for the real document, so anything that works
 there works on a device.
 
-(The browser main thread is in fact the one place the shadow document *cannot*
-be installed — `Window.document` is unforgeable. `install()` says so explicitly
-rather than failing later.)
+(A realm that already has a DOM is the one place the shadow document cannot
+simply be installed — `Window.document` is unforgeable, so assigning the global
+does not take. There are two ways round it and both are in here: run the app in
+a worker, which has no DOM at all, or evaluate the bundle inside a scope that
+*shadows* `document` and hand `install()` an `xoteBindDocument` to write to
+that binding. The preview takes the first, the Android host's `WebView` engine
+the second, and `install()` refuses loudly when it is given neither.)
 
 ---
 

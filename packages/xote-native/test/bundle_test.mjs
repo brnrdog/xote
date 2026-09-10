@@ -87,6 +87,114 @@ if (batches.length === 1) {
   }
 }
 
+/* ---- a realm that already has a DOM ---------------------------------------
+ *
+ * The other kind of engine. Android has none in the platform API, so the host
+ * ships `WebViewRuntime`, which evaluates in a page realm — and there
+ * `Window.document` is unforgeable, so the shadow document cannot be installed
+ * by assigning the global and the app would never start.
+ *
+ * `XoteBridge.start` wraps the bundle in a scope that shadows `document`
+ * instead. The wrapper is lifted out of the Kotlin rather than restated here,
+ * because a copy would be free to drift from the one that actually runs.
+ */
+
+const QUOTES = '"'.repeat(3);
+
+function kotlinRawString(source, name) {
+  const start = source.indexOf(`val ${name} = `);
+  assert.notEqual(start, -1, `${name} is declared in XoteBridge.kt`);
+  const open = source.indexOf(QUOTES, start);
+  if (open === -1 || open > source.indexOf("\n", start)) {
+    // A plain one-line literal: `val NAME = "…"`.
+    const line = source.slice(start).split("\n")[0];
+    return JSON.parse(line.slice(line.indexOf('"')));
+  }
+  const body = source.slice(open + 3, source.indexOf(QUOTES, open + 3));
+  // Kotlin's `trimIndent`: drop a blank first and last line, then take off the
+  // indent the rest have in common.
+  const lines = body.split("\n");
+  if (lines[0].trim() === "") lines.shift();
+  if (lines.length > 0 && lines[lines.length - 1].trim() === "") lines.pop();
+  const indent = Math.min(
+    ...lines.filter((l) => l.trim() !== "").map((l) => l.length - l.trimStart().length),
+  );
+  return lines.map((l) => l.slice(indent)).join("\n");
+}
+
+const bridgeKt = readFileSync(
+  fileURLToPath(
+    new URL("../hosts/android/app/src/main/java/dev/xote/host/XoteBridge.kt", import.meta.url),
+  ),
+  "utf8",
+);
+const prologue = kotlinRawString(bridgeKt, "SHADOW_PROLOGUE") + "\n";
+const epilogue = kotlinRawString(bridgeKt, "SHADOW_EPILOGUE");
+
+assert.match(prologue, /xoteBindDocument/, "the prologue is the one that binds the document");
+assert.ok(
+  bridgeKt.includes("SHADOW_PROLOGUE + bundle + SHADOW_EPILOGUE"),
+  "and it is what `start` actually evaluates",
+);
+
+/** A realm whose `document` is an own getter that cannot be redefined, which
+ is all of a browser window that matters here. */
+function pageRealm() {
+  const batches = [];
+  const context = vm.createContext({
+    XoteHost: { apply: (json) => batches.push(JSON.parse(json)) },
+  });
+  vm.runInContext(
+    "delete globalThis.console; delete globalThis.setTimeout; delete globalThis.setInterval;" +
+      " delete globalThis.queueMicrotask;" +
+      " const pageDocument = { nodeType: 9 };" +
+      " Object.defineProperty(globalThis, 'document', {" +
+      "   get: () => pageDocument, configurable: false });",
+    context,
+  );
+  return { context, batches };
+}
+
+{
+  const { context } = pageRealm();
+  vm.runInContext("globalThis.document = { nodeType: 1 }", context);
+  assert.equal(
+    vm.runInContext("document.nodeType", context),
+    9,
+    "the realm's `document` really cannot be replaced by assigning the global",
+  );
+}
+
+{
+  // Unwrapped, the bundle has no way to install its shadow document here, and
+  // it says so rather than rendering into a DOM that is not the one it thinks.
+  // `install` runs as the bundle evaluates, so this is where it gives up —
+  // before `xoteStart` is ever defined.
+  const { context, batches } = pageRealm();
+  assert.throws(
+    () => vm.runInContext(bundle, context, { filename: "xote-app.js" }),
+    /shadow document/,
+    "the bundle refuses to install into a realm whose `document` is unforgeable",
+  );
+  assert.equal(vm.runInContext("typeof xoteStart", context), "undefined");
+  assert.equal(batches.length, 0, "and nothing crossed the bridge");
+}
+
+const { context: page, batches: pageBatches } = pageRealm();
+vm.runInContext(prologue + bundle + epilogue, page, { filename: "xote-app.js" });
+assert.equal(vm.runInContext("typeof xoteStart", page), "function", "the wrapper keeps the globals");
+assert.equal(vm.runInContext("typeof xoteDispatchEvent", page), "function");
+
+vm.runInContext("xoteStart()", page);
+assert.equal(pageBatches.length, 1, "the app started in a realm that already had a document");
+assert.deepEqual(pageBatches[0][0], [1, 1, "root"]);
+assert.equal(
+  vm.runInContext("document.nodeType", page),
+  9,
+  "and the realm's own `document` was shadowed, not replaced",
+);
+
 console.log(
-  `bundle tests passed — mount is ${mount.length} commands, ${listens.length} listeners`,
+  `bundle tests passed — mount is ${mount.length} commands, ${listens.length} listeners,` +
+    ` and the shadowing wrapper starts the same app in a realm that has a DOM`,
 );
