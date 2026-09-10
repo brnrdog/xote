@@ -29,9 +29,18 @@ final class XoteConformanceTests: XCTestCase {
       /// different hit testing, so this is compared separately.
       let views: [String: [Int]]
     }
+    /// A step is one thing that happens to a host, and not all of them are
+    /// batches. `batch` is the app talking; `platformPop` is the platform — a
+    /// back swipe here, the back button on Android — which is the one change a
+    /// host makes on its own and so the one most worth checking that every host
+    /// makes the same way.
+    struct Step: Decodable {
+      let batch: [[AnyCodableValue]]?
+      let platformPop: Int?
+    }
     let name: String
     let viewport: Viewport
-    let steps: [[[AnyCodableValue]]]
+    let steps: [Step]
     let expected: [Expectation]
   }
 
@@ -106,11 +115,18 @@ final class XoteConformanceTests: XCTestCase {
       let host = XoteHost(rootView: root)
       host.measureOverride = stubMeasure
 
-      for (index, batch) in testCase.steps.enumerated() {
-        let commands = batch.map { $0.map(\.json) }
-        let json = String(
-          data: try JSONSerialization.data(withJSONObject: commands), encoding: .utf8)!
-        host.apply(json)
+      for (index, step) in testCase.steps.enumerated() {
+        if let batch = step.batch {
+          let commands = batch.map { $0.map(\.json) }
+          let json = String(
+            data: try JSONSerialization.data(withJSONObject: commands), encoding: .utf8)!
+          host.apply(json)
+        } else if let stack = step.platformPop {
+          XCTAssertTrue(
+            host.simulatePlatformPop(stack: stack),
+            "\(testCase.name) step \(index): the platform should have been able to pop stack \(stack)"
+          )
+        }
 
         let snapshot = host.conformanceSnapshot()
         let expected = testCase.expected[index]

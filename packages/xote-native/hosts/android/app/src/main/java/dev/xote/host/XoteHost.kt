@@ -343,7 +343,10 @@ class XoteHost(private val rootView: ViewGroup) {
     // the only stack and for nested ones is the one the person is looking at.
     for (id in stacks.keys.sortedDescending()) {
       val stack = stacks[id] ?: continue
-      if (stack.popFromPlatform()) return true
+      if (stack.popFromPlatform()) {
+        layoutNow()
+        return true
+      }
     }
     return false
   }

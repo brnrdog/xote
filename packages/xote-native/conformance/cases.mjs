@@ -81,6 +81,18 @@ function builder() {
       const out = commands.splice(0, commands.length);
       return out;
     },
+    /**
+     * A step that is not a batch: the platform popping a stack on its own.
+     *
+     * Anything pending is flushed first, so a case cannot accidentally write a
+     * batch that lands *after* the pop it was meant to precede.
+     */
+    pop(stack) {
+      if (commands.length > 0) {
+        throw new Error("Xote: take() the pending batch before a platform pop");
+      }
+      return { platformPop: stack };
+    },
   };
   return api;
 }
@@ -346,6 +358,64 @@ function absolutePositioning() {
   return { name: "absolute positioning", viewport: VIEWPORT, steps: [b.take()] };
 }
 
+/**
+ * Navigation: a stack, a push, a pop, and the platform popping first.
+ *
+ * The last of those is the only change in the whole protocol a host makes on
+ * its own, so it is the one most worth checking that two hosts make the same
+ * way — and it cannot be expressed as a batch, which is why a step can be
+ * `{platformPop}`. See `src/host/navigation.mjs`.
+ *
+ * The interesting steps are 3 and 4. After the platform pops, the node tree and
+ * the view tree genuinely disagree: the screen is still a child of the stack
+ * and is no longer on it. Every host has to disagree in exactly that way, and
+ * then agree again when the app catches up.
+ */
+function navigation() {
+  const b = builder();
+  const root = b.root();
+  const stack = b.node("stack", { flex: 1 });
+  b.insert(root, stack, 0);
+  // The listener is what enables the platform to pop at all — without it the
+  // `platformPop` step below is a no-op, which is itself worth pinning.
+  b.listen(stack, "stackChange");
+
+  const screen = (label, colour) => {
+    const node = b.node("screen", { backgroundColor: colour, padding: 16 });
+    const text = b.node("text", {});
+    b.insert(text, b.text(label), 0);
+    b.insert(node, text, 0);
+    return node;
+  };
+
+  const first = screen("Issues", "#111111");
+  b.insert(stack, first, 0);
+  const steps = [b.take()];
+
+  // A push. Both screens are laid out and both are on the stack: a transition
+  // animates two at once, and the one sliding away needs a frame to slide from.
+  const second = screen("Issue #4021, which is long enough to wrap", "#222222");
+  b.insert(stack, second, 1);
+  steps.push(b.take());
+
+  // A third, so the pop below has somewhere to land that is not the root.
+  const third = screen("Comments", "#333333");
+  b.insert(stack, third, 2);
+  steps.push(b.take());
+
+  // The platform pops. The host takes the screen off the stack and reports it;
+  // the node stays, untouched, because its id belongs to the app.
+  steps.push(b.pop(stack));
+
+  // The app catches up. This is the same batch it would send for a pop it
+  // started itself, and a host that already popped must find nothing to do.
+  b.remove(stack, third);
+  b.destroy(third);
+  steps.push(b.take());
+
+  return { name: "navigation", viewport: VIEWPORT, steps };
+}
+
 export const cases = [
   boxes(),
   reverseAndOverflow(),
@@ -355,4 +425,5 @@ export const cases = [
   nested(),
   flattening(),
   absolutePositioning(),
+  navigation(),
 ];

@@ -378,6 +378,25 @@ final class XoteHost {
     onEvent?(stack, "stackChange", ["depth": depth])
   }
 
+  /// What a back swipe does, without a back swipe.
+  ///
+  /// The conformance suite has to be able to make the platform move first, and
+  /// a gesture is not a thing a unit test has. This is the effect of one — the
+  /// controller pops and the app is told — so it exercises the bookkeeping that
+  /// can be wrong while depending on nothing about `UINavigationController`
+  /// delegate timing, which is not what is under test here.
+  @discardableResult
+  func simulatePlatformPop(stack id: Int) -> Bool {
+    guard let controller = stackControllers[id], controller.platformPopEnabled else { return false }
+    let showing = stackScreens(of: id)
+    guard showing.count > 1, let top = showing.last else { return false }
+    controller.setScreens(
+      showing.dropLast().compactMap { screenControllers[$0] }, animated: false)
+    platformPopped(stack: id, screen: top, depth: showing.count - 1)
+    layoutNow()
+    return true
+  }
+
   /// The screens a stack is showing, bottom to top: its `screen` children minus
   /// the ones the platform already took off.
   private func stackScreens(of id: Int) -> [Int] {

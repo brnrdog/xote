@@ -23,8 +23,11 @@ let frames = 0;
 
 for (const { name, viewport, steps, expected } of suite) {
   const host = new ReferenceHost(viewport);
-  steps.forEach((batch, index) => {
-    host.apply(batch);
+  steps.forEach((given, index) => {
+    // `{batch}` is the app talking; `{platformPop}` is the platform. See
+    // `conformance/generate.mjs`.
+    if (given.batch !== undefined) host.apply(given.batch);
+    else if (given.platformPop !== undefined) host.platformPop(given.platformPop);
     const want = expected[index];
     const step = `${name} step ${index}`;
 

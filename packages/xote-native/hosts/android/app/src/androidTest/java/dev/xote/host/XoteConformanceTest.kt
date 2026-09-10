@@ -89,7 +89,20 @@ class XoteConformanceTest {
       val expected = testCase.getJSONArray("expected")
 
       for (stepIndex in 0 until steps.length()) {
-        host.apply(steps.getJSONArray(stepIndex).toString())
+        // A step is one thing that happens to a host, and not all of them are
+        // batches. `batch` is the app talking; `platformPop` is the platform —
+        // the back button here, a back swipe on iOS — which is the one change a
+        // host makes on its own and so the one most worth checking that every
+        // host makes the same way.
+        val given = steps.getJSONObject(stepIndex)
+        if (given.has("batch")) {
+          host.apply(given.getJSONArray("batch").toString())
+        } else if (given.has("platformPop")) {
+          assertTrue(
+            "$name step $stepIndex: the platform should have been able to pop the stack",
+            host.handlePlatformBack(),
+          )
+        }
         val want = expected.getJSONObject(stepIndex)
         val got = host.conformanceSnapshot()
         val step = "$name step $stepIndex"

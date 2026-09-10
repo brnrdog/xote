@@ -14,10 +14,24 @@ import { fileURLToPath } from "node:url";
 import { cases } from "./cases.mjs";
 import { ReferenceHost } from "../src/host/reference.mjs";
 
+/**
+ * A step is one thing that happens to a host, and not all of them are batches.
+ *
+ * `{batch}` is the app talking. `{platformPop}` is the platform talking — a
+ * back swipe on iOS, the back button on Android — which is the one change a
+ * host makes on its own, and therefore the one worth checking hardest that
+ * every host makes the same way. A case writes a bare array for a batch and the
+ * builder's `pop()` for the other; both are normalised here so the JSON has one
+ * shape and each host has one decoder.
+ */
+const asStep = (step) => (Array.isArray(step) ? { batch: step } : step);
+
 const suite = cases.map(({ name, viewport, steps }) => {
   const host = new ReferenceHost(viewport);
-  const expected = steps.map((batch) => {
-    host.apply(batch);
+  const normalised = steps.map(asStep);
+  const expected = normalised.map((step) => {
+    if (step.batch !== undefined) host.apply(step.batch);
+    else if (step.platformPop !== undefined) host.platformPop(step.platformPop);
     return {
       structure: host.structure(),
       frames: host.frames(),
@@ -25,7 +39,7 @@ const suite = cases.map(({ name, viewport, steps }) => {
       views: host.nativeTree(),
     };
   });
-  return { name, viewport, steps, expected };
+  return { name, viewport, steps: normalised, expected };
 });
 
 const path = fileURLToPath(new URL("./suite.json", import.meta.url));
