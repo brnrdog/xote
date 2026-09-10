@@ -1,34 +1,29 @@
-/* Navigation, modelled in the app rather than by the platform.
+/* Navigation, owned by the platform.
 
- A stack of screens in a signal, and the top one is what renders. That is
- enough for an example and it is *not* native navigation: there are no platform
- transitions, no interactive back gesture, and no per-screen lifecycle. Those
- need a host that owns a real navigation controller, which is the open item in
- `ROADMAP.md`.
+ This used to be a stack of screens in a signal with the top one rendered, which
+ is not navigation: no transition, no interactive back gesture, no per-screen
+ lifecycle, and the screen underneath rebuilt from nothing every time. It is
+ `NativeNav` now — the same array of screens, but rendered as one `screen` per
+ entry inside a `stack`, which on iOS is a real `UINavigationController`.
 
- What it does show is that a screen change is the one case where re-rendering
- wholesale is exactly right. Everything else in this app updates in place. */
+ Two things changed for the app, and both are worth naming.
+
+ The list screen keeps its scroll position and its search text when you come
+ back to it, because it is still there — a push adds a screen on top rather
+ than replacing what is on screen. That is the whole reason a stack is a stack.
+
+ And a back swipe works, which means the platform can now change the app's
+ state. `NativeNav` handles that: the host pops, reports the new depth, and the
+ array catches up. Nothing in the screens below knows it happened. */
 
 type screen =
   | Issues
   | Detail(TrackerData.issue)
 
-let stack: Signal.t<array<screen>> = Signal.make([Issues])
+let nav = NativeNav.make(Issues)
 
-let push = (screen: screen) => Signal.update(stack, screens => screens->Array.concat([screen]))
+let push = screen => NativeNav.push(nav, screen)
 
-let pop = () =>
-  Signal.update(stack, screens => {
-    let depth = Array.length(screens)
-    depth > 1 ? screens->Array.slice(~start=0, ~end=depth - 1) : screens
-  })
+let pop = () => NativeNav.pop(nav)
 
-let current = Computed.make(() => {
-  let screens = Signal.get(stack)
-  switch screens->Array.get(Array.length(screens) - 1) {
-  | Some(screen) => screen
-  | None => Issues
-  }
-})
-
-let canGoBack = Computed.make(() => Array.length(Signal.get(stack)) > 1)
+let canGoBack = nav.canGoBack

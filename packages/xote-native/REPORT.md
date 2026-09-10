@@ -41,7 +41,7 @@ reconciler and no diff anywhere in the pipeline.
 | ReScript surface added | 590 lines across 7 modules (`xote-native/src/*.res`) |
 | JavaScript host runtime | 2,442 lines (`xote-native/src/host/*.mjs`) |
 | Swift | 2,154 lines (`xote-native/hosts/ios/`), **never compiled in this repository** |
-| Tests | 2,353 lines; 1,183 layout boxes checked against Chromium, 113 conformance frames, 173 core tests |
+| Tests | 2,353 lines; 1,192 layout boxes checked against Chromium, 154 conformance frames, 173 core tests |
 | Demo | An issue tracker over 5,000 issues, 826 lines of app code |
 
 Three things are worth stating plainly before anything else.
@@ -257,7 +257,7 @@ layout tree and view tree are separate objects.
 ### 3.6 Layout is the largest single piece
 
 `host/layout.mjs` is a flexbox engine — 622 lines — checked frame-for-frame
-against Chromium's own implementation: **1,183 boxes across 196 trees, all
+against Chromium's own implementation: **1,192 boxes across 199 trees, all
 agreeing.** `XoteLayout.swift` is a transliteration of it.
 
 This route was taken for a specific reason. The repository cannot verify Swift
@@ -726,7 +726,7 @@ the space above and below expressed as padding on the content box. It is a
 component, not a host feature — which is the right layer, and it is only
 possible because `Computed` and a structural comparator do the work.
 
-**The layout engine was right.** After the Chromium oracle agreed on 1,183
+**The layout engine was right.** After the Chromium oracle agreed on 1,192
 boxes, every layout complaint from the simulator turned out to be a *host* bug —
 clipping, insets, a missing plist key. Not one was a wrong frame. That is a
 strong result for a from-scratch flexbox implementation and it is entirely
@@ -776,11 +776,25 @@ Swift computing the same thing. The conformance suite is what makes that
 survivable rather than reckless, but it is a standing tax on every change, and
 it is the strongest argument for eventually swapping both for Yoga.
 
-**Navigation is a stack in a signal.** It renders the top screen and that is
-all: no platform transition, no interactive back gesture, no per-screen
-lifecycle, no state preservation. It is honest about being a placeholder, and it
-is also the one place in the app where re-rendering wholesale is exactly right —
-which is why the seam sits there and not somewhere more expensive.
+**Navigation used to be a stack in a signal**, rendering the top screen and
+nothing else: no platform transition, no interactive back gesture, no per-screen
+lifecycle, no state preservation. It is a real `UINavigationController` now —
+`stack` and `screen`, with push and pop expressed as `INSERT` and `REMOVE`, so
+the protocol did not have to grow to carry it.
+
+The interesting part is not the transition, it is who writes the tree. A back
+swipe has already popped by the time anything else could have an opinion, so the
+host pops, raises `stackChange` with the new depth, and treats the app's
+`REMOVE` as the no-op it is. That is the only host-initiated change in the whole
+protocol, and it is bounded by two rules: no `stackChange` listener means no
+platform pop, and an `INSERT` is the app asserting what the stack is.
+
+What it bought is measurable. Opening an issue went from 423 commands to 143 and
+going back from 383 to 53, because going back creates *nothing* — the list
+underneath was never taken down, so its scroll position and its search text are
+still there. The counterweight is memory: a detail screen now holds 336 views
+where it held 53, which is the list still being alive. That is the trade a stack
+makes, and it is the right one.
 
 **Text input is `UITextField` with one event.** No keyboard avoidance, no IME
 handling, no return-key semantics, no focus management, and the controlled-input
@@ -803,7 +817,7 @@ What is left, roughly in the order an app author would hit it:
 | Gap | State |
 |---|---|
 | Variable-height list rows | Open. Needs measured rows and a running offset table — a different component from `NativeList` |
-| Navigation | A signal, not a navigation controller |
+| Navigation | Done on iOS. Open: a native navigation bar, modal presentation, per-screen lifecycle the app can read, state restoration — and Android has no transition, because its equivalent is `FragmentManager` and a fragment is not a view |
 | Gestures and animation | Nothing. Touch-driven animation has to run on the UI thread, which means *declaring* animations rather than stepping them from JavaScript. This is where React Native needed Reanimated |
 | Safe area, appearance, dynamic type, rotation | None are readable by the app. All of them need to be reactive inputs |
 | Accessibility | `accessibilityLabel` and `testID` exist. Traits, focus order, actions, VoiceOver navigation and reduced-motion do not |

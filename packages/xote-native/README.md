@@ -198,19 +198,22 @@ the second, and `install()` refuses loudly when it is given neither.)
 | `host/layout.mjs` | Flexbox, checked frame-for-frame against Chromium. |
 | `host/flatten.mjs` | Which nodes need a view of their own, and which are only arranging things. |
 | `host/pool.mjs` | The view pool a `destroy` returns to and a `create` takes from. |
+| `host/navigation.mjs` | `stack` and `screen`, and the one case where the host writes to the tree first. |
 | `host/capabilities.mjs` | What the hosts implement — the list the ReScript types are checked against. |
 | `host/reference.mjs` | The protocol *and* layout, with nothing to draw on — the executable spec. |
 | `host/preview.mjs` | Second host: real DOM and flexbox, for looking at things. |
 | `conformance/` | Cases every host must satisfy: a batch in, a node tree, frames, text and a view tree out. |
 | `host/capabilities.mjs` | What the hosts implement — the list the ReScript types are checked against. |
 | `NativeStyle.res` | Typed flexbox styles. Points, percentages, `auto`. Every field is one some host reads — see below. |
-| `NativeJSX.res` | The JSX module: `<view>`, `<text>`, `<image>`, `<scroll>`, `<input>`, `<pressable>`. |
+| `NativeJSX.res` | The JSX module: `<view>`, `<text>`, `<image>`, `<scroll>`, `<input>`, `<pressable>`, `<stack>`, `<screen>`. |
 | `NativeProp.res` | Untyped JSX values into `View.attrValue`, without stringifying. |
 | `Native.res` | The same primitives without JSX. |
 | `NativeList.res` | A list that renders a window rather than a dataset. |
+| `NativeNav.res` | A navigation stack: screens in a signal, pushed and popped, and the platform's back gesture answered. |
 | `NativeApp.res` | `mount`. |
 | `example/CounterApp.res` | A screen: counter, keyed list, conditional region. |
 | `example/PanelApp.res` | The same primitives without JSX. |
+| `example/NavApp.res` | Three screens on a real stack, each with state of its own. |
 | `example/tracker/` | An issue tracker over 5,000 issues — the example that measures the premise. |
 | `test/Native_test.mjs` | End-to-end, asserting *how much* crosses the bridge. |
 | `test/surface_test.mjs` | The types may not promise more than the hosts deliver. |

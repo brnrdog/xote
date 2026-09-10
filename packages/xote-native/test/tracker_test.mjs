@@ -183,7 +183,15 @@ assert.ok(
   find((v) => v.type === "text" && textOf(v) === "← Issues").length === 1,
   "the detail screen is on screen",
 );
-assert.ok(open.length < 1200, `navigating cost ${open.length} commands`);
+// A push builds the screen it is pushing and touches nothing else. The list
+// underneath is still there — which is what a stack is for, and what the old
+// render-the-top-screen navigation could not do at any price.
+assert.ok(open.length < 250, `navigating cost ${open.length} commands`);
+assert.equal(
+  open.filter(([op]) => op === OP.DESTROY).length,
+  0,
+  "opening a screen destroys nothing: the list is still underneath it",
+);
 
 /* The claim, in one gesture: pressing a status button writes one signal that
  belongs to the issue, and only the things reading it change. */
@@ -208,7 +216,26 @@ const back = measure("go back", () =>
   runtime.dispatchEvent(find((v) => v.type === "pressable" && textOf(v) === "← Issues")[0].id, "press", {}),
 );
 assert.equal(subtitle(), `${TOTAL} of ${TOTAL}`, "the list came back");
-assert.ok(back.length < 1200, `going back cost ${back.length} commands`);
+
+/* The other half of the claim, and the one that used to be false. Going back
+ creates *nothing*: the list was never taken down, so there is nothing to build.
+ It costs one `remove` and the destroys for the screen that left.
+
+ This is the assertion to keep if any of them are kept. A navigation that
+ rebuilds the screen you are returning to is the difference between a scroll
+ position that survives and one that does not, and it is invisible in a
+ screenshot and obvious in a command count. */
+assert.equal(
+  back.filter(([op]) => op === OP.CREATE || op === OP.CREATE_TEXT).length,
+  0,
+  "going back creates nothing — the list underneath was never taken down",
+);
+assert.ok(back.length < 120, `going back cost ${back.length} commands`);
+assert.equal(
+  back.filter(([op]) => op === OP.REMOVE).length,
+  1,
+  "one screen leaves the stack",
+);
 
 /* ---- the table ----------------------------------------------------------- */
 

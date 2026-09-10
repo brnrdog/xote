@@ -23,7 +23,8 @@ is shared with B; the things that are only B are marked.
 
 ## What has been done since
 
-**Tier 1 is complete**, and the core changes in Tier 2 are in. The short version:
+**Tier 1 is complete**, the core changes in Tier 2 are in, and navigation is
+done on iOS. The short version:
 
 - Layout is a real flexbox engine, checked frame-for-frame against Chromium and
   transliterated to Swift. `UIStackView`, Auto Layout, and every approximation
@@ -40,6 +41,8 @@ is shared with B; the things that are only B are marked.
   are handed to the next.
 - The types no longer promise more than the hosts deliver, and a test enforces
   it.
+- Navigation is a real `UINavigationController` on iOS, with the back gesture
+  reported to the app rather than fought.
 
 What is left is below.
 
@@ -48,7 +51,7 @@ What is left is below.
 ## Tier 1 — the rendering model
 
 **1. Layout. Done.** `xote-native/src/host/layout.mjs` is a flexbox engine checked
-frame-for-frame against Chromium — 1183 boxes across 196 trees, all agreeing —
+frame-for-frame against Chromium — 1,192 boxes across 199 trees, all agreeing —
 and `XoteLayout.swift` is a transliteration of it. Every box is a plain `UIView`
 with a `frame`.
 
@@ -170,9 +173,29 @@ Roughly in the order you will hit them.
   held in a signal with a structural comparison. Hosts now raise `scroll` and
   `layout`. **Variable row heights are still open** — they need measured rows and
   a running offset table, and that is a different component.
-- **Navigation.** `Xote.Router` is `history`-shaped. Native navigation is a stack
-  of screens with platform transitions, back gestures and lifecycle. A different
-  abstraction, not a port.
+- ~~**Navigation.**~~ **Done on iOS; no transition on Android.** A `stack` holds
+  `screen` children, and push and pop are `INSERT` and `REMOVE` — the protocol
+  did not grow, because a stack of screens is a list of children. On iOS that is
+  a real `UINavigationController`, so the slide, the interactive edge swipe and
+  the focus order VoiceOver expects come from the platform rather than from an
+  imitation of it.
+
+  It is the one place the host writes to the tree first: a back swipe has
+  already happened by the time anything else could have an opinion, so the host
+  pops, raises `stackChange`, and treats the app's `REMOVE` as the no-op it is.
+  Two rules bound that — no `stackChange` listener means no platform pop, and an
+  `INSERT` is the app asserting what the stack is. See `src/host/navigation.mjs`.
+
+  On the tracker this is worth **423 commands down to 143** to open an issue and
+  **383 down to 53** to go back, because going back no longer rebuilds the list;
+  it creates nothing at all. The counterweight is memory: the list stays alive
+  underneath, so a detail screen holds 336 views where it used to hold 53.
+
+  **Still open:** a native navigation bar (titles, the back button, large
+  titles), modal presentation, per-screen lifecycle events the app can read, and
+  state restoration. And Android has no transition — its equivalent object is
+  `FragmentManager`, which is not a view, so `XoteStackView` swaps screens
+  instantly rather than faking a slide.
 - **Gestures and animation.** Anything driven by touch has to run on the UI
   thread, which means *declaring* animations rather than stepping them from
   JavaScript. This is where React Native needed Reanimated; expect no shortcut.
@@ -263,15 +286,21 @@ Roughly in the order you will hit them.
 
 ## The order from here
 
-1. **Extract the package.** The protocol is versioned and the seams are in
-   place; what is left is the packaging itself — see
-   [`REPORT.md` §5.6](./REPORT.md).
-2. **Navigation.** The next thing an app cannot be built without.
-3. **Text input, safe area, appearance.** Small individually, and between them
+1. ~~**Extract the package.**~~ Done — `packages/xote-native` is its own npm
+   package, and `test/package_test.mjs` compiles a downstream app against both.
+2. ~~**Navigation.**~~ Done on iOS; see Tier 3.
+3. **Run the hosts.** Neither has ever been compiled here — no Swift toolchain,
+   no Android SDK — and the code review that went over this branch found four
+   real defects by reading, in code the conformance suite is designed to catch
+   and has never once executed. That was the argument for treating this as
+   plumbing; it is not plumbing. It is now the largest unverified claim in the
+   project, and navigation just added a `UINavigationController` and a Kotlin
+   container to the pile.
+4. **Text input, safe area, appearance.** Small individually, and between them
    the difference between a demo and a screen.
-4. **Run the Android host.** It is written; nothing here can build it. One
-   afternoon with an SDK and the conformance suite would settle it.
-5. **Gestures and animation.** The hardest remaining design problem.
+5. **A navigation bar.** Titles and a back button are the first thing anyone
+   asks for after a stack, and they are a capability surface of their own.
+6. **Gestures and animation.** The hardest remaining design problem.
 
 Flattening and recycling used to sit at position 4 on this list, waiting for a
 real screen to measure against. The tracker is that screen, so they are done —
