@@ -23,6 +23,14 @@ import { OP } from "./protocol.mjs";
 import { layout } from "./layout.mjs";
 import { needsView } from "./flatten.mjs";
 import { ViewPool } from "./pool.mjs";
+import {
+  SCREEN,
+  STACK,
+  STACK_CHANGE,
+  canPopFromPlatform,
+  screenStyle,
+  stackScreens,
+} from "./navigation.mjs";
 
 /**
  * The measure function every host uses while running the conformance suite:
@@ -76,6 +84,12 @@ export class ReferenceHost {
     this.nodes = new Map();
     this.root = null;
     this.events = new Map();
+    /**
+     * Screens the platform has popped and the app has not removed yet. See
+     * `navigation.mjs` — this set *is* the divergence between the two trees,
+     * and it is empty at every point the app could observe.
+     */
+    this.popped = new Set();
 
     this.flatten = flatten;
     this.pool = new ViewPool({
@@ -316,6 +330,11 @@ export class ReferenceHost {
           // settled here rather than at creation.
           this.settleRun(child);
           if (child.view == null && this.wantsView(child)) this.reconcileView(child);
+          // Whatever the app says the stack is, it is. Inserting a screen the
+          // platform had popped puts it back — the app is the authority on the
+          // tree even here, and the alternative is a node that is in the
+          // children and not in the stack with no way to say which is meant.
+          this.popped.delete(childId);
           this.attachNative(child);
           break;
         }
@@ -327,6 +346,10 @@ export class ReferenceHost {
           const at = parent.children.findIndex((c) => c.id === childId);
           if (at >= 0) parent.children.splice(at, 1);
           child.parent = 0;
+          // The app catching up with a pop the platform already performed. The
+          // detach above found nothing to do, which is the point: the state
+          // being asked for is the state the host is in.
+          this.popped.delete(childId);
           break;
         }
         case OP.DESTROY: {
@@ -346,6 +369,7 @@ export class ReferenceHost {
           }
           this.nodes.delete(id);
           this.events.delete(id);
+          this.popped.delete(id);
           break;
         }
         case OP.LISTEN: {
@@ -401,12 +425,56 @@ export class ReferenceHost {
         return box;
       }
 
-      const box = { style: node.style, children: node.children.map(build), node };
+      // A screen fills its stack rather than flowing inside it — see
+      // `navigation.mjs`. Every screen is laid out, popped ones included: a
+      // push animates two at once, and the one sliding away needs a frame to
+      // slide from.
+      const style = node.type === SCREEN ? screenStyle(node.style) : node.style;
+      const box = { style, children: node.children.map(build), node };
       node.box = box;
       return box;
     };
     const tree = build(this.root);
     layout(tree, this.viewport.width, this.viewport.height);
+  }
+
+  // MARK: - Navigation
+  //
+  // The only host-initiated change in the whole protocol. See `navigation.mjs`
+  // for why it exists and what the app is expected to do about it.
+
+  /** The screens a stack is showing, bottom to top — its `viewControllers`. */
+  screensOf(stackId) {
+    const stack = this.node(stackId);
+    if (stack.type !== STACK) throw new Error(`Xote: node ${stackId} is not a stack`);
+    return stackScreens(stack, this.popped);
+  }
+
+  /**
+   * The back gesture, or the back button: the platform pops, and the app is
+   * told after the fact.
+   *
+   * Returns the event a real host would raise — `{id, name, payload}` — or
+   * `null` when the platform is not allowed to pop this stack, which is a real
+   * answer rather than a failure. A host that has no `stackChange` listener
+   * would not have enabled the gesture in the first place.
+   */
+  platformPop(stackId) {
+    const stack = this.node(stackId);
+    if (stack.type !== STACK) throw new Error(`Xote: node ${stackId} is not a stack`);
+    if (!canPopFromPlatform(stack, this.popped, this.events.get(stackId))) return null;
+
+    const showing = stackScreens(stack, this.popped);
+    const top = showing[showing.length - 1];
+
+    // Out of the view tree, and out of it only. The node, its subtree, its
+    // views and its id all stay exactly as they were until the app says
+    // otherwise — the host does not own any of them.
+    this.popped.add(top.id);
+    if (top.view != null && stack.view != null) this.removeView(stack.view, top.view);
+
+    this.layout();
+    return { id: stackId, name: STACK_CHANGE, payload: { depth: showing.length - 1 } };
   }
 
   /** Every live node's frame in root coordinates — the comparable form. */

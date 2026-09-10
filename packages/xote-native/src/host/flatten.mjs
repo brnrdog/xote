@@ -32,8 +32,10 @@
  *
  * Stated as an allow-list rather than a deny-list, deliberately. Everything
  * else either paints something itself (`text`, `image`), owns platform
- * behaviour (`input`, `scroll`), receives touches as its whole reason to exist
- * (`pressable`), is the mount point (`root`), or is a primitive this host has
+ * behaviour (`input`, `scroll`, and the `stack`/`screen` pair, which are a
+ * navigation controller and its view controllers), receives touches as its
+ * whole reason to exist (`pressable`), is the mount point (`root`), or is a
+ * primitive this host has
  * never heard of — and guessing that someone else's primitive draws nothing is
  * not a guess worth making. A deny-list would have to be right about every tag
  * that has not been invented yet.
