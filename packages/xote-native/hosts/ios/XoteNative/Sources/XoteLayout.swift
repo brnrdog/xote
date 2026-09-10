@@ -73,6 +73,14 @@ enum XoteLayout {
   /// Lay `root` out in a box of `width` × `height`, writing a frame onto every
   /// node. Positions are relative to the parent's border box — a `frame`.
   static func layout(_ root: XoteLayoutNode, width: CGFloat?, height: CGFloat?) {
+    // `hasMeasuredLeaf` memoises, and the memo is only valid for one pass. The
+    // JavaScript reference gets that for free — it caches onto the box it
+    // builds for the pass, which is thrown away with it — but this tree
+    // persists between passes, so the same memo has to be cleared by hand. A
+    // box that later gains a `text` child would otherwise keep answering
+    // `false` for the rest of its life and silently skip the fit-content cap,
+    // which shows up as text overflowing instead of wrapping.
+    invalidateMeasured(root)
     compute(
       root,
       availableWidth: width,
@@ -87,6 +95,11 @@ enum XoteLayout {
   }
 
   // MARK: - Helpers
+
+  private static func invalidateMeasured(_ node: XoteLayoutNode) {
+    node.measuredSubtree = nil
+    for child in node.children { invalidateMeasured(child) }
+  }
 
   private static func clamp(_ value: CGFloat, _ min: CGFloat?, _ max: CGFloat?) -> CGFloat {
     var out = value

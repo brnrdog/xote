@@ -95,6 +95,14 @@ object XoteLayout {
    * node. Positions are relative to the parent's border box.
    */
   fun layout(root: XoteLayoutNode, width: Float?, height: Float?) {
+    // `hasMeasuredLeaf` memoises, and the memo is only valid for one pass. The
+    // JavaScript reference gets that for free — it caches onto the box it
+    // builds for the pass, which is thrown away with it — but this tree
+    // persists between passes, so the same memo has to be cleared by hand. A
+    // box that later gains a `text` child would otherwise keep answering
+    // `false` for the rest of its life and silently skip the fit-content cap,
+    // which shows up as text overflowing instead of wrapping.
+    invalidateMeasured(root)
     compute(
       root,
       availableWidth = width,
@@ -109,6 +117,11 @@ object XoteLayout {
   }
 
   // ---- helpers ------------------------------------------------------------
+
+  private fun invalidateMeasured(node: XoteLayoutNode) {
+    node.measuredSubtree = null
+    for (child in node.children) invalidateMeasured(child)
+  }
 
   private fun clamp(value: Float, lower: Float?, upper: Float?): Float {
     var out = value
