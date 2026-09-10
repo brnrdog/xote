@@ -19,6 +19,26 @@ class XoteActivity : Activity() {
   private var host: XoteHost? = null
   private var bridge: XoteBridge? = null
 
+  /**
+   * The system back button, which is Android's equivalent of the iOS back
+   * swipe: the platform's own way to leave a screen, and the one place it moves
+   * before the app does.
+   *
+   * A stack that took it has already gone back and told the app so. A stack
+   * that did not — no `stackChange` listener, or nothing left to go back to —
+   * leaves this to the default, which finishes the activity.
+   *
+   * `Activity.onBackPressed` rather than `OnBackPressedDispatcher`, because
+   * this host takes no AndroidX dependency; an app that already has one should
+   * prefer the dispatcher.
+   */
+  @Deprecated("Overridden to route back through the app's navigation stack")
+  override fun onBackPressed() {
+    if (host?.handlePlatformBack() == true) return
+    @Suppress("DEPRECATION")
+    super.onBackPressed()
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 

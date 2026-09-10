@@ -16,6 +16,8 @@
  | `scroll`      | a scrollable `view`                                     |
  | `input`       | a single- or multi-line text field                      |
  | `pressable`   | a `view` that reports touches                           |
+ | `stack`       | a navigation controller; holds `screen` children only   |
+ | `screen`      | one entry in a `stack`, filling it                      |
 
  Anything else is passed through to the host by name, so a host can add its own
  primitives without a change here. */
@@ -84,6 +86,7 @@ module Elements = {
     editable?: 'editable,
     /* scroll */
     horizontal?: 'horizontal,
+    /* stack — see `NativeNav`, which is what an app should reach for first */
     /* Events */
     onPress?: NativeEvent.press => unit,
     onLongPress?: NativeEvent.press => unit,
@@ -93,6 +96,7 @@ module Elements = {
     onBlur?: NativeEvent.focus => unit,
     onScroll?: NativeEvent.scroll => unit,
     onLayout?: NativeEvent.layout => unit,
+    onStackChange?: NativeEvent.stackChange => unit,
     /* Escape hatch for a host primitive this module does not name */
     attrs?: array<(string, View.attrValue)>,
     children?: element,
@@ -144,6 +148,7 @@ module Elements = {
     addEvent(events, props.onBlur, "blur")
     addEvent(events, props.onScroll, "scroll")
     addEvent(events, props.onLayout, "layout")
+    addEvent(events, props.onStackChange, "stackChange")
 
     events
   }

@@ -172,6 +172,7 @@ export const EVENTS = [
   "blur",
   "scroll",
   "layout",
+  "stackChange",
 ];
 
 /**

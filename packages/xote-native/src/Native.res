@@ -77,3 +77,26 @@ let input = (~style=?, ~styleSignal=?, ~attrs=[], ~events=[], ~onChangeText=?, (
 
 let pressable = (~onPress, ~style=?, ~styleSignal=?, ~attrs=[], ~events=[], ~children=[], ()) =>
   make("pressable", ~style?, ~styleSignal?, ~attrs, ~events, ~onPress, ~children, ())
+
+/* A navigation controller and one of its screens.
+
+ These are the primitives; `NativeNav` is the thing to reach for. Driving a
+ stack by hand means keeping the children in the order the platform is in and
+ handling `stackChange` yourself, and getting either wrong is a screen that does
+ not come back. */
+let stack = (~style=?, ~styleSignal=?, ~attrs=[], ~events=[], ~onStackChange=?, ~children=[], ()) =>
+  make(
+    "stack",
+    ~style?,
+    ~styleSignal?,
+    ~attrs,
+    ~events=switch onStackChange {
+    | Some(handler) => events->Array.concat([("stackChange", NativeEvent.handler(handler))])
+    | None => events
+    },
+    ~children,
+    (),
+  )
+
+let screen = (~style=?, ~styleSignal=?, ~attrs=[], ~events=[], ~children=[], ()) =>
+  make("screen", ~style?, ~styleSignal?, ~attrs, ~events, ~children, ())

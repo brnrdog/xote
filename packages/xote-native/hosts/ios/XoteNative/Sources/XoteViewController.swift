@@ -14,6 +14,9 @@ final class XoteViewController: UIViewController {
     view.addSubview(container)
 
     let host = XoteHost(rootView: container)
+    // A `stack` parents its navigation controller here. Without it the stack
+    // still renders and neither the transition nor the back swipe works.
+    host.presenter = self
     self.host = host
     let bridge = XoteBridge(host: host)
     self.bridge = bridge

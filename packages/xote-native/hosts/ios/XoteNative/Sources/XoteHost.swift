@@ -104,10 +104,28 @@ final class XoteHost {
   private var props: [Int: [String: Any]] = [:]
   private var eventNames: [Int: Set<String>] = [:]
 
+  /// One navigation controller per `stack` node, and one view controller per
+  /// `screen`. See `XoteNavigation.swift`.
+  private var stackControllers: [Int: XoteStackController] = [:]
+  private var screenControllers: [Int: XoteScreenController] = [:]
+  /// Screens the platform popped that the app has not removed yet — the whole
+  /// of the divergence between the two trees, and empty at every point the app
+  /// could observe. `navigation.mjs` calls this `popped`.
+  private var poppedScreens: Set<Int> = []
+
   private let pool = XoteViewPool()
 
   private let rootView: UIView
   private let rootNode = XoteLayoutNode()
+
+  /// The view controller a `stack`'s navigation controller is added to.
+  ///
+  /// A `UINavigationController` that is nobody's child gets no appearance
+  /// callbacks and no working interactive gesture, so a stack without this is
+  /// a stack that mostly works and fails at exactly the two things it was
+  /// chosen for. `XoteViewController` sets it; a host embedded some other way
+  /// has to, and hears about it through `onError` if it does not.
+  weak var presenter: UIViewController?
 
   /// Replaces real font metrics while running the conformance suite. Two hosts
   /// can agree on layout; `UILabel` and Chromium will never agree on fonts.
@@ -160,6 +178,11 @@ final class XoteHost {
 
       case let .listen(id, event):
         eventNames[id, default: []].insert(event)
+        // No listener, no platform pop: an app that has not asked to hear
+        // about a back swipe is one where nothing but the app moves the tree.
+        if event == "stackChange", let stack = stackControllers[id] {
+          stack.platformPopEnabled = true
+        }
         let hadView = views[id] != nil
         // A touch needs something to land on. A `layout` listener does not —
         // a frame comes from the layout tree, which a flattened node is in.
@@ -174,6 +197,13 @@ final class XoteHost {
         // registering here as well would deliver every press twice.
       }
     }
+
+    // One `setScreens` per batch rather than one per command. A push touches
+    // its stack several times — create the screen, insert it, style it — and
+    // transitioning on each would be several animations fighting over the same
+    // navigation controller.
+    for id in dirtyStacks { syncStack(id) }
+    dirtyStacks.removeAll()
 
     layoutNow()
   }
@@ -213,7 +243,13 @@ final class XoteHost {
   private func applyFrames(_ node: XoteLayoutNode, origin: CGPoint) {
     var childOrigin = CGPoint.zero
     if let view = node.view as? UIView {
-      if view !== rootView {
+      let isScreen = idsByView[ObjectIdentifier(view)].map { types[$0] == "screen" } ?? false
+      // A screen's frame is the navigation controller's to set, and it sets it
+      // to the same rect the engine computes — a screen fills its stack, which
+      // is why `navigation.mjs` makes that a rule rather than a default.
+      // Writing it here anyway would be writing it *during* a transition, and
+      // snapping a sliding screen back to its final position mid-gesture.
+      if view !== rootView && !isScreen {
         // Round the *edges*, not the position and size separately. Rounding a
         // size independently of where it starts lets two boxes that share an
         // edge in the layout end up a point apart on screen — a seam under one
@@ -231,6 +267,13 @@ final class XoteHost {
       }
       if let scroll = view as? UIScrollView, let content = node.children.first {
         scroll.contentSize = CGSize(width: content.frame.width, height: content.frame.height)
+      }
+      // A stack's navigation controller fills the stack's box. Set rather than
+      // autoresized: the box starts at zero size and reaches its real one on
+      // the first pass, which is a delta an autoresizing mask computes from
+      // nothing.
+      if let id = idsByView[ObjectIdentifier(view)], let stack = stackControllers[id] {
+        stack.view.frame = view.bounds
       }
     } else {
       childOrigin = CGPoint(x: origin.x + node.frame.left, y: origin.y + node.frame.top)
@@ -274,7 +317,89 @@ final class XoteHost {
     if !XoteFlatten.flattenable.contains(type) {
       materialize(id, type: type, node: node)
     }
+
+    if type == "stack" { adoptStack(id) }
+    if type == "screen" { adoptScreen(id) }
   }
+
+  // MARK: - Navigation
+
+  /// Give a `stack` node a real navigation controller, parented properly.
+  ///
+  /// The controller's own view is discarded in favour of the pooled view the
+  /// node already has: it is the one the layout engine writes frames to and the
+  /// one the view tree is spliced through, and having UIKit hand out a second
+  /// one would leave the two disagreeing about where the stack is.
+  private func adoptStack(_ id: Int) {
+    guard let view = views[id] else { return }
+    guard let presenter = presenter else {
+      onError?(
+        "Xote: a `stack` needs a host view controller to parent its navigation controller. "
+          + "Set `XoteHost.presenter` — screens will not transition or swipe back without it.")
+      return
+    }
+
+    let controller = XoteStackController()
+    controller.onPlatformPop = { [weak self] popped, depth in
+      self?.platformPopped(stack: id, screen: popped, depth: depth)
+    }
+    stackControllers[id] = controller
+
+    presenter.addChild(controller)
+    controller.view.frame = view.bounds
+    view.addSubview(controller.view)
+    controller.didMove(toParent: presenter)
+  }
+
+  /// Give a `screen` node the view controller a navigation controller can push.
+  private func adoptScreen(_ id: Int) {
+    guard let view = views[id] else { return }
+    screenControllers[id] = XoteScreenController(nodeID: id, content: view)
+  }
+
+  /// Is this node a `screen` sitting directly in a `stack`?
+  ///
+  /// The one place the generic view-tree splice does not apply: a screen is
+  /// placed by its navigation controller, and a stray `insertSubview` would put
+  /// it on top of whatever UIKit was mid-transition with.
+  private func isStackChild(_ id: Int) -> Bool {
+    guard types[id] == "screen", let parent = parentIds[id] else { return false }
+    return types[parent] == "stack"
+  }
+
+  /// The platform popped. Report it; change nothing else.
+  ///
+  /// The screen leaves the navigation controller and *only* that: its node, its
+  /// subtree, its views and its id are the app's, and a host that freed one
+  /// would be guessing about a lifetime it does not own — the pool would hand
+  /// the view out again while the app still had the id.
+  private func platformPopped(stack: Int, screen: Int, depth: Int) {
+    poppedScreens.insert(screen)
+    onEvent?(stack, "stackChange", ["depth": depth])
+  }
+
+  /// The screens a stack is showing, bottom to top: its `screen` children minus
+  /// the ones the platform already took off.
+  private func stackScreens(of id: Int) -> [Int] {
+    (childIds[id] ?? []).filter { types[$0] == "screen" && !poppedScreens.contains($0) }
+  }
+
+  /// Bring a stack's navigation controller in line with its node's children.
+  ///
+  /// Called after any change to a stack's children rather than from inside the
+  /// splice, because a batch that pushes a screen touches the stack several
+  /// times — create, insert, style — and one `setScreens` per batch is one
+  /// transition rather than several fighting each other.
+  private func syncStack(_ id: Int) {
+    guard let controller = stackControllers[id] else { return }
+    let wanted = stackScreens(of: id).compactMap { screenControllers[$0] }
+    guard wanted.map(ObjectIdentifier.init) != controller.viewControllers.map(ObjectIdentifier.init)
+    else { return }
+    controller.setScreens(wanted, animated: controller.viewControllers.isEmpty == false)
+  }
+
+  /// Every stack whose children may have moved this batch.
+  private var dirtyStacks: Set<Int> = []
 
   /// The class each primitive maps to, and the settings that are part of being
   /// that primitive rather than part of a style.
@@ -289,7 +414,10 @@ final class XoteHost {
     case "scroll":
       return UIScrollView()
     default:
-      // `view`, `pressable`, and any primitive this host does not know by name.
+      // `view`, `pressable`, `stack`, `screen`, and any primitive this host
+      // does not know by name. A stack is a plain box that a navigation
+      // controller's view is added into, and a screen is a plain box that
+      // *becomes* a view controller's view — both stay poolable that way.
       return UIView()
     }
   }
@@ -379,6 +507,9 @@ final class XoteHost {
 
   /// Put `id`'s views into the tree at the position its node occupies.
   private func attachViews(of id: Int) {
+    // A screen is placed by its navigation controller, not spliced into a
+    // superview. `syncStack` puts it where it belongs at the end of the batch.
+    if isStackChild(id) { return }
     guard let host = nativeHost(of: id), let hostView = views[host] else { return }
     var index = nativeIndex(of: id, under: host)
     for view in renderedRoots(of: id) {
@@ -388,6 +519,7 @@ final class XoteHost {
   }
 
   private func detachViews(of id: Int) {
+    if isStackChild(id) { return }
     for view in renderedRoots(of: id) { view.removeFromSuperview() }
   }
 
@@ -570,6 +702,10 @@ final class XoteHost {
 
     parentIds[childId] = parent
     record(child: childId, in: parent, at: index)
+    // Whatever the app says the stack is, it is. Inserting a screen the
+    // platform had popped puts it back; see `navigation.mjs`.
+    poppedScreens.remove(childId)
+    if types[parent] == "stack" { dirtyStacks.insert(parent) }
     attachViews(of: childId)
   }
 
@@ -584,6 +720,13 @@ final class XoteHost {
     detachViews(of: child)
     childIds[parent]?.removeAll { $0 == child }
     parentIds[child] = nil
+    // Either an ordinary pop, or the app catching up with one the platform
+    // already performed — in which case `syncStack` finds nothing to do, which
+    // is the point: the state being asked for is the state it is in.
+    if types[parent] == "stack" {
+      poppedScreens.remove(child)
+      dirtyStacks.insert(parent)
+    }
 
     if runs[child] != nil, runViews[child] == nil {
       labelRuns[parent]?.removeAll { $0 == child }
@@ -603,6 +746,25 @@ final class XoteHost {
     // means one that does not cannot leave a view in the tree pointing at an id
     // nothing owns.
     detachViews(of: id)
+    // A destroy without a preceding remove, on a screen still in a stack, would
+    // otherwise leave a view controller holding a view that has gone back to
+    // the pool — the one way a pooled view can end up on screen twice.
+    if let parent = parentIds[id], types[parent] == "stack" {
+      poppedScreens.remove(id)
+      childIds[parent]?.removeAll { $0 == id }
+      syncStack(parent)
+    }
+    if let controller = screenControllers.removeValue(forKey: id) {
+      // Its view is going back to the pool, so the controller must not be
+      // holding it when the next screen takes it out.
+      controller.viewIfLoaded?.removeFromSuperview()
+    }
+    if let controller = stackControllers.removeValue(forKey: id) {
+      controller.setScreens([], animated: false)
+      controller.willMove(toParent: nil)
+      controller.view.removeFromSuperview()
+      controller.removeFromParent()
+    }
     // Event targets are retained by hand, so they are released by hand: a list
     // that churns rows would otherwise grow a closure per row per pass. This
     // has to happen before the view goes into the pool, or the pool holds the
@@ -637,6 +799,8 @@ final class XoteHost {
     eventNames[id] = nil
     layoutListeners.remove(id)
     reportedFrames[id] = nil
+    poppedScreens.remove(id)
+    dirtyStacks.remove(id)
   }
 
   private func renderLabel(_ id: Int) {
@@ -863,6 +1027,13 @@ final class XoteHost {
     case "layout":
       layoutListeners.insert(id)
 
+    case "stackChange":
+      // Raised by the navigation controller rather than by a view, so there is
+      // nothing to register here — but registering is what *enables* it, which
+      // `apply` does before this runs. Named anyway so the one place a reader
+      // goes looking for an event lists every event this host raises.
+      stackControllers[id]?.platformPopEnabled = true
+
     // The four `UITextField` events are the same three lines with a different
     // `UIControl.Event`. `addTarget` holds its target weakly, and `actions[id]`
     // holds it strongly until `destroy`, so the closure capturing `field` is
@@ -949,6 +1120,18 @@ final class XoteHost {
     var viewTree: [Int: [Int]] = [:]
     func walkViews(_ view: UIView) {
       guard let id = idsByView[ObjectIdentifier(view)] else { return }
+      // How a `UINavigationController` arranges its subviews — a wrapper per
+      // controller, a transition container while one is in flight — is UIKit's
+      // business and changes between releases. `viewControllers` is the thing
+      // that means the same on every host, so that is what is compared.
+      if let stack = stackControllers[id] {
+        let screens = stack.screenIDs
+        viewTree[id] = screens
+        for screen in screens {
+          if let screenView = views[screen] { walkViews(screenView) }
+        }
+        return
+      }
       viewTree[id] = view.subviews.compactMap { idsByView[ObjectIdentifier($0)] }
       for sub in view.subviews { walkViews(sub) }
     }

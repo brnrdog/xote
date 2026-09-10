@@ -267,4 +267,90 @@ const ids = (host) => host.screensOf(STACK).map((screen) => screen.id);
   );
 }
 
-console.log("navigation tests passed — push, pop, and a platform pop the app has not heard about");
+/* ---- the ReScript surface, through the real renderer ----------------------
+ *
+ * Everything above drives the host with hand-written commands. This drives it
+ * with an app: `NativeNav` and `example/NavApp.res` through Xote's renderer and
+ * the shadow document, which is the only way to find out whether the keying
+ * does what it is there for.
+ */
+
+const { install } = await import("../src/host/runtime.mjs");
+const NativeApp = await import("../src/NativeApp.res.mjs");
+const NativeNav = await import("../src/NativeNav.res.mjs");
+const NavApp = await import("../example/NavApp.res.mjs");
+const Signal = await import("xote/src/Signal.res.mjs");
+
+{
+  const host = new ReferenceHost(VIEWPORT);
+  const runtime = install(host, { autoFlush: false });
+  NativeApp.mount(NavApp.make(), "root");
+  runtime.flush();
+
+  const stackNode = [...host.nodes.values()].find((node) => node.type === "stack");
+  assert.ok(stackNode, "the app rendered a stack");
+  assert.equal(
+    host.screensOf(stackNode.id).length,
+    1,
+    "one screen, and no grouping node from the keyed list reached the host",
+  );
+  assert.deepEqual(
+    Object.keys(host.structure()[stackNode.id] ?? []).length,
+    1,
+    "the stack's children are screens and nothing else — the keyed list's comment anchors are never projected",
+  );
+
+  /** The `pressable` whose label contains `label`, anywhere in the tree. */
+  const button = (label) => {
+    const texts = host.texts();
+    return [...host.nodes.values()].find(
+      (node) =>
+        node.type === "pressable" &&
+        node.children.some((child) => (texts[child.id] ?? "").includes(label)),
+    );
+  };
+
+  const tapCounts = () =>
+    Object.values(host.texts()).filter((text) => text.startsWith("tapped "));
+
+  // Tap the counter on the first screen, so there is state worth preserving.
+  const tap = button("tapped");
+  assert.ok(tap, "the counter button is on screen");
+  runtime.dispatchEvent(tap.id, "press", {});
+  runtime.flush();
+  assert.deepEqual(tapCounts(), ["tapped 1×"], "the first screen counted a tap");
+
+  // Push. The screen underneath must not be rebuilt — if it were, its counter
+  // would be back at zero, which is exactly the bug keying exists to prevent.
+  NativeNav.push(NavApp.nav, { title: "Two", level: 2 });
+  runtime.flush();
+  assert.equal(host.screensOf(stackNode.id).length, 2, "two screens on the stack");
+  assert.deepEqual(
+    tapCounts().sort(),
+    ["tapped 0×", "tapped 1×"],
+    "the pushed screen starts at zero and the one underneath kept its count",
+  );
+
+  const frames = host.frames();
+  const [below, above] = host.screensOf(stackNode.id);
+  assert.deepEqual(frames[below.id], [0, 0, 320, 640], "both screens fill the stack");
+  assert.deepEqual(frames[above.id], [0, 0, 320, 640], "so a transition has two frames to work with");
+
+  // The back gesture. The host pops, the app hears about it, and the state on
+  // the screen that was underneath is still there.
+  const event = host.platformPop(stackNode.id);
+  assert.ok(event, "the app registered `stackChange`, so the gesture is enabled");
+  runtime.dispatchEvent(event.id, event.name, event.payload);
+  runtime.flush();
+
+  assert.equal(host.screensOf(stackNode.id).length, 1, "back to one screen");
+  assert.equal(host.popped.size, 0, "the app caught up, so nothing is half-popped");
+  assert.deepEqual(tapCounts(), ["tapped 1×"], "and the screen it went back to is the same one");
+  assert.equal(Signal.peek(NavApp.nav.depth), 1, "the app's own idea of the depth agrees");
+  assert.equal(Signal.peek(NavApp.nav.canGoBack), false, "and there is nothing to go back to");
+}
+
+console.log(
+  "navigation tests passed — push, pop, a platform pop the app has not heard about," +
+    " and a screen that keeps its state underneath one",
+);

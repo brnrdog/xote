@@ -120,7 +120,33 @@ export function createPreviewHost(mount, { onBatch, dispatch } = {}) {
     if (node.type === "scroll") css += node.props.horizontal ? "overflow-x:auto;" : "overflow-y:auto;";
     if (node.type === "pressable") css += "cursor:pointer;user-select:none;";
     if (node.type === "image") css += "object-fit:cover;";
+    // A screen fills its stack — the same rule `navigation.mjs` states for the
+    // native hosts, written in the one language this host has.
+    if (node.type === "screen") css += "position:absolute;left:0;top:0;right:0;bottom:0;";
     node.el.setAttribute("style", css + toCss(node.props.style));
+  };
+
+  /**
+   * Show the top screen of a stack and hide the rest.
+   *
+   * The preview has no navigation controller, so the stack is a box with every
+   * screen in it and the top one showing. `display:none` rather than paint
+   * order: a screen that is merely underneath another still takes the pointer
+   * events meant for the one on top, and a screen with no background of its own
+   * would show through.
+   *
+   * The preview never raises `stackChange`. A browser back button is not the
+   * platform back gesture this is a stand-in for, and pretending otherwise
+   * would make the preview disagree with the device about the one case the
+   * design is actually about. Pushing and popping from the app works; going
+   * back by gesture is a thing to check on a phone.
+   */
+  const restack = (node) => {
+    if (node === undefined || node.type !== "stack") return;
+    const screens = [...node.el.children].filter((child) => child.dataset?.xoteScreen === "1");
+    screens.forEach((child, at) => {
+      child.style.display = at === screens.length - 1 ? "" : "none";
+    });
   };
 
   const setProp = (node, key, value) => {
@@ -196,6 +222,10 @@ export function createPreviewHost(mount, { onBatch, dispatch } = {}) {
           case OP.CREATE: {
             const [id, type] = args;
             const node = { id, type, props: {}, el: element(type) };
+            // Marked on the element rather than looked up by id, because
+            // `restack` walks the DOM: a stack's children include whatever the
+            // renderer put between the screens.
+            if (type === "screen") node.el.dataset.xoteScreen = "1";
             if (type === "root") node.el.setAttribute("style", BASE + "flex:1;");
             else applyStyle(node);
             nodes.set(id, node);
@@ -219,13 +249,16 @@ export function createPreviewHost(mount, { onBatch, dispatch } = {}) {
           }
           case OP.INSERT: {
             const [parentId, childId, index] = args;
-            const parent = nodes.get(parentId).el;
+            const parentNode = nodes.get(parentId);
+            const parent = parentNode.el;
             parent.insertBefore(nodes.get(childId).el, parent.childNodes[index] ?? null);
+            restack(parentNode);
             break;
           }
           case OP.REMOVE: {
-            const [, childId] = args;
+            const [parentId, childId] = args;
             nodes.get(childId).el.remove();
+            restack(nodes.get(parentId));
             break;
           }
           case OP.DESTROY: {

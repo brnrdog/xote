@@ -22,6 +22,7 @@
  *
  *   npm run native:ios:build                 # the tracker (default)
  *   XOTE_APP=counter npm run native:ios:build
+ *   XOTE_APP=nav npm run native:ios:build     # three screens, a real stack
  *
  * A real framework would take an entry point from the app rather than keeping
  * a list here; this is a repository of examples, so it keeps a list.
@@ -31,9 +32,10 @@ import { install } from "../src/host/runtime.mjs";
 import * as NativeApp from "../src/NativeApp.res.mjs";
 import * as CounterApp from "../example/CounterApp.res.mjs";
 import * as TrackerApp from "../example/tracker/TrackerApp.res.mjs";
+import * as NavApp from "../example/NavApp.res.mjs";
 
 // `__XOTE_APP__` is replaced by the bundler, so only the chosen app is bundled.
-const apps = { counter: CounterApp, tracker: TrackerApp };
+const apps = { counter: CounterApp, tracker: TrackerApp, nav: NavApp };
 const app = apps[__XOTE_APP__] ?? TrackerApp;
 
 const runtime = install(

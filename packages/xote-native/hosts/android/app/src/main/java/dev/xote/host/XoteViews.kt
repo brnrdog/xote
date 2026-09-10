@@ -47,6 +47,81 @@ open class XoteBox(context: Context) : ViewGroup(context) {
 }
 
 /**
+ * A `stack`: a box that shows one of its screens at a time.
+ *
+ * Android has no `UINavigationController`. The iOS host uses the real one and
+ * gets the slide transition, the interactive edge swipe and the focus order
+ * VoiceOver expects for free; there is no equivalent object here, because
+ * Android's answer is `FragmentManager` and a fragment is not a view.
+ *
+ * **So this cut has no transition on Android.** A push and a pop are instant.
+ * Faking a slide in a custom `ViewGroup` is the kind of thing that looks right
+ * in a demo and wrong in an app — the timing curve is not the platform's, it
+ * does not interrupt or reverse, and it has no interactive gesture behind it.
+ * The honest options are a real `FragmentManager` host or `AndroidX Transition`,
+ * and both are more than this file. `ROADMAP.md` records it.
+ *
+ * What *is* here is everything the protocol depends on: the right screens, in
+ * the right order, with only the top one visible and taking touches, and the
+ * system back reported as `stackChange` under the same rules the iOS host
+ * follows — see `src/host/navigation.mjs`.
+ */
+class XoteStackView(context: Context) : XoteBox(context) {
+  /** Called when the system back popped: the screen that left, and the depth. */
+  var onPlatformPop: ((Int, Int) -> Unit)? = null
+
+  /**
+   * Whether the app registered `stackChange`. Without it the system back is
+   * not this stack's to handle, and the activity finishes as it otherwise
+   * would — an app that has not opted in is one where nothing but the app moves
+   * the tree.
+   */
+  var platformPopEnabled = false
+
+  private var screens: List<Pair<Int, View>> = emptyList()
+
+  val screenIDs: List<Int>
+    get() = screens.map { it.first }
+
+  /** Bring the container to exactly `wanted`, bottom to top. */
+  fun setScreens(wanted: List<Pair<Int, View>>) {
+    for ((_, view) in screens) {
+      if (wanted.none { it.second === view }) removeView(view)
+    }
+    for ((at, entry) in wanted.withIndex()) {
+      val view = entry.second
+      val current = indexOfChild(view)
+      if (current == at) continue
+      if (current >= 0) removeViewAt(current)
+      addView(view, minOf(at, childCount))
+    }
+    screens = wanted
+    // Only the top screen is visible, and only the top screen takes touches.
+    // Drawing order alone would not do it: the screens under the top one are
+    // the same size, and a box that is not clickable lets a touch through to
+    // whatever is behind it.
+    for ((at, entry) in wanted.withIndex()) {
+      entry.second.visibility = if (at == wanted.size - 1) VISIBLE else GONE
+    }
+  }
+
+  /**
+   * The system back button. Returns whether this stack took it.
+   *
+   * The screen goes out of view immediately, exactly as UIKit pops before
+   * anything else could have an opinion, and the app is told after the fact.
+   * Its node and its id are untouched: they are the app's.
+   */
+  fun popFromPlatform(): Boolean {
+    if (!platformPopEnabled || screens.size <= 1) return false
+    val (poppedId, _) = screens.last()
+    setScreens(screens.dropLast(1))
+    onPlatformPop?.invoke(poppedId, screens.size)
+    return true
+  }
+}
+
+/**
  * A box whose content may be larger than it is, and which can be dragged.
  *
  * Not `ScrollView`: that is vertical-only and takes exactly one child, while a

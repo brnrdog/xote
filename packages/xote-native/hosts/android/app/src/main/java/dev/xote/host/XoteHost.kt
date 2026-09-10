@@ -85,6 +85,24 @@ class XoteHost(private val rootView: ViewGroup) {
   private val props = HashMap<Int, MutableMap<String, Any?>>()
   private val eventNames = HashMap<Int, MutableSet<String>>()
 
+  /**
+   * Navigation. Android has no `UINavigationController`, so a `stack` is a box
+   * whose screens this host shows one at a time — see `XoteStackView`. The
+   * rules are the same ones `src/host/navigation.mjs` states, and the platform
+   * back is the `OnBackPressedDispatcher` rather than an edge gesture.
+   */
+  private val stacks = mutableMapOf<Int, XoteStackView>()
+
+  /**
+   * Screens the platform popped that the app has not removed yet — the whole
+   * of the divergence between the two trees, and empty at every point the app
+   * could observe.
+   */
+  private val poppedScreens = mutableSetOf<Int>()
+
+  /** Stacks whose children moved this batch, transitioned once at the end. */
+  private val dirtyStacks = mutableSetOf<Int>()
+
   private val pool = XoteViewPool()
   private val context: Context = rootView.context
   private val rootNode = XoteLayoutNode()
@@ -168,6 +186,11 @@ class XoteHost(private val rootView: ViewGroup) {
         }
       }
     }
+
+    // One transition per batch rather than one per command: a push touches its
+    // stack several times — create the screen, insert it, style it.
+    for (id in dirtyStacks) syncStack(id)
+    dirtyStacks.clear()
 
     layoutNow()
   }
@@ -274,6 +297,55 @@ class XoteHost(private val rootView: ViewGroup) {
     // A flattening candidate gets no view until something asks for one. Every
     // other type draws, or owns behaviour, and gets its view now.
     if (type !in XoteFlatten.flattenable) materialize(id, type, node)
+
+    if (type == "stack") {
+      (views[id] as? XoteStackView)?.let { stack ->
+        stack.onPlatformPop = { popped, depth -> platformPopped(id, popped, depth) }
+        stacks[id] = stack
+      }
+    }
+  }
+
+  // ---- Navigation -------------------------------------------------------
+
+  /**
+   * The platform popped — the system back button or gesture. Report it; change
+   * nothing else. The screen's node, subtree, views and id are the app's, and a
+   * host that freed one would be guessing about a lifetime it does not own.
+   */
+  private fun platformPopped(stack: Int, screen: Int, depth: Int) {
+    poppedScreens.add(screen)
+    onEvent?.invoke(stack, "stackChange", mapOf("depth" to depth))
+  }
+
+  /** A stack's `screen` children minus the ones the platform already took off. */
+  private fun stackScreens(id: Int): List<Int> =
+    (childIds[id] ?: mutableListOf()).filter { types[it] == "screen" && it !in poppedScreens }
+
+  /**
+   * Bring a stack's view in line with its node's children.
+   *
+   * Once per batch rather than once per command: a push touches its stack
+   * several times — create the screen, insert it, style it — and transitioning
+   * on each would be several animations over one container.
+   */
+  private fun syncStack(id: Int) {
+    val stack = stacks[id] ?: return
+    stack.setScreens(stackScreens(id).mapNotNull { screen -> views[screen]?.let { screen to it } })
+  }
+
+  /**
+   * The system back button. Returns true when a stack handled it, so the
+   * activity knows whether to finish.
+   */
+  fun handlePlatformBack(): Boolean {
+    // The innermost stack that can go back wins, which for a single stack is
+    // the only stack and for nested ones is the one the person is looking at.
+    for (id in stacks.keys.sortedDescending()) {
+      val stack = stacks[id] ?: continue
+      if (stack.popFromPlatform()) return true
+    }
+    return false
   }
 
   /** The class each primitive maps to. */
@@ -283,6 +355,7 @@ class XoteHost(private val rootView: ViewGroup) {
       "image" -> ImageView(context)
       "input" -> EditText(context)
       "scroll" -> XoteScrollView(context)
+      "stack" -> XoteStackView(context)
       // `view`, `pressable`, and any primitive this host does not know by name.
       // A box has to be a `ViewGroup` on Android — `View` cannot hold children.
       else -> XoteBox(context)
@@ -535,6 +608,10 @@ class XoteHost(private val rootView: ViewGroup) {
 
     parentIds[childId] = parent
     record(childId, parent, index)
+    // Whatever the app says the stack is, it is. Inserting a screen the
+    // platform had popped puts it back; see `navigation.mjs`.
+    poppedScreens.remove(childId)
+    if (types[parent] == "stack") dirtyStacks.add(parent)
     attachViews(childId)
   }
 
@@ -548,6 +625,12 @@ class XoteHost(private val rootView: ViewGroup) {
     detachViews(child)
     childIds[parent]?.remove(child)
     parentIds.remove(child)
+    // Either an ordinary pop, or the app catching up with one the platform
+    // already performed — in which case `syncStack` finds nothing to do.
+    if (types[parent] == "stack") {
+      poppedScreens.remove(child)
+      dirtyStacks.add(parent)
+    }
 
     if (runs[child] != null && runViews[child] == null) {
       labelRuns[parent]?.remove(child)
@@ -563,6 +646,17 @@ class XoteHost(private val rootView: ViewGroup) {
     // means one that does not cannot leave a view in the tree pointing at an id
     // nothing owns.
     detachViews(id)
+    // A destroy without a preceding remove, on a screen still in a stack, would
+    // otherwise leave the container holding a view that has gone back to the
+    // pool — the one way a pooled view can end up on screen twice.
+    parentIds[id]?.let { parent ->
+      if (types[parent] == "stack") {
+        poppedScreens.remove(id)
+        childIds[parent]?.remove(id)
+        syncStack(parent)
+      }
+    }
+    stacks.remove(id)?.let { it.setScreens(emptyList()) }
 
     val view = views[id]
     val type = types[id]
@@ -592,6 +686,8 @@ class XoteHost(private val rootView: ViewGroup) {
     eventNames.remove(id)
     layoutListeners.remove(id)
     reportedFrames.remove(id)
+    poppedScreens.remove(id)
+    dirtyStacks.remove(id)
   }
 
   private fun renderLabel(id: Int) {
@@ -834,6 +930,11 @@ class XoteHost(private val rootView: ViewGroup) {
       }
 
       "layout" -> layoutListeners.add(id)
+
+      // Raised by the stack rather than by a view, so there is nothing to
+      // register — but registering is what *enables* it. Named here anyway so
+      // the one place a reader goes looking lists every event this host raises.
+      "stackChange" -> stacks[id]?.platformPopEnabled = true
 
       // The four `EditText` events are the same shape with a different trigger.
       "changeText" -> {
