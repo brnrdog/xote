@@ -438,6 +438,29 @@ export class ReferenceHost {
     layout(tree, this.viewport.width, this.viewport.height);
   }
 
+  /**
+   * Forget everything and start over.
+   *
+   * The dev server restarts the app process on every save, and the new one
+   * numbers its nodes from 1 — so an id means nothing across a reload, and a
+   * host that kept the old tree would apply the new app's commands to the old
+   * app's nodes. This is the one operation the protocol does not express,
+   * because it is not something an app can ask for: an app that wanted a blank
+   * screen would destroy its nodes, and it would still be the same app.
+   *
+   * The pool is emptied rather than kept, so the next generation allocates its
+   * own views instead of inheriting a screenful from an app that no longer
+   * exists. `created` and `reused` are counted over the host's whole life and
+   * still span the reload; only the parked views go.
+   */
+  reset() {
+    this.nodes.clear();
+    this.events.clear();
+    this.popped.clear();
+    this.root = null;
+    this.pool.clear();
+  }
+
   // MARK: - Navigation
   //
   // The only host-initiated change in the whole protocol. See `navigation.mjs`

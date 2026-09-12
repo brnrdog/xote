@@ -322,6 +322,60 @@ final class XoteHost {
     if type == "screen" { adoptScreen(id) }
   }
 
+  /// Forget everything and start over — see `reset()` in `reference.mjs`.
+  ///
+  /// The dev server restarts the app on every save and the new one numbers its
+  /// nodes from 1, so an id means nothing across a reload. Everything goes:
+  /// every view out of the hierarchy, every navigation controller off its
+  /// parent, every hand-retained event target, and the pool, which would
+  /// otherwise hand the next generation a screenful of views belonging to an
+  /// app that no longer exists.
+  func reset() {
+    for (_, controller) in stackControllers {
+      controller.setScreens([], animated: false)
+      controller.willMove(toParent: nil)
+      controller.view.removeFromSuperview()
+      controller.removeFromParent()
+    }
+    stackControllers.removeAll()
+    screenControllers.removeAll()
+    poppedScreens.removeAll()
+    dirtyStacks.removeAll()
+
+    for subview in rootView.subviews { subview.removeFromSuperview() }
+    rootNode.children.removeAll()
+
+    views.removeAll()
+    nodes.removeAll()
+    contentNodes.removeAll()
+    runs.removeAll()
+    runViews.removeAll()
+    labelRuns.removeAll()
+    fonts.removeAll()
+    placeholderColors.removeAll()
+    lineLimits.removeAll()
+    // Event targets are retained by hand, so they are released by hand.
+    actions.removeAll()
+    scrollReporters.removeAll()
+    layoutListeners.removeAll()
+    reportedFrames.removeAll()
+    childIds.removeAll()
+    parentIds.removeAll()
+    idsByNode.removeAll()
+    idsByView.removeAll()
+    types.removeAll()
+    styles.removeAll()
+    props.removeAll()
+    eventNames.removeAll()
+    pool.clear()
+
+    // The root is not a node the app created, so it survives its own erasure
+    // and has to be put back the way `init` left it.
+    idsByNode[ObjectIdentifier(rootNode)] = nil
+    idsByView[ObjectIdentifier(rootView)] = nil
+    rootNode.view = rootView
+  }
+
   // MARK: - Navigation
 
   /// Give a `stack` node a real navigation controller, parented properly.

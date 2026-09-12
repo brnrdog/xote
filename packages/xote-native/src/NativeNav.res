@@ -104,7 +104,11 @@ let reset = (nav: t<'screen>, screens: array<'screen>) =>
 
 /* The stack, rendered.
 
- `render` is called once per entry rather than once per pass: it is inside
+ `render` returns a screen's *contents* — the `screen` node itself is put there
+ by this function. Returning a `<screen>` from it nests one inside another,
+ which draws nothing, costs a view, and is on no stack.
+
+ It is called once per entry rather than once per pass: it is inside
  `View.eachWithKey`, so a screen that is already on the stack is left alone. */
 let view = (
   nav: t<'screen>,

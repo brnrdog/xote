@@ -31,6 +31,14 @@ targets:
       path: App/Info.plist
       properties:
         UILaunchScreen: {}
+        # The dev server is plain HTTP on your machine, which App Transport
+        # Security blocks by default — and blocks silently, so the app would
+        # simply never draw. `NSAllowsLocalNetworking` permits localhost,
+        # `.local` and link-local addresses and nothing else, which is exactly
+        # the dev server and no part of the internet. A build with no
+        # `XoteDevServer` configured never opens a connection anyway.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         UIUserInterfaceStyle: Dark
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIApplicationSupportsIndirectInputEvents: true

@@ -36,7 +36,9 @@
     "native:build": "npm -w xote-native run preview:build --",
     "docs:start": "npm --prefix docs-website run dev --",
     "docs:build": "npm --prefix docs-website run build --",
-    "docs:serve": "npm --prefix docs-website run preview --"
+    "docs:serve": "npm --prefix docs-website run preview --",
+    "native:dev": "npm -w xote-native run dev --",
+    "native:dev:watch": "npm -w xote-native run dev:watch --"
   },
   "release": {
     "branches": [

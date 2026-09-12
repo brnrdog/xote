@@ -187,6 +187,37 @@ the second, and `install()` refuses loudly when it is given neither.)
 
 ---
 
+## Developing against a device
+
+```
+npm run native:dev:watch     # ReScript, compiling on save
+npm run native:dev           # the dev server
+```
+
+Build the app once from Xcode with `XOTE_DEV_SERVER=http://localhost:8081` in
+the scheme's environment, and after that Xcode is out of the loop: a save
+recompiles, the server restarts the app, and the screen is rebuilt on the
+device in about a second.
+
+**The app runs on your machine, not on the phone.** The dev server runs it in
+Node and streams the same command batch that would otherwise cross
+JavaScriptCore; the device is a view host and nothing else — no JavaScript
+engine, no bundle, nothing to transfer on a save. That is possible only because
+the bridge was already a wire format: this is `example/preview.mjs` with a
+socket where `postMessage` was, and nothing in the app, the renderer, the
+shadow document or the host changed to allow it.
+
+It is the inner loop, not the measurement. Running in Node cannot show you a
+JavaScriptCore-only behaviour, real startup cost, or what a batch costs to
+apply under a thermal budget — build without `XOTE_DEV_SERVER` for that, which
+is also how the app ships.
+
+The transport is newline-delimited JSON over one long-lived chunked response
+downward and a POST per event upward, so `curl -N localhost:8081/stream` is a
+working client and the traffic is readable with no tooling at all.
+
+---
+
 ## What is in here
 
 | Path | What it is |
@@ -199,6 +230,7 @@ the second, and `install()` refuses loudly when it is given neither.)
 | `host/flatten.mjs` | Which nodes need a view of their own, and which are only arranging things. |
 | `host/pool.mjs` | The view pool a `destroy` returns to and a `create` takes from. |
 | `host/navigation.mjs` | `stack` and `screen`, and the one case where the host writes to the tree first. |
+| `dev/server.mjs` | The dev loop: your app runs on your machine, the device draws it. |
 | `host/capabilities.mjs` | What the hosts implement — the list the ReScript types are checked against. |
 | `host/reference.mjs` | The protocol *and* layout, with nothing to draw on — the executable spec. |
 | `host/preview.mjs` | Second host: real DOM and flexbox, for looking at things. |

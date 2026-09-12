@@ -25,6 +25,10 @@ let colour = level =>
 
 /* A screen with state of its own, so the tests have something to lose.
 
+ It renders a `view`, not a `screen`: `NativeNav` puts each entry inside a
+ `screen` already, and nesting a second one inside it is a view that draws
+ nothing and is on no stack.
+
  It has to be a component rather than a plain function for the reason written up
  twice in `REPORT.md`: a function called from inside a reactive region creates
  its signals in *that* region's scope, and they are disposed with it. */
@@ -33,7 +37,7 @@ module Page = {
   let make = (~screen: screen) => {
     let count = Signal.make(0)
 
-    <screen style={Style.make({flex: 1.0, backgroundColor: colour(screen.level), padding: Style.pt(24.0)})}>
+    <view style={Style.make({flex: 1.0, backgroundColor: colour(screen.level), padding: Style.pt(24.0)})}>
       <text style={Style.make({color: "#ffffff", fontSize: 28.0})}>
         {View.text(screen.title)}
       </text>
@@ -72,7 +76,7 @@ module Page = {
             </pressable>
           : View.null()
       )}
-    </screen>
+    </view>
   }
 }
 

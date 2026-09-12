@@ -6,6 +6,7 @@ final class XoteViewController: UIViewController {
   private let container = UIView()
   private var host: XoteHost?
   private var bridge: XoteBridge?
+  private var dev: XoteDevClient?
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -18,9 +19,26 @@ final class XoteViewController: UIViewController {
     // still renders and neither the transition nor the back swipe works.
     host.presenter = self
     self.host = host
+
+    // Two ways to get an app. With a dev server configured the app runs on
+    // your machine and this device only draws it; otherwise the bundle is in
+    // the app and JavaScriptCore runs it, which is how it really ships. See
+    // `XoteDevClient`.
+    if let url = XoteDevClient.configuredURL() {
+      let dev = XoteDevClient(host: host, baseURL: url)
+      dev.onError = { message in NSLog("%@", message) }
+      self.dev = dev
+      dev.start()
+      return
+    }
+
     let bridge = XoteBridge(host: host)
     self.bridge = bridge
     bridge.start()
+  }
+
+  deinit {
+    dev?.stop()
   }
 
   override func viewDidLayoutSubviews() {
