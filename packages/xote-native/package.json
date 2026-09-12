@@ -54,7 +54,7 @@
   "scripts": {
     "res:build": "npx rescript",
     "res:clean": "npx rescript clean",
-    "test": "npm run res:build && node test/surface_test.mjs && node test/protocol_test.mjs && node test/package_test.mjs && node test/layout_test.mjs && node test/conformance_test.mjs && node test/resilience_test.mjs && node test/signals_pin_test.mjs && node test/list_test.mjs && node test/flatten_test.mjs && node test/navigation_test.mjs && node test/tracker_test.mjs && node test/Native_test.mjs",
+    "test": "npm run res:build && node test/hosts_test.mjs && node test/surface_test.mjs && node test/protocol_test.mjs && node test/package_test.mjs && node test/layout_test.mjs && node test/conformance_test.mjs && node test/resilience_test.mjs && node test/signals_pin_test.mjs && node test/list_test.mjs && node test/flatten_test.mjs && node test/navigation_test.mjs && node test/tracker_test.mjs && node test/Native_test.mjs",
     "test:package": "npm run res:build && node test/package_test.mjs",
     "conformance": "node conformance/generate.mjs",
     "layout:oracle": "node test/layout_oracle.mjs",

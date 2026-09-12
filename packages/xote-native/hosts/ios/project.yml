@@ -50,8 +50,10 @@ targets:
     sources:
       - path: XoteNativeTests
       # The conformance suite is shared with the JavaScript hosts; the test
-      # bundle carries a copy so it can be replayed against UIKit.
-      - path: ../conformance/suite.json
+      # bundle carries a copy so it can be replayed against UIKit. Two levels
+      # up, not one: this file lives in `hosts/ios/`, and `conformance/` is at
+      # the root of the package.
+      - path: ../../conformance/suite.json
         buildPhase: resources
     dependencies:
       - target: XoteNativeExample
