@@ -2,8 +2,8 @@ name: PPX binaries
 
 # Builds the @xote.component ppx as a native binary for every supported
 # platform. Runs where it can actually catch something, not on every push:
-#   - called from release.yml (the binaries are downloaded into ppx/bin/ and
-#     shipped in the npm tarball; ppx/postinstall.js selects one at install);
+#   - called from release.yml (the binaries are downloaded into packages/xote/ppx/bin/ and
+#     shipped in the npm tarball; packages/xote/ppx/postinstall.js selects one at install);
 #   - on PRs/pushes that touch the ppx source or this workflow;
 #   - weekly, as a canary for environment drift (runner retirements,
 #     setup-ocaml changes) so a broken target surfaces before release day.
@@ -15,12 +15,12 @@ on:
   workflow_dispatch: {}
   pull_request:
     paths:
-      - "ppx/**"
+      - "packages/xote/ppx/**"
       - ".github/workflows/ppx-binaries.yml"
   push:
     branches: [main]
     paths:
-      - "ppx/**"
+      - "packages/xote/ppx/**"
       - ".github/workflows/ppx-binaries.yml"
   schedule:
     - cron: "0 6 * * 1"
@@ -52,15 +52,15 @@ jobs:
         with:
           ocaml-compiler: "4.14"
 
-      # Call ppx/build.sh rather than repeating its ocamlopt line here: it takes
-      # the output path (relative to ppx/) for exactly this reason. This step
+      # Call packages/xote/ppx/build.sh rather than repeating its ocamlopt line here: it takes
+      # the output path (relative to packages/xote/ppx/) for exactly this reason. This step
       # used to inline the command under a "same invocation as build.sh" comment,
       # and when build.sh started compiling ast.ml alongside ppx.ml the copy here
       # did not, so all five platforms failed with "Unbound module Ast" while the
       # local build was green. One definition, no drift.
       - name: Compile ppx binary
         shell: bash
-        run: opam exec -- sh ppx/build.sh "bin/ppx-${{ matrix.target }}.exe"
+        run: opam exec -- sh packages/xote/ppx/build.sh "bin/ppx-${{ matrix.target }}.exe"
 
       # The binary must actually *run* on its host platform — `--help` proves
       # the executable loads (right arch, libc, DLLs), which the release
@@ -68,11 +68,11 @@ jobs:
       # exact artifact that ships.
       - name: Smoke-test binary
         shell: bash
-        run: ./ppx/bin/ppx-${{ matrix.target }}.exe --help
+        run: ./packages/xote/ppx/bin/ppx-${{ matrix.target }}.exe --help
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: ppx-${{ matrix.target }}
-          path: ppx/bin/ppx-*.exe
+          path: packages/xote/ppx/bin/ppx-*.exe
           if-no-files-found: error

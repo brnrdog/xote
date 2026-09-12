@@ -1,0 +1,307 @@
+import * as MaybeSignal from "./MaybeSignal.res.mjs";
+import * as View from "./View.res.mjs";
+
+export const Fragment = Symbol.for("xote.fragment");
+
+const nodeTags = new Set([
+  "Element",
+  "Text",
+  "SignalText",
+  "Fragment",
+  "SignalFragment",
+  "Keyed",
+  "LazyComponent",
+  "KeyedList",
+]);
+
+const eventAliases = {
+  onChange: "change",
+  onClick: "click",
+  onContextMenu: "contextmenu",
+  onDoubleClick: "dblclick",
+  onInput: "input",
+  onSubmit: "submit",
+  onFocus: "focus",
+  onBlur: "blur",
+  onKeyDown: "keydown",
+  onKeyUp: "keyup",
+  onMouseDown: "mousedown",
+  onMouseEnter: "mouseenter",
+  onMouseLeave: "mouseleave",
+  onMouseMove: "mousemove",
+  onMouseUp: "mouseup",
+  onDrag: "drag",
+  onDragStart: "dragstart",
+  onDragEnd: "dragend",
+  onDragOver: "dragover",
+  onDragEnter: "dragenter",
+  onDragLeave: "dragleave",
+  onDrop: "drop",
+};
+
+const attrAliases = {
+  acceptCharset: "accept-charset",
+  autoFocus: "autofocus",
+  className: "class",
+  contentEditable: "contenteditable",
+  htmlFor: "for",
+  httpEquiv: "http-equiv",
+  maxLength: "maxlength",
+  minLength: "minlength",
+  preserveAspectRatio: "preserveAspectRatio",
+  readOnly: "readonly",
+  spellCheck: "spellcheck",
+  srcSet: "srcset",
+  strokeDasharray: "stroke-dasharray",
+  strokeDashoffset: "stroke-dashoffset",
+  strokeLinecap: "stroke-linecap",
+  strokeLinejoin: "stroke-linejoin",
+  strokeMiterlimit: "stroke-miterlimit",
+  strokeWidth: "stroke-width",
+  tabIndex: "tabindex",
+  viewBox: "viewBox",
+  xlinkHref: "xlink:href",
+};
+
+const internalProps = new Set([
+  "children",
+  "components",
+  "key",
+  "mdxType",
+  "originalType",
+  "parentName",
+  "ref",
+]);
+
+function isXoteNode(value) {
+  return value && typeof value === "object" && nodeTags.has(value.TAG);
+}
+
+function toKebab(name) {
+  return name.replace(/[A-Z]/g, char => `-${char.toLowerCase()}`);
+}
+
+function normalizeAttrName(name) {
+  if (attrAliases[name]) {
+    return attrAliases[name];
+  }
+
+  if (/^(aria|data)[A-Z]/.test(name)) {
+    return toKebab(name);
+  }
+
+  return name;
+}
+
+function normalizeStyle(style) {
+  if (typeof style === "string") {
+    return style;
+  }
+
+  if (!style || typeof style !== "object") {
+    return String(style ?? "");
+  }
+
+  return Object.entries(style)
+    .filter(([, value]) => value !== null && value !== undefined && value !== false)
+    .map(([key, value]) => `${toKebab(key)}:${String(value)}`)
+    .join(";");
+}
+
+// `undefined` means "no attribute": View removes it instead of writing the
+// string "undefined", which is what presence-based selectors need.
+function stringifyAttrValue(name, value) {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  if (name === "style") {
+    return normalizeStyle(value);
+  }
+
+  return String(value);
+}
+
+// Thunks stay lazy as a `Compute` attribute; everything else (raw value, signal,
+// MaybeSignal.t) is classified by MaybeSignal.ofUnknown so this runtime and the
+// ReScript one agree on what counts as reactive.
+function attrFromValue(name, value) {
+  if (typeof value === "function") {
+    return View.computedAttr(name, () => stringifyAttrValue(name, value()));
+  }
+
+  const normalized = MaybeSignal.map(MaybeSignal.ofUnknown(value), inner =>
+    stringifyAttrValue(name, inner),
+  );
+
+  return normalized.TAG === "Static"
+    ? View.attr(name, normalized._0)
+    : View.signalAttr(name, normalized._0);
+}
+
+// Tags of View.attrValue, so an `attrs` entry already built with View.attr &
+// friends passes through untouched. "Static" is absent for the same reason as
+// in RuntimeJsxProp: it is also MaybeSignal.Static, and both take the same path.
+const attrValueTags = new Set([
+  "SignalValue",
+  "Compute",
+  "OptionalStatic",
+  "OptionalSignalValue",
+  "OptionalCompute",
+  // The opaque payloads have to be here or the escape hatch defeats them: an
+  // Opaque falling through to attrFromValue is the "[object Object]" the
+  // constructor exists to avoid, and an OpaqueSignal loses its reactivity.
+  "Opaque",
+  "OpaqueSignal",
+  "OpaqueCompute",
+]);
+
+function toAttrEntry(name, value) {
+  if (value && typeof value === "object" && attrValueTags.has(value.TAG)) {
+    return [name, value];
+  }
+
+  return attrFromValue(name, value);
+}
+
+// Later entries win, so an escape-hatch attribute replaces the prop of the same
+// name rather than rendering twice.
+function mergeAttrs(base, extra) {
+  if (extra.length === 0) {
+    return base;
+  }
+
+  const combined = base.concat(extra);
+  const lastIndex = new Map();
+  combined.forEach(([name], index) => lastIndex.set(name, index));
+
+  return combined.filter(([name], index) => lastIndex.get(name) === index);
+}
+
+function eventNameFromProp(name, value) {
+  if (typeof value !== "function" || !/^on[A-Z]/.test(name)) {
+    return null;
+  }
+
+  return eventAliases[name] ?? name.slice(2).toLowerCase();
+}
+
+function normalizeChildren(children) {
+  if (children === null || children === undefined || typeof children === "boolean") {
+    return [];
+  }
+
+  if (Array.isArray(children)) {
+    return children.flatMap(normalizeChildren);
+  }
+
+  if (isXoteNode(children)) {
+    return [children];
+  }
+
+  return [View.text(String(children))];
+}
+
+function normalizeNode(value) {
+  if (isXoteNode(value)) {
+    return value;
+  }
+
+  return View.fragment(normalizeChildren(value));
+}
+
+function buildElement(tag, props = {}) {
+  const attrs = [];
+  const extraAttrs = [];
+  const events = [];
+
+  for (const [rawName, value] of Object.entries(props)) {
+    if (internalProps.has(rawName) || value === null || value === undefined) {
+      continue;
+    }
+
+    // Escape hatch: [[name, value], ...] for attributes with no prop of their own.
+    if (rawName === "attrs") {
+      for (const [name, attrValue] of value) {
+        extraAttrs.push(toAttrEntry(name, attrValue));
+      }
+      continue;
+    }
+
+    const eventName = eventNameFromProp(rawName, value);
+    if (eventName) {
+      events.push([eventName, value]);
+      continue;
+    }
+
+    const attrName = normalizeAttrName(rawName);
+    attrs.push(attrFromValue(attrName, value));
+  }
+
+  return View.element(
+    tag,
+    mergeAttrs(attrs, extraAttrs),
+    events,
+    normalizeChildren(props.children),
+    undefined,
+  );
+}
+
+function getReservedKey(props, key) {
+  if (key !== undefined && key !== null) {
+    return key;
+  }
+
+  return props?.key;
+}
+
+function stripReservedKey(props) {
+  if (!props || !Object.prototype.hasOwnProperty.call(props, "key")) {
+    return props ?? {};
+  }
+
+  const { key: _key, ...nextProps } = props;
+  return nextProps;
+}
+
+function withKey(node, key, props) {
+  const reservedKey = getReservedKey(props, key);
+
+  if (reservedKey === undefined || reservedKey === null) {
+    return node;
+  }
+
+  return {
+    TAG: "Keyed",
+    key: String(reservedKey),
+    identity: props ?? {},
+    child: node,
+  };
+}
+
+export function jsx(type, props, key) {
+  const nextProps = stripReservedKey(props);
+
+  if (type === Fragment) {
+    return withKey(View.fragment(normalizeChildren(nextProps.children)), key, props);
+  }
+
+  if (typeof type === "string") {
+    return withKey(buildElement(type, nextProps), key, props);
+  }
+
+  if (typeof type === "function") {
+    return withKey(
+      {
+        TAG: "LazyComponent",
+        _0: () => normalizeNode(type(nextProps)),
+      },
+      key,
+      props,
+    );
+  }
+
+  throw new TypeError(`Unsupported Xote JSX element type: ${String(type)}`);
+}
+
+export const jsxs = jsx;

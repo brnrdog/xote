@@ -1,0 +1,307 @@
+/**
+ * A host that draws the protocol with real DOM and flexbox.
+ *
+ * This is not how a phone renders a Xote app — it is how you look at one
+ * without a phone. It exists for two reasons: it is a second implementation of
+ * the protocol, which is the only way to find out whether the protocol is
+ * really host-agnostic; and it is the shape a dev-time simulator would take.
+ *
+ * It also makes the point that the bridge is the whole contract. Nothing below
+ * knows about signals, components or ReScript.
+ */
+
+import { OP } from "./protocol.mjs";
+
+const UNITLESS = new Set([
+  "flex",
+  "flexGrow",
+  "flexShrink",
+  "opacity",
+  "zIndex",
+  "aspectRatio",
+  "fontWeight",
+]);
+
+const EXPAND = {
+  marginHorizontal: ["marginLeft", "marginRight"],
+  marginVertical: ["marginTop", "marginBottom"],
+  paddingHorizontal: ["paddingLeft", "paddingRight"],
+  paddingVertical: ["paddingTop", "paddingBottom"],
+};
+
+const WEIGHT = {
+  thin: 100,
+  light: 300,
+  regular: 400,
+  medium: 500,
+  semibold: 600,
+  bold: 700,
+  heavy: 900,
+};
+
+// React Native's defaults, which are not the web's: a view is a column flex
+// container that does not shrink.
+const BASE =
+  "display:flex;flex-direction:column;align-items:stretch;flex-shrink:0;position:relative;min-width:0;min-height:0;box-sizing:border-box;";
+
+const cssValue = (key, value) => {
+  if (key === "fontWeight") return String(WEIGHT[value] ?? value);
+  if (typeof value === "number" && !UNITLESS.has(key)) return `${value}px`;
+  return String(value);
+};
+
+const cssKey = (key) => key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+
+const toCss = (style) => {
+  let out = "";
+  for (const [key, value] of Object.entries(style ?? {})) {
+    if (value === undefined || value === null) continue;
+    // A border width means a border on a native host. CSS also wants a style,
+    // or it draws nothing at all.
+    if (key === "borderWidth") out += "border-style:solid;";
+    const targets = EXPAND[key] ?? [key];
+    for (const target of targets) out += `${cssKey(target)}:${cssValue(target, value)};`;
+  }
+  return out;
+};
+
+// Only the events a native host raises. The DOM could deliver more — and used
+// to be asked to — but an event that works here and does nothing on a device is
+// the trap `xote-native/test/surface_test.mjs` exists to close.
+const EVENT_MAP = {
+  press: "click",
+  longPress: null, // no DOM equivalent worth faking
+  layout: null, // reported after a batch rather than by a DOM event
+
+  changeText: "input",
+  submit: "change",
+  focus: "focusin",
+  blur: "focusout",
+  scroll: "scroll",
+};
+
+/**
+ * @param mount     a real DOM element to draw into
+ * @param dispatch  `(nodeId, event, payload)` — how an event gets back to the
+ *                  app, whether that is a direct call or a `postMessage`
+ */
+export function createPreviewHost(mount, { onBatch, dispatch } = {}) {
+  const dom = mount.ownerDocument;
+  const nodes = new Map();
+
+  // `::placeholder` cannot be reached from an element's inline style, so the
+  // inline style sets a custom property and one rule reads it.
+  if (dom.head !== null && dom.getElementById("xote-preview-rules") === null) {
+    const rules = dom.createElement("style");
+    rules.id = "xote-preview-rules";
+    rules.textContent = "input::placeholder{color:var(--xote-placeholder,inherit)}";
+    dom.head.appendChild(rules);
+  }
+
+  const layoutListeners = new Set();
+  const reported = new Map();
+
+  const element = (type) => {
+    switch (type) {
+      case "text":
+        return dom.createElement("span");
+      case "image":
+        return dom.createElement("img");
+      case "input":
+        return dom.createElement("input");
+      default:
+        return dom.createElement("div");
+    }
+  };
+
+  const applyStyle = (node) => {
+    let css = BASE;
+    if (node.type === "text") css = "display:block;white-space:pre-wrap;";
+    if (node.type === "scroll") css += node.props.horizontal ? "overflow-x:auto;" : "overflow-y:auto;";
+    if (node.type === "pressable") css += "cursor:pointer;user-select:none;";
+    if (node.type === "image") css += "object-fit:cover;";
+    // A screen fills its stack — the same rule `navigation.mjs` states for the
+    // native hosts, written in the one language this host has.
+    if (node.type === "screen") css += "position:absolute;left:0;top:0;right:0;bottom:0;";
+    node.el.setAttribute("style", css + toCss(node.props.style));
+  };
+
+  /**
+   * Show the top screen of a stack and hide the rest.
+   *
+   * The preview has no navigation controller, so the stack is a box with every
+   * screen in it and the top one showing. `display:none` rather than paint
+   * order: a screen that is merely underneath another still takes the pointer
+   * events meant for the one on top, and a screen with no background of its own
+   * would show through.
+   *
+   * The preview never raises `stackChange`. A browser back button is not the
+   * platform back gesture this is a stand-in for, and pretending otherwise
+   * would make the preview disagree with the device about the one case the
+   * design is actually about. Pushing and popping from the app works; going
+   * back by gesture is a thing to check on a phone.
+   */
+  const restack = (node) => {
+    if (node === undefined || node.type !== "stack") return;
+    const screens = [...node.el.children].filter((child) => child.dataset?.xoteScreen === "1");
+    screens.forEach((child, at) => {
+      child.style.display = at === screens.length - 1 ? "" : "none";
+    });
+  };
+
+  const setProp = (node, key, value) => {
+    if (value === null) delete node.props[key];
+    else node.props[key] = value;
+
+    switch (key) {
+      case "style":
+      case "horizontal":
+        applyStyle(node);
+        break;
+      case "source":
+        node.el.src = typeof value === "string" ? value : (value?.uri ?? "");
+        break;
+      case "value":
+        node.el.value = value ?? "";
+        break;
+      case "placeholder":
+        node.el.placeholder = value ?? "";
+        break;
+      case "placeholderTextColor":
+        node.el.style.setProperty("--xote-placeholder", value ?? "");
+        break;
+      case "testID":
+        node.el.dataset.testid = value ?? "";
+        break;
+      case "accessibilityLabel":
+        node.el.setAttribute("aria-label", value ?? "");
+        break;
+      case "numberOfLines":
+        // `-webkit-line-clamp` only does anything inside a `-webkit-box`.
+        if (value) {
+          node.el.style.display = "-webkit-box";
+          node.el.style.webkitBoxOrient = "vertical";
+          node.el.style.webkitLineClamp = String(value);
+          node.el.style.overflow = "hidden";
+        } else {
+          node.el.style.webkitLineClamp = "";
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
+  const listen = (node, name) => {
+    if (name === "layout") {
+      layoutListeners.add(node);
+      return;
+    }
+    const domEvent = EVENT_MAP[name];
+    if (domEvent === undefined || domEvent === null) return;
+    node.el.addEventListener(domEvent, (event) => {
+      if (name === "press") event.stopPropagation();
+      dispatch(node.id, name, payloadFor(name, event, node));
+    });
+  };
+
+  const payloadFor = (name, event, node) => {
+    // `changeText`, `submit`, `focus` and `blur` all carry the field's current
+    // text — `NativeEvent.focus` is `{value: string}`, not a position.
+    if (name === "changeText" || name === "submit" || name === "focus" || name === "blur") {
+      return { value: node.el.value ?? "" };
+    }
+    if (name === "scroll") return { x: node.el.scrollLeft, y: node.el.scrollTop };
+    return { pageX: event.pageX ?? 0, pageY: event.pageY ?? 0 };
+  };
+
+  const host = {
+    apply(batch) {
+      for (const [op, ...args] of batch) {
+        switch (op) {
+          case OP.CREATE: {
+            const [id, type] = args;
+            const node = { id, type, props: {}, el: element(type) };
+            // Marked on the element rather than looked up by id, because
+            // `restack` walks the DOM: a stack's children include whatever the
+            // renderer put between the screens.
+            if (type === "screen") node.el.dataset.xoteScreen = "1";
+            if (type === "root") node.el.setAttribute("style", BASE + "flex:1;");
+            else applyStyle(node);
+            nodes.set(id, node);
+            if (type === "root") mount.replaceChildren(node.el);
+            break;
+          }
+          case OP.CREATE_TEXT: {
+            const [id, text] = args;
+            nodes.set(id, { id, type: "#text", props: {}, el: dom.createTextNode(text) });
+            break;
+          }
+          case OP.SET_PROP: {
+            const [id, key, value] = args;
+            setProp(nodes.get(id), key, value);
+            break;
+          }
+          case OP.SET_TEXT: {
+            const [id, text] = args;
+            nodes.get(id).el.data = text;
+            break;
+          }
+          case OP.INSERT: {
+            const [parentId, childId, index] = args;
+            const parentNode = nodes.get(parentId);
+            const parent = parentNode.el;
+            parent.insertBefore(nodes.get(childId).el, parent.childNodes[index] ?? null);
+            restack(parentNode);
+            break;
+          }
+          case OP.REMOVE: {
+            const [parentId, childId] = args;
+            nodes.get(childId).el.remove();
+            restack(nodes.get(parentId));
+            break;
+          }
+          case OP.DESTROY: {
+            const [id] = args;
+            const node = nodes.get(id);
+            if (node !== undefined) {
+              // A well-behaved bundle removes before it destroys, but the
+              // bookkeeping outlives the element either way: left in
+              // `layoutListeners` the host keeps measuring a detached node and
+              // dispatching `layout` for an id the app has forgotten.
+              node.el.remove?.();
+              layoutListeners.delete(node);
+              reported.delete(id);
+            }
+            nodes.delete(id);
+            break;
+          }
+          case OP.LISTEN: {
+            listen(nodes.get(args[0]), args[1]);
+            break;
+          }
+          default:
+            throw new Error(`Xote Native preview: unknown opcode ${op}`);
+        }
+      }
+      // Nodes that asked where they ended up are told after the batch, and only
+      // when it changed — a list driven by its own layout event would otherwise
+      // never settle.
+      for (const node of layoutListeners) {
+        const box = node.el.getBoundingClientRect();
+        const frame = `${box.width}x${box.height}`;
+        if (reported.get(node.id) === frame) continue;
+        reported.set(node.id, frame);
+        dispatch(node.id, "layout", {
+          x: node.el.offsetLeft,
+          y: node.el.offsetTop,
+          width: box.width,
+          height: box.height,
+        });
+      }
+      if (onBatch) onBatch(batch);
+    },
+  };
+
+  return host;
+}
