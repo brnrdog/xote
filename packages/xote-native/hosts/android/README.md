@@ -27,7 +27,7 @@ It tells you the app works. It tells you nothing about this host.
 
 ```sh
 npm run native:bundle                 # ReScript → xote-native/bundle/dist/xote-app.js
-cd xote-native/hosts/android && ./gradlew installDebug
+cd packages/xote-native/hosts/android && ./gradlew installDebug
 ```
 
 There is no Gradle wrapper committed, because this repository cannot generate

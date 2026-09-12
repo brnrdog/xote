@@ -40,7 +40,7 @@ native host.
 ```sh
 npm install
 npm run native:bundle            # ReScript → xote-native/bundle/dist/xote-app.js
-cd xote-native/hosts/ios && xcodegen generate
+cd packages/xote-native/hosts/ios && xcodegen generate
 open XoteNativeExample.xcodeproj
 ```
 
@@ -70,6 +70,32 @@ None), delete its `ViewController.swift` and `SceneDelegate.swift`, remove the
 `XoteNative/Sources/*.swift`, `App/AppDelegate.swift`, and
 `../../bundle/dist/xote-app.js` (as a resource, "Copy items if needed" off).
 
+## Iterating without Xcode in the loop
+
+Once it runs, you do not have to keep rebuilding to change the app. Add
+`XOTE_DEV_SERVER` to the scheme's environment (Product → Scheme → Edit Scheme →
+Run → Arguments → Environment Variables):
+
+```
+XOTE_DEV_SERVER = http://localhost:8081
+```
+
+Then, from the repository root, in two terminals:
+
+```sh
+npm run native:dev:watch                 # ReScript, compiling on save
+npm run native:dev                       # the dev server — XOTE_APP picks the app
+```
+
+Build once, and after that a save recompiles, the server restarts the app, and
+the screen is rebuilt on the device in about a second. The app is running on
+your machine and this device is drawing it — see [the README](../../README.md#developing-against-a-device)
+for what that buys and what it costs. A simulator shares your Mac's network so
+`localhost` reaches the server; a real device needs your Mac's LAN address
+instead, and `NSAllowsLocalNetworking` already permits both.
+
+Clear the variable to go back to the bundle in the app, which is how it ships.
+
 ## How it fits together
 
 ```
@@ -82,7 +108,7 @@ xote-app.js  ──evaluated in──▶  JSContext        (XoteBridge)
                      xoteDispatchEvent(id, …)    events back
 ```
 
-Five pieces of Swift:
+The Swift, file by file:
 
 | File | What it does |
 |---|---|
@@ -93,6 +119,8 @@ Five pieces of Swift:
 | `XoteFlatten.swift` | Which nodes get a `UIView`, transliterated from `host/flatten.mjs` |
 | `XotePool.swift` | The view pool, transliterated from `host/pool.mjs` |
 | `XoteStyle.swift` | A style object read with the types layout and UIKit want |
+| `XoteNavigation.swift` | `stack`/`screen`: a `UINavigationController` and the back swipe |
+| `XoteDevClient.swift` | The dev loop above — batches over a socket instead of from a `JSContext` |
 
 The app runs on its own serial queue, not the main one. A `Signal.set` and
 everything it sets off — the effects, the renderer, the batch — happens there,
