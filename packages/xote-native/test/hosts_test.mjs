@@ -120,6 +120,35 @@ const gradle = readFileSync(resolve(root, "hosts/android/app/build.gradle.kts"),
 assert.match(gradle, /srcDirs\("\.\.\/\.\.\/\.\.\/conformance"\)/, "Android reaches the suite");
 assert.match(gradle, /srcDirs\("\.\.\/\.\.\/\.\.\/bundle\/dist"\)/, "Android reaches the bundle");
 
+/* ---- and the iOS Info.plist says what the spec says --------------------- */
+
+/* There are two of these and only one of them is read.
+ *
+ * XcodeGen *writes* `App/Info.plist` from `project.yml`'s `info.properties`,
+ * so on the generated route the committed file is output. It is committed for
+ * the build-it-by-hand route in `hosts/ios/README.md`, where it is the only
+ * one — and a key that reached only the spec is then a key that build does not
+ * have. That is not a compile error in either direction: `NSAppTransportSecurity`
+ * went into the spec alone, and the hand-built app would have failed to reach
+ * the dev server with no message saying why, because App Transport Security
+ * blocks silently.
+ */
+const plist = readFileSync(resolve(root, "hosts/ios/App/Info.plist"), "utf8");
+const properties = spec.match(/^ {6}properties:\n((?: {8}\S.*\n| {9,}.*\n|\n)*)/m);
+assert.ok(properties, "project.yml still declares info.properties");
+
+const declared = [...properties[1].matchAll(/^ {8}([A-Za-z][A-Za-z0-9]*):/gm)].map(([, key]) => key);
+assert.ok(declared.length > 3, "and the keys under it are still being found");
+
+for (const key of declared) {
+  assert.ok(
+    plist.includes(`<key>${key}</key>`),
+    `project.yml declares ${key}, which App/Info.plist does not — the two are ` +
+      `two spellings of one file and the hand-built app only gets the second`,
+  );
+}
+
 console.log(
-  `host build tests passed — ${checked} paths in ${BUILD_FILES.length} build files resolve`,
+  `host build tests passed — ${checked} paths in ${BUILD_FILES.length} build files resolve, ` +
+    `and ${declared.length} Info.plist keys are in both spellings of it`,
 );

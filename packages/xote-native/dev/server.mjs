@@ -33,6 +33,7 @@
 
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
+import { hostname, networkInterfaces } from "node:os";
 import { watch } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -194,9 +195,40 @@ const server = createServer((request, response) => {
   response.writeHead(404).end();
 });
 
+/** Every address this server can be reached at, simulator and phone alike.
+ *
+ * A simulator shares this machine's network stack, so `localhost` is the
+ * server. A phone does not, and `localhost` there is the phone — which fails
+ * as a connection refused rather than as anything that says "wrong address".
+ * So the addresses that actually work from a phone are printed, and the
+ * `.local` name first: it survives the DHCP lease that changes the number.
+ */
+function addresses() {
+  const found = [`http://localhost:${PORT}`];
+
+  const name = hostname();
+  const bonjour = name.endsWith(".local") ? name : `${name}.local`;
+  // Not on a Mac, where every machine has one, so it is offered rather than
+  // promised — a Linux box without Avahi has a hostname that resolves nowhere.
+  found.push(`http://${bonjour}:${PORT}`);
+
+  for (const interfaces of Object.values(networkInterfaces())) {
+    for (const entry of interfaces ?? []) {
+      if (entry.family !== "IPv4" || entry.internal) continue;
+      found.push(`http://${entry.address}:${PORT}`);
+    }
+  }
+  return found;
+}
+
 server.listen(PORT, () => {
-  console.log(`\n  Xote dev server on http://localhost:${PORT}`);
-  console.log(`  the app runs here; the device draws it\n`);
+  console.log(`\n  Xote dev server — the app runs here; the device draws it\n`);
+  const [loopback, bonjour, ...lan] = addresses();
+  console.log(`  simulator   XOTE_DEV_SERVER=${loopback}`);
+  for (const [index, url] of [bonjour, ...lan].entries()) {
+    console.log(`  ${index === 0 ? "phone      " : "           "} XOTE_DEV_SERVER=${url}`);
+  }
+  console.log("");
   startApp();
 });
 

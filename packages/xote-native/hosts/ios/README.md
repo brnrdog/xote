@@ -70,6 +70,58 @@ None), delete its `ViewController.swift` and `SceneDelegate.swift`, remove the
 `XoteNative/Sources/*.swift`, `App/AppDelegate.swift`, and
 `../../bundle/dist/xote-app.js` (as a resource, "Copy items if needed" off).
 
+## On a real phone
+
+Two things a simulator does not need.
+
+**Signing.** A device build has to be signed, and `xcodegen generate` rewrites
+the project every time, so a team picked in Xcode's *Signing & Capabilities*
+tab lasts until the next generation. To make it stick, put your Team ID in
+`project.yml`:
+
+```yaml
+    settings:
+      base:
+        DEVELOPMENT_TEAM: ABCDE12345
+```
+
+A free Apple ID works — it signs for seven days at a time and cannot use the
+bundle identifier someone else has already claimed, so change
+`PRODUCT_BUNDLE_IDENTIFIER` to something of your own if Xcode objects.
+
+**The dev server's address, if you are using one.** A simulator shares your
+Mac's network stack, so `localhost` is your Mac. A phone does not: `localhost`
+there is the phone, and the app fails with a connection refused rather than
+anything that says *wrong address*. The server prints what to use:
+
+```
+  simulator   XOTE_DEV_SERVER=http://localhost:8081
+  phone       XOTE_DEV_SERVER=http://your-mac.local:8081
+              XOTE_DEV_SERVER=http://192.168.1.42:8081
+```
+
+Prefer the `.local` name — it outlives the DHCP lease that changes the number.
+Both are permitted by `NSAllowsLocalNetworking`, which is already in the spec.
+
+The first launch asks whether the app may find devices on your local network.
+**Say yes**: a denied prompt looks exactly like a server that is not running,
+and iOS does not ask twice — Settings → the app → Local Network to change it
+back. Nothing else about the app touches the network, and a build with no
+`XOTE_DEV_SERVER` set never opens a connection at all, which is also the
+version that shows you real performance.
+
+## Changing the iOS version
+
+`options.deploymentTarget.iOS` in `project.yml` — currently `15.0`. It is a
+floor, not a target: a phone on iOS 18 runs a build made with a floor of 15
+perfectly well, so raising it buys nothing unless the host starts using an API
+that needs it. Lower it to reach an older device; nothing in the host needs
+anything newer.
+
+If Xcode refuses the run with a version complaint, it is usually the other
+direction — an iOS newer than the Xcode you have, which needs the Xcode
+upgrade rather than a change here.
+
 ## Iterating without Xcode in the loop
 
 Once it runs, you do not have to keep rebuilding to change the app. Add

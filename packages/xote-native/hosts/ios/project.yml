@@ -4,6 +4,9 @@
 name: XoteNativeExample
 options:
   bundleIdPrefix: dev.xote
+  # The oldest iOS this will install on. It is a floor, not a target: a newer
+  # phone runs a build made with a lower floor perfectly well, so raise it only
+  # to use an API that needs it. Nothing in the host does yet.
   deploymentTarget:
     iOS: "15.0"
   createIntermediateGroups: true
@@ -39,6 +42,14 @@ targets:
         # `XoteDevServer` configured never opens a connection anyway.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        # iOS 14 and later ask before an app may talk to anything on the same
+        # network, and a denied prompt looks exactly like a server that is not
+        # running. On a simulator this never appears — it shares the Mac's
+        # network stack rather than crossing one — so it is a prompt you only
+        # meet the first time you run on a real phone.
+        NSLocalNetworkUsageDescription:
+          Connects to the Xote dev server on your computer, so this device can
+          draw an app running there.
         UIUserInterfaceStyle: Dark
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIApplicationSupportsIndirectInputEvents: true
@@ -51,6 +62,14 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         SWIFT_VERSION: "5.0"
         GENERATE_INFOPLIST_FILE: NO
+        # Running on a real phone needs a signing team, and `xcodegen
+        # generate` writes this project from scratch every time — so a team
+        # picked in Xcode's Signing & Capabilities tab survives until the next
+        # generation and no longer. Put yours here to make it stick. It is the
+        # ten-character Team ID from developer.apple.com → Membership, or from
+        # the team's name in that tab.
+        CODE_SIGN_STYLE: Automatic
+        # DEVELOPMENT_TEAM: ABCDE12345
 
   XoteNativeTests:
     type: bundle.unit-test
