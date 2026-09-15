@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Xote Native — preview</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font: 14px/1.5 ui-sans-serif, system-ui, sans-serif;
+        background: #07070c;
+        color: #c9c9d6;
+        display: flex;
+        gap: 40px;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 40px 24px;
+        min-height: 100vh;
+      }
+      .device {
+        width: 340px;
+        height: 700px;
+        border-radius: 44px;
+        border: 10px solid #1c1c26;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+        overflow: hidden;
+        display: flex;
+        flex-shrink: 0;
+      }
+      #screen { display: flex; flex: 1; background: #0b0b12; }
+      .panel { width: min(520px, 46vw); }
+      .panel h1 { font-size: 18px; font-weight: 600; color: #e8e8ef; margin-bottom: 4px; }
+      .panel p { color: #7a7a8c; margin-bottom: 16px; }
+      #counter { color: #7c5cff; font-variant-numeric: tabular-nums; }
+      #traffic {
+        font: 12px/1.5 ui-monospace, SFMono-Regular, monospace;
+        background: #101018;
+        border: 1px solid #1e1e2b;
+        border-radius: 12px;
+        padding: 12px;
+        max-height: 640px;
+        overflow: auto;
+        white-space: pre;
+      }
+      .batch { padding: 6px 0; border-bottom: 1px solid #1a1a26; color: #9f9fb5; }
+      .batch:first-child { color: #d6d6e6; }
+      .batch:last-child { border-bottom: none; }
+    </style>
+  </head>
+  <body>
+    <div class="device"><div id="screen"></div></div>
+    <div class="panel">
+      <h1>Bridge traffic <span id="counter">0 commands</span></h1>
+      <p>Newest batch first. Tap around in the phone and watch what it costs.</p>
+      <div id="traffic"></div>
+    </div>
+    <script type="module" src="./preview.mjs"></script>
+  </body>
+</html>

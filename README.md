@@ -189,7 +189,7 @@ body does not read a signal through a call the PPX cannot resolve. So you can ap
 @xote.component cannot see … Wrap it in a thunk (`{() => ...}`).
 ```
 
-For more information, read: [`ppx/README.md`](ppx/README.md#hidden-reads).
+For more information, read: [`packages/xote/ppx/README.md`](packages/xote/ppx/README.md#hidden-reads).
 
 For rendering collections in JSX, prefer `View.For`. Add `by` when items have stable identity and should reconcile by key:
 

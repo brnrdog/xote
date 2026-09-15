@@ -1,0 +1,25 @@
+{
+  "name": "xote-benchmarks",
+  "sources": [
+    {
+      "dir": "apps/xote",
+      "subdirs": false
+    }
+  ],
+  "package-specs": {
+    "module": "esmodule",
+    "in-source": true
+  },
+  "suffix": ".res.mjs",
+  "dependencies": [
+    "rescript-signals",
+    "xote"
+  ],
+  "compiler-flags": [
+    "-open Xote"
+  ],
+  "jsx": {
+    "version": 4,
+    "module": "XoteJSX"
+  }
+}

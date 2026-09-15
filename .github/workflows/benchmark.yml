@@ -48,6 +48,7 @@ jobs:
       - name: Build PR benchmark app
         run: |
           npm run res:build
+          npm --prefix benchmarks run res:build
           node benchmarks/build.mjs --apps xote
 
       # The benchmark app source always comes from the PR so that both builds
@@ -75,25 +76,43 @@ jobs:
                 "$base_dir/benchmarks/"
           find "$base_dir/benchmarks/apps" -name '*.res.mjs' -delete
 
-          # The base commit may predate the benchmarks entry in rescript.json.
-          node -e '
-            const fs = require("node:fs");
-            const file = process.argv[1];
-            const config = JSON.parse(fs.readFileSync(file, "utf8"));
-            const dir = "benchmarks/apps/xote";
-            if (!config.sources.some((source) => source.dir === dir)) {
-              config.sources.push({ dir, subdirs: false, type: "dev" });
-              fs.writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`);
-            }
-          ' "$base_dir/rescript.json"
+          # The base commit may be from either layout. Before the monorepo
+          # split, `xote` was the repository root and compiled the benchmark
+          # app as one of its own dev sources; after it, both are packages with
+          # a rescript.json each. Detect rather than assume — this comparison is
+          # against whatever `main` happened to be, which during the transition
+          # is both.
+          if [ -f "$base_dir/packages/xote/rescript.json" ]; then
+            (
+              cd "$base_dir"
+              npm install
+              npm --prefix benchmarks install
+              npm run res:build
+              npm --prefix benchmarks run res:build
+              node benchmarks/build.mjs --apps xote
+            )
+          else
+            # Older still: the base may predate even the benchmarks entry in
+            # the root rescript.json.
+            node -e '
+              const fs = require("node:fs");
+              const file = process.argv[1];
+              const config = JSON.parse(fs.readFileSync(file, "utf8"));
+              const dir = "benchmarks/apps/xote";
+              if (!config.sources.some((source) => source.dir === dir)) {
+                config.sources.push({ dir, subdirs: false, type: "dev" });
+                fs.writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`);
+              }
+            ' "$base_dir/rescript.json"
 
-          (
-            cd "$base_dir"
-            npm install
-            npm --prefix benchmarks install
-            npx rescript
-            node benchmarks/build.mjs --apps xote
-          )
+            (
+              cd "$base_dir"
+              npm install
+              npm --prefix benchmarks install
+              npx rescript
+              node benchmarks/build.mjs --apps xote
+            )
+          fi
 
           rm -rf benchmarks/dist/xote-base
           cp -r "$base_dir/benchmarks/dist/xote" benchmarks/dist/xote-base

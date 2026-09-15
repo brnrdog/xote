@@ -39,22 +39,29 @@ jobs:
       - name: ReScript Build
         run: npm run res:build
 
-      - name: Run tests
-        run: node tests/Tests.res.mjs
+      # Run each package's own suite rather than a list of files. The list was
+      # how `tests/OpaqueAttrs_test.mjs` came to exist without ever running
+      # here: adding a test to the package and adding it to CI were two steps,
+      # and only the first happened. One step per package means they cannot
+      # drift again — `npm test` already chains the unit tests, the export
+      # surface and the consumer boundary.
+      - name: Test xote
+        run: npm test
 
-      - name: Run JSX runtime tests
-        run: node tests/JSXRuntime_test.mjs
+      # xote-native is a package with its own suites: the layout oracle against
+      # Chromium-recorded frames, the host conformance suite, the type-surface
+      # and protocol checks that read the Swift and Kotlin as text, and the
+      # two-package install. None of it gated anything before this step existed.
+      - name: Test xote-native
+        run: npm run native:test
 
-      - name: Check public JS export surface
-        run: npm run test:exports
+      # The shipped bundle in a realm with no DOM, no console, no timers and no
+      # module loader — what an embedded JavaScript engine looks like before the
+      # platform injects anything.
+      - name: Test the native bundle in a bare realm
+        run: npm run native:bundle:test
 
-      - name: Check public API boundary from a consumer package
-        run: npm run test:boundary
-
-      - name: Run dev-mode diagnostics tests
-        run: node tests/DevMode_test.mjs
-
-      # The @xote.component ppx (ppx/) ships in the npm package as prebuilt
+      # The @xote.component ppx (packages/xote/ppx/) ships in the npm package as prebuilt
       # binaries (see ppx-binaries.yml / release.yml). Build it from source
       # and run the example's jsdom verification here so the transform can't
       # rot; needs only ocamlopt (no opam).
@@ -81,8 +88,15 @@ jobs:
       - name: Vite Build
         run: npm run build
 
+      # Every file that crosses a step boundary is named absolutely. `bundle:size`
+      # is a delegating alias, so it runs with the working directory set to
+      # packages/xote, while the steps around it run at the workspace root — a
+      # relative name means two different files depending on who wrote it.
       - name: Snapshot bundle size
-        run: GITHUB_STEP_SUMMARY= npm run bundle:size -- --json bundle-size-current.json
+        run: |
+          GITHUB_STEP_SUMMARY= npm run bundle:size -- \
+            --json "$GITHUB_WORKSPACE/bundle-size-current.json" \
+            --markdown "$GITHUB_WORKSPACE/bundle-size-report.md"
 
       - name: Snapshot base bundle size
         if: github.event_name == 'pull_request'
@@ -107,24 +121,38 @@ jobs:
             npm run build
           )
 
-          GITHUB_STEP_SUMMARY= node "$GITHUB_WORKSPACE/scripts/bundle-size-report.mjs" \
-            --dist "$base_dir/dist" \
-            --package "$base_dir/package.json" \
-            --json bundle-size-base.json \
+          # The base commit may be from either layout. Before the monorepo
+          # split `xote` was the repository root; after it the package is in
+          # packages/xote, and so are its dist/ and package.json. The scripts
+          # above are named the same in both (the root delegates), but these
+          # two paths are not.
+          if [ -f "$base_dir/packages/xote/package.json" ]; then
+            base_pkg="$base_dir/packages/xote"
+          else
+            base_pkg="$base_dir"
+          fi
+
+          GITHUB_STEP_SUMMARY= node "$GITHUB_WORKSPACE/packages/xote/scripts/bundle-size-report.mjs" \
+            --dist "$base_pkg/dist" \
+            --package "$base_pkg/package.json" \
+            --json "$GITHUB_WORKSPACE/bundle-size-base.json" \
             --markdown /tmp/bundle-size-base-report.md
 
       - name: Generate bundle size report
         env:
           BASE_REF: ${{ github.base_ref || 'main' }}
         run: |
-          if [ -f bundle-size-base.json ]; then
+          if [ -f "$GITHUB_WORKSPACE/bundle-size-base.json" ]; then
             npm run bundle:size -- \
-              --json bundle-size-current.json \
-              --baseline bundle-size-base.json \
+              --json "$GITHUB_WORKSPACE/bundle-size-current.json" \
+              --markdown "$GITHUB_WORKSPACE/bundle-size-report.md" \
+              --baseline "$GITHUB_WORKSPACE/bundle-size-base.json" \
               --baseline-label "$BASE_REF" \
               --current-label PR
           else
-            npm run bundle:size -- --json bundle-size-current.json
+            npm run bundle:size -- \
+              --json "$GITHUB_WORKSPACE/bundle-size-current.json" \
+              --markdown "$GITHUB_WORKSPACE/bundle-size-report.md"
           fi
 
       - name: Comment bundle size on PR

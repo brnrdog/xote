@@ -1,8 +1,15 @@
 .DS_Store
 /node_modules/
-/lib/
-/dist/
-/examples/*/dist/
+
+# Each workspace's own build output. `lib/` is ReScript's, `dist/` is the
+# bundler's; npm workspaces hoists `node_modules` to the root, so there is only
+# the one above to ignore.
+/packages/*/lib/
+/packages/*/dist/
+/packages/xote/examples/*/dist/
+/packages/xote-native/bundle/dist/
+/packages/xote-native/example/dist/
+/benchmarks/lib/
 /benchmarks/node_modules/
 /benchmarks/dist/
 .bsb.lock
@@ -23,11 +30,17 @@ bundle-size-*.json
 
 # Compiled ppx binaries (kept out of ppx/.gitignore on purpose: npm honors
 # nested ignore files when packing, and ppx/bin must ship in the tarball)
-/ppx/ppx
-/ppx/ppx.exe
-/ppx/bin/
+/packages/xote/ppx/ppx
+/packages/xote/ppx/ppx.exe
+/packages/xote/ppx/bin/
 
 # Consumer boundary fixture (generated)
-/tests/consumer/node_modules/
-/tests/consumer/lib/
-/tests/consumer/probe/
+/packages/xote/tests/consumer/node_modules/
+/packages/xote/tests/consumer/lib/
+/packages/xote/tests/consumer/probe/
+
+# Android host build output — the SDK and Gradle are not available here.
+/packages/xote-native/hosts/android/.gradle/
+/packages/xote-native/hosts/android/build/
+/packages/xote-native/hosts/android/app/build/
+/packages/xote-native/hosts/android/local.properties

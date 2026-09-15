@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   # Build the per-platform @xote.component ppx binaries that ship in the npm
-  # tarball (ppx/bin/, selected at install time by ppx/postinstall.js).
+  # tarball (packages/xote/ppx/bin/, selected at install time by packages/xote/ppx/postinstall.js).
   ppx-binaries:
     uses: ./.github/workflows/ppx-binaries.yml
 
@@ -43,7 +43,7 @@ jobs:
         run: npm run res:build
 
       - name: Run tests
-        run: node tests/Tests.res.mjs
+        run: node packages/xote/tests/Tests.res.mjs
 
       - name: Vite Build
         run: npm run build
@@ -52,19 +52,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: ppx-*
-          path: ppx/bin
+          path: packages/xote/ppx/bin
           merge-multiple: true
 
       - name: Verify ppx binaries
         run: |
           for target in linux-x64 linux-arm64 darwin-x64 darwin-arm64 win32-x64; do
-            test -s "ppx/bin/ppx-$target.exe" || { echo "missing ppx binary for $target"; exit 1; }
+            test -s "packages/xote/ppx/bin/ppx-$target.exe" || { echo "missing ppx binary for $target"; exit 1; }
           done
-          chmod +x ppx/bin/*.exe
-          ls -l ppx/bin
+          chmod +x packages/xote/ppx/bin/*.exe
+          ls -l packages/xote/ppx/bin
           # execute the one binary this runner can run (the per-platform
           # smoke test lives in ppx-binaries.yml, on each native runner)
-          ./ppx/bin/ppx-linux-x64.exe --help
+          ./packages/xote/ppx/bin/ppx-linux-x64.exe --help
 
       # Binaries present on disk is not enough: ignore rules can silently
       # strip them from the tarball (nested .gitignore files are honored by
@@ -72,7 +72,7 @@ jobs:
       # packed file list itself.
       - name: Verify ppx binaries are packed
         run: |
-          pack="$(npm pack --dry-run 2>&1)"
+          pack="$(npm pack --dry-run -w xote 2>&1)"
           for target in linux-x64 linux-arm64 darwin-x64 darwin-arm64 win32-x64; do
             echo "$pack" | grep -q "ppx/bin/ppx-$target.exe" \
               || { echo "ppx binary for $target missing from npm tarball"; exit 1; }
