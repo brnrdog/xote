@@ -604,3 +604,145 @@ module DisposedBranch = {
       }}
     </div>
 }
+
+/* ===========================================================================
+   Signal-typed values (POC): a name the ppx can tell holds a `Signal.t` — an
+   annotated prop, a `let x = Signal.make(…)`, a `Computed.make(…)` — is a
+   *read* wherever it appears inside a JSX value leaf. `{count}` and
+   `class={[name, tone]->Array.join(" ")}` are rewritten to read through
+   `Signal.get` and then thunked like any visible read, so a derived expression
+   over a signal is a reactive leaf without an explicit `Signal.get`.
+   =========================================================================== */
+
+/* Case 32 (headline): the shape this exploration set out to make work,
+   verbatim. `propB` is a plain string and stays static everywhere; `propA` and
+   `propC` are signals, so every leaf that mentions one — bare, hyphenated
+   attribute, or a derived expression — becomes its own reactive leaf. */
+module SignalProps = {
+  @xote.component
+  let make = (~propA: Signal.t<string>, ~propB: string, ~propC: Signal.t<bool>) => {
+    <>
+      <div id="sp-first" class={propB} data-hidden={propC}> {propA} </div>
+      <div id="sp-second" class={[propA, propB]->Array.join(", ")}> {propB} </div>
+    </>
+  }
+}
+
+/* Case 33: the other attribute forms over signal-typed props. `hidden` is a
+   boolean attribute (added/removed), `data-count` a hyphenated one over an int
+   signal, the pipe `name->String.toUpperCase` a derived leaf, and a bare
+   signal condition tracks the `if`. The explicit forms are left alone:
+   `Signal.peek(…)` stays a deliberate one-shot read and `name->Signal.get` is
+   not read twice. */
+module SignalForms = {
+  @xote.component
+  let make = (~open_: Signal.t<bool>, ~count: Signal.t<int>, ~name: Signal.t<string>) =>
+    <p id="sf-host" hidden={open_} title={Signal.peek(name)} data-count={count}>
+      {if open_ {
+        <b id="sf-open"> {"open"} </b>
+      } else {
+        <i id="sf-closed"> {"closed"} </i>
+      }}
+      <span id="sf-upper"> {name->String.toUpperCase} </span>
+      <span id="sf-explicit"> {name->Signal.get} </span>
+    </p>
+}
+
+/* Case 34: signals the ppx sees *constructed* — a `Computed.make` in the body
+   and a `let` alias in node position — are signal-typed names too. */
+let localSource = Signal.make(1)
+module LocalSignals = {
+  @xote.component
+  let make = () => {
+    let doubled = Computed.make(() => Signal.get(localSource) * 2)
+    <div id="ls-host" class={doubled > 2 ? "big" : "small"}>
+      {doubled}
+      {
+        let alias = doubled
+        <em id="ls-alias"> {alias} </em>
+      }
+    </div>
+  }
+}
+
+/* Case 35: a `MaybeSignal.t` prop reads through `MaybeSignal.get`, so a
+   static one renders once and a reactive one updates — a bare `{label}` used
+   to render "[object Object]" at runtime, since `View.child` cannot duck-type
+   the wrapper. */
+module MaybeProp = {
+  @xote.component
+  let make = (~label: MaybeSignal.t<string>) =>
+    <span id="mp-host" class={label}> {label} </span>
+}
+
+/* Case 36: shadowing. `name` and `count` are top-level signals in this file,
+   but a render-callback parameter, a case payload, a local `let` and a helper's
+   parameter each rebind the name — every one of these reads the *binding*, not
+   the signal, and stays static. */
+let shadowRows = ["row-a", "row-b"]
+let shadowChip = (count: int) => <u class="shadow-chip"> {count} </u>
+module Shadowing = {
+  @xote.component
+  let make = () => {
+    let count = 5
+    <div id="sh-host">
+      <View.For each={MaybeSignal.static(shadowRows)} render={name => <li class="sh-row"> {name} </li>} />
+      {switch Signal.get(status) {
+      | Loading => <i id="sh-loading"> {"…"} </i>
+      | Ready(name) => <b id="sh-ready"> {name} </b>
+      }}
+      <em id="sh-let"> {count} </em>
+      {shadowChip(7)}
+    </div>
+  }
+}
+
+/* Case 37: positions that keep the signal itself. A signal-aware callee gets
+   the signal (`Signal.peek`), the `attrs` and `data` escape hatches and event
+   handlers are left as written (the runtime already treats a signal entry as
+   reactive), and a user component receives the signal as a prop — which is
+   how a prop *becomes* reactive: the child reads it in its own leaf. */
+module ChildReader = {
+  @xote.component
+  let make = (~count: Signal.t<int>) => <output id="cr-out"> {count} </output>
+}
+let passedCount = Signal.make(0)
+let passedName = Signal.make("Ada")
+module KeepsSignal = {
+  @xote.component
+  let make = () =>
+    <div id="ks-host" attrs=[("data-name", passedName)]>
+      <span id="ks-peek"> {Signal.peek(passedCount)} </span>
+      <button id="ks-button" onClick={_ => Signal.update(passedCount, n => n + 1)}> {"+"} </button>
+      <ChildReader count={passedCount} />
+    </div>
+}
+
+/* Case 38: a signal reached through a same-file module, and through a module
+   alias of `Signal` in a type annotation (`S.t`, `module S = Signal` at the
+   top of this file). */
+module Hits = {
+  let total = Signal.make(10)
+}
+module ModuleSignals = {
+  @xote.component
+  let make = (~alias: S.t<int>) =>
+    <div id="ms-host" class={Hits.total > 10 ? "many" : "few"}>
+      {Hits.total}
+      <span id="ms-alias"> {alias} </span>
+    </div>
+}
+
+/* Case 39: an optional prop with no default is an `option<Signal.t<_>>`, not a
+   signal: the name is left alone, and the explicit read of its payload is a
+   visible read like any other. */
+module OptionalSignal = {
+  @xote.component
+  let make = (~maybe: Signal.t<int>=?) =>
+    <span id="os-host">
+      {switch maybe {
+      | Some(s) => Signal.get(s)
+      | None => -1
+      }}
+    </span>
+}

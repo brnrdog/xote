@@ -172,6 +172,94 @@ has('an eager read in a data entry stays a one-shot read', demo,
   'The read is an ordinary argument evaluation; what must not happen is the ' +
   'object being wrapped or probed as a whole.');
 
+
+/* The emitted code for one component, so an assertion can say "in this
+   component" rather than "somewhere in the file" — `Signal.get(name)` is
+   legitimately emitted by a dozen other cases. */
+const fn = (src, name) => {
+  /* a component in a submodule is emitted as `function Demo$Name(props)` */
+  const start = Math.max(src.indexOf(`function Demo$${name}(`), src.indexOf(`function ${name}(`));
+  if (start < 0) return '';
+  const next = [src.indexOf('\nfunction ', start + 1), src.indexOf('\nlet ', start + 1)].filter((i) => i > 0);
+  return src.slice(start, next.length ? Math.min(...next) : undefined);
+};
+/* Whitespace-insensitive, for shapes ReScript wraps across lines. */
+const compact = (s) => s.replace(/\s+/g, ' ');
+
+console.log('\nsignal-typed values: a signal-typed name inside a leaf is a read');
+const sp = compact(fn(demo, 'SignalProps'));
+has('a derived expression over a Signal.t prop becomes a reactive attribute', sp,
+  'class: () => [ Signal$Xote.get(propA), propB ].join(", ")',
+  'The headline case. `[propA, propB]->Array.join(", ")` mentions a signal-typed ' +
+  'name, so it reads it and is thunked; without the rewrite it is a type error.');
+has('a bare Signal.t child becomes an explicit reactive read', sp,
+  'View$Xote.child(() => Signal$Xote.get(propA))',
+  'Previously `View$Xote.child(propA)` worked only because the runtime ' +
+  'duck-types a signal; the read is now explicit and type-checked.');
+has('a hyphenated attribute is routed into attrs with a reactive read', sp,
+  'attrs: [[ "data-hidden", () => Signal$Xote.get(propC) ]]',
+  '`data-hidden={propC}` has no typed prop; the ppx moves it into the `attrs` ' +
+  'escape hatch, where the runtime stringifies the boolean to "true"/"false".');
+has('a plain string prop stays a static attribute', sp,
+  'class: propB',
+  'Only signal-typed names are reads; a string prop is a value.');
+has('a plain string prop stays a static child', sp,
+  'View$Xote.child(propB)',
+  'Same: no thunk, no computed, for a value that cannot change.');
+
+const sf = compact(fn(demo, 'SignalForms'));
+has('a boolean attribute over a Signal.t<bool> prop is a reactive read', sf,
+  'hidden: () => Signal$Xote.get(open_)',
+  'The bool goes through the runtime\'s boolean-attribute path (add/remove).');
+has('Signal.peek on a signal-typed name is left alone', sf,
+  'title: Signal$Xote.peek(name)',
+  'A signal-aware callee receives the signal itself; rewriting its argument ' +
+  'would type-fail (`peek` wants a `Signal.t`, not a string).');
+lacks('an explicit read is never read twice', sf,
+  'Signal$Xote.get(Signal$Xote.get(',
+  '`name->Signal.get` already reads; a second wrap would pass a string to ' +
+  '`Signal.get` and fail to compile.');
+has('a bare signal condition is read and the branch tracked', sf,
+  'View$Xote.tracked(() => { if (Signal$Xote.get(open_))',
+  '`{if open_ {…}}` with `open_: Signal.t<bool>` selects a branch by a signal, ' +
+  'so it needs the tracked scope the visible-read rule already emits.');
+has('a pipe into a value-taking function derefs its subject', sf,
+  'Signal$Xote.get(name).toUpperCase()',
+  '`name->String.toUpperCase` reaches the ppx as an operator application; the ' +
+  'subject is the callee\'s first argument and gets the same rule as `f(name)`.');
+
+const mp = compact(fn(demo, 'MaybeProp'));
+has('a MaybeSignal.t prop reads through MaybeSignal.get', mp,
+  'MaybeSignal$Xote.get(label)',
+  'The wrapper is read with its own `get`, so a Static one renders once and a ' +
+  'Reactive one subscribes — `View.child` cannot duck-type the wrapper.');
+
+const ks = compact(fn(demo, 'KeepsSignal'));
+has('a user-component prop still receives the signal itself', ks,
+  'count: passedCount',
+  'User-component props are never rewritten: passing the signal is how a prop ' +
+  'becomes reactive, and the child reads it in its own leaf.');
+has('an attrs escape-hatch entry is left as written', ks,
+  'attrs: [[ "data-name", passedName ]]',
+  'The entries carry their own reactivity at runtime; the container is not a leaf.');
+lacks('an event handler body is not rewritten', ks,
+  'Signal$Xote.update(Signal$Xote.get(',
+  'A handler is a lambda: deferred code is the user\'s and reads what it reads.');
+
+const sh = compact(fn(demo, 'Shadowing'));
+lacks('a render-callback parameter shadows a same-named signal', sh,
+  'Signal$Xote.get(name)',
+  'The file has `let name = Signal.make(…)`; inside `render={name => …}` the ' +
+  'name is the row and must not be read as the signal.');
+lacks('a local let shadows a same-named signal', sh,
+  'Signal$Xote.get(count)',
+  '`let count = 5` rebinds the name to a plain value.');
+
+const os = compact(fn(demo, 'OptionalSignal'));
+lacks('an optional Signal.t prop without a default is not read', os,
+  'Signal$Xote.get(maybe)',
+  '`~maybe: Signal.t<int>=?` is an `option<Signal.t<int>>` in the body.');
+
 console.log(`\n${pass} passed, ${failures.length} failed`);
 
 if (failures.length > 0) {
