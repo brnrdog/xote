@@ -559,179 +559,6 @@ check('each site is reported once, not per render', warnings.filter((w) => w.inc
 // leaf; the shadowing case deliberately reuses the file's `name`/`count`.
 const MaybeSignal = await import('xote/src/MaybeSignal.res.mjs');
 
-console.log('signal-typed props: the headline example');
-const spA = Signal.make('Ada');
-const spC = Signal.make(false);
-const spHost = document.createElement('div');
-document.body.appendChild(spHost);
-View.mount(Demo.SignalProps.make({ propA: spA, propB: 'static', propC: spC }), spHost);
-const spFirst = spHost.querySelector('#sp-first');
-const spSecond = spHost.querySelector('#sp-second');
-spFirst.__marker = 'SP1';
-spSecond.__marker = 'SP2';
-check('class={propB} renders the plain string', spFirst.className === 'static');
-check('data-hidden={propC} renders "false"', spFirst.getAttribute('data-hidden') === 'false');
-check('{propA} renders the signal value', spFirst.textContent === 'Ada');
-check('class={[propA, propB]->Array.join(", ")} renders the derived value', spSecond.className === 'Ada, static');
-check('{propB} renders the plain string', spSecond.textContent === 'static');
-Signal.set(spC, true);
-check('data-hidden updates to "true" when propC changes', spHost.querySelector('#sp-first').getAttribute('data-hidden') === 'true');
-Signal.set(spA, 'Grace');
-check('{propA} updates when propA changes', spHost.querySelector('#sp-first').textContent === 'Grace');
-check('derived class updates when propA changes', spHost.querySelector('#sp-second').className === 'Grace, static');
-check('first <div> kept identity (leaves, not a rebuild)', spHost.querySelector('#sp-first').__marker === 'SP1');
-check('second <div> kept identity', spHost.querySelector('#sp-second').__marker === 'SP2');
-check('static class left alone', spHost.querySelector('#sp-first').className === 'static');
-check('static text left alone', spHost.querySelector('#sp-second').textContent === 'static');
-
-console.log('signal-typed props: attribute forms');
-const sfOpen = Signal.make(false);
-const sfCount = Signal.make(1);
-const sfName = Signal.make('ada');
-const sf = mount(() => Demo.SignalForms.make({ open_: sfOpen, count: sfCount, name: sfName }));
-sf.__marker = 'SF';
-check('hidden={open_} is absent while the signal is false', !sf.hasAttribute('hidden'));
-check('title={Signal.peek(name)} renders', sf.getAttribute('title') === 'ada');
-check('data-count={count} renders the number', sf.getAttribute('data-count') === '1');
-check('a bare signal condition renders its else branch', sf.querySelector('#sf-closed') !== null);
-check('a piped derivation renders', sf.querySelector('#sf-upper').textContent === 'ADA');
-check('an explicit piped read renders', sf.querySelector('#sf-explicit').textContent === 'ada');
-Signal.set(sfOpen, true);
-Signal.set(sfCount, 2);
-Signal.set(sfName, 'bo');
-const sfNow = document.querySelector('#sf-host');
-check('hidden attribute appears when the signal turns true', sfNow.hasAttribute('hidden'));
-check('Signal.peek stays a deliberate one-shot read', sfNow.getAttribute('title') === 'ada');
-check('data-count updates', sfNow.getAttribute('data-count') === '2');
-check('a bare signal condition swaps the branch (tracked)', sfNow.querySelector('#sf-open') !== null && sfNow.querySelector('#sf-closed') === null);
-check('a piped derivation updates', sfNow.querySelector('#sf-upper').textContent === 'BO');
-check('an explicit piped read updates (not read twice)', sfNow.querySelector('#sf-explicit').textContent === 'bo');
-check('host <p> kept identity', sfNow.__marker === 'SF');
-
-console.log('constructed signals (Computed.make in the body, let alias in node position):');
-Signal.set(Demo.localSource, 1);
-const ls = mount(() => Demo.LocalSignals.make({}));
-ls.__marker = 'LS';
-check('a local Computed.make is a signal-typed name (bare child)', ls.childNodes[0].textContent === '2');
-check('…and drives a derived class', ls.className === 'small');
-check('a let alias of it in node position reads too', ls.querySelector('#ls-alias').textContent === '2');
-Signal.set(Demo.localSource, 3);
-check('computed bare child updates', document.querySelector('#ls-host').childNodes[0].textContent === '6');
-check('derived class updates', document.querySelector('#ls-host').className === 'big');
-check('aliased leaf updates', document.querySelector('#ls-alias').textContent === '6');
-check('host kept identity', document.querySelector('#ls-host').__marker === 'LS');
-
-console.log('a MaybeSignal.t prop reads through MaybeSignal.get:');
-const mpLive = Signal.make('live');
-const mpR = mount(() => Demo.MaybeProp.make({ label: MaybeSignal.reactive(mpLive) }));
-check('reactive MaybeSignal prop: bare child renders', mpR.textContent === 'live');
-check('reactive MaybeSignal prop: attribute renders', mpR.className === 'live');
-Signal.set(mpLive, 'changed');
-check('reactive MaybeSignal prop: bare child updates', mpR.textContent === 'changed');
-check('reactive MaybeSignal prop: attribute updates', mpR.className === 'changed');
-const mpS = mount(() => Demo.MaybeProp.make({ label: MaybeSignal.$$static('fixed') }));
-check('static MaybeSignal prop renders its value (not "[object Object]")', mpS.textContent === 'fixed' && mpS.className === 'fixed');
-
-console.log('shadowing: a rebound name is not the signal of the same name:');
-Signal.set(Demo.status, { TAG: 'Ready', _0: 'payload' });
-Signal.set(Demo.name, 'SIGNAL');
-Signal.set(Demo.count, 99);
-const sh = mount(() => Demo.Shadowing.make({}));
-const shRows = () => [...document.querySelectorAll('#sh-host .sh-row')].map((li) => li.textContent).join(',');
-check('a render-callback parameter shadows the `name` signal', shRows() === 'row-a,row-b');
-check('a case payload shadows the `name` signal', sh.querySelector('#sh-ready').textContent === 'payload');
-check('a local let shadows the `count` signal', sh.querySelector('#sh-let').textContent === '5');
-check('a helper parameter shadows the `count` signal', sh.querySelector('.shadow-chip').textContent === '7');
-Signal.set(Demo.name, 'CHANGED');
-Signal.set(Demo.count, 100);
-check('shadowed leaves are plain values and stay put',
-  shRows() === 'row-a,row-b'
-  && document.querySelector('#sh-ready').textContent === 'payload'
-  && document.querySelector('#sh-let').textContent === '5'
-  && document.querySelector('#sh-host .shadow-chip').textContent === '7');
-
-console.log('positions that keep the signal itself:');
-Signal.set(Demo.passedCount, 0);
-Signal.set(Demo.passedName, 'Ada');
-const ks = mount(() => Demo.KeepsSignal.make({}));
-check('an attrs entry holding a signal renders (left as written)', ks.getAttribute('data-name') === 'Ada');
-check('a Signal.peek leaf renders', ks.querySelector('#ks-peek').textContent === '0');
-check('a child component reads the signal it was passed', ks.querySelector('#cr-out').textContent === '0');
-ks.querySelector('#ks-button').dispatchEvent(new dom.window.Event('click'));
-check('an event handler writes through the signal (left as written)', Signal.peek(Demo.passedCount) === 1);
-check('the child leaf updates from the passed signal', ks.querySelector('#cr-out').textContent === '1');
-check('the Signal.peek leaf is a one-shot read', ks.querySelector('#ks-peek').textContent === '0');
-Signal.set(Demo.passedName, 'Bo');
-check('the attrs signal entry stays reactive (runtime-handled)', ks.getAttribute('data-name') === 'Bo');
-
-console.log('signals through a same-file module and a module alias annotation:');
-Signal.set(Demo.Hits.total, 10);
-const msAlias = Signal.make(4);
-const msEl = mount(() => Demo.ModuleSignals.make({ alias: msAlias }));
-check('a same-file module signal renders as a bare child', msEl.childNodes[0].textContent === '10');
-check('…and drives a derived class', msEl.className === 'few');
-check('an `S.t`-annotated prop (module S = Signal) renders', msEl.querySelector('#ms-alias').textContent === '4');
-Signal.set(Demo.Hits.total, 11);
-Signal.set(msAlias, 5);
-check('module signal bare child updates', document.querySelector('#ms-host').childNodes[0].textContent === '11');
-check('module signal derived class updates', document.querySelector('#ms-host').className === 'many');
-check('`S.t` prop updates', document.querySelector('#ms-alias').textContent === '5');
-
-console.log('an optional signal prop is an option, not a signal:');
-const osSig = Signal.make(3);
-const osSome = mount(() => Demo.OptionalSignal.make({ maybe: osSig }));
-check('explicit read of the payload renders', osSome.textContent === '3');
-Signal.set(osSig, 4);
-check('explicit read of the payload updates', osSome.textContent === '4');
-const osNone = mount(() => Demo.OptionalSignal.make({}));
-check('absent optional prop renders the fallback', osNone.textContent === '-1');
-
-
-console.log('which callees get the value:');
-const caCount = Signal.make(2);
-const caName = Signal.make('ada');
-const ca = mount(() => Demo.Callees.make({ count: caCount, name: caName, tags: ['a', 'b'] }));
-ca.__marker = 'CA';
-check('a callback inside a leaf reads the signal', ca.className === 'a-ada b-ada');
-check('a local helper whose param is a value gets the value', ca.querySelector('#ca-greet').textContent === 'Hello, ada');
-check('a local helper whose param goes to Signal.peek gets the signal', ca.querySelector('#ca-tone').textContent === 'pos');
-check('a local helper using its param as an operand gets the value', ca.querySelector('#ca-plus').textContent === '3');
-check('a local helper with an annotated Signal.t param gets the signal', ca.querySelector('#ca-wrap').className === '2');
-check('a cross-module helper gets the signal (left as written)', ca.querySelector('#ca-wrap').textContent === '<ada>');
-check('a cross-module helper returning a wrapper still renders', ca.querySelector('#ca-store').className === '2');
-check('a (name: Signal.t<_>) constraint hands over the signal', ca.querySelector('#ca-explicit').textContent === '<ada>');
-Signal.set(caCount, 0);
-Signal.set(caName, 'bo');
-check('callback leaf updates', document.querySelector('#ca-host').className === 'a-bo b-bo');
-check('value-param helper leaf updates', document.querySelector('#ca-greet').textContent === 'Hello, bo');
-check('operand-param helper leaf updates', document.querySelector('#ca-plus').textContent === '1');
-check('annotated-signal-param helper stays reactive through its wrapper', document.querySelector('#ca-wrap').className === '0');
-check('cross-module wrapper stays reactive (runtime-handled)', document.querySelector('#ca-store').className === '0');
-check('peek-based helper is a one-shot read', document.querySelector('#ca-tone').textContent === 'pos');
-check('host kept identity', document.querySelector('#ca-host').__marker === 'CA');
-
-console.log('optional signal props unwrapped with switch:');
-const ouCount = Signal.make(1);
-const ouLabel = Signal.make('lbl');
-const ou = mount(() => Demo.OptionalUnwrap.make({ count: ouCount, label: MaybeSignal.reactive(ouLabel) }));
-check('Some(count) payload drives a derived class', ou.querySelector('#ou-count').className === 'pos');
-check('Some(count) payload renders as a bare child', ou.querySelector('#ou-count').textContent === '1');
-check('Some(label) payload reads through MaybeSignal.get', ou.querySelector('#ou-label').textContent === 'lbl');
-Signal.set(ouCount, 0);
-Signal.set(ouLabel, 'new');
-check('payload class updates', ou.querySelector('#ou-count').className === 'zero');
-check('payload child updates', ou.querySelector('#ou-count').textContent === '0');
-check('MaybeSignal payload updates', ou.querySelector('#ou-label').textContent === 'new');
-const ouNone = mount(() => Demo.OptionalUnwrap.make({}));
-check('absent optional props take the None branches', ouNone.querySelector('#ou-none') !== null && ouNone.querySelector('#ou-label') === null);
-
-console.log('a module signal shadowed by a same-named top-level signal:');
-Signal.set(Demo.HitsToo.count, 100);
-const msh = mount(() => Demo.ModuleShadowed.make({}));
-check('module signal renders despite the outer name', msh.textContent === '100' && msh.className === 'under');
-Signal.set(Demo.HitsToo.count, 101);
-check('module signal updates', document.querySelector('#msh-host').textContent === '101' && document.querySelector('#msh-host').className === 'over');
-
 console.log('hyphenated attributes merged with attrs:');
 const hmOpen = Signal.make(false);
 const hm = mount(() => Demo.HyphenMerge.make({ open_: hmOpen, tag: 'tagged' }));
@@ -753,13 +580,13 @@ const es = mount(() => Demo.ExternalSignal.make({}));
 check('bare cross-module signal as an attribute (runtime-recognised)', es.className === '4');
 check('bare cross-module signal as a hyphenated attribute', es.getAttribute('data-busy') === 'false');
 check('bare cross-module signal as a child', es.childNodes[0].textContent === '4');
-check('an annotated in-file alias makes a derived expression reactive', es.querySelector('#es-alias').className === 'few' && es.querySelector('#es-alias').textContent === '4');
+check('a written-out read drives a derived expression', es.querySelector('#es-derived').className === 'few' && es.querySelector('#es-derived').textContent === '4');
 Signal.set(Store.waiting, 9);
 Signal.set(Store.busy, true);
 check('bare cross-module attribute updates', document.querySelector('#es-host').className === '9');
 check('bare cross-module hyphenated attribute updates', document.querySelector('#es-host').getAttribute('data-busy') === 'true');
 check('bare cross-module child updates', document.querySelector('#es-host').childNodes[0].textContent === '9');
-check('annotated alias leaf updates', document.querySelector('#es-alias').className === 'many' && document.querySelector('#es-alias').textContent === '9');
+check('derived leaf updates', document.querySelector('#es-derived').className === 'many' && document.querySelector('#es-derived').textContent === '9');
 
 console.log('the % signal mark:');
 const mkTheme = Signal.make('light');
@@ -794,20 +621,21 @@ check('host survived the branch swap', document.querySelector('#mk-host').__mark
 console.log('the mark on a MaybeSignal prop, and %raw left alone:');
 const mwLive = Signal.make('live');
 const mw = mount(() => Demo.MarkedWrapper.make({ label: MaybeSignal.reactive(mwLive) }));
-check('a marked MaybeSignal prop renders through MaybeSignal.get', mw.className === 'live');
+check('a bare MaybeSignal attribute renders (runtime-coerced)', mw.className === 'live');
 check('%raw still works inside an annotated file', mw.textContent === 'live-raw');
 Signal.set(mwLive, 'changed');
-check('marked MaybeSignal attribute updates', mw.className === 'changed');
-check('marked MaybeSignal interpolation updates', mw.textContent === 'changed-raw');
+check('bare MaybeSignal attribute updates', mw.className === 'changed');
+check('written-out wrapper read updates', mw.textContent === 'changed-raw');
 const mwStatic = mount(() => Demo.MarkedWrapper.make({ label: MaybeSignal.$$static('fixed') }));
-check('a marked static MaybeSignal renders its value once', mwStatic.className === 'fixed');
+check('a static MaybeSignal renders its value once', mwStatic.className === 'fixed');
 
-console.log('SSR renders the headline example:');
+console.log('SSR stringifies a non-string attribute value:');
 const SSR = await import('xote/src/SSR.res.mjs');
-const ssrHtml = SSR.renderToString(() => Demo.SignalProps.make({ propA: Signal.make('Ada'), propB: 'static', propC: Signal.make(true) }));
-check('data-hidden over a bool signal renders "true" on the server', ssrHtml.includes('data-hidden="true"'));
-check('derived class renders on the server', ssrHtml.includes('class="Ada, static"'));
-check('bare signal child renders on the server', ssrHtml.includes('Ada'));
+// a bool signal through a hyphenated attribute reaches the server's escaper as
+// a boolean; before it stringified, `replaceAll` threw there.
+const ssrHtml = SSR.renderToString(() => Demo.HyphenMerge.make({ open_: Signal.make(true), tag: 'tagged' }));
+check('a bool signal renders "true" on the server', ssrHtml.includes('data-shown="true"'));
+check('an optional hyphenated attribute renders its value', ssrHtml.includes('data-tag="tagged"'));
 
 // --- ...and silent when there is nothing to report ---------------------------
 // An unresolvable call is not evidence of a read. Probing decides by what the
@@ -821,11 +649,7 @@ check('no warning for a call that reads nothing', warnings.length === quiet);
 // Case 25 (PeekShadow) is probed too: `Signal.peek` registers no dependency, so
 // a deliberate one-shot peek must not be reported either.
 check('no warning for a deliberate peek-based helper', !warnings.some((w) => w.includes('Demo.res:357')));
-// The signal-typed-value cases leave a cross-module helper (`Store.describe`)
-// exactly as written, so its hidden read is reported like any other — that is
-// the documented behaviour, and the guard above must keep seeing it.
-check('a cross-module helper given a signal-typed name is still reported', warnings.some((w) => /Demo\.res:77\d:/.test(w)));
-check('no warning from any other case', warnings.every((w) => /Demo\.res:(525|534|77\d):/.test(w)));
+check('no warning from any other case', warnings.every((w) => /Demo\.res:(525|534):/.test(w)));
 
 console.warn = realWarn;
 

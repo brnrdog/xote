@@ -186,130 +186,6 @@ const fn = (src, name) => {
 /* Whitespace-insensitive, for shapes ReScript wraps across lines. */
 const compact = (s) => s.replace(/\s+/g, ' ');
 
-console.log('\nsignal-typed values: a signal-typed name inside a leaf is a read');
-const sp = compact(fn(demo, 'SignalProps'));
-has('a derived expression over a Signal.t prop becomes a reactive attribute', sp,
-  'class: () => [ Signal$Xote.get(propA), propB ].join(", ")',
-  'The headline case. `[propA, propB]->Array.join(", ")` mentions a signal-typed ' +
-  'name, so it reads it and is thunked; without the rewrite it is a type error.');
-has('a bare Signal.t child becomes an explicit reactive read', sp,
-  'View$Xote.child(() => Signal$Xote.get(propA))',
-  'Previously `View$Xote.child(propA)` worked only because the runtime ' +
-  'duck-types a signal; the read is now explicit and type-checked.');
-has('a hyphenated attribute is routed into attrs with a reactive read', sp,
-  'attrs: [[ "data-hidden", () => Signal$Xote.get(propC) ]]',
-  '`data-hidden={propC}` has no typed prop; the ppx moves it into the `attrs` ' +
-  'escape hatch, where the runtime stringifies the boolean to "true"/"false".');
-has('a plain string prop stays a static attribute', sp,
-  'class: propB',
-  'Only signal-typed names are reads; a string prop is a value.');
-has('a plain string prop stays a static child', sp,
-  'View$Xote.child(propB)',
-  'Same: no thunk, no computed, for a value that cannot change.');
-
-const sf = compact(fn(demo, 'SignalForms'));
-has('a boolean attribute over a Signal.t<bool> prop is a reactive read', sf,
-  'hidden: () => Signal$Xote.get(open_)',
-  'The bool goes through the runtime\'s boolean-attribute path (add/remove).');
-has('Signal.peek on a signal-typed name is left alone', sf,
-  'title: Signal$Xote.peek(name)',
-  'A signal-aware callee receives the signal itself; rewriting its argument ' +
-  'would type-fail (`peek` wants a `Signal.t`, not a string).');
-lacks('an explicit read is never read twice', sf,
-  'Signal$Xote.get(Signal$Xote.get(',
-  '`name->Signal.get` already reads; a second wrap would pass a string to ' +
-  '`Signal.get` and fail to compile.');
-has('a bare signal condition is read and the branch tracked', sf,
-  'View$Xote.tracked(() => { if (Signal$Xote.get(open_))',
-  '`{if open_ {…}}` with `open_: Signal.t<bool>` selects a branch by a signal, ' +
-  'so it needs the tracked scope the visible-read rule already emits.');
-has('a pipe into a value-taking function derefs its subject', sf,
-  'Signal$Xote.get(name).toUpperCase()',
-  '`name->String.toUpperCase` reaches the ppx as an operator application; the ' +
-  'subject is the callee\'s first argument and gets the same rule as `f(name)`.');
-
-const mp = compact(fn(demo, 'MaybeProp'));
-has('a MaybeSignal.t prop reads through MaybeSignal.get', mp,
-  'MaybeSignal$Xote.get(label)',
-  'The wrapper is read with its own `get`, so a Static one renders once and a ' +
-  'Reactive one subscribes — `View.child` cannot duck-type the wrapper.');
-
-const ks = compact(fn(demo, 'KeepsSignal'));
-has('a user-component prop still receives the signal itself', ks,
-  'count: passedCount',
-  'User-component props are never rewritten: passing the signal is how a prop ' +
-  'becomes reactive, and the child reads it in its own leaf.');
-has('an attrs escape-hatch entry is left as written', ks,
-  'attrs: [[ "data-name", passedName ]]',
-  'The entries carry their own reactivity at runtime; the container is not a leaf.');
-lacks('an event handler body is not rewritten', ks,
-  'Signal$Xote.update(Signal$Xote.get(',
-  'A handler is a lambda: deferred code is the user\'s and reads what it reads.');
-
-const sh = compact(fn(demo, 'Shadowing'));
-lacks('a render-callback parameter shadows a same-named signal', sh,
-  'Signal$Xote.get(name)',
-  'The file has `let name = Signal.make(…)`; inside `render={name => …}` the ' +
-  'name is the row and must not be read as the signal.');
-lacks('a local let shadows a same-named signal', sh,
-  'Signal$Xote.get(count)',
-  '`let count = 5` rebinds the name to a plain value.');
-
-const os = compact(fn(demo, 'OptionalSignal'));
-lacks('an optional Signal.t prop without a default is not read', os,
-  'Signal$Xote.get(maybe)',
-  '`~maybe: Signal.t<int>=?` is an `option<Signal.t<int>>` in the body.');
-
-
-console.log('\nsignal-typed values: which callees get the value');
-const ca = compact(fn(demo, 'Callees'));
-has('a callback inside a leaf reads the signal', ca,
-  't + "-" + Signal$Xote.get(name)',
-  'A lambda with a real parameter is run by its callee while the leaf is ' +
-  'evaluated; only `() => …` is deferred.');
-has('a local helper with a value parameter gets the value', ca,
-  'greet(Signal$Xote.get(name))',
-  '`greet` uses `who` in a template string, so it evidently takes a value.');
-has('a local helper whose parameter goes to Signal.peek gets the signal', ca,
-  '() => tone(count))',
-  'The body hands `s` to `Signal.peek`, so the parameter is a signal; the ' +
-  'call is left alone (it is a one-shot peek, so not thunked either).');
-has('a local helper with an annotated Signal.t parameter gets the signal', ca,
-  '() => MaybeSignal$Xote.reactive(count))',
-  'The annotation is the evidence.');
-has('a cross-module helper is left exactly as written', ca,
-  'Store.wrap(count)',
-  'The ppx cannot see `Store.wrap`; rewriting its argument would break code ' +
-  'that compiles today. The call is probed, as before.');
-has('a Signal.t constraint hands over the signal', ca,
-  'Store.describe(name)',
-  '`(name: Signal.t<string>)` is the typed opt-out; the constraint itself ' +
-  'compiles away.');
-const ou = compact(fn(demo, 'OptionalUnwrap'));
-has('a Some(count) payload over an optional signal prop is read', ou,
-  'View$Xote.child(() => Signal$Xote.get(count$1))',
-  'The optional prop is an option; its `Some` payload is the signal.');
-has('a Some(label) payload over an optional MaybeSignal prop is read', ou,
-  'MaybeSignal$Xote.get(label)',
-  'Same, through the wrapper\'s own get.');
-lacks('the optional prop itself is never read', ou,
-  'Signal$Xote.get(props.count',
-  'Reading an option as a signal would be a type error.');
-const hm = compact(fn(demo, 'HyphenMerge'));
-has('relocated entries go before the user\'s attrs so attrs wins', hm,
-  '[ "data-tone", "relocated" ], [ "data-tone", "explicit" ]',
-  '`attrs` is the documented override; the runtime keeps the last entry per key.');
-
-const es = compact(fn(demo, 'ExternalSignal'));
-has('a bare cross-module signal is left to the runtime', es,
-  'View$Xote.child(Store.waiting)',
-  'The ppx cannot see Store.res, so `Store.waiting` is not a signal-typed name; ' +
-  'the runtime recognises the signal by shape, as it always did.');
-has('an annotated in-file alias of it is read', es,
-  'Signal$Xote.get(Store.waiting) > 4',
-  '`let waiting: Signal.t<int> = Store.waiting` tells the ppx what it is; ' +
-  'ReScript inlines the alias in the output.');
-
 console.log('\nthe % signal mark: says it, instead of inferring it');
 const mk = compact(fn(demo, 'Marked'));
 has('a marked name becomes a read and the leaf is thunked', mk,
@@ -333,10 +209,13 @@ lacks('an unmarked value is left static', mk,
   'The mark is what distinguishes reactive from static; marking nothing must ' +
   'change nothing.');
 const mw = compact(fn(demo, 'MarkedWrapper'));
-has('a marked MaybeSignal prop reads through MaybeSignal.get', mw,
-  'MaybeSignal$Xote.get(label)',
-  'The ppx knows this prop is a wrapper, so the mark reads it with the ' +
-  'wrapper\'s own get rather than Signal.get.');
+has('a written-out wrapper read is thunked into a leaf', mw,
+  '() => MaybeSignal$Xote.get(label)',
+  'A mark always reads through Signal, so a MaybeSignal is written out; the ' +
+  'ppx still makes the leaf fine-grained.');
+has('a bare wrapper attribute is left to the runtime', mw,
+  'class: label',
+  'Xote receives it, so it coerces the wrapper itself — no ppx involvement.');
 has('ReScript\'s own extensions are left alone', demo,
   'function () { return "raw" }',
   '`%raw` and friends are extensions too; only a payload-free value path is a ' +

@@ -2,8 +2,35 @@
 
 | | |
 |---|---|
-| **Status** | Proof of concept, implemented in `ppx/ppx.ml` and exercised by `ppx/example/` (cases 32–43 in `Demo.res`, asserted by both `verify.mjs` and `golden.mjs`). The rules are documented in [`ppx/README.md`](../../ppx/README.md#signal-typed-values-poc); this document is the design record — the question, what was found, the alternatives, and what is still open. |
+| **Status** | Explored and **not kept**. The inference described below was built, tested and then removed; what shipped instead is the `%` mark ([`ppx/README.md`](../../ppx/README.md#the--signal-mark-poc)), which needs no type knowledge and reaches further. This document is the design record: the question, what was measured, and why the answer moved. |
 | **Related** | [Auto-tracked view blocks](./tracked-blocks.md) — the design that produced `View.tracked` and `@xote.component`; `ppx/README.md` "Not settled yet". |
+
+## Verdict
+
+The inference worked, and was removed anyway. Three measurements decided it.
+
+**Most of what it bought was already there.** A signal handed straight to Xote
+— `class={theme}`, `{count}`, from any module — is read by the *runtime*,
+which coerces the value where it receives it. That was true in 7.1, before any
+of this. The inference changed the emitted code for those positions and not
+their behaviour.
+
+**What remained was the compound case**, `class={[a, b]->Array.join(", ")}`,
+where the value goes to `Array.join` rather than to Xote. No dispatch can help
+there, so something has to say "read this" — and the `%` mark says it in one
+character, with no type knowledge, reaching cross-module signals and record
+fields that inference structurally cannot.
+
+**The cost was concentrated in the delicate part.** The inference needed an
+evidence analysis for which callee takes a signal and which takes a value, plus
+shadowing bookkeeping for every binding form — about 400 lines, and the part
+most likely to break on code nobody wrote yet. The mark needs none of it.
+
+So the ppx keeps the three things only it can do: mixed bare children in one
+element (ReScript collects an element's children into one array, so only a
+per-child wrapper breaks the type), thunk-free compound leaves, and automatic
+`View.tracked` around a conditional. Everything else about a signal in JSX
+position belongs to the runtime.
 
 ## The question
 

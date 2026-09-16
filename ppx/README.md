@@ -105,7 +105,6 @@ Applied recursively to the component's returned JSX:
 | Bare child, anything containing JSX (`{View.tracked(() => …)}`, `{View.fragment([<p/>])}`, `{xs->Array.map(x => <li/>)}`, `{try {<p/>} catch {…}}`) | — | the whole expression is walked: JSX inside it, and functions returning JSX, are node position and get decomposed; the result is then wrapped in `View.child` |
 | Bare child, otherwise (`{Signal.get(x)}`, `{"lit"}`, `{someNode}`) | — | wrapped in `View.child` — see [Bare value children](#bare-value-children) |
 | Anything marked `%name` | yes, by declaration | the mark is rewritten to `Signal.get(name)` first, and the rules above apply to the result — see [The `%` signal mark](#the--signal-mark-poc) |
-| Any value leaf mentioning a **signal-typed name** (`{count}`, `hidden={open_}`, `class={[name, tone]->Array.join(" ")}` where the name is a `Signal.t`/`MaybeSignal.t` the ppx can see the type of) | yes, implicitly | the name is read through `Signal.get`/`MaybeSignal.get` and the leaf is thunked — see [Signal-typed values](#signal-typed-values-poc) |
 | **Hyphenated attribute** on an intrinsic element (`data-hidden={…}`, `aria-busy="true"`) | — | routed into the `attrs` escape hatch as a value leaf — see [Hyphenated attributes](#hyphenated-attributes-poc) |
 
 The result: reactivity lives at the leaves; `View.tracked` is emitted
@@ -230,8 +229,7 @@ what non-PPX code uses, and give stronger `int`/`float` typing on the child);
 
 ### The `%` signal mark (POC)
 
-> **Status:** proof of concept, alongside [signal-typed values](#signal-typed-values-poc)
-> below. The two overlap deliberately — see [Not settled yet](#not-settled-yet).
+> **Status:** proof of concept — see [Not settled yet](#not-settled-yet).
 
 Everything else in this document works out *which* values are reactive. The
 mark is the way to simply say so:
@@ -280,119 +278,21 @@ attribute is silently dropped. Using the mark in a file with no
 `@xote.component` is a build error naming the site, because nothing there would
 expand it.
 
+**What the ppx is and is not for.** A signal handed straight to Xote —
+`class={theme}`, `{count}`, including one from another module — is read by the
+*runtime*, with or without the annotation. The ppx is what makes mixed bare
+children in one element possible (ReScript collects an element's children into
+one array, so only a per-child wrapper breaks the type), what saves the `() =>`
+on a compound reactive value, and what emits `View.tracked` around a
+conditional. The mark exists for the compound case.
+
 **What is not a mark.** ReScript's own extensions keep working: only a
 payload-free value path is a signal mark, so `%raw(…)`, `%todo` and friends are
 left alone.
 
-The mark reads a `MaybeSignal.t` through `MaybeSignal.get` where the ppx knows
-the name is a wrapper, and through `Signal.get` otherwise — which is what a
-mark on something it cannot see means in practice. A wrong guess is a type
-error at the marked value.
-
-### Signal-typed values (POC)
-
-> **Status:** proof of concept. The mechanism is implemented and covered by
-> `example/` (cases 32–43, both suites), but the rules below are the first
-> cut and are expected to move — see [Not settled yet](#not-settled-yet).
-
-Everything above detects *reads*: a `Signal.get(x)` written out. This rule
-detects *signals*. The ppx has no type checker, but it can see a type where one
-is written down — a prop annotation — and it knows which constructors build a
-signal. A name it can tell holds a `Signal.t` (or a `MaybeSignal.t`) is a
-**read wherever it appears inside a JSX value leaf**:
-
-```rescript
-@xote.component
-let make = (~propA: Signal.t<string>, ~propB: string, ~propC: Signal.t<bool>) =>
-  <>
-    <div class={propB} data-hidden={propC}> {propA} </div>
-    <div class={[propA, propB]->Array.join(", ")}> {propB} </div>
-  </>
-```
-
-compiles to
-
-```js
-Elements.jsx("div", {
-  class: propB,                                         // a string: static
-  attrs: [["data-hidden", () => Signal.get(propC)]],    // reactive, renders "true"/"false"
-  children: View.child(() => Signal.get(propA)),        // reactive text
-});
-Elements.jsx("div", {
-  class: () => [Signal.get(propA), propB].join(", "),   // reactive attribute
-  children: View.child(propB),                          // static text
-});
-```
-
-`propB` is a plain string and stays static everywhere. `propA` and `propC`
-are signals, so every leaf that *mentions* one — bare, in a hyphenated
-attribute, or inside a derived expression — reads it and becomes its own
-reactive leaf. Nothing else changes: the rewrite only inserts the
-`Signal.get` you would otherwise have written, and the existing rules take it
-from there (the leaf visibly reads a signal, so it is thunked). Without it, a
-bare `{propA}` only worked because `View.child` duck-types a signal at
-runtime, and `[propA, propB]->Array.join(", ")` was a type error.
-
-**Which names are signals.** Scoped exactly like the alias environment —
-visible after the binding, removed by any rebinding of the name:
-
-| Source | Read with |
-|---|---|
-| a prop or parameter annotated `Signal.t<_>` (`~count: Signal.t<int>`, `Xote.Signal.t`, `S.t` after `module S = Signal`) | `Signal.get` (through the same path: `S.get`) |
-| a prop or parameter annotated `MaybeSignal.t<_>` / `Prop.t<_>` | `MaybeSignal.get` — so a `Static` renders once and a `Reactive` subscribes (a bare `{label}` used to render `[object Object]`, since `View.child` cannot duck-type the wrapper) |
-| `let x = Signal.make(…)`, `Computed.make(…)`, `SSRState.signal(…)`, or an annotated `let x: Signal.t<_> = …` | `Signal.get` |
-| `let x = MaybeSignal.reactive(…)` / `.static(…)` / `.computed(…)` | `MaybeSignal.get` |
-| a plain alias, `let s = count`, of a name already known | as the original |
-| `module Store = { let count = Signal.make(0) }` in the same file → `Store.count` | `Signal.get` |
-| an **optional** prop with no default (`~count: Signal.t<int>=?`) | not a signal — it is an `option<Signal.t<int>>` |
-| a signal from **another file** (`Store.waiting`) | not known — the ppx sees one file. Used bare (`{Store.waiting}`, `class={Store.waiting}`, `data-busy={Store.busy}`) it is left as written and the runtime recognises the signal by shape, as it always did; in a derived expression it is a type error. Name it in the file — `let waiting: Signal.t<int> = Store.waiting` — and the alias is a signal-typed name like any other |
-
-A lambda parameter, a `switch` case payload, a local `let`, a helper's parameter
-each rebind the name: inside `render={count => <li> {count} </li>}` the name is
-the row, not the signal, and the leaf is static.
-
-An optional prop with no default is an option, not a signal, but unwrapping it
-the idiomatic way re-enters: in `switch count { | Some(count) => … }` over
-`~count: Signal.t<int>=?`, the payload is the signal for that case — and the
-same for `~label: MaybeSignal.t<string>=?`, the usual way a component declares
-a static-or-reactive prop.
-
-**Where the rewrite applies.** Only in the positions the ppx already treats as
-value leaves — intrinsic-element attribute values, bare `{…}` children,
-`View.Text/Int/Float/Bool` children (a derived expression there; a bare signal
-is already rendered by the value component itself) — plus the condition,
-scrutinee and `when` guards of control flow in node position (`{if open_ { … }}`
-with a `Signal.t<bool>` reads it and tracks the branch). Never in event
-handlers, `attrs` or `data` (left exactly as written, as before — a signal
-entry there is reactive already, because the runtime reads it), never in
-user-component props (`<Card count={count} />` passes the signal, and that is
-how a prop *becomes* reactive: the child declares `~count: Signal.t<int>` and
-its own `{count}` is the reactive leaf), and never outside JSX —
-`let s = [propA, propB]->Array.join(", ")` above the markup is ordinary
-ReScript and still a type error. Reactivity follows the expression in JSX
-position, exactly as for hoisted reads.
-
-**Within a leaf, a name is read only where the ppx can justify it** — where
-leaving the signal would have been a type error or a duck-typed runtime read,
-never where code that compiles today could mean the signal itself:
-
-| The name is… | Read? |
-|---|---|
-| the whole leaf, a condition or scrutinee, a structural part (array, tuple, record or variant payload), an operand (`name ++ "!"`, template strings), a field access (`user.name` on a `Signal.t<user>`) | yes |
-| an argument of a standard-library function (`String.trim(name)`, `Int.toString(count)`, `Belt.*`, `Js.*`) | yes |
-| inside a **callback** — `tags->Array.map(t => t ++ suffix)`, run by its callee while the leaf is evaluated | yes (and the leaf is thunked, since the read is eager) |
-| inside a `() => …` **thunk** | no — deferred code is the user's, and reads what it reads, so `{() => helper(count)}` still passes the signal |
-| a bare argument of a **signal-aware callee** — Xote's and rescript-signals' entry points (`Signal.get(count)`, `Signal.peek(count)`, `MaybeSignal.reactive(count)`, `View.signalAttr("x", count)`), a read alias (`g(count)` after `let g = Signal.get`, `S.get`, a bare `get` under `open Signal`) | no — and an explicit read is never wrapped twice |
-| under a signal-typed **constraint**, `(count: Signal.t<int>)` | no — the typed way to hand the signal to anything |
-| an argument of a **local function** (same file, any module) | by what its body says about that parameter: annotated `Signal.t`, or handed to `Signal.get`/`peek`/a signal-aware callee → the signal; annotated with another type, or used as an operand, a structural part or a stdlib argument → read; no evidence either way → left alone |
-| an argument of a function from **another module** (`Store.wrap(count)`), or of anything the ppx cannot resolve | no — left exactly as written and probed, as before |
-
-The pipe form is the same call: `count->Signal.get` is left alone,
-`name->String.toUpperCase` reads, `count->Store.wrap` is left alone. When the
-guess for a local function is wrong, the type error points at the identifier,
-and the constraint form is the fix; when a function from another module wants
-the *value*, write the read: `Store.format(Signal.get(count))` — that leaf is
-then thunked like any visible read.
+A mark always reads through `Signal`. A `MaybeSignal.t` needs nothing where
+Xote receives it — the runtime reads the wrapper for an attribute or a child —
+and inside a larger expression you write `MaybeSignal.get(label)`.
 
 ### Hyphenated attributes (POC)
 
@@ -472,7 +372,6 @@ shadowing it with a non-alias removes it) recognises all of these:
 | Local reactive helper | `let cls = () => Signal.get(x) ? …` … `cls()` | function binding whose body eagerly reads a signal; its *call* counts |
 | Same-file module helper | `module Store = { let count = s => Signal.get(s) }` … `Store.count(s)` | the module body is walked, and its reactive names qualified |
 | The mark (POC) | `{%count}`, `class={%Store.tone}` | not detection at all — the mark *is* the read, rewritten before detection runs |
-| Signal-typed name (POC) | `~count: Signal.t<int>` … `{count}`, `class={count > 0 ? "on" : "off"}` | the name is known to hold a signal, so inside a leaf it is rewritten to `Signal.get(count)` first — see [Signal-typed values](#signal-typed-values-poc) |
 
 `Signal.peek` (and `MaybeSignal.peek`) is intentionally **not** a read — it is an
 untracked read, so a value that only peeks stays static (verified by the
@@ -755,38 +654,6 @@ load-bearing for you.
   also stop an explicit `View.tracked` block from seeing a read written in its
   own body, which is that helper's documented contract. That trade is the open
   question here.
-- **Two answers to one question.** The `%` mark and signal-typed values solve
-  the same problem from opposite ends: the mark is told, inference works it
-  out. They agree where they overlap (a marked name is already a read, so
-  inference has nothing left to do), but shipping both means teaching both.
-  The mark is the smaller and more honest mechanism — one rule, no guessing,
-  and it reaches cross-module signals, record fields and paths that inference
-  structurally cannot. Inference is the one that costs nothing to type. The
-  open question is whether the mark should *replace* the inference rules
-  rather than sit beside them: most of the complexity below (the
-  callee-evidence analysis, the shadowing bookkeeping) exists only to make
-  inference safe, and the mark needs none of it.
-- **Signal-typed values are a proof of concept.** The rule itself — a
-  signal-typed name in a leaf is a read — is the one this exploration set out
-  to test, and the pieces around it are first cuts: the evidence rules for
-  which callees get the value (a local function with no evidence about a
-  parameter, and every function from another module, receive the signal —
-  which keeps today's code compiling but means `Store.format(count)` needs
-  an explicit `Signal.get`), the `Obj.magic` that lets a relocated
-  hyphenated attribute share the `attrs` array with the user's entries, and
-  the boundary that a derived expression is reactive inside JSX but a type
-  error one line above it. Type detection is by spelling (`Signal.t`, a
-  known constructor), so a `type counter = Signal.t<int>` alias is invisible,
-  as is a signal reached through a record field, a function's return value,
-  or an `open`/`include` of a same-file module; all of those keep working by
-  the runtime's duck typing when bare. Whether user-component props should
-  also auto-wrap a signal-typed name in `MaybeSignal.reactive` is
-  deliberately left open. See
-  [`docs/proposals/signal-typed-leaves.md`](../docs/proposals/signal-typed-leaves.md)
-  for the exploration and the alternatives considered.
-
-## Known limitations
-
 - **Signal detection is syntactic** (though alias- and helper-aware — see the
   table above). It follows `let`/`module`/`open` aliases, local reactive helpers
   and same-file module helpers, but not indirection it cannot see the definition
