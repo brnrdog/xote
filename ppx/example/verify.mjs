@@ -761,6 +761,47 @@ check('bare cross-module hyphenated attribute updates', document.querySelector('
 check('bare cross-module child updates', document.querySelector('#es-host').childNodes[0].textContent === '9');
 check('annotated alias leaf updates', document.querySelector('#es-alias').className === 'many' && document.querySelector('#es-alias').textContent === '9');
 
+console.log('the % signal mark:');
+const mkTheme = Signal.make('light');
+Signal.set(Store.tone2, 'calm');
+Signal.set(Store.session, undefined);
+Signal.set(Demo.sigilStore.count, 7);
+const mk = mount(() => Demo.Marked.make({ propB: 'fixed', theme: mkTheme }));
+mk.__marker = 'MK';
+check('a marked attribute renders', mk.className === 'light');
+check('a marked cross-module signal renders in a hyphenated attribute', mk.querySelector('#mk-interp').getAttribute('data-tone') === 'calm');
+check('a marked value inside an interpolation renders', mk.querySelector('#mk-interp').textContent === 'light/fixed');
+check('an unmarked value is static', mk.querySelector('#mk-static').textContent === 'fixed');
+check('a marked record field renders', mk.querySelector('#mk-field').textContent === '7');
+check('a marked value in a derived expression renders', mk.querySelector('#mk-derived').textContent === 'CALM');
+check('a marked scrutinee picks a branch', mk.querySelector('#mk-out') !== null);
+Signal.set(mkTheme, 'dark');
+Signal.set(Store.tone2, 'warm');
+Signal.set(Demo.sigilStore.count, 9);
+const mkNow = document.querySelector('#mk-host');
+check('marked attribute updates', mkNow.className === 'dark');
+check('marked cross-module hyphenated attribute updates', mkNow.querySelector('#mk-interp').getAttribute('data-tone') === 'warm');
+check('marked interpolation updates', mkNow.querySelector('#mk-interp').textContent === 'dark/fixed');
+check('marked record field updates', mkNow.querySelector('#mk-field').textContent === '9');
+check('marked derived expression updates', mkNow.querySelector('#mk-derived').textContent === 'WARM');
+check('unmarked value stays put', mkNow.querySelector('#mk-static').textContent === 'fixed');
+check('host kept identity across every leaf update', mkNow.__marker === 'MK');
+Signal.set(Store.session, 'Ada');
+check('marked scrutinee swaps the branch', mkNow.querySelector('#mk-in') !== null && mkNow.querySelector('#mk-out') === null);
+check('the swapped branch renders its payload', mkNow.querySelector('#mk-in').textContent === 'Welcome, Ada');
+check('host survived the branch swap', document.querySelector('#mk-host').__marker === 'MK');
+
+console.log('the mark on a MaybeSignal prop, and %raw left alone:');
+const mwLive = Signal.make('live');
+const mw = mount(() => Demo.MarkedWrapper.make({ label: MaybeSignal.reactive(mwLive) }));
+check('a marked MaybeSignal prop renders through MaybeSignal.get', mw.className === 'live');
+check('%raw still works inside an annotated file', mw.textContent === 'live-raw');
+Signal.set(mwLive, 'changed');
+check('marked MaybeSignal attribute updates', mw.className === 'changed');
+check('marked MaybeSignal interpolation updates', mw.textContent === 'changed-raw');
+const mwStatic = mount(() => Demo.MarkedWrapper.make({ label: MaybeSignal.$$static('fixed') }));
+check('a marked static MaybeSignal renders its value once', mwStatic.className === 'fixed');
+
 console.log('SSR renders the headline example:');
 const SSR = await import('xote/src/SSR.res.mjs');
 const ssrHtml = SSR.renderToString(() => Demo.SignalProps.make({ propA: Signal.make('Ada'), propB: 'static', propC: Signal.make(true) }));

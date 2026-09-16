@@ -20,3 +20,8 @@ let title = (prefix: string) => prefix ++ "!"
    must be left alone (and the call probed, exactly as before). */
 let wrap = (s: Signal.t<int>): MaybeSignal.t<int> => MaybeSignal.reactive(s)
 let describe = (s: Signal.t<string>) => "<" ++ Signal.get(s) ++ ">"
+
+/* For the `%` mark: a signal in another file is exactly what the mark reaches
+   and inference cannot. */
+let tone2 = Signal.make("calm")
+let session: Signal.t<option<string>> = Signal.make(None)

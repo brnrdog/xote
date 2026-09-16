@@ -162,6 +162,33 @@ type and the runtime coercion accepts any shape anyway.
 - `MaybeSignal.t` props become usable bare, which was a silent runtime failure
   before.
 
+## The other end: a mark instead of inference
+
+Everything above infers. The complement is to let the author say it, which is
+what the `%` mark does (`ppx/README.md`, "The `%` signal mark"): `%theme` is
+rewritten to `Signal.get(theme)` before any other rule runs, and the existing
+machinery takes it from there.
+
+The notation was chosen by measuring the parser rather than picking a
+character. `@theme` does not parse — an attribute needs a name *and* a target —
+and `@@theme` is the file-level attribute form. `@live theme` parses and binds
+to the identifier alone, but puts the mark beside the name instead of on it,
+and an attribute nobody consumes is **silently dropped** by ReScript, which is
+the failure mode this project keeps designing away. `%theme` parses everywhere
+the mark is wanted (attribute, child, scrutinee, interpolation, array element,
+pipe), carries the name inside the mark, is the character the language reserves
+for ppxes, and an extension nobody expands is a compile error.
+
+What the mark buys over inference is not ergonomics — it is reach. It needs no
+type knowledge at all, so it crosses the boundary above: `%Store.waiting`,
+`%store.count`, a signal behind a path or an alias. It is also one rule instead
+of a page of them.
+
+The two agree where they overlap, since a marked name is already a read by the
+time inference looks. The open question is whether the mark should replace the
+inference rules rather than sit beside them — most of this document's
+complexity exists to make inference safe, and the mark needs none of it.
+
 ## Still open
 
 - **Opaque callees.** A value-taking helper from another module

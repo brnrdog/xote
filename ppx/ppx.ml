@@ -949,6 +949,141 @@ let fn_info_of (env : env) (e : expression) : fn_info option =
 
 let () = fn_info_ref := fn_info_of
 
+(* ---- `%signal`: read this signal, said out loud -------------------------
+   Everything above works out *which* values are reactive. This is the way to
+   simply say so:
+
+     <div class={%theme}> {%propA} </div>
+
+   `%name` is rewritten to `Signal.get(name)` (or `MaybeSignal.get(name)` when
+   the ppx knows the name is a wrapper), and from there it is an ordinary
+   visible read: the leaf is thunked, a marked scrutinee tracks its switch, a
+   marked value inside a larger expression makes that expression reactive. No
+   inference is involved, so the mark reaches what inference cannot — a signal
+   from another module, one held in a record field, one behind a path:
+
+     <p class={%Store.tone}> {%store.count} </p>
+
+     {switch %user {
+      | None => "Unauthorized"
+      | Some(user) => `Welcome, ${user.name}`
+      }}
+
+   The spelling is ReScript's extension syntax, which is the character the
+   language reserves for ppxes, and it is the only one that carries the name
+   *inside* the mark: `@name` does not parse (an attribute needs a name and a
+   target), `@@name` is the file-level form, and an attribute that does parse —
+   `@live name` — puts the mark beside the name rather than on it. It also
+   fails loudly on its own: an extension nobody expands is a ReScript error,
+   where an unclaimed attribute is silently dropped.
+
+   A mark is only ever a plain value path. Extensions that mean something to
+   ReScript itself (`%raw`, `%todo`, …) and anything carrying a payload are
+   left alone. *)
+
+let reserved_extensions =
+  [ "raw"; "todo"; "debugger"; "external"; "obj"; "re"; "graphql"; "relay"; "sql" ]
+
+(* The segments of a dotted mark: `%Store.tone` -> ["Store"; "tone"]. *)
+let split_path (s : string) : string list = String.split_on_char '.' s
+
+let starts_lower (s : string) : bool =
+  String.length s > 0 && (match s.[0] with 'a' .. 'z' | '_' -> true | _ -> false)
+
+(* A mark names a value, so its last segment is lowercase; `%Store` alone, or
+   an empty name, is not one. *)
+let is_value_path (name : string) : bool =
+  match List.rev (split_path name) with
+  | last :: _ -> starts_lower last && not (List.mem name reserved_extensions)
+  | [] -> false
+
+let is_sigil (e : expression) : string option =
+  match e.pexp_desc with
+  | Pexp_extension ({ txt = name; _ }, PStr []) when is_value_path name -> Some name
+  | _ -> None
+
+(* Rebuild the expression a mark names. Leading capitalised segments are a
+   module path (`Store.tone` is `Store`'s `tone`); once a lowercase segment
+   starts, the rest are record fields (`store.count` reads the field, it does
+   not look for a module named `store`). *)
+let path_expression (loc : Location.t) (name : string) : expression =
+  let at desc = { pexp_desc = desc; pexp_loc = loc; pexp_attributes = [] } in
+  let rec modules acc = function
+    | seg :: rest when not (starts_lower seg) ->
+      modules (match acc with None -> Some (Longident.Lident seg) | Some p -> Some (Longident.Ldot (p, seg))) rest
+    | rest -> (acc, rest)
+  in
+  match modules None (split_path name) with
+  | prefix, first :: fields ->
+    let base =
+      at (Pexp_ident (mkloc (match prefix with None -> Longident.Lident first | Some p -> Longident.Ldot (p, first))))
+    in
+    List.fold_left (fun e field -> at (Pexp_field (e, mkloc (Longident.Lident field)))) base fields
+  | Some path, [] -> at (Pexp_ident (mkloc path))
+  | None, [] -> at (Pexp_ident (mkloc (Longident.Lident name)))
+
+(* Where a marked value is read from: the module that named it when the ppx
+   knows (`~label: MaybeSignal.t<string>` reads through `MaybeSignal`),
+   `Signal` otherwise — which is what a mark on something the ppx cannot see
+   means in practice. A wrong guess is a type error at the marked value. *)
+let sigil_read (env : env) (loc : Location.t) (name : string) : expression =
+  let target = path_expression loc name in
+  let path = match is_sig_ident env target with Some p -> p | None -> Longident.Lident "Signal" in
+  read_through loc path target
+
+let rec rewrite_live (env : env) (e : expression) : expression =
+  match is_sigil e with
+  | Some name -> sigil_read env e.pexp_loc name
+  | None ->
+    (match e.pexp_desc with
+     | Pexp_fun (l, def, p, body) ->
+       { e with
+         pexp_desc =
+           Pexp_fun
+             (l, Option.map (rewrite_live env) def, p, rewrite_live (bind_param env l def p) body) }
+     | Pexp_let (r, vbs, body) ->
+       let vbs' = List.map (fun vb -> { vb with pvb_expr = rewrite_live env vb.pvb_expr }) vbs in
+       { e with pexp_desc = Pexp_let (r, vbs', rewrite_live (collect_val_aliases env vbs) body) }
+     | Pexp_match (s, cases) ->
+       let case c =
+         let env = case_env env s c in
+         { c with
+           pc_guard = Option.map (rewrite_live env) c.pc_guard;
+           pc_rhs = rewrite_live env c.pc_rhs }
+       in
+       { e with pexp_desc = Pexp_match (rewrite_live env s, List.map case cases) }
+     | Pexp_letmodule (name, me, body) ->
+       { e with pexp_desc = Pexp_letmodule (name, me, rewrite_live (collect_mod_alias env name me) body) }
+     | Pexp_open (o, l, x) ->
+       { e with pexp_desc = Pexp_open (o, l, rewrite_live (collect_open env l.Location.txt) x) }
+     | _ -> map_sub_exprs (rewrite_live env) e)
+
+(* Locations of every mark in a file, for the error a file that never opted in
+   has to get. ReScript would reject the leftover extension by itself, but its
+   message ("uninterpreted extension") names neither this ppx nor the reason,
+   and the reason is the whole point: nothing here expands the mark. *)
+let rec find_live (e : expression) : Location.t list =
+  (if is_sigil e <> None then [ e.pexp_loc ] else []) @ List.concat_map find_live (sub_exprs e)
+
+let rec find_live_structure (s : structure) : Location.t list =
+  List.concat_map
+    (fun si ->
+      match si.pstr_desc with
+      | Pstr_value (_, vbs) -> List.concat_map (fun vb -> find_live vb.pvb_expr) vbs
+      | Pstr_eval (e, _) -> find_live e
+      | Pstr_module mb -> find_live_module mb.pmb_expr
+      | Pstr_recmodule mbs -> List.concat_map (fun mb -> find_live_module mb.pmb_expr) mbs
+      | Pstr_include incl -> find_live_module incl.pincl_mod
+      | _ -> [])
+    s
+
+and find_live_module (me : module_expr) : Location.t list =
+  match me.pmod_desc with
+  | Pmod_structure s -> find_live_structure s
+  | Pmod_constraint (m, _) -> find_live_module m
+  | Pmod_functor (_, _, b) -> find_live_module b
+  | _ -> []
+
 (* Control flow in node position: only the parts that *select* a branch are
    value position — the condition, the scrutinee and the `when` guards. The
    branch bodies are nodes and are decomposed on their own. *)
@@ -1467,6 +1602,35 @@ and map_mod (env : env) me =
     { me with pmod_desc = Pmod_functor (name, mt, map_mod env body) }
   | _ -> me
 
+let rec live_structure (env : env) (s : structure) : structure =
+  let _, rev =
+    List.fold_left
+      (fun (env, acc) si -> (update_env_si env si, live_si env si :: acc))
+      (env, []) s
+  in
+  List.rev rev
+
+and live_si (env : env) si =
+  match si.pstr_desc with
+  | Pstr_value (r, vbs) ->
+    let vb v = { v with pvb_expr = rewrite_live env v.pvb_expr } in
+    { si with pstr_desc = Pstr_value (r, List.map vb vbs) }
+  | Pstr_eval (e, attrs) -> { si with pstr_desc = Pstr_eval (rewrite_live env e, attrs) }
+  | Pstr_module mb -> { si with pstr_desc = Pstr_module { mb with pmb_expr = live_mod env mb.pmb_expr } }
+  | Pstr_recmodule mbs ->
+    { si with
+      pstr_desc = Pstr_recmodule (List.map (fun mb -> { mb with pmb_expr = live_mod env mb.pmb_expr }) mbs) }
+  | Pstr_include incl ->
+    { si with pstr_desc = Pstr_include { incl with pincl_mod = live_mod env incl.pincl_mod } }
+  | _ -> si
+
+and live_mod (env : env) me =
+  match me.pmod_desc with
+  | Pmod_structure s -> { me with pmod_desc = Pmod_structure (live_structure env s) }
+  | Pmod_constraint (m, mt) -> { me with pmod_desc = Pmod_constraint (live_mod env m, mt) }
+  | Pmod_functor (n, mt, b) -> { me with pmod_desc = Pmod_functor (n, mt, live_mod env b) }
+  | _ -> me
+
 (* ---- ReScript -ppx binary protocol: `ppx <infile> <outfile>` ------------ *)
 let impl_magic = "Caml1999M022"
 let usage =
@@ -1512,6 +1676,18 @@ let () =
      let structure = (Obj.magic payload : structure) in
      source_file := Filename.basename name;
      fine_grain_helpers := structure_has_component structure;
+     (* A `%` mark only means anything in a file this ppx rewrites. *)
+     if not !fine_grain_helpers then
+       (match find_live_structure structure with
+        | [] -> ()
+        | sites ->
+          prerr_endline
+            ("xote ppx: a % signal mark at " ^ String.concat ", " (List.map site_of sites)
+             ^ " but " ^ name
+             ^ " has no @xote.component, so nothing here expands it. Annotate a "
+             ^ "component in this file, or write the read out (Signal.get(...)).");
+          exit 2);
+     let structure = if !fine_grain_helpers then live_structure empty_env structure else structure in
      output_value oc (map_structure empty_env structure)
    else output_value oc payload);
   close_out oc

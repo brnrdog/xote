@@ -837,3 +837,43 @@ module ExternalSignal = {
     </div>
   }
 }
+
+/* ===========================================================================
+   The `%` signal mark. Where inference guesses, the mark tells: `%name` is
+   rewritten to `Signal.get(name)` before anything else runs, so it is an
+   ordinary visible read from there on. Because it needs no type knowledge it
+   reaches what inference cannot — another file's signal, a record field.
+   =========================================================================== */
+
+/* Case 45: the mark in every position — attribute, bare child, interpolation,
+   hyphenated attribute, a record field, and a switch scrutinee, over signals
+   this file never declares. The unmarked `propB` stays static, which is the
+   point of marking at all. */
+type sigilStore = {count: Signal.t<int>}
+let sigilStore = {count: Signal.make(7)}
+
+module Marked = {
+  @xote.component
+  let make = (~propB: string, ~theme: Signal.t<string>) =>
+    <div id="mk-host" class={%theme}>
+      <span id="mk-interp" data-tone={%Store.tone2}> {`${%theme}/${propB}`} </span>
+      <span id="mk-static"> {propB} </span>
+      <span id="mk-field"> {%sigilStore.count} </span>
+      <span id="mk-derived"> {%Store.tone2->String.toUpperCase} </span>
+      {switch %Store.session {
+      | None => <i id="mk-out"> {"Unauthorized"} </i>
+      | Some(name) => <b id="mk-in"> {`Welcome, ${name}`} </b>
+      }}
+    </div>
+}
+
+/* Case 46: a marked `MaybeSignal.t` prop reads through `MaybeSignal.get`, and
+   ReScript's own extensions (`%raw` and friends) are left alone — a mark is
+   only ever a plain value path with no payload. */
+let rawLabel: unit => string = %raw(`function () { return "raw" }`)
+
+module MarkedWrapper = {
+  @xote.component
+  let make = (~label: MaybeSignal.t<string>) =>
+    <span id="mw-host" class={%label}> {`${%label}-${rawLabel()}`} </span>
+}

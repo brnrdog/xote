@@ -104,6 +104,7 @@ Applied recursively to the component's returned JSX:
 | Bare child, block expression (`{let x = …; <span/>}`) | — | recurse into the tail, threading `let`-bound aliases — the inner JSX keeps fine-grained leaves |
 | Bare child, anything containing JSX (`{View.tracked(() => …)}`, `{View.fragment([<p/>])}`, `{xs->Array.map(x => <li/>)}`, `{try {<p/>} catch {…}}`) | — | the whole expression is walked: JSX inside it, and functions returning JSX, are node position and get decomposed; the result is then wrapped in `View.child` |
 | Bare child, otherwise (`{Signal.get(x)}`, `{"lit"}`, `{someNode}`) | — | wrapped in `View.child` — see [Bare value children](#bare-value-children) |
+| Anything marked `%name` | yes, by declaration | the mark is rewritten to `Signal.get(name)` first, and the rules above apply to the result — see [The `%` signal mark](#the--signal-mark-poc) |
 | Any value leaf mentioning a **signal-typed name** (`{count}`, `hidden={open_}`, `class={[name, tone]->Array.join(" ")}` where the name is a `Signal.t`/`MaybeSignal.t` the ppx can see the type of) | yes, implicitly | the name is read through `Signal.get`/`MaybeSignal.get` and the leaf is thunked — see [Signal-typed values](#signal-typed-values-poc) |
 | **Hyphenated attribute** on an intrinsic element (`data-hidden={…}`, `aria-busy="true"`) | — | routed into the `attrs` escape hatch as a value leaf — see [Hyphenated attributes](#hyphenated-attributes-poc) |
 
@@ -223,6 +224,67 @@ still tracked for the structural swap, but each scalar branch is coerced by
 The explicit `View.Text/Int/Float/Bool` primitives remain available (they are
 what non-PPX code uses, and give stronger `int`/`float` typing on the child);
 `View.child` is just the zero-ceremony default under `@xote.component`.
+
+### The `%` signal mark (POC)
+
+> **Status:** proof of concept, alongside [signal-typed values](#signal-typed-values-poc)
+> below. The two overlap deliberately — see [Not settled yet](#not-settled-yet).
+
+Everything else in this document works out *which* values are reactive. The
+mark is the way to simply say so:
+
+```rescript
+@xote.component
+let make = (~propA: Signal.t<string>, ~propB: string, ~theme: Signal.t<string>) =>
+  <div class={%theme}>
+    <div> {%propA} </div>   /* reactive: updates with propA */
+    <div> {propB} </div>    /* static: rendered once */
+  </div>
+```
+
+`%name` is rewritten to `Signal.get(name)` before any other rule runs, so from
+there it is an ordinary visible read: the leaf is thunked, a marked scrutinee
+tracks its `switch`, and a marked value inside a larger expression makes that
+expression reactive.
+
+```rescript
+{switch %user {
+ | None => "Unauthorized"
+ | Some(user) => `Welcome, ${user->User.name}`
+ }}
+```
+
+Because the mark carries no type knowledge, **it reaches what inference
+cannot** — a signal from another file, one held in a record field, one behind a
+path:
+
+```rescript
+<p class={%Store.tone} data-count={%store.stats.count}> {%Store.waiting} </p>
+```
+
+A dotted mark is read the way you would read the path yourself: leading
+capitalised segments are a module (`%Store.tone`), and once a lowercase segment
+starts, the rest are record fields (`%store.count` reads the field, it does not
+look for a module named `store`).
+
+**Why this spelling.** ReScript reserves `%` for ppx extensions, and it is the
+only form that carries the name *inside* the mark. `@name` does not parse (an
+attribute needs a name *and* something to attach to), `@@name` is the
+file-level attribute form, and the attribute that does parse — `@live name` —
+puts the mark beside the name rather than on it. `%` also fails loudly on its
+own: an extension nobody expands is a ReScript error, where an unclaimed
+attribute is silently dropped. Using the mark in a file with no
+`@xote.component` is a build error naming the site, because nothing there would
+expand it.
+
+**What is not a mark.** ReScript's own extensions keep working: only a
+payload-free value path is a signal mark, so `%raw(…)`, `%todo` and friends are
+left alone.
+
+The mark reads a `MaybeSignal.t` through `MaybeSignal.get` where the ppx knows
+the name is a wrapper, and through `Signal.get` otherwise — which is what a
+mark on something it cannot see means in practice. A wrong guess is a type
+error at the marked value.
 
 ### Signal-typed values (POC)
 
@@ -406,6 +468,7 @@ shadowing it with a non-alias removes it) recognises all of these:
 | Open | `open Signal` … `get(sig)` | bare `get` under an open |
 | Local reactive helper | `let cls = () => Signal.get(x) ? …` … `cls()` | function binding whose body eagerly reads a signal; its *call* counts |
 | Same-file module helper | `module Store = { let count = s => Signal.get(s) }` … `Store.count(s)` | the module body is walked, and its reactive names qualified |
+| The mark (POC) | `{%count}`, `class={%Store.tone}` | not detection at all — the mark *is* the read, rewritten before detection runs |
 | Signal-typed name (POC) | `~count: Signal.t<int>` … `{count}`, `class={count > 0 ? "on" : "off"}` | the name is known to hold a signal, so inside a leaf it is rewritten to `Signal.get(count)` first — see [Signal-typed values](#signal-typed-values-poc) |
 
 `Signal.peek` (and `MaybeSignal.peek`) is intentionally **not** a read — it is an
@@ -689,6 +752,17 @@ load-bearing for you.
   also stop an explicit `View.tracked` block from seeing a read written in its
   own body, which is that helper's documented contract. That trade is the open
   question here.
+- **Two answers to one question.** The `%` mark and signal-typed values solve
+  the same problem from opposite ends: the mark is told, inference works it
+  out. They agree where they overlap (a marked name is already a read, so
+  inference has nothing left to do), but shipping both means teaching both.
+  The mark is the smaller and more honest mechanism — one rule, no guessing,
+  and it reaches cross-module signals, record fields and paths that inference
+  structurally cannot. Inference is the one that costs nothing to type. The
+  open question is whether the mark should *replace* the inference rules
+  rather than sit beside them: most of the complexity below (the
+  callee-evidence analysis, the shadowing bookkeeping) exists only to make
+  inference safe, and the mark needs none of it.
 - **Signal-typed values are a proof of concept.** The rule itself — a
   signal-typed name in a leaf is a read — is the one this exploration set out
   to test, and the pieces around it are first cuts: the evidence rules for

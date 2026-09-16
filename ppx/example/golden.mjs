@@ -310,6 +310,38 @@ has('an annotated in-file alias of it is read', es,
   '`let waiting: Signal.t<int> = Store.waiting` tells the ppx what it is; ' +
   'ReScript inlines the alias in the output.');
 
+console.log('\nthe % signal mark: says it, instead of inferring it');
+const mk = compact(fn(demo, 'Marked'));
+has('a marked name becomes a read and the leaf is thunked', mk,
+  'class: () => Signal$Xote.get(theme)',
+  'The mark is rewritten before anything else runs, so from there it is an ' +
+  'ordinary visible read and the existing rules thunk the leaf.');
+has('a marked cross-module signal is read', mk,
+  'Signal$Xote.get(Store.tone2)',
+  'This is the case inference cannot reach: the ppx never sees Store.res, but ' +
+  'the mark needs no type knowledge.');
+has('a marked record field is read', mk,
+  'Signal$Xote.get(sigilStore.count)',
+  'A dotted mark whose segments are lowercase is a field path, not a module ' +
+  'path — `%store.count` must not compile to a lookup in a module named store.');
+has('a marked scrutinee tracks its switch', mk,
+  'View$Xote.tracked(',
+  'Marking the scrutinee makes the structural swap reactive, with the branch ' +
+  'leaves still decomposed on their own.');
+lacks('an unmarked value is left static', mk,
+  'Signal$Xote.get(propB)',
+  'The mark is what distinguishes reactive from static; marking nothing must ' +
+  'change nothing.');
+const mw = compact(fn(demo, 'MarkedWrapper'));
+has('a marked MaybeSignal prop reads through MaybeSignal.get', mw,
+  'MaybeSignal$Xote.get(label)',
+  'The ppx knows this prop is a wrapper, so the mark reads it with the ' +
+  'wrapper\'s own get rather than Signal.get.');
+has('ReScript\'s own extensions are left alone', demo,
+  'function () { return "raw" }',
+  '`%raw` and friends are extensions too; only a payload-free value path is a ' +
+  'signal mark.');
+
 console.log(`\n${pass} passed, ${failures.length} failed`);
 
 if (failures.length > 0) {
