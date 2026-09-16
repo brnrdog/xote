@@ -300,6 +300,16 @@ has('relocated entries go before the user\'s attrs so attrs wins', hm,
   '[ "data-tone", "relocated" ], [ "data-tone", "explicit" ]',
   '`attrs` is the documented override; the runtime keeps the last entry per key.');
 
+const es = compact(fn(demo, 'ExternalSignal'));
+has('a bare cross-module signal is left to the runtime', es,
+  'View$Xote.child(Store.waiting)',
+  'The ppx cannot see Store.res, so `Store.waiting` is not a signal-typed name; ' +
+  'the runtime recognises the signal by shape, as it always did.');
+has('an annotated in-file alias of it is read', es,
+  'Signal$Xote.get(Store.waiting) > 4',
+  '`let waiting: Signal.t<int> = Store.waiting` tells the ppx what it is; ' +
+  'ReScript inlines the alias in the output.');
+
 console.log(`\n${pass} passed, ${failures.length} failed`);
 
 if (failures.length > 0) {

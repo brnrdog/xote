@@ -820,3 +820,20 @@ module HyphenMerge = {
       <span id="hm-maybe" data-tag=?{tag} />
     </div>
 }
+
+/* Case 44: a signal from *another file*. The ppx never sees `Store.res`, so
+   `Store.waiting` is not a signal-typed name: used bare it is left as written
+   and the runtime recognises the signal by shape (reactive, as before); used
+   in a derived expression it is a type error — unless the file says what it
+   is, with an annotated alias, after which the alias is a signal-typed name
+   like any other. */
+module ExternalSignal = {
+  @xote.component
+  let make = () => {
+    let waiting: Signal.t<int> = Store.waiting
+    <div id="es-host" class={Store.waiting} data-busy={Store.busy}>
+      {Store.waiting}
+      <span id="es-alias" class={waiting > 4 ? "many" : "few"}> {waiting} </span>
+    </div>
+  }
+}

@@ -280,6 +280,7 @@ visible after the binding, removed by any rebinding of the name:
 | a plain alias, `let s = count`, of a name already known | as the original |
 | `module Store = { let count = Signal.make(0) }` in the same file → `Store.count` | `Signal.get` |
 | an **optional** prop with no default (`~count: Signal.t<int>=?`) | not a signal — it is an `option<Signal.t<int>>` |
+| a signal from **another file** (`Store.waiting`) | not known — the ppx sees one file. Used bare (`{Store.waiting}`, `class={Store.waiting}`, `data-busy={Store.busy}`) it is left as written and the runtime recognises the signal by shape, as it always did; in a derived expression it is a type error. Name it in the file — `let waiting: Signal.t<int> = Store.waiting` — and the alias is a signal-typed name like any other |
 
 A lambda parameter, a `switch` case payload, a local `let`, a helper's parameter
 each rebind the name: inside `render={count => <li> {count} </li>}` the name is

@@ -746,6 +746,21 @@ const hmNone = mount(() => Demo.HyphenMerge.make({ open_: hmOpen, tag: undefined
 // the earlier mount of the same component already owns)
 check('an optional hyphenated attribute is absent for None', !hmNone.querySelectorAll('span')[2].hasAttribute('data-tag'));
 
+console.log('a signal from another file:');
+Signal.set(Store.waiting, 4);
+Signal.set(Store.busy, false);
+const es = mount(() => Demo.ExternalSignal.make({}));
+check('bare cross-module signal as an attribute (runtime-recognised)', es.className === '4');
+check('bare cross-module signal as a hyphenated attribute', es.getAttribute('data-busy') === 'false');
+check('bare cross-module signal as a child', es.childNodes[0].textContent === '4');
+check('an annotated in-file alias makes a derived expression reactive', es.querySelector('#es-alias').className === 'few' && es.querySelector('#es-alias').textContent === '4');
+Signal.set(Store.waiting, 9);
+Signal.set(Store.busy, true);
+check('bare cross-module attribute updates', document.querySelector('#es-host').className === '9');
+check('bare cross-module hyphenated attribute updates', document.querySelector('#es-host').getAttribute('data-busy') === 'true');
+check('bare cross-module child updates', document.querySelector('#es-host').childNodes[0].textContent === '9');
+check('annotated alias leaf updates', document.querySelector('#es-alias').className === 'many' && document.querySelector('#es-alias').textContent === '9');
+
 console.log('SSR renders the headline example:');
 const SSR = await import('xote/src/SSR.res.mjs');
 const ssrHtml = SSR.renderToString(() => Demo.SignalProps.make({ propA: Signal.make('Ada'), propB: 'static', propC: Signal.make(true) }));
