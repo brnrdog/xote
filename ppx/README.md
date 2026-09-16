@@ -210,6 +210,9 @@ Every bare non-control-flow child is wrapped in the runtime helper
 - a bare **signal** (`{count}` where `count: Signal.t<_>`) becomes reactive
   text — signals are detected positively by their runtime shape, so an
   arbitrary record is never mistaken for one;
+- a bare **`MaybeSignal.t`** is read the same way: `Static` renders its
+  contents once, `Reactive` becomes reactive text. Both are re-coerced, so a
+  wrapper holding a node or an array renders like any other child;
 - an **array** is coerced element-wise into a fragment (an array of nodes
   renders each node; an array of scalars renders their text);
 - `null`/`undefined` render nothing;
