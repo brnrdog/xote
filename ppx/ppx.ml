@@ -58,9 +58,6 @@ let wrap_tracked e = apply (ident view_tracked) [ thunk e ]
 let view_child = Longident.Ldot (Longident.Lident "View", "child")
 let wrap_child e = apply (ident view_child) [ e ]
 
-let obj_magic = Longident.Ldot (Longident.Lident "Obj", "magic")
-let array_concat = Longident.Ldot (Longident.Lident "Array", "concat")
-
 (* ---- signal-read detection ----------------------------------------------
    A read is a tracked `get`: `Signal.get`, and equally `MaybeSignal.get` /
    `Prop.get` (the deprecated alias), which read through the static-or-reactive
@@ -487,188 +484,10 @@ let should_thunk (env : env) (v : expression) : bool =
 let should_probe (env : env) (v : expression) : bool =
   (not (should_thunk env v)) && (not (is_inert v)) && not (contains_jsx v)
 
-(* Reading a value through its signal module: `Signal.get(x)`. The location is
-   the one the user wrote, so a type error lands on their expression. *)
-let read_through (loc : Location.t) (path : Longident.t) (e : expression) : expression =
-  let get =
-    { pexp_desc = Pexp_ident { txt = Longident.Ldot (path, "get"); loc };
-      pexp_loc = loc;
-      pexp_attributes = [] }
-  in
-  { pexp_desc = Pexp_apply (get, [ (Nolabel, e) ]); pexp_loc = loc; pexp_attributes = [] }
-
 (* A value-position leaf: thunk a visible read, probe an unresolvable call,
    leave everything else exactly as written. *)
 let leaf_value (env : env) (v : expression) : expression =
   if should_thunk env v then thunk v else if should_probe env v then wrap_probe v else v
-
-(* ---- `%signal`: read this signal, said out loud -------------------------
-   Everything above works out *which* values are reactive. This is the way to
-   simply say so:
-
-     <div class={%theme}> {%propA} </div>
-
-   `%name` is rewritten to `Signal.get(name)` (or `MaybeSignal.get(name)` when
-   the ppx knows the name is a wrapper), and from there it is an ordinary
-   visible read: the leaf is thunked, a marked scrutinee tracks its switch, a
-   marked value inside a larger expression makes that expression reactive. No
-   inference is involved, so the mark reaches what inference cannot — a signal
-   from another module, one held in a record field, one behind a path:
-
-     <p class={%Store.tone}> {%store.count} </p>
-
-     {switch %user {
-      | None => "Unauthorized"
-      | Some(user) => `Welcome, ${user.name}`
-      }}
-
-   The spelling is ReScript's extension syntax, which is the character the
-   language reserves for ppxes, and it is the only one that carries the name
-   *inside* the mark: `@name` does not parse (an attribute needs a name and a
-   target), `@@name` is the file-level form, and an attribute that does parse —
-   `@live name` — puts the mark beside the name rather than on it. It also
-   fails loudly on its own: an extension nobody expands is a ReScript error,
-   where an unclaimed attribute is silently dropped.
-
-   A mark is only ever a plain value path. Extensions that mean something to
-   ReScript itself (`%raw`, `%todo`, …) and anything carrying a payload are
-   left alone. *)
-
-let reserved_extensions =
-  [ "raw"; "todo"; "debugger"; "external"; "obj"; "re"; "graphql"; "relay"; "sql" ]
-
-(* The segments of a dotted mark: `%Store.tone` -> ["Store"; "tone"]. *)
-let split_path (s : string) : string list = String.split_on_char '.' s
-
-let starts_lower (s : string) : bool =
-  String.length s > 0 && (match s.[0] with 'a' .. 'z' | '_' -> true | _ -> false)
-
-(* A mark names a value, so its last segment is lowercase; `%Store` alone, or
-   an empty name, is not one. *)
-let is_value_path (name : string) : bool =
-  match List.rev (split_path name) with
-  | last :: _ -> starts_lower last && not (List.mem name reserved_extensions)
-  | [] -> false
-
-let is_sigil (e : expression) : string option =
-  match e.pexp_desc with
-  | Pexp_extension ({ txt = name; _ }, PStr []) when is_value_path name -> Some name
-  | _ -> None
-
-(* Rebuild the expression a mark names. Leading capitalised segments are a
-   module path (`Store.tone` is `Store`'s `tone`); once a lowercase segment
-   starts, the rest are record fields (`store.count` reads the field, it does
-   not look for a module named `store`). *)
-let path_expression (loc : Location.t) (name : string) : expression =
-  let at desc = { pexp_desc = desc; pexp_loc = loc; pexp_attributes = [] } in
-  let rec modules acc = function
-    | seg :: rest when not (starts_lower seg) ->
-      modules (match acc with None -> Some (Longident.Lident seg) | Some p -> Some (Longident.Ldot (p, seg))) rest
-    | rest -> (acc, rest)
-  in
-  match modules None (split_path name) with
-  | prefix, first :: fields ->
-    let base =
-      at (Pexp_ident (mkloc (match prefix with None -> Longident.Lident first | Some p -> Longident.Ldot (p, first))))
-    in
-    List.fold_left (fun e field -> at (Pexp_field (e, mkloc (Longident.Lident field)))) base fields
-  | Some path, [] -> at (Pexp_ident (mkloc path))
-  | None, [] -> at (Pexp_ident (mkloc (Longident.Lident name)))
-
-(* A mark always reads through `Signal`. A `MaybeSignal.t` is read by the
-   runtime wherever Xote receives it (`class={label}`, `{label}`), and inside a
-   larger expression it is written out: `MaybeSignal.get(label)`. *)
-let sigil_read (loc : Location.t) (name : string) : expression =
-  read_through loc (Longident.Lident "Signal") (path_expression loc name)
-
-let rec rewrite_live (e : expression) : expression =
-  match is_sigil e with
-  | Some name -> sigil_read e.pexp_loc name
-  | None -> map_sub_exprs rewrite_live e
-
-(* Locations of every mark in a file, for the error a file that never opted in
-   has to get. ReScript would reject the leftover extension by itself, but its
-   message ("uninterpreted extension") names neither this ppx nor the reason,
-   and the reason is the whole point: nothing here expands the mark. *)
-let rec find_live (e : expression) : Location.t list =
-  (if is_sigil e <> None then [ e.pexp_loc ] else []) @ List.concat_map find_live (sub_exprs e)
-
-let rec find_live_structure (s : structure) : Location.t list =
-  List.concat_map
-    (fun si ->
-      match si.pstr_desc with
-      | Pstr_value (_, vbs) -> List.concat_map (fun vb -> find_live vb.pvb_expr) vbs
-      | Pstr_eval (e, _) -> find_live e
-      | Pstr_module mb -> find_live_module mb.pmb_expr
-      | Pstr_recmodule mbs -> List.concat_map (fun mb -> find_live_module mb.pmb_expr) mbs
-      | Pstr_include incl -> find_live_module incl.pincl_mod
-      | _ -> [])
-    s
-
-and find_live_module (me : module_expr) : Location.t list =
-  match me.pmod_desc with
-  | Pmod_structure s -> find_live_structure s
-  | Pmod_constraint (m, _) -> find_live_module m
-  | Pmod_functor (_, _, b) -> find_live_module b
-  | _ -> []
-
-(* ---- hyphenated attributes ----------------------------------------------
-   ReScript parses `<div data-hidden={…} aria-busy="true">`, but no typed prop
-   can carry a hyphenated name, so the JSX transform rejects it ("The field
-   data-hidden does not belong to type XoteJSX.Elements.props"). On an intrinsic
-   element the ppx moves such attributes into the `attrs` escape hatch, which
-   takes any key. The value has already been through `leaf_value` (a
-   signal-typed name reads, an eager read is thunked, an unresolvable call is
-   probed), so `data-hidden={open_}` becomes `("data-hidden", () =>
-   Signal.get(open_))` and renders the literal `"true"`/`"false"` the runtime
-   stringifies it to. An optional one (`data-x=?{opt}`) is moved as is: the
-   runtime removes the attribute for `None`.
-
-   Relocated entries go *before* the user's own `attrs`, so an explicit entry
-   for the same key still wins — `attrs` is documented as the override. All
-   entries of `attrs` share one array type, so each relocated value is passed
-   through `Obj.magic`: the runtime coercion (`RuntimeJsxProp.toAttrEntry`)
-   accepts every shape a typed attribute does, and the value expression itself
-   is still type-checked before the cast. *)
-let is_hyphenated_arg = function
-  | (Labelled n | Optional n), _ -> String.contains n '-'
-  | _ -> false
-
-(* Insert a labelled arg before `~children` and the trailing `()`, so the JSX
-   apply keeps its `label… children unit` shape — the JSX transform reads the
-   children off the end of the argument list. *)
-let rec insert_arg (arg : arg_label * expression) = function
-  | ((Nolabel, _) :: _ | (Labelled "children", _) :: _ | (Optional "children", _) :: _) as tl ->
-    arg :: tl
-  | hd :: tl -> hd :: insert_arg arg tl
-  | [] -> [ arg ]
-
-let option_get_or = Longident.Ldot (Longident.Lident "Option", "getOr")
-
-let relocate_hyphenated (args : (arg_label * expression) list) : (arg_label * expression) list =
-  match List.partition is_hyphenated_arg args with
-  | [], _ -> args
-  | moved, rest ->
-    let entry (lbl, v) =
-      let key = match lbl with Labelled n | Optional n -> n | Nolabel -> "" in
-      mkexp (Pexp_tuple [ str_const key; apply (ident obj_magic) [ v ] ])
-    in
-    let entries = List.map entry moved in
-    let extend = function
-      | Labelled "attrs", ({ pexp_desc = Pexp_array xs; _ } as a) ->
-        (Labelled "attrs", { a with pexp_desc = Pexp_array (entries @ xs) })
-      | Labelled "attrs", a ->
-        (Labelled "attrs", apply (ident array_concat) [ mkexp (Pexp_array entries); a ])
-      | Optional "attrs", a ->
-        (* `attrs=?{opt}`: an `option<array<_>>` — default the missing array *)
-        ( Labelled "attrs",
-          apply (ident array_concat)
-            [ mkexp (Pexp_array entries); apply (ident option_get_or) [ a; mkexp (Pexp_array []) ] ] )
-      | other -> other
-    in
-    let has_attrs (l, _) = l = Labelled "attrs" || l = Optional "attrs" in
-    if List.exists has_attrs rest then List.map extend rest
-    else insert_arg (Labelled "attrs", mkexp (Pexp_array entries)) rest
 
 (* `@xote.component` is the single annotation: it derives props exactly like
    `@jsx.component` (which we emit for the JSX transform to expand) *and*
@@ -686,8 +505,8 @@ let rec fine_node (env : env) (e : expression) : expression =
   | Some (f, args) when is_element f ->
     (* intrinsic HTML/SVG element: attrs are value position (thunked when they
        eagerly read a signal, so they lower to computed attributes), children
-       are node position; a hyphenated attribute is routed into `attrs` *)
-    { e with pexp_desc = Pexp_apply (f, relocate_hyphenated (List.map (element_arg env) args)) }
+       are node position *)
+    { e with pexp_desc = Pexp_apply (f, List.map (element_arg env) args) }
   | Some (f, args) ->
     (* user component: children are node position, but its labelled props land
        in the component's *typed props record*, so thunking them would change
@@ -810,17 +629,17 @@ and decompose_node_shaped (env : env) (e : expression) : expression =
       pexp_desc =
         Pexp_fun (l, Option.map (decompose_here env) def, p, decompose_here env body) }
   | Pexp_match (x, cases) ->
-    { e with pexp_desc = Pexp_match (decompose_here env x, List.map (decompose_case env x) cases) }
+    { e with pexp_desc = Pexp_match (decompose_here env x, List.map (decompose_case env) cases) }
   | Pexp_try (x, cases) ->
-    { e with pexp_desc = Pexp_try (decompose_here env x, List.map (decompose_case env x) cases) }
+    { e with pexp_desc = Pexp_try (decompose_here env x, List.map (decompose_case env) cases) }
   | Pexp_let (r, vbs, body) ->
     let vbs' = List.map (fun vb -> { vb with pvb_expr = decompose_here env vb.pvb_expr }) vbs in
     { e with pexp_desc = Pexp_let (r, vbs', decompose_here (collect_val_aliases env vbs) body) }
   | _ -> map_sub_exprs (decompose_here env) e
 
-(* A case's pattern shadows for its body; the guard is a boolean, never a
-   node, and is left as written (see map_sub_exprs). *)
-and decompose_case (env : env) (scrutinee : expression) (c : case) : case =
+(* Only a case body is node position; the guard is a boolean, never a node, and
+   is left as written (see map_sub_exprs). *)
+and decompose_case (env : env) (c : case) : case =
   { c with pc_rhs = decompose_here env c.pc_rhs }
 
 (* Decompose one expression *in place*, whatever shape it happens to be: JSX is
@@ -1101,29 +920,6 @@ and map_mod (env : env) me =
     { me with pmod_desc = Pmod_functor (name, mt, map_mod env body) }
   | _ -> me
 
-let rec live_structure (s : structure) : structure = List.map live_si s
-
-and live_si si =
-  match si.pstr_desc with
-  | Pstr_value (r, vbs) ->
-    let vb v = { v with pvb_expr = rewrite_live v.pvb_expr } in
-    { si with pstr_desc = Pstr_value (r, List.map vb vbs) }
-  | Pstr_eval (e, attrs) -> { si with pstr_desc = Pstr_eval (rewrite_live e, attrs) }
-  | Pstr_module mb -> { si with pstr_desc = Pstr_module { mb with pmb_expr = live_mod mb.pmb_expr } }
-  | Pstr_recmodule mbs ->
-    { si with
-      pstr_desc = Pstr_recmodule (List.map (fun mb -> { mb with pmb_expr = live_mod mb.pmb_expr }) mbs) }
-  | Pstr_include incl ->
-    { si with pstr_desc = Pstr_include { incl with pincl_mod = live_mod incl.pincl_mod } }
-  | _ -> si
-
-and live_mod me =
-  match me.pmod_desc with
-  | Pmod_structure s -> { me with pmod_desc = Pmod_structure (live_structure s) }
-  | Pmod_constraint (m, mt) -> { me with pmod_desc = Pmod_constraint (live_mod m, mt) }
-  | Pmod_functor (n, mt, b) -> { me with pmod_desc = Pmod_functor (n, mt, live_mod b) }
-  | _ -> me
-
 (* ---- ReScript -ppx binary protocol: `ppx <infile> <outfile>` ------------ *)
 let impl_magic = "Caml1999M022"
 let usage =
@@ -1169,18 +965,6 @@ let () =
      let structure = (Obj.magic payload : structure) in
      source_file := Filename.basename name;
      fine_grain_helpers := structure_has_component structure;
-     (* A `%` mark only means anything in a file this ppx rewrites. *)
-     if not !fine_grain_helpers then
-       (match find_live_structure structure with
-        | [] -> ()
-        | sites ->
-          prerr_endline
-            ("xote ppx: a % signal mark at " ^ String.concat ", " (List.map site_of sites)
-             ^ " but " ^ name
-             ^ " has no @xote.component, so nothing here expands it. Annotate a "
-             ^ "component in this file, or write the read out (Signal.get(...)).");
-          exit 2);
-     let structure = if !fine_grain_helpers then live_structure structure else structure in
      output_value oc (map_structure empty_env structure)
    else output_value oc payload);
   close_out oc

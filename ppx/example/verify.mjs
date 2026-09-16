@@ -559,20 +559,6 @@ check('each site is reported once, not per render', warnings.filter((w) => w.inc
 // leaf; the shadowing case deliberately reuses the file's `name`/`count`.
 const MaybeSignal = await import('xote/src/MaybeSignal.res.mjs');
 
-console.log('hyphenated attributes merged with attrs:');
-const hmOpen = Signal.make(false);
-const hm = mount(() => Demo.HyphenMerge.make({ open_: hmOpen, tag: 'tagged' }));
-check('an explicit attrs entry wins over a relocated hyphenated one', hm.querySelector('#hm-explicit').getAttribute('data-tone') === 'explicit');
-check('attrs=? still merges the relocated entry', hm.querySelector('#hm-optional').getAttribute('data-shown') === 'false');
-check('attrs=? keeps its own entries', hm.querySelector('#hm-optional').getAttribute('data-extra') === 'yes');
-check('an optional hyphenated attribute renders Some', hm.querySelector('#hm-maybe').getAttribute('data-tag') === 'tagged');
-Signal.set(hmOpen, true);
-check('relocated reactive entry updates through attrs=?', hm.querySelector('#hm-optional').getAttribute('data-shown') === 'true');
-const hmNone = mount(() => Demo.HyphenMerge.make({ open_: hmOpen, tag: undefined }));
-// (a tag selector: jsdom resolves `#id` through the document's id map, which
-// the earlier mount of the same component already owns)
-check('an optional hyphenated attribute is absent for None', !hmNone.querySelectorAll('span')[2].hasAttribute('data-tag'));
-
 console.log('a signal from another file:');
 Signal.set(Store.waiting, 4);
 Signal.set(Store.busy, false);
@@ -588,54 +574,14 @@ check('bare cross-module hyphenated attribute updates', document.querySelector('
 check('bare cross-module child updates', document.querySelector('#es-host').childNodes[0].textContent === '9');
 check('derived leaf updates', document.querySelector('#es-derived').className === 'many' && document.querySelector('#es-derived').textContent === '9');
 
-console.log('the % signal mark:');
-const mkTheme = Signal.make('light');
-Signal.set(Store.tone2, 'calm');
-Signal.set(Store.session, undefined);
-Signal.set(Demo.sigilStore.count, 7);
-const mk = mount(() => Demo.Marked.make({ propB: 'fixed', theme: mkTheme }));
-mk.__marker = 'MK';
-check('a marked attribute renders', mk.className === 'light');
-check('a marked cross-module signal renders in a hyphenated attribute', mk.querySelector('#mk-interp').getAttribute('data-tone') === 'calm');
-check('a marked value inside an interpolation renders', mk.querySelector('#mk-interp').textContent === 'light/fixed');
-check('an unmarked value is static', mk.querySelector('#mk-static').textContent === 'fixed');
-check('a marked record field renders', mk.querySelector('#mk-field').textContent === '7');
-check('a marked value in a derived expression renders', mk.querySelector('#mk-derived').textContent === 'CALM');
-check('a marked scrutinee picks a branch', mk.querySelector('#mk-out') !== null);
-Signal.set(mkTheme, 'dark');
-Signal.set(Store.tone2, 'warm');
-Signal.set(Demo.sigilStore.count, 9);
-const mkNow = document.querySelector('#mk-host');
-check('marked attribute updates', mkNow.className === 'dark');
-check('marked cross-module hyphenated attribute updates', mkNow.querySelector('#mk-interp').getAttribute('data-tone') === 'warm');
-check('marked interpolation updates', mkNow.querySelector('#mk-interp').textContent === 'dark/fixed');
-check('marked record field updates', mkNow.querySelector('#mk-field').textContent === '9');
-check('marked derived expression updates', mkNow.querySelector('#mk-derived').textContent === 'WARM');
-check('unmarked value stays put', mkNow.querySelector('#mk-static').textContent === 'fixed');
-check('host kept identity across every leaf update', mkNow.__marker === 'MK');
-Signal.set(Store.session, 'Ada');
-check('marked scrutinee swaps the branch', mkNow.querySelector('#mk-in') !== null && mkNow.querySelector('#mk-out') === null);
-check('the swapped branch renders its payload', mkNow.querySelector('#mk-in').textContent === 'Welcome, Ada');
-check('host survived the branch swap', document.querySelector('#mk-host').__marker === 'MK');
-
-console.log('the mark on a MaybeSignal prop, and %raw left alone:');
-const mwLive = Signal.make('live');
-const mw = mount(() => Demo.MarkedWrapper.make({ label: MaybeSignal.reactive(mwLive) }));
-check('a bare MaybeSignal attribute renders (runtime-coerced)', mw.className === 'live');
-check('%raw still works inside an annotated file', mw.textContent === 'live-raw');
-Signal.set(mwLive, 'changed');
-check('bare MaybeSignal attribute updates', mw.className === 'changed');
-check('written-out wrapper read updates', mw.textContent === 'changed-raw');
-const mwStatic = mount(() => Demo.MarkedWrapper.make({ label: MaybeSignal.$$static('fixed') }));
-check('a static MaybeSignal renders its value once', mwStatic.className === 'fixed');
-
 console.log('SSR stringifies a non-string attribute value:');
 const SSR = await import('xote/src/SSR.res.mjs');
-// a bool signal through a hyphenated attribute reaches the server's escaper as
-// a boolean; before it stringified, `replaceAll` threw there.
-const ssrHtml = SSR.renderToString(() => Demo.HyphenMerge.make({ open_: Signal.make(true), tag: 'tagged' }));
-check('a bool signal renders "true" on the server', ssrHtml.includes('data-shown="true"'));
-check('an optional hyphenated attribute renders its value', ssrHtml.includes('data-tag="tagged"'));
+// `Store.busy` is a bool signal in an `attrs` entry, so it reaches the server's
+// escaper as a boolean; before it stringified, `replaceAll` threw there.
+Signal.set(Store.busy, true);
+const ssrHtml = SSR.renderToString(() => Demo.ExternalSignal.make({}));
+check('a bool signal renders "true" on the server', ssrHtml.includes('data-busy="true"'));
+check('a cross-module signal renders its value on the server', ssrHtml.includes('class="9"'));
 
 // --- ...and silent when there is nothing to report ---------------------------
 // An unresolvable call is not evidence of a read. Probing decides by what the

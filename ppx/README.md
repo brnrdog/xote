@@ -104,8 +104,6 @@ Applied recursively to the component's returned JSX:
 | Bare child, block expression (`{let x = …; <span/>}`) | — | recurse into the tail, threading `let`-bound aliases — the inner JSX keeps fine-grained leaves |
 | Bare child, anything containing JSX (`{View.tracked(() => …)}`, `{View.fragment([<p/>])}`, `{xs->Array.map(x => <li/>)}`, `{try {<p/>} catch {…}}`) | — | the whole expression is walked: JSX inside it, and functions returning JSX, are node position and get decomposed; the result is then wrapped in `View.child` |
 | Bare child, otherwise (`{Signal.get(x)}`, `{"lit"}`, `{someNode}`) | — | wrapped in `View.child` — see [Bare value children](#bare-value-children) |
-| Anything marked `%name` | yes, by declaration | the mark is rewritten to `Signal.get(name)` first, and the rules above apply to the result — see [The `%` signal mark](#the--signal-mark-poc) |
-| **Hyphenated attribute** on an intrinsic element (`data-hidden={…}`, `aria-busy="true"`) | — | routed into the `attrs` escape hatch as a value leaf — see [Hyphenated attributes](#hyphenated-attributes-poc) |
 
 The result: reactivity lives at the leaves; `View.tracked` is emitted
 **surgically**, only around a child region whose node *structure* actually
@@ -209,9 +207,6 @@ Every bare non-control-flow child is wrapped in the runtime helper
 - a bare **signal** (`{count}` where `count: Signal.t<_>`) becomes reactive
   text — signals are detected positively by their runtime shape, so an
   arbitrary record is never mistaken for one;
-- a bare **`MaybeSignal.t`** is read the same way: `Static` renders its
-  contents once, `Reactive` becomes reactive text. Both are re-coerced, so a
-  wrapper holding a node or an array renders like any other child;
 - an **array** is coerced element-wise into a fragment (an array of nodes
   renders each node; an array of scalars renders their text);
 - `null`/`undefined` render nothing;
@@ -226,101 +221,6 @@ still tracked for the structural swap, but each scalar branch is coerced by
 The explicit `View.Text/Int/Float/Bool` primitives remain available (they are
 what non-PPX code uses, and give stronger `int`/`float` typing on the child);
 `View.child` is just the zero-ceremony default under `@xote.component`.
-
-### The `%` signal mark (POC)
-
-> **Status:** proof of concept — see [Not settled yet](#not-settled-yet).
-
-Everything else in this document works out *which* values are reactive. The
-mark is the way to simply say so:
-
-```rescript
-@xote.component
-let make = (~propA: Signal.t<string>, ~propB: string, ~theme: Signal.t<string>) =>
-  <div class={%theme}>
-    <div> {%propA} </div>   /* reactive: updates with propA */
-    <div> {propB} </div>    /* static: rendered once */
-  </div>
-```
-
-`%name` is rewritten to `Signal.get(name)` before any other rule runs, so from
-there it is an ordinary visible read: the leaf is thunked, a marked scrutinee
-tracks its `switch`, and a marked value inside a larger expression makes that
-expression reactive.
-
-```rescript
-{switch %user {
- | None => "Unauthorized"
- | Some(user) => `Welcome, ${user->User.name}`
- }}
-```
-
-Because the mark carries no type knowledge, **it reaches what inference
-cannot** — a signal from another file, one held in a record field, one behind a
-path:
-
-```rescript
-<p class={%Store.tone} data-count={%store.stats.count}> {%Store.waiting} </p>
-```
-
-A dotted mark is read the way you would read the path yourself: leading
-capitalised segments are a module (`%Store.tone`), and once a lowercase segment
-starts, the rest are record fields (`%store.count` reads the field, it does not
-look for a module named `store`).
-
-**Why this spelling.** ReScript reserves `%` for ppx extensions, and it is the
-only form that carries the name *inside* the mark. `@name` does not parse (an
-attribute needs a name *and* something to attach to), `@@name` is the
-file-level attribute form, and the attribute that does parse — `@live name` —
-puts the mark beside the name rather than on it. `%` also fails loudly on its
-own: an extension nobody expands is a ReScript error, where an unclaimed
-attribute is silently dropped. Using the mark in a file with no
-`@xote.component` is a build error naming the site, because nothing there would
-expand it.
-
-**What the ppx is and is not for.** A signal handed straight to Xote —
-`class={theme}`, `{count}`, including one from another module — is read by the
-*runtime*, with or without the annotation. The ppx is what makes mixed bare
-children in one element possible (ReScript collects an element's children into
-one array, so only a per-child wrapper breaks the type), what saves the `() =>`
-on a compound reactive value, and what emits `View.tracked` around a
-conditional. The mark exists for the compound case.
-
-**What is not a mark.** ReScript's own extensions keep working: only a
-payload-free value path is a signal mark, so `%raw(…)`, `%todo` and friends are
-left alone.
-
-A mark always reads through `Signal`. A `MaybeSignal.t` needs nothing where
-Xote receives it — the runtime reads the wrapper for an attribute or a child —
-and inside a larger expression you write `MaybeSignal.get(label)`.
-
-### Hyphenated attributes (POC)
-
-ReScript parses `<div data-hidden={open_} aria-busy="true">`, but no typed prop
-can carry a hyphenated name, so the JSX transform rejects it ("The field
-data-hidden does not belong to type XoteJSX.Elements.props"). Under the
-annotation, the ppx moves such attributes on an **intrinsic element** into the
-`attrs` escape hatch, which takes any key:
-
-```rescript
-<p data-count={count} aria-busy="true" attrs=[("aria-controls", "x")] />
-/* ⇒ */
-<p attrs=[("aria-controls", "x"), ("data-count", () => Signal.get(count)), ("aria-busy", "true")] />
-```
-
-The value is a leaf like any other (a signal-typed name reads, an eager read is
-thunked, an unresolvable call is probed). Relocated entries go *before* the
-user's own, so an explicit `attrs` entry for the same key still wins — `attrs`
-is the documented override — and an `attrs=?{opt}` merges too. An optional
-hyphenated attribute (`data-tag=?{opt}`) is removed for `None`. A `data-*`
-value is rendered by `setAttribute` (and stringified the same way on the
-server), so a boolean renders the literal `"true"`/`"false"` — unlike the
-typed `hidden`, which is a boolean attribute and is added/removed. Because
-all `attrs` entries share one array type, each relocated value is passed
-through `Obj.magic`; the runtime coercion accepts every shape a typed
-attribute does, and the value expression itself is still type-checked before
-the cast. A hyphenated attribute on a *user* component is left alone (and is
-the type error it is today).
 
 ### Control flow tracks only the condition
 
@@ -371,7 +271,6 @@ shadowing it with a non-alias removes it) recognises all of these:
 | Open | `open Signal` … `get(sig)` | bare `get` under an open |
 | Local reactive helper | `let cls = () => Signal.get(x) ? …` … `cls()` | function binding whose body eagerly reads a signal; its *call* counts |
 | Same-file module helper | `module Store = { let count = s => Signal.get(s) }` … `Store.count(s)` | the module body is walked, and its reactive names qualified |
-| The mark (POC) | `{%count}`, `class={%Store.tone}` | not detection at all — the mark *is* the read, rewritten before detection runs |
 
 `Signal.peek` (and `MaybeSignal.peek`) is intentionally **not** a read — it is an
 untracked read, so a value that only peeks stays static (verified by the
@@ -379,9 +278,13 @@ example's `PeekShadow` case, where a reactive helper rebound to a `peek`-based
 function is dropped from the alias environment and its attribute is left as a
 plain, once-evaluated string).
 
-Only *eager* reads trigger a thunk. A read deferred inside a nested lambda — a
-`() => …` you wrote yourself, a `Computed`, a `MaybeSignal.reactive(Computed.make(…))`,
-or a helper that merely *returns* a thunk — is already reactive and left as-is.
+Only *eager* reads trigger a thunk, and "eager" means evaluated when the leaf
+is. A `() => …` you wrote yourself, a `Computed`, a
+`MaybeSignal.reactive(Computed.make(…))`, or a helper that merely *returns* a
+thunk is already reactive and left as-is. A lambda with a real parameter is
+not deferred, though — `xs->Array.map(x => x ++ Signal.get(suffix))` runs its
+callback while the leaf is evaluated, so the read counts and the leaf is
+thunked.
 Because of that, when detection can't see a read, the safe fix is always to wrap
 the value in `() =>` yourself: it will not be double-wrapped.
 
@@ -456,6 +359,11 @@ What is *not* probed, because it can never be a hidden scalar read: event
 handlers, the `attrs` escape-hatch array and the `data` object, values
 containing JSX, and calls into `View`/`Html`/`Signal`/`Computed`/`MaybeSignal`
 themselves.
+
+The `int`-typed props (`maxLength`, `minLength`, `rows`, `cols`, `tabIndex`)
+are left alone for the same reason: no reactive form exists for them, so a
+thunk there could only be a type error, and the checker reports it at the value
+you wrote.
 
 Event handlers, `attrs` and `data` are not thunked either — none of these
 props can hold a thunk (`attrs` is an `array<(string, 'a)>`, `data` an
@@ -654,6 +562,9 @@ load-bearing for you.
   also stop an explicit `View.tracked` block from seeing a read written in its
   own body, which is that helper's documented contract. That trade is the open
   question here.
+
+## Known limitations
+
 - **Signal detection is syntactic** (though alias- and helper-aware — see the
   table above). It follows `let`/`module`/`open` aliases, local reactive helpers
   and same-file module helpers, but not indirection it cannot see the definition

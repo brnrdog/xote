@@ -186,40 +186,16 @@ const fn = (src, name) => {
 /* Whitespace-insensitive, for shapes ReScript wraps across lines. */
 const compact = (s) => s.replace(/\s+/g, ' ');
 
-console.log('\nthe % signal mark: says it, instead of inferring it');
-const mk = compact(fn(demo, 'Marked'));
-has('a marked name becomes a read and the leaf is thunked', mk,
-  'class: () => Signal$Xote.get(theme)',
-  'The mark is rewritten before anything else runs, so from there it is an ' +
-  'ordinary visible read and the existing rules thunk the leaf.');
-has('a marked cross-module signal is read', mk,
-  'Signal$Xote.get(Store.tone2)',
-  'This is the case inference cannot reach: the ppx never sees Store.res, but ' +
-  'the mark needs no type knowledge.');
-has('a marked record field is read', mk,
-  'Signal$Xote.get(sigilStore.count)',
-  'A dotted mark whose segments are lowercase is a field path, not a module ' +
-  'path — `%store.count` must not compile to a lookup in a module named store.');
-has('a marked scrutinee tracks its switch', mk,
-  'View$Xote.tracked(',
-  'Marking the scrutinee makes the structural swap reactive, with the branch ' +
-  'leaves still decomposed on their own.');
-lacks('an unmarked value is left static', mk,
-  'Signal$Xote.get(propB)',
-  'The mark is what distinguishes reactive from static; marking nothing must ' +
-  'change nothing.');
-const mw = compact(fn(demo, 'MarkedWrapper'));
-has('a written-out wrapper read is thunked into a leaf', mw,
-  '() => MaybeSignal$Xote.get(label)',
-  'A mark always reads through Signal, so a MaybeSignal is written out; the ' +
-  'ppx still makes the leaf fine-grained.');
-has('a bare wrapper attribute is left to the runtime', mw,
-  'class: label',
-  'Xote receives it, so it coerces the wrapper itself — no ppx involvement.');
-has('ReScript\'s own extensions are left alone', demo,
-  'function () { return "raw" }',
-  '`%raw` and friends are extensions too; only a payload-free value path is a ' +
-  'signal mark.');
+console.log('\ncross-module signals: the runtime\'s job, not the ppx\'s');
+const es = compact(fn(demo, 'ExternalSignal'));
+has('a bare cross-module signal is left to the runtime', es,
+  'View$Xote.child(Store.waiting)',
+  'The ppx cannot see Store.res, and does not need to: the runtime coerces ' +
+  'the value where Xote receives it.');
+has('a written-out read is thunked into a leaf', es,
+  '() => { if (Signal$Xote.get(Store.waiting) > 4)',
+  'Inside an expression the value goes to ordinary ReScript, so the read is ' +
+  'written; the ppx still turns the leaf fine-grained.');
 
 console.log(`\n${pass} passed, ${failures.length} failed`);
 

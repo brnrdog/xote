@@ -14,8 +14,3 @@ let isBusy = () => Signal.get(busy)
 
 /* No signal read at all — the probe must stay silent on this one. */
 let title = (prefix: string) => prefix ++ "!"
-
-/* For the `%` mark, and for the runtime's own coercion: a signal in another
-   file is exactly what the ppx cannot see. */
-let tone2 = Signal.make("calm")
-let session: Signal.t<option<string>> = Signal.make(None)

@@ -605,38 +605,15 @@ module DisposedBranch = {
     </div>
 }
 
-let hyphenTheme = Signal.make("light")
-
-/* ===========================================================================
-   Hyphenated attributes, and the `%` signal mark: the two additions that need
-   the ppx. Everything else about a signal in JSX position is the runtime's
-   job — see cases 44-46.
-   =========================================================================== */
-
-/* Case 43: hyphenated attributes and the `attrs` escape hatch together. An
-   explicit `attrs` entry for the same key wins over a relocated one (`attrs`
-   is the documented override), an optional `attrs=?` still merges, and an
-   optional hyphenated attribute (`data-x=?{opt}`) is removed for `None`. */
-let hyphenExtra = Some([("data-extra", "yes")])
-module HyphenMerge = {
-  @xote.component
-  let make = (~open_: Signal.t<bool>, ~tag: option<string>) =>
-    <div id="hm-host">
-      <span id="hm-explicit" data-tone="relocated" attrs=[("data-tone", "explicit")] />
-      <span id="hm-optional" data-shown={open_} attrs=?{hyphenExtra} />
-      <span id="hm-maybe" data-tag=?{tag} />
-    </div>
-}
-
-/* Case 44: a signal from *another file*. The ppx never sees `Store.res`, so it
+/* Case 43: a signal from *another file*. The ppx never sees `Store.res`, so it
    knows nothing about these values — and it does not need to where Xote
    receives them: a bare signal in an attribute or a child is coerced by the
    runtime. Inside a larger expression the value goes to ordinary ReScript
-   instead, so there the read is written (or marked, see case 45). */
+   instead, so there the read is written out, and the ppx makes it a leaf. */
 module ExternalSignal = {
   @xote.component
   let make = () =>
-    <div id="es-host" class={Store.waiting} data-busy={Store.busy}>
+    <div id="es-host" class={Store.waiting} attrs=[("data-busy", Store.busy)]>
       {Store.waiting}
       <span id="es-derived" class={Signal.get(Store.waiting) > 4 ? "many" : "few"}>
         {Signal.get(Store.waiting)}
@@ -644,43 +621,3 @@ module ExternalSignal = {
     </div>
 }
 
-/* ===========================================================================
-   The `%` signal mark. Where inference guesses, the mark tells: `%name` is
-   rewritten to `Signal.get(name)` before anything else runs, so it is an
-   ordinary visible read from there on. Because it needs no type knowledge it
-   reaches what inference cannot — another file's signal, a record field.
-   =========================================================================== */
-
-/* Case 45: the mark in every position — attribute, bare child, interpolation,
-   hyphenated attribute, a record field, and a switch scrutinee, over signals
-   this file never declares. The unmarked `propB` stays static, which is the
-   point of marking at all. */
-type sigilStore = {count: Signal.t<int>}
-let sigilStore = {count: Signal.make(7)}
-
-module Marked = {
-  @xote.component
-  let make = (~propB: string, ~theme: Signal.t<string>) =>
-    <div id="mk-host" class={%theme}>
-      <span id="mk-interp" data-tone={%Store.tone2}> {`${%theme}/${propB}`} </span>
-      <span id="mk-static"> {propB} </span>
-      <span id="mk-field"> {%sigilStore.count} </span>
-      <span id="mk-derived"> {%Store.tone2->String.toUpperCase} </span>
-      {switch %Store.session {
-      | None => <i id="mk-out"> {"Unauthorized"} </i>
-      | Some(name) => <b id="mk-in"> {`Welcome, ${name}`} </b>
-      }}
-    </div>
-}
-
-/* Case 46: a mark always reads through `Signal`, so a `MaybeSignal.t` is not
-   marked: bare, the runtime reads it wherever Xote receives it, and inside an
-   expression the read is written out. ReScript's own extensions (`%raw` and
-   friends) are left alone — only a payload-free value path is a mark. */
-let rawLabel: unit => string = %raw(`function () { return "raw" }`)
-
-module MarkedWrapper = {
-  @xote.component
-  let make = (~label: MaybeSignal.t<string>) =>
-    <span id="mw-host" class={label}> {`${MaybeSignal.get(label)}-${rawLabel()}`} </span>
-}
