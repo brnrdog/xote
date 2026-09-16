@@ -178,11 +178,28 @@ type and the runtime coercion accepts any shape anyway.
   names by set difference against the outer scope, which dropped
   `Store.count` whenever a top-level `count` existed (and, before this
   change, `Store.helper()` whenever a top-level `helper` did).
+- **Cross-module signals are a boundary, not a gap.** `Store.waiting`
+  defined in another file is unknown to the ppx, which runs on one file's
+  syntax tree before type checking; only the type checker knows what it is,
+  and ReScript exposes no post-typing hook to external ppxes. Reading the
+  compiler's `.cmi` for `Store` from the build directory is technically
+  possible but would couple the ppx to the compiler's internal type
+  representation and the build layout on top of the parsetree ABI it
+  already vendors — a maintenance liability, not a plan. Reading `.resi`
+  files is worse (an interface is optional, and the common store module has
+  none), and a hand-maintained list of known signals is a second source of
+  truth. So the design owns the boundary: the ppx's type knowledge is
+  file-local by construction — props, locals, same-file stores, which is
+  where most signal use in a component lives — and a cross-module signal
+  follows the rule the ppx already has for hidden reads: bare use works
+  through the runtime, a derived expression writes `Signal.get(Store.waiting)`
+  (a visible read, so the leaf is reactive), and forgetting it is an
+  immediate type error rather than a stale leaf. Example case 44 pins this.
 - **Type aliases and structure.** `type counter = Signal.t<int>`, a signal
   inside a record field (`store.count`), or one returned by a function are
-  invisible; they keep working by the runtime path when bare, and stay a type
-  error when derived. Following aliases declared in the same file is the
-  obvious next step.
+  invisible for the same reason; they keep working by the runtime path when
+  bare, and stay a type error when derived. Following a `type` alias declared
+  in the same file is the one cheap extension.
 - **User-component props.** `<View.Show when_={open_}>` could become
   `when_={MaybeSignal.reactive(open_)}` under the same knowledge. Left out
   because the target prop type is unknown to the ppx and the current rule
