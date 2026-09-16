@@ -260,6 +260,46 @@ lacks('an optional Signal.t prop without a default is not read', os,
   'Signal$Xote.get(maybe)',
   '`~maybe: Signal.t<int>=?` is an `option<Signal.t<int>>` in the body.');
 
+
+console.log('\nsignal-typed values: which callees get the value');
+const ca = compact(fn(demo, 'Callees'));
+has('a callback inside a leaf reads the signal', ca,
+  't + "-" + Signal$Xote.get(name)',
+  'A lambda with a real parameter is run by its callee while the leaf is ' +
+  'evaluated; only `() => …` is deferred.');
+has('a local helper with a value parameter gets the value', ca,
+  'greet(Signal$Xote.get(name))',
+  '`greet` uses `who` in a template string, so it evidently takes a value.');
+has('a local helper whose parameter goes to Signal.peek gets the signal', ca,
+  '() => tone(count))',
+  'The body hands `s` to `Signal.peek`, so the parameter is a signal; the ' +
+  'call is left alone (it is a one-shot peek, so not thunked either).');
+has('a local helper with an annotated Signal.t parameter gets the signal', ca,
+  '() => MaybeSignal$Xote.reactive(count))',
+  'The annotation is the evidence.');
+has('a cross-module helper is left exactly as written', ca,
+  'Store.wrap(count)',
+  'The ppx cannot see `Store.wrap`; rewriting its argument would break code ' +
+  'that compiles today. The call is probed, as before.');
+has('a Signal.t constraint hands over the signal', ca,
+  'Store.describe(name)',
+  '`(name: Signal.t<string>)` is the typed opt-out; the constraint itself ' +
+  'compiles away.');
+const ou = compact(fn(demo, 'OptionalUnwrap'));
+has('a Some(count) payload over an optional signal prop is read', ou,
+  'View$Xote.child(() => Signal$Xote.get(count$1))',
+  'The optional prop is an option; its `Some` payload is the signal.');
+has('a Some(label) payload over an optional MaybeSignal prop is read', ou,
+  'MaybeSignal$Xote.get(label)',
+  'Same, through the wrapper\'s own get.');
+lacks('the optional prop itself is never read', ou,
+  'Signal$Xote.get(props.count',
+  'Reading an option as a signal would be a type error.');
+const hm = compact(fn(demo, 'HyphenMerge'));
+has('relocated entries go before the user\'s attrs so attrs wins', hm,
+  '[ "data-tone", "relocated" ], [ "data-tone", "explicit" ]',
+  '`attrs` is the documented override; the runtime keeps the last entry per key.');
+
 console.log(`\n${pass} passed, ${failures.length} failed`);
 
 if (failures.length > 0) {

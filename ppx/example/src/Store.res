@@ -14,3 +14,9 @@ let isBusy = () => Signal.get(busy)
 
 /* No signal read at all — the probe must stay silent on this one. */
 let title = (prefix: string) => prefix ++ "!"
+
+/* Signal-taking helpers in *another file*, for the signal-typed-value cases:
+   the ppx cannot see these parameters, so a signal-typed name passed to them
+   must be left alone (and the call probed, exactly as before). */
+let wrap = (s: Signal.t<int>): MaybeSignal.t<int> => MaybeSignal.reactive(s)
+let describe = (s: Signal.t<string>) => "<" ++ Signal.get(s) ++ ">"

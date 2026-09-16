@@ -746,3 +746,77 @@ module OptionalSignal = {
       }}
     </span>
 }
+
+/* Case 40: which callees get the value. A stdlib call (`String.toUpperCase`),
+   an operator, a structural position and a *callback* (`Array.map(t => …)`,
+   run by its callee while the leaf is evaluated) all read the signal. A local
+   helper is read by what its body says about the parameter: `greet` uses
+   `who` in a template string (a value), `tone` passes `s` to `Signal.peek`
+   (the signal), `wrapLocal` annotates it. A helper from another file
+   (`Store.wrap`, `Store.describe`) is opaque, so its argument is left as
+   written and the call is probed as before — code that compiled without this
+   rule still compiles. `(count: Signal.t<int>)` is the typed way to hand the
+   signal to anything. */
+let greet = who => `Hello, ${who}`
+let tone = s => Signal.peek(s) > 0 ? "pos" : "zero"
+let wrapLocal = (s: Signal.t<int>) => MaybeSignal.reactive(s)
+let plusOne = n => n + 1
+module Callees = {
+  @xote.component
+  let make = (~count: Signal.t<int>, ~name: Signal.t<string>, ~tags: array<string>) =>
+    <div id="ca-host" class={tags->Array.map(t => t ++ "-" ++ name)->Array.join(" ")}>
+      <span id="ca-greet"> {greet(name)} </span>
+      <span id="ca-tone"> {tone(count)} </span>
+      <span id="ca-plus"> {plusOne(count)} </span>
+      <span id="ca-wrap" class={wrapLocal(count)}> {Store.describe(name)} </span>
+      <span id="ca-store" class={Store.wrap(count)}> {"x"} </span>
+      <span id="ca-explicit"> {Store.describe((name: Signal.t<string>))} </span>
+    </div>
+}
+
+/* Case 41: an optional signal prop unwrapped with `switch`: inside
+   `Some(count)` the payload is the signal, so the derived class and the bare
+   child read it — and a `MaybeSignal.t` optional prop (the usual way a
+   component declares a static-or-reactive `label`) reads through
+   `MaybeSignal.get`. */
+module OptionalUnwrap = {
+  @xote.component
+  let make = (~count: Signal.t<int>=?, ~label: MaybeSignal.t<string>=?) =>
+    <div id="ou-host">
+      {switch count {
+      | Some(count) => <b id="ou-count" class={count > 0 ? "pos" : "zero"}> {count} </b>
+      | None => <i id="ou-none"> {"none"} </i>
+      }}
+      {switch label {
+      | Some(label) => <em id="ou-label"> {label} </em>
+      | None => View.null()
+      }}
+    </div>
+}
+
+/* Case 42: a same-file module signal whose short name is also a top-level
+   signal (`count` is one, above). `Hits.count` must still be a signal-typed
+   name — deriving the module's names by set difference against the outer
+   scope dropped it. */
+module HitsToo = {
+  let count = Signal.make(100)
+}
+module ModuleShadowed = {
+  @xote.component
+  let make = () => <span id="msh-host" class={HitsToo.count > 100 ? "over" : "under"}> {HitsToo.count} </span>
+}
+
+/* Case 43: hyphenated attributes and the `attrs` escape hatch together. An
+   explicit `attrs` entry for the same key wins over a relocated one (`attrs`
+   is the documented override), an optional `attrs=?` still merges, and an
+   optional hyphenated attribute (`data-x=?{opt}`) is removed for `None`. */
+let hyphenExtra = Some([("data-extra", "yes")])
+module HyphenMerge = {
+  @xote.component
+  let make = (~open_: Signal.t<bool>, ~tag: option<string>) =>
+    <div id="hm-host">
+      <span id="hm-explicit" data-tone="relocated" attrs=[("data-tone", "explicit")] />
+      <span id="hm-optional" data-shown={open_} attrs=?{hyphenExtra} />
+      <span id="hm-maybe" data-tag=?{tag} />
+    </div>
+}

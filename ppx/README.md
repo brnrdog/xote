@@ -227,7 +227,7 @@ what non-PPX code uses, and give stronger `int`/`float` typing on the child);
 ### Signal-typed values (POC)
 
 > **Status:** proof of concept. The mechanism is implemented and covered by
-> `example/` (cases 32–39, both suites), but the rules below are the first
+> `example/` (cases 32–43, both suites), but the rules below are the first
 > cut and are expected to move — see [Not settled yet](#not-settled-yet).
 
 Everything above detects *reads*: a `Signal.get(x)` written out. This rule
@@ -285,39 +285,48 @@ A lambda parameter, a `switch` case payload, a local `let`, a helper's parameter
 each rebind the name: inside `render={count => <li> {count} </li>}` the name is
 the row, not the signal, and the leaf is static.
 
+An optional prop with no default is an option, not a signal, but unwrapping it
+the idiomatic way re-enters: in `switch count { | Some(count) => … }` over
+`~count: Signal.t<int>=?`, the payload is the signal for that case — and the
+same for `~label: MaybeSignal.t<string>=?`, the usual way a component declares
+a static-or-reactive prop.
+
 **Where the rewrite applies.** Only in the positions the ppx already treats as
 value leaves — intrinsic-element attribute values, bare `{…}` children,
-`View.Text/Int/Float/Bool` children — plus the condition, scrutinee and `when`
-guards of control flow in node position (`{if open_ { … }}` with a
-`Signal.t<bool>` reads it and tracks the branch). It does **not** apply to:
+`View.Text/Int/Float/Bool` children (a derived expression there; a bare signal
+is already rendered by the value component itself) — plus the condition,
+scrutinee and `when` guards of control flow in node position (`{if open_ { … }}`
+with a `Signal.t<bool>` reads it and tracks the branch). Never in event
+handlers, `attrs` or `data` (left exactly as written, as before — a signal
+entry there is reactive already, because the runtime reads it), never in
+user-component props (`<Card count={count} />` passes the signal, and that is
+how a prop *becomes* reactive: the child declares `~count: Signal.t<int>` and
+its own `{count}` is the reactive leaf), and never outside JSX —
+`let s = [propA, propB]->Array.join(", ")` above the markup is ordinary
+ReScript and still a type error. Reactivity follows the expression in JSX
+position, exactly as for hoisted reads.
 
-- **lambdas** — a `() => …` is deferred code that reads what it reads, so
-  `class={() => f(count)}` passes the signal to `f`;
-- the **bare signal arguments of a signal-aware callee** — Xote's and
-  rescript-signals' own entry points (`Signal.get(count)`, `Signal.peek(count)`,
-  `MaybeSignal.reactive(count)`, `View.signalAttr("x", count)`, `Router.*`,
-  `SSRState.*`), a read alias (`g(count)` after `let g = Signal.get`, `S.get`,
-  a bare `get` under `open Signal`) and a local reactive helper
-  (`double(count)`: calling it is already a read, and it was written against
-  the signal). The pipe form is the same call: `count->Signal.get` is left
-  alone, `name->String.toUpperCase` reads;
-- **event handlers, `attrs` and `data`** — left exactly as written, as before.
-  A signal entry there is reactive already, because the runtime reads it;
-- **user-component props** — never rewritten, as before. `<Card count={count} />`
-  passes the signal, and that is how a prop *becomes* reactive: the child
-  declares `~count: Signal.t<int>` and its own `{count}` is the reactive leaf;
-- **code outside a JSX leaf** — `let s = [propA, propB]->Array.join(", ")`
-  above the markup is ordinary ReScript and still a type error. Reactivity
-  follows the expression in JSX position, exactly as for hoisted reads.
+**Within a leaf, a name is read only where the ppx can justify it** — where
+leaving the signal would have been a type error or a duck-typed runtime read,
+never where code that compiles today could mean the signal itself:
 
-**Every other callee is assumed to take the value**: `String.trim(name)`,
-`format(count)`. That is what a leaf almost always means, and when the guess
-is wrong — the helper wanted the signal — the type error names the identifier,
-and the fix is the escape hatch that already exists: `{() => format(count)}`.
-The one thing the rewrite can never do is change the meaning of code that
-compiles today: a name is only rewritten where leaving it would have been a
-type error or a duck-typed runtime read, and an explicit `Signal.get`/`peek`
-is never wrapped a second time.
+| The name is… | Read? |
+|---|---|
+| the whole leaf, a condition or scrutinee, a structural part (array, tuple, record or variant payload), an operand (`name ++ "!"`, template strings), a field access (`user.name` on a `Signal.t<user>`) | yes |
+| an argument of a standard-library function (`String.trim(name)`, `Int.toString(count)`, `Belt.*`, `Js.*`) | yes |
+| inside a **callback** — `tags->Array.map(t => t ++ suffix)`, run by its callee while the leaf is evaluated | yes (and the leaf is thunked, since the read is eager) |
+| inside a `() => …` **thunk** | no — deferred code is the user's, and reads what it reads, so `{() => helper(count)}` still passes the signal |
+| a bare argument of a **signal-aware callee** — Xote's and rescript-signals' entry points (`Signal.get(count)`, `Signal.peek(count)`, `MaybeSignal.reactive(count)`, `View.signalAttr("x", count)`), a read alias (`g(count)` after `let g = Signal.get`, `S.get`, a bare `get` under `open Signal`) | no — and an explicit read is never wrapped twice |
+| under a signal-typed **constraint**, `(count: Signal.t<int>)` | no — the typed way to hand the signal to anything |
+| an argument of a **local function** (same file, any module) | by what its body says about that parameter: annotated `Signal.t`, or handed to `Signal.get`/`peek`/a signal-aware callee → the signal; annotated with another type, or used as an operand, a structural part or a stdlib argument → read; no evidence either way → left alone |
+| an argument of a function from **another module** (`Store.wrap(count)`), or of anything the ppx cannot resolve | no — left exactly as written and probed, as before |
+
+The pipe form is the same call: `count->Signal.get` is left alone,
+`name->String.toUpperCase` reads, `count->Store.wrap` is left alone. When the
+guess for a local function is wrong, the type error points at the identifier,
+and the constraint form is the fix; when a function from another module wants
+the *value*, write the read: `Store.format(Signal.get(count))` — that leaf is
+then thunked like any visible read.
 
 ### Hyphenated attributes (POC)
 
@@ -334,15 +343,18 @@ annotation, the ppx moves such attributes on an **intrinsic element** into the
 ```
 
 The value is a leaf like any other (a signal-typed name reads, an eager read is
-thunked, an unresolvable call is probed), and the entry is appended after the
-user's own, so it wins over a same-key `attrs` entry exactly as `attrs` wins
-over a typed prop. A `data-*` value is rendered by `setAttribute`, so a boolean
-renders the literal `"true"`/`"false"` (unlike the typed `hidden`, which is a
-boolean attribute and is added/removed). Because all `attrs` entries share one
-array type, each relocated value is passed through `Obj.magic`; the runtime
-coercion accepts every shape a typed attribute does, and the value expression
-itself is still type-checked before the cast. A hyphenated attribute on a
-*user* component is left alone (and is the type error it is today).
+thunked, an unresolvable call is probed). Relocated entries go *before* the
+user's own, so an explicit `attrs` entry for the same key still wins — `attrs`
+is the documented override — and an `attrs=?{opt}` merges too. An optional
+hyphenated attribute (`data-tag=?{opt}`) is removed for `None`. A `data-*`
+value is rendered by `setAttribute` (and stringified the same way on the
+server), so a boolean renders the literal `"true"`/`"false"` — unlike the
+typed `hidden`, which is a boolean attribute and is added/removed. Because
+all `attrs` entries share one array type, each relocated value is passed
+through `Obj.magic`; the runtime coercion accepts every shape a typed
+attribute does, and the value expression itself is still type-checked before
+the cast. A hyphenated attribute on a *user* component is left alone (and is
+the type error it is today).
 
 ### Control flow tracks only the condition
 
@@ -678,16 +690,20 @@ load-bearing for you.
   question here.
 - **Signal-typed values are a proof of concept.** The rule itself — a
   signal-typed name in a leaf is a read — is the one this exploration set out
-  to test, and the pieces around it are first cuts: the "every unknown callee
-  takes the value" guess (a helper written against the signal fails to compile
-  until wrapped in `() => …`), the `Obj.magic` that lets a relocated
+  to test, and the pieces around it are first cuts: the evidence rules for
+  which callees get the value (a local function with no evidence about a
+  parameter, and every function from another module, receive the signal —
+  which keeps today's code compiling but means `Store.format(count)` needs
+  an explicit `Signal.get`), the `Obj.magic` that lets a relocated
   hyphenated attribute share the `attrs` array with the user's entries, and
   the boundary that a derived expression is reactive inside JSX but a type
   error one line above it. Type detection is by spelling (`Signal.t`, a
   known constructor), so a `type counter = Signal.t<int>` alias is invisible,
-  as is a signal reached through a record field or a function's return
-  value. Whether user-component props should also auto-wrap a signal-typed
-  name in `MaybeSignal.reactive` is deliberately left open. See
+  as is a signal reached through a record field, a function's return value,
+  or an `open`/`include` of a same-file module; all of those keep working by
+  the runtime's duck typing when bare. Whether user-component props should
+  also auto-wrap a signal-typed name in `MaybeSignal.reactive` is
+  deliberately left open. See
   [`docs/proposals/signal-typed-leaves.md`](../docs/proposals/signal-typed-leaves.md)
   for the exploration and the alternatives considered.
 

@@ -686,6 +686,73 @@ check('explicit read of the payload updates', osSome.textContent === '4');
 const osNone = mount(() => Demo.OptionalSignal.make({}));
 check('absent optional prop renders the fallback', osNone.textContent === '-1');
 
+
+console.log('which callees get the value:');
+const caCount = Signal.make(2);
+const caName = Signal.make('ada');
+const ca = mount(() => Demo.Callees.make({ count: caCount, name: caName, tags: ['a', 'b'] }));
+ca.__marker = 'CA';
+check('a callback inside a leaf reads the signal', ca.className === 'a-ada b-ada');
+check('a local helper whose param is a value gets the value', ca.querySelector('#ca-greet').textContent === 'Hello, ada');
+check('a local helper whose param goes to Signal.peek gets the signal', ca.querySelector('#ca-tone').textContent === 'pos');
+check('a local helper using its param as an operand gets the value', ca.querySelector('#ca-plus').textContent === '3');
+check('a local helper with an annotated Signal.t param gets the signal', ca.querySelector('#ca-wrap').className === '2');
+check('a cross-module helper gets the signal (left as written)', ca.querySelector('#ca-wrap').textContent === '<ada>');
+check('a cross-module helper returning a wrapper still renders', ca.querySelector('#ca-store').className === '2');
+check('a (name: Signal.t<_>) constraint hands over the signal', ca.querySelector('#ca-explicit').textContent === '<ada>');
+Signal.set(caCount, 0);
+Signal.set(caName, 'bo');
+check('callback leaf updates', document.querySelector('#ca-host').className === 'a-bo b-bo');
+check('value-param helper leaf updates', document.querySelector('#ca-greet').textContent === 'Hello, bo');
+check('operand-param helper leaf updates', document.querySelector('#ca-plus').textContent === '1');
+check('annotated-signal-param helper stays reactive through its wrapper', document.querySelector('#ca-wrap').className === '0');
+check('cross-module wrapper stays reactive (runtime-handled)', document.querySelector('#ca-store').className === '0');
+check('peek-based helper is a one-shot read', document.querySelector('#ca-tone').textContent === 'pos');
+check('host kept identity', document.querySelector('#ca-host').__marker === 'CA');
+
+console.log('optional signal props unwrapped with switch:');
+const ouCount = Signal.make(1);
+const ouLabel = Signal.make('lbl');
+const ou = mount(() => Demo.OptionalUnwrap.make({ count: ouCount, label: MaybeSignal.reactive(ouLabel) }));
+check('Some(count) payload drives a derived class', ou.querySelector('#ou-count').className === 'pos');
+check('Some(count) payload renders as a bare child', ou.querySelector('#ou-count').textContent === '1');
+check('Some(label) payload reads through MaybeSignal.get', ou.querySelector('#ou-label').textContent === 'lbl');
+Signal.set(ouCount, 0);
+Signal.set(ouLabel, 'new');
+check('payload class updates', ou.querySelector('#ou-count').className === 'zero');
+check('payload child updates', ou.querySelector('#ou-count').textContent === '0');
+check('MaybeSignal payload updates', ou.querySelector('#ou-label').textContent === 'new');
+const ouNone = mount(() => Demo.OptionalUnwrap.make({}));
+check('absent optional props take the None branches', ouNone.querySelector('#ou-none') !== null && ouNone.querySelector('#ou-label') === null);
+
+console.log('a module signal shadowed by a same-named top-level signal:');
+Signal.set(Demo.HitsToo.count, 100);
+const msh = mount(() => Demo.ModuleShadowed.make({}));
+check('module signal renders despite the outer name', msh.textContent === '100' && msh.className === 'under');
+Signal.set(Demo.HitsToo.count, 101);
+check('module signal updates', document.querySelector('#msh-host').textContent === '101' && document.querySelector('#msh-host').className === 'over');
+
+console.log('hyphenated attributes merged with attrs:');
+const hmOpen = Signal.make(false);
+const hm = mount(() => Demo.HyphenMerge.make({ open_: hmOpen, tag: 'tagged' }));
+check('an explicit attrs entry wins over a relocated hyphenated one', hm.querySelector('#hm-explicit').getAttribute('data-tone') === 'explicit');
+check('attrs=? still merges the relocated entry', hm.querySelector('#hm-optional').getAttribute('data-shown') === 'false');
+check('attrs=? keeps its own entries', hm.querySelector('#hm-optional').getAttribute('data-extra') === 'yes');
+check('an optional hyphenated attribute renders Some', hm.querySelector('#hm-maybe').getAttribute('data-tag') === 'tagged');
+Signal.set(hmOpen, true);
+check('relocated reactive entry updates through attrs=?', hm.querySelector('#hm-optional').getAttribute('data-shown') === 'true');
+const hmNone = mount(() => Demo.HyphenMerge.make({ open_: hmOpen, tag: undefined }));
+// (a tag selector: jsdom resolves `#id` through the document's id map, which
+// the earlier mount of the same component already owns)
+check('an optional hyphenated attribute is absent for None', !hmNone.querySelectorAll('span')[2].hasAttribute('data-tag'));
+
+console.log('SSR renders the headline example:');
+const SSR = await import('xote/src/SSR.res.mjs');
+const ssrHtml = SSR.renderToString(() => Demo.SignalProps.make({ propA: Signal.make('Ada'), propB: 'static', propC: Signal.make(true) }));
+check('data-hidden over a bool signal renders "true" on the server', ssrHtml.includes('data-hidden="true"'));
+check('derived class renders on the server', ssrHtml.includes('class="Ada, static"'));
+check('bare signal child renders on the server', ssrHtml.includes('Ada'));
+
 // --- ...and silent when there is nothing to report ---------------------------
 // An unresolvable call is not evidence of a read. Probing decides by what the
 // evaluation actually subscribed to, so a false positive is impossible.
@@ -698,7 +765,11 @@ check('no warning for a call that reads nothing', warnings.length === quiet);
 // Case 25 (PeekShadow) is probed too: `Signal.peek` registers no dependency, so
 // a deliberate one-shot peek must not be reported either.
 check('no warning for a deliberate peek-based helper', !warnings.some((w) => w.includes('Demo.res:357')));
-check('no warning from any other case', warnings.every((w) => /Demo\.res:(525|534):/.test(w)));
+// The signal-typed-value cases leave a cross-module helper (`Store.describe`)
+// exactly as written, so its hidden read is reported like any other — that is
+// the documented behaviour, and the guard above must keep seeing it.
+check('a cross-module helper given a signal-typed name is still reported', warnings.some((w) => /Demo\.res:77\d:/.test(w)));
+check('no warning from any other case', warnings.every((w) => /Demo\.res:(525|534|77\d):/.test(w)));
 
 console.warn = realWarn;
 

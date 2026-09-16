@@ -36,10 +36,21 @@ let res_arity n : attribute =
 let unit_pat =
   { ppat_desc = Ppat_construct (mkloc (Longident.Lident "()"), None);
     ppat_loc = none; ppat_attributes = [] }
+
+(* Is this pattern the unit pattern `()`? A `() => …` is a deferred thunk; a
+   lambda with a real parameter is a callback its callee runs. *)
+let is_unit_pat (p : pattern) : bool =
+  match p.ppat_desc with
+  | Ppat_construct ({ txt = Longident.Lident "()"; _ }, None) -> true
+  | _ -> false
+(* The thunk carries its body's location: a type error on the thunk as a whole
+   (a function where an `int` prop expects a value) is then reported at the
+   expression the user wrote instead of nowhere. *)
 let thunk body =
-  let fn = mkexp (Pexp_fun (Nolabel, None, unit_pat, body)) in
+  let loc = body.pexp_loc in
+  let fn = { pexp_desc = Pexp_fun (Nolabel, None, unit_pat, body); pexp_loc = loc; pexp_attributes = [] } in
   { pexp_desc = Pexp_construct (mkloc (Longident.Lident "Function$"), Some fn);
-    pexp_loc = none; pexp_attributes = [ res_arity 1 ] }
+    pexp_loc = loc; pexp_attributes = [ res_arity 1 ] }
 
 let view_tracked = Longident.Ldot (Longident.Lident "View", "tracked")
 let wrap_tracked e = apply (ident view_tracked) [ thunk e ]
@@ -84,10 +95,34 @@ type env = {
   sigs : (string * Longident.t) list;
   (* the same, reached through a same-file module, as "Store.count" *)
   qsigs : (string * Longident.t) list;
+  (* an optional prop annotated `Signal.t`/`MaybeSignal.t` with no default: an
+     `option<Signal.t<_>>` in the body, never read directly — but a `Some(x)`
+     case over it binds `x` as a signal-typed name *)
+  opts : (string * Longident.t) list;
+  (* read modules opened in scope ("Signal", "MaybeSignal", "Prop"), most
+     recent first, so a bare `t<_>` annotation can be resolved *)
+  opened : string list;
+  (* local functions the ppx can see the definition of, as "f" or "Store.f":
+     what is known about each parameter decides whether a signal-typed name
+     passed to it is read first *)
+  fns : (string * fn_info) list;
 }
+
+(* What a local function's body says about its parameters. `sig_params` are
+   the ones it evidently receives as signals (annotated `Signal.t`, or passed
+   bare to `Signal.get`/`peek`/another signal-aware callee); `val_params` the
+   ones it evidently receives as values (annotated with any other type, or used
+   as an operand, a structural part, a stdlib argument…). A parameter with no
+   evidence either way is left alone at the call site. *)
+and fn_info = {
+  params : (arg_label * string option) list;
+  sig_params : string list;
+  val_params : string list;
+}
+
 let empty_env =
   { vals = []; mods = []; mod_of = []; funcs = []; qfuncs = []; open_signal = false;
-    sigs = []; qsigs = [] }
+    sigs = []; qsigs = []; opts = []; opened = []; fns = [] }
 
 (* Modules whose `get` is a *tracked* read. `peek` is deliberately absent from
    every one of them: it is the untracked read. *)
@@ -207,6 +242,21 @@ let rec reads_signal_eager (env : env) (e : expression) : bool =
     is_reactive_call env e || is_read_fn env e
     || List.exists (reads_signal_eager env) (sub_exprs e)
 
+(* The same question for a *leaf*, where a lambda with a real parameter —
+   `xs->Array.map(x => x ++ Signal.get(suffix))` — is a callback its callee
+   runs while the leaf is evaluated, so a read inside it is eager too. Only a
+   `() => …` thunk is deferred. (`reads_signal_eager` keeps the stricter rule:
+   it also decides whether a *helper* is reactive, and a helper returning JSX
+   whose attributes read signals must not count — those leaves are their own.) *)
+let rec reads_signal_in_leaf (env : env) (e : expression) : bool =
+  match e.pexp_desc with
+  | Pexp_fun (_, _, p, body) -> (not (is_unit_pat p)) && reads_signal_in_leaf env body
+  | Pexp_construct ({ txt = Longident.Lident "Function$"; _ }, Some fn) ->
+    reads_signal_in_leaf env fn
+  | _ ->
+    is_reactive_call env e || is_read_fn env e
+    || List.exists (reads_signal_in_leaf env) (sub_exprs e)
+
 (* Does `e` denote a function whose body eagerly reads a signal? Strip the
    function's own parameters (its uncurried `Function$` wrapper and `fun`s),
    then check the immediate body — reads_signal_eager stops at any further nested
@@ -265,8 +315,21 @@ let rec sig_path_of_type (env : env) (t : core_type) : Longident.t option =
   match t.ptyp_desc with
   | Ptyp_constr ({ txt = Longident.Ldot (m, "t"); _ }, _) ->
     (match read_module_of_path env m with Some _ -> Some m | None -> None)
+  (* a bare `t<_>` under `open Signal` *)
+  | Ptyp_constr ({ txt = Longident.Lident "t"; _ }, _) ->
+    (match env.opened with m :: _ -> Some (Longident.Lident m) | [] -> None)
   | Ptyp_alias (t, _) -> sig_path_of_type env t
   | _ -> None
+
+(* Is this annotation evidently *not* a signal? Any concrete constructor other
+   than the signal types (`string`, `int`, `array<_>`, a record) — used as
+   value evidence for a function parameter. A type variable or `_` says
+   nothing. *)
+let is_value_type (env : env) (t : core_type) : bool =
+  match t.ptyp_desc with
+  | Ptyp_constr _ | Ptyp_tuple _ | Ptyp_arrow _ | Ptyp_variant _ | Ptyp_object _ ->
+    sig_path_of_type env t = None
+  | _ -> false
 
 (* A bare reference to a signal-typed name: `count`, or `Store.count` through a
    same-file module. *)
@@ -310,7 +373,12 @@ let rec pat_vars (p : pattern) : string list =
 
 let shadow_sigs (env : env) (names : string list) : env =
   if names = [] then env
-  else { env with sigs = List.filter (fun (n, _) -> not (List.mem n names)) env.sigs }
+  else
+    let keep (n, _) = not (List.mem n names) in
+    { env with
+      sigs = List.filter keep env.sigs;
+      opts = List.filter keep env.opts;
+      fns = List.filter keep env.fns }
 
 (* The simple binding shapes a name and its annotation can be read off:
    `x` and `x: T`. Anything else (a tuple, a record pattern) binds names the
@@ -328,7 +396,13 @@ let simple_binding (p : pattern) : (string * core_type option) option =
 let bind_param (env : env) (lbl : arg_label) (default : expression option) (p : pattern) : env =
   let env = shadow_sigs env (pat_vars p) in
   match simple_binding p, lbl, default with
-  | None, _, _ | Some _, Optional _, None -> env
+  | None, _, _ -> env
+  | Some (name, annotation), Optional _, None ->
+    (* `~count: Signal.t<int>=?`: an option in the body, remembered so a
+       `Some(count)` case can bind the payload as the signal *)
+    (match Option.bind annotation (sig_path_of_type env) with
+     | Some p -> { env with opts = (name, p) :: env.opts }
+     | None -> env)
   | Some (name, annotation), _, _ ->
     let path =
       match Option.bind annotation (sig_path_of_type env) with
@@ -337,11 +411,33 @@ let bind_param (env : env) (lbl : arg_label) (default : expression option) (p : 
     in
     (match path with Some p -> { env with sigs = (name, p) :: env.sigs } | None -> env)
 
+(* A `switch x { | Some(y) => … }` over an optional signal prop `x` binds `y`
+   as the signal for that case: the pattern shadows first, then re-enters. *)
+let case_env (env : env) (scrutinee : expression) (c : case) : env =
+  (* look the option up before the pattern shadows it: `| Some(count) =>`
+     over `count` itself is the idiomatic spelling *)
+  let unwrapped =
+    match scrutinee.pexp_desc, c.pc_lhs.ppat_desc with
+    | ( Pexp_ident { txt = Longident.Lident x; _ },
+        Ppat_construct ({ txt = Longident.Lident "Some"; _ }, Some inner) ) ->
+      (match List.assoc_opt x env.opts, simple_binding inner with
+       | Some path, Some (y, _) -> Some (y, path)
+       | _ -> None)
+    | _ -> None
+  in
+  let env = shadow_sigs env (pat_vars c.pc_lhs) in
+  match unwrapped with Some binding -> { env with sigs = binding :: env.sigs } | None -> env
+
 (* ---- binding collectors ------------------------------------------------- *)
 (* `let g = Signal.get` binds `g` as a value alias; `let cls = () => …Signal.get…`
    binds `cls` as a reactive helper; `let count = Signal.make(0)` (or an
    annotated `let count: Signal.t<int> = …`) binds `count` as a signal-typed
    name; anything else shadows away a prior binding of that name. *)
+(* The parameter analysis of a local function (`fn_info_of`, defined with the
+   walk it is built on, further down) — bound here so the collector can record
+   what it learns about each function it meets. *)
+let fn_info_ref : (env -> expression -> fn_info option) ref = ref (fun _ _ -> None)
+
 let collect_val_aliases (env : env) (vbs : value_binding list) : env =
   List.fold_left
     (fun env vb ->
@@ -355,6 +451,11 @@ let collect_val_aliases (env : env) (vbs : value_binding list) : env =
           else if func_reads env vb.pvb_expr then
             { env with funcs = name :: env.funcs; vals = drop env.vals }
           else { env with vals = drop env.vals; funcs = drop env.funcs }
+        in
+        let env =
+          match !fn_info_ref env vb.pvb_expr with
+          | Some info -> { env with fns = (name, info) :: env.fns }
+          | None -> env
         in
         let path =
           match Option.bind annotation (sig_path_of_type env) with
@@ -385,7 +486,10 @@ let is_read_lid = function
   | _ -> false
 
 let collect_open (env : env) (lid : Longident.t) : env =
-  if is_read_lid lid then { env with open_signal = true } else env
+  if is_read_lid lid then
+    let name = match lid with Longident.Lident n | Longident.Ldot (_, n) -> n | _ -> "Signal" in
+    { env with open_signal = true; opened = name :: env.opened }
+  else env
 
 (* ---- JSX shape helpers -------------------------------------------------- *)
 let has_jsx (e : expression) : bool =
@@ -571,6 +675,11 @@ let label_name = function Labelled n | Optional n -> Some n | Nolabel -> None
 let is_non_leaf_label (lbl : arg_label) : bool =
   match label_name lbl with
   | Some "attrs" | Some "data" -> true
+  (* the `int`-typed props of `Elements.props`: no reactive form exists for
+     them, so a thunk (or a read of a signal-typed name) could only produce a
+     type error — leave them to the type checker, which reports it at the
+     value *)
+  | Some ("maxLength" | "minLength" | "rows" | "cols" | "tabIndex") -> true
   | Some n -> String.length n > 2 && n.[0] = 'o' && n.[1] = 'n' && n.[2] >= 'A' && n.[2] <= 'Z'
   | None -> false
 
@@ -580,7 +689,7 @@ let is_non_leaf_label (lbl : arg_label) : bool =
    — are left untouched (their reads are deferred inside a lambda), so
    @xote.component is a safe drop-in on components already written that way. *)
 let should_thunk (env : env) (v : expression) : bool =
-  reads_signal_eager env v && jsx_parts v = None
+  reads_signal_in_leaf env v && jsx_parts v = None
 
 (* A value-position expression whose read status the ppx cannot decide: it is
    not a visible read (that is already thunked), and it is not provably
@@ -592,34 +701,192 @@ let should_probe (env : env) (v : expression) : bool =
 (* ---- deref: a signal-typed name inside a value leaf is a read -------------
    `count` becomes `Signal.get(count)` (through whatever path named it — see
    `env.sigs`), carrying the identifier's own source location so a type error
-   still points at the name the user wrote. The rewrite stops at:
+   still points at the name the user wrote.
 
-     - a lambda: deferred code is the user's, and reads what it reads;
-     - the *bare* signal arguments of a signal-aware callee — Xote's and
+   The rewrite only happens where the ppx can *justify* a read — where leaving
+   the signal would have been a type error or a duck-typed runtime read, never
+   where code that compiles today could mean the signal itself:
+
+     - a bare leaf, a condition or scrutinee, a structural part (an array,
+       tuple, record or variant payload), an operand of an operator (which
+       includes template strings), a field access, the argument of a stdlib
+       function (`String.trim(name)`, `Int.toString(count)`);
+     - inside a *callback* — `xs->Array.map(x => x ++ suffix)` — which its
+       callee runs while the leaf is evaluated. A `() => …` thunk is not
+       entered: deferred code is the user's, and reads what it reads, so
+       `{() => helper(count)}` still passes the signal.
+
+   It does not happen for:
+
+     - the bare signal arguments of a *signal-aware* callee: Xote's and
        rescript-signals' entry points (`Signal.get(count)`, `Signal.peek`,
-       `MaybeSignal.reactive(count)`, `View.signalAttr("x", count)`), a read
-       alias (`g(count)` after `let g = Signal.get`, `S.get`, a bare `get` under
-       `open Signal`), and a local reactive helper (`double(count)`: calling it
-       is already a read, and it was written against the signal).
+       `MaybeSignal.reactive(count)`, `View.signalAttr("x", count)`), and a
+       read alias (`g(count)` after `let g = Signal.get`, `S.get`, a bare `get`
+       under `open Signal`);
+     - a name under an explicit signal-typed constraint, `(count: Signal.t<_>)`
+       — the typed way to say "the signal itself" to any callee;
+     - the arguments of a callee the ppx cannot see into: a function from
+       another module, or a local one whose body gives no evidence about that
+       parameter. Such a call is left exactly as written (and probed, as
+       before), so nothing that compiles today stops compiling;
+     - a local function's parameter the body evidently receives as a signal
+       (annotated `Signal.t`, or handed to `Signal.get`/`peek`). One it
+       evidently receives as a value (`(who: string)`, or used as an operand or
+       a stdlib argument) is read at the call site, so `greet(name)` reads. *)
 
-   Every other callee is assumed to take the *value* — `String.trim(name)`,
-   `format(count)` — which is what a leaf almost always means. When that guess
-   is wrong the type error names the identifier, and the fix is the usual
-   escape hatch: wrap the leaf in `() => …` and the ppx leaves it alone. *)
+(* ReScript's standard library: a call into it takes values. *)
+let is_stdlib_module = function
+  | "String" | "Int" | "Float" | "Array" | "Option" | "Result" | "List" | "Dict" | "JSON"
+  | "Math" | "Date" | "Bool" | "BigInt" | "Nullable" | "Null" | "Console" | "Js" | "Belt"
+  | "RegExp" | "Symbol" | "Object" | "Iterator" | "Map" | "Set" | "WeakMap" | "WeakSet"
+  | "Promise" | "Error" | "Exn" | "Char" | "Bytes" | "Pervasives" | "Stdlib" | "Type" ->
+    true
+  | _ -> false
+
+let rec first_component = function
+  | Longident.Lident n -> Some n
+  | Longident.Ldot (m, _) -> first_component m
+  | Longident.Lapply _ -> None
+
 let is_signal_aware_callee (env : env) (f : expression) : bool =
   match f.pexp_desc with
-  | Pexp_ident { txt = Longident.Ldot (m, fn); _ } ->
+  | Pexp_ident { txt = Longident.Ldot (m, _); _ } ->
     (match last_component m with
      | Some n ->
        is_library_module n
        || n = "SSRState" || n = "SSRContext" || n = "SSR" || n = "Router" || n = "Hydration"
        || List.mem n env.mods
-       || List.mem (n ^ "." ^ fn) env.qfuncs
      | None -> false)
   | Pexp_ident { txt = Longident.Lident x; _ } ->
-    List.mem x env.vals || List.mem x env.funcs
+    List.mem x env.vals
     || (env.open_signal && (match x with "get" | "peek" | "set" | "update" -> true | _ -> false))
   | _ -> false
+
+(* The context a bare signal-typed name occurs in. *)
+type ctx =
+  | Value (* evidently a value position: read it *)
+  | SigArg (* evidently the signal itself: leave it *)
+  | Unknown (* cannot tell: leave it *)
+
+let local_fn (env : env) (f : expression) : fn_info option =
+  match f.pexp_desc with
+  | Pexp_ident { txt = Longident.Lident x; _ } -> List.assoc_opt x env.fns
+  | Pexp_ident { txt = Longident.Ldot (Longident.Lident m, x); _ } ->
+    List.assoc_opt (m ^ "." ^ x) env.fns
+  | _ -> None
+
+(* Pair a call's arguments with the callee's parameters: positional arguments
+   in order, labelled ones by label. *)
+let param_of_arg (info : fn_info) (args : (arg_label * expression) list) (i : int) : string option =
+  let lbl, _ = List.nth args i in
+  match lbl with
+  | Labelled n | Optional n ->
+    List.fold_left
+      (fun acc (l, name) ->
+        match l with
+        | (Labelled m | Optional m) when m = n -> name
+        | _ -> acc)
+      None info.params
+  | Nolabel ->
+    let rec nth_positional k = function
+      | [] -> None
+      | (Nolabel, name) :: rest -> if k = 0 then name else nth_positional (k - 1) rest
+      | _ :: rest -> nth_positional k rest
+    in
+    let position =
+      List.length (List.filter (fun (l, _) -> l = Nolabel) (List.filteri (fun j _ -> j < i) args))
+    in
+    nth_positional position info.params
+
+(* The context of each argument of `f(args)`. *)
+let arg_ctxs (env : env) (f : expression) (args : (arg_label * expression) list) : ctx list =
+  let all c = List.map (fun _ -> c) args in
+  if is_signal_aware_callee env f then all SigArg
+  else
+    match f.pexp_desc with
+    | Pexp_ident { txt = Longident.Lident op; _ } when is_operator_name op -> all Value
+    | Pexp_ident { txt; _ } when (match first_component txt with Some m -> is_stdlib_module m | None -> false) ->
+      all Value
+    | _ ->
+      (match local_fn env f with
+       | Some info ->
+         List.mapi
+           (fun i _ ->
+             match param_of_arg info args i with
+             | Some p when List.mem p info.sig_params -> SigArg
+             | Some p when List.mem p info.val_params -> Value
+             | _ -> Unknown)
+           args
+       | None -> all Unknown)
+
+(* The one walk behind both the rewrite and the evidence analysis: visit every
+   bare occurrence of a signal-typed name with the context it occurs in, and
+   let [on_sig] decide what to put there. [into_thunks] also enters `() => …`,
+   which the evidence analysis wants (a parameter read inside a thunk is still
+   a signal) and the rewrite does not. *)
+let rec walk_sigs (into_thunks : bool) (on_sig : ctx -> Longident.t -> expression -> expression)
+    (env : env) (e : expression) : expression =
+  let walk = walk_sigs into_thunks on_sig in
+  match is_sig_ident env e with
+  | Some path -> on_sig Value path e
+  | None ->
+    (match e.pexp_desc with
+     (* `(count: Signal.t<_>)`: the signal itself, by declaration *)
+     | Pexp_constraint (x, t) when is_sig_ident env x <> None && sig_path_of_type env t <> None ->
+       (match is_sig_ident env x with
+        | Some path -> { e with pexp_desc = Pexp_constraint (on_sig SigArg path x, t) }
+        | None -> e)
+     | Pexp_fun (l, def, p, body) ->
+       if is_unit_pat p && not into_thunks then e
+       else
+         { e with
+           pexp_desc =
+             Pexp_fun (l, Option.map (walk env) def, p, walk (bind_param env l def p) body) }
+     | Pexp_construct (({ txt = Longident.Lident "Function$"; _ } as c), Some fn) ->
+       { e with pexp_desc = Pexp_construct (c, Some (walk env fn)) }
+     | Pexp_apply
+         ( ({ pexp_desc = Pexp_ident { txt = Longident.Lident ("|." | "|>"); _ }; _ } as op),
+           [ (l1, x); (l2, f) ] ) ->
+       (* The pipe reaches the ppx as an operator application, `x |. f` with
+          `f` a bare callee or a partial application: `x` is `f`'s first
+          argument, so it gets the context `f(x, …)` would give it. *)
+       let target, rest = match f.pexp_desc with Pexp_apply (g, a) -> (g, a) | _ -> (f, []) in
+       let ctx = List.hd (arg_ctxs env target ((Nolabel, x) :: rest)) in
+       let x' =
+         match is_sig_ident env x with Some path -> on_sig ctx path x | None -> walk env x
+       in
+       { e with pexp_desc = Pexp_apply (op, [ (l1, x'); (l2, walk env f) ]) }
+     | Pexp_apply (f, args) ->
+       let ctxs = arg_ctxs env f args in
+       let args' =
+         List.map2
+           (fun (l, a) ctx ->
+             match is_sig_ident env a with
+             | Some path -> (l, on_sig ctx path a)
+             | None -> (l, walk env a))
+           args ctxs
+       in
+       { e with pexp_desc = Pexp_apply (f, args') }
+     | Pexp_let (r, vbs, body) ->
+       (* the bound values are evaluated here, so they are walked too — except
+          a plain alias of a signal, which keeps the name a signal in the body *)
+       let vbs' =
+         List.map
+           (fun vb ->
+             if is_sig_ident env vb.pvb_expr <> None then vb
+             else { vb with pvb_expr = walk env vb.pvb_expr })
+           vbs
+       in
+       { e with pexp_desc = Pexp_let (r, vbs', walk (collect_val_aliases env vbs) body) }
+     | Pexp_match (s, cases) ->
+       { e with pexp_desc = Pexp_match (walk env s, List.map (walk_case walk env s) cases) }
+     | Pexp_try (s, cases) ->
+       { e with pexp_desc = Pexp_try (walk env s, List.map (walk_case walk env s) cases) }
+     | _ -> map_sub_exprs (walk env) e)
+
+and walk_case walk (env : env) (scrutinee : expression) (c : case) : case =
+  let env = case_env env scrutinee c in
+  { c with pc_guard = Option.map (walk env) c.pc_guard; pc_rhs = walk env c.pc_rhs }
 
 let read_through (loc : Location.t) (path : Longident.t) (e : expression) : expression =
   let get =
@@ -629,52 +896,58 @@ let read_through (loc : Location.t) (path : Longident.t) (e : expression) : expr
   in
   { pexp_desc = Pexp_apply (get, [ (Nolabel, e) ]); pexp_loc = loc; pexp_attributes = [] }
 
-let rec deref (env : env) (e : expression) : expression =
-  match is_sig_ident env e with
-  | Some path -> read_through e.pexp_loc path e
-  | None ->
-    (match e.pexp_desc with
-     | Pexp_fun _ | Pexp_function _ -> e
-     | Pexp_construct ({ txt = Longident.Lident "Function$"; _ }, Some _) -> e
-     | Pexp_apply
-         ( ({ pexp_desc = Pexp_ident { txt = Longident.Lident ("|." | "|>"); _ }; _ } as op),
-           [ (l1, x); (l2, f) ] ) ->
-       (* The pipe reaches the ppx as an operator application, `x |. f` with
-          `f` a bare callee or a partial application: `x` is `f`'s first
-          argument, so it gets the same treatment `f(x, …)` does. *)
-       let target = match f.pexp_desc with Pexp_apply (g, _) -> g | _ -> f in
-       let x' =
-         if is_signal_aware_callee env target && is_sig_ident env x <> None then x else deref env x
-       in
-       { e with pexp_desc = Pexp_apply (op, [ (l1, x'); (l2, deref env f) ]) }
-     | Pexp_apply (f, args) ->
-       let keep = is_signal_aware_callee env f in
-       let args' =
-         List.map
-           (fun (l, a) -> if keep && is_sig_ident env a <> None then (l, a) else (l, deref env a))
-           args
-       in
-       { e with pexp_desc = Pexp_apply (f, args') }
-     | Pexp_let (r, vbs, body) ->
-       (* the bound values are evaluated here, so they are derefed too — except
-          a plain alias of a signal, which keeps the name a signal in the body *)
-       let vbs' =
-         List.map
-           (fun vb ->
-             if is_sig_ident env vb.pvb_expr <> None then vb
-             else { vb with pvb_expr = deref env vb.pvb_expr })
-           vbs
-       in
-       { e with pexp_desc = Pexp_let (r, vbs', deref (collect_val_aliases env vbs) body) }
-     | Pexp_match (s, cases) ->
-       { e with pexp_desc = Pexp_match (deref env s, List.map (deref_case env) cases) }
-     | Pexp_try (s, cases) ->
-       { e with pexp_desc = Pexp_try (deref env s, List.map (deref_case env) cases) }
-     | _ -> map_sub_exprs (deref env) e)
+let deref (env : env) (e : expression) : expression =
+  walk_sigs false
+    (fun ctx path x -> match ctx with Value -> read_through x.pexp_loc path x | SigArg | Unknown -> x)
+    env e
 
-and deref_case (env : env) (c : case) : case =
-  let env = shadow_sigs env (pat_vars c.pc_lhs) in
-  { c with pc_guard = Option.map (deref env) c.pc_guard; pc_rhs = deref env c.pc_rhs }
+(* What a function's body says about its parameters — see `fn_info`. The
+   parameters are entered as signal-typed names of a throwaway path, and every
+   occurrence is classified by the context the walk hands back. *)
+let fn_info_of (env : env) (e : expression) : fn_info option =
+  let rec params acc x =
+    match x.pexp_desc with
+    | Pexp_construct ({ txt = Longident.Lident "Function$"; _ }, Some fn) -> params acc fn
+    | Pexp_fun (l, _, p, body) -> params ((l, p) :: acc) body
+    | _ -> (List.rev acc, x)
+  in
+  match params [] e with
+  | [], _ -> None
+  | ps, body ->
+    let named = List.filter_map (fun (_, p) -> simple_binding p) ps in
+    let probe_path = Longident.Lident "%param" in
+    let sig_params = ref [] and val_params = ref [] in
+    List.iter
+      (fun (name, annotation) ->
+        match annotation with
+        | Some t when sig_path_of_type env t <> None -> sig_params := name :: !sig_params
+        | Some t when is_value_type env t -> val_params := name :: !val_params
+        | _ -> ())
+      named;
+    let env' =
+      { env with
+        sigs = List.map (fun (n, _) -> (n, probe_path)) named;
+        opts = [];
+        (* a parameter shadows an outer function of the same name *)
+        fns = List.filter (fun (n, _) -> not (List.mem_assoc n named)) env.fns }
+    in
+    let note ctx _ (x : expression) =
+      (match x.pexp_desc, ctx with
+       | Pexp_ident { txt = Longident.Lident n; _ }, Value -> val_params := n :: !val_params
+       | Pexp_ident { txt = Longident.Lident n; _ }, SigArg -> sig_params := n :: !sig_params
+       | _ -> ());
+      x
+    in
+    ignore (walk_sigs true note env' body);
+    (* signal evidence wins a conflict: passing the signal on is the safe reading *)
+    let sig_params = !sig_params in
+    let val_params = List.filter (fun n -> not (List.mem n sig_params)) !val_params in
+    Some
+      { params = List.map (fun (l, p) -> (l, Option.map fst (simple_binding p))) ps;
+        sig_params;
+        val_params }
+
+let () = fn_info_ref := fn_info_of
 
 (* Control flow in node position: only the parts that *select* a branch are
    value position — the condition, the scrutinee and the `when` guards. The
@@ -683,10 +956,7 @@ let deref_condition (env : env) (e : expression) : expression =
   match e.pexp_desc with
   | Pexp_ifthenelse (c, t, eo) -> { e with pexp_desc = Pexp_ifthenelse (deref env c, t, eo) }
   | Pexp_match (s, cases) ->
-    let guard cs =
-      { cs with
-        pc_guard = Option.map (deref (shadow_sigs env (pat_vars cs.pc_lhs))) cs.pc_guard }
-    in
+    let guard cs = { cs with pc_guard = Option.map (deref (case_env env s cs)) cs.pc_guard } in
     { e with pexp_desc = Pexp_match (deref env s, List.map guard cases) }
   | _ -> e
 
@@ -702,19 +972,21 @@ let leaf_value (env : env) (v : expression) : expression =
    can carry a hyphenated name, so the JSX transform rejects it ("The field
    data-hidden does not belong to type XoteJSX.Elements.props"). On an intrinsic
    element the ppx moves such attributes into the `attrs` escape hatch, which
-   takes any key: appended after the user's own entries, so a relocated entry
-   wins over a same-key one exactly as `attrs` wins over a typed prop. The
-   value has already been through `leaf_value` (a signal-typed name reads,
-   an eager read is thunked, an unresolvable call is probed), so
-   `data-hidden={open_}` becomes `("data-hidden", () => Signal.get(open_))`
-   and renders the literal `"true"`/`"false"` the runtime stringifies it to.
+   takes any key. The value has already been through `leaf_value` (a
+   signal-typed name reads, an eager read is thunked, an unresolvable call is
+   probed), so `data-hidden={open_}` becomes `("data-hidden", () =>
+   Signal.get(open_))` and renders the literal `"true"`/`"false"` the runtime
+   stringifies it to. An optional one (`data-x=?{opt}`) is moved as is: the
+   runtime removes the attribute for `None`.
 
-   All entries of `attrs` share one array type, so each relocated value is
-   passed through `Obj.magic`: the runtime coercion (`RuntimeJsxProp.toAttrEntry`)
+   Relocated entries go *before* the user's own `attrs`, so an explicit entry
+   for the same key still wins — `attrs` is documented as the override. All
+   entries of `attrs` share one array type, so each relocated value is passed
+   through `Obj.magic`: the runtime coercion (`RuntimeJsxProp.toAttrEntry`)
    accepts every shape a typed attribute does, and the value expression itself
    is still type-checked before the cast. *)
 let is_hyphenated_arg = function
-  | Labelled n, _ -> String.contains n '-'
+  | (Labelled n | Optional n), _ -> String.contains n '-'
   | _ -> false
 
 (* Insert a labelled arg before `~children` and the trailing `()`, so the JSX
@@ -726,23 +998,31 @@ let rec insert_arg (arg : arg_label * expression) = function
   | hd :: tl -> hd :: insert_arg arg tl
   | [] -> [ arg ]
 
+let option_get_or = Longident.Ldot (Longident.Lident "Option", "getOr")
+
 let relocate_hyphenated (args : (arg_label * expression) list) : (arg_label * expression) list =
   match List.partition is_hyphenated_arg args with
   | [], _ -> args
   | moved, rest ->
     let entry (lbl, v) =
-      let key = match lbl with Labelled n -> n | _ -> "" in
+      let key = match lbl with Labelled n | Optional n -> n | Nolabel -> "" in
       mkexp (Pexp_tuple [ str_const key; apply (ident obj_magic) [ v ] ])
     in
     let entries = List.map entry moved in
     let extend = function
       | Labelled "attrs", ({ pexp_desc = Pexp_array xs; _ } as a) ->
-        (Labelled "attrs", { a with pexp_desc = Pexp_array (xs @ entries) })
+        (Labelled "attrs", { a with pexp_desc = Pexp_array (entries @ xs) })
       | Labelled "attrs", a ->
-        (Labelled "attrs", apply (ident array_concat) [ a; mkexp (Pexp_array entries) ])
+        (Labelled "attrs", apply (ident array_concat) [ mkexp (Pexp_array entries); a ])
+      | Optional "attrs", a ->
+        (* `attrs=?{opt}`: an `option<array<_>>` — default the missing array *)
+        ( Labelled "attrs",
+          apply (ident array_concat)
+            [ mkexp (Pexp_array entries); apply (ident option_get_or) [ a; mkexp (Pexp_array []) ] ] )
       | other -> other
     in
-    if List.exists (fun (l, _) -> l = Labelled "attrs") rest then List.map extend rest
+    let has_attrs (l, _) = l = Labelled "attrs" || l = Optional "attrs" in
+    if List.exists has_attrs rest then List.map extend rest
     else insert_arg (Labelled "attrs", mkexp (Pexp_array entries)) rest
 
 (* `@xote.component` is the single annotation: it derives props exactly like
@@ -886,9 +1166,9 @@ and decompose_node_shaped (env : env) (e : expression) : expression =
       pexp_desc =
         Pexp_fun (l, Option.map (decompose_here env) def, p, decompose_here (bind_param env l def p) body) }
   | Pexp_match (x, cases) ->
-    { e with pexp_desc = Pexp_match (decompose_here env x, List.map (decompose_case env) cases) }
+    { e with pexp_desc = Pexp_match (decompose_here env x, List.map (decompose_case env x) cases) }
   | Pexp_try (x, cases) ->
-    { e with pexp_desc = Pexp_try (decompose_here env x, List.map (decompose_case env) cases) }
+    { e with pexp_desc = Pexp_try (decompose_here env x, List.map (decompose_case env x) cases) }
   | Pexp_let (r, vbs, body) ->
     let vbs' = List.map (fun vb -> { vb with pvb_expr = decompose_here env vb.pvb_expr }) vbs in
     { e with pexp_desc = Pexp_let (r, vbs', decompose_here (collect_val_aliases env vbs) body) }
@@ -896,8 +1176,8 @@ and decompose_node_shaped (env : env) (e : expression) : expression =
 
 (* A case's pattern shadows for its body; the guard is a boolean, never a
    node, and is left as written (see map_sub_exprs). *)
-and decompose_case (env : env) (c : case) : case =
-  { c with pc_rhs = decompose_here (shadow_sigs env (pat_vars c.pc_lhs)) c.pc_rhs }
+and decompose_case (env : env) (scrutinee : expression) (c : case) : case =
+  { c with pc_rhs = decompose_here (case_env env scrutinee c) c.pc_rhs }
 
 (* Decompose one expression *in place*, whatever shape it happens to be: JSX is
    fine-grained, a function returning JSX is entered through its parameters, and
@@ -939,7 +1219,7 @@ and decompose_branches (env : env) (e : expression) : expression =
   | Pexp_match (s, cases) ->
     (* a case pattern shadows for its body: `| Ready(count) => {count}` reads
        the payload, not a signal of the same name *)
-    let branch cs = { cs with pc_rhs = fine_node (shadow_sigs env (pat_vars cs.pc_lhs)) cs.pc_rhs } in
+    let branch cs = { cs with pc_rhs = fine_node (case_env env s cs) cs.pc_rhs } in
     { e with pexp_desc = Pexp_match (s, List.map branch cases) }
   | _ -> e
 
@@ -979,10 +1259,15 @@ and fine_callback (env : env) (e : expression) : expression =
   | _ -> fine_node env e
 
 and value_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
-  if is_children_label lbl then (lbl, map_children (leaf_value env) v)
+  (* A value component already renders a bare signal through one owned
+     computed; a thunk there would cost a second, unowned one
+     (`MaybeSignal.ofUnknown` allocates it). So a bare signal-typed name is
+     left to that path, and only a derived expression is rewritten. *)
+  let value v = if is_sig_ident env v <> None then v else leaf_value env v in
+  if is_children_label lbl then (lbl, map_children value v)
   else
     match lbl with
-    | Labelled "value" -> (lbl, leaf_value env v)
+    | Labelled "value" -> (lbl, value v)
     | _ -> (lbl, v)
 
 (* Map [f] over a JSX children list (a `::`/`[]` spine); tolerate a bare
@@ -1020,7 +1305,7 @@ and map_expr (env : env) (e : expression) : expression =
     | Pexp_ifthenelse (c, t, eo) ->
       Pexp_ifthenelse (map_expr env c, map_expr env t, Option.map (map_expr env) eo)
     | Pexp_match (x, cases) ->
-      let case cs = { cs with pc_rhs = map_expr (shadow_sigs env (pat_vars cs.pc_lhs)) cs.pc_rhs } in
+      let case cs = { cs with pc_rhs = map_expr (case_env env x cs) cs.pc_rhs } in
       Pexp_match (map_expr env x, List.map case cases)
     | Pexp_constraint (x, t) -> Pexp_constraint (map_expr env x, t)
     | Pexp_tuple xs -> Pexp_tuple (List.map (map_expr env) xs)
@@ -1138,14 +1423,25 @@ and collect_module_funcs (env : env) (name : string) (me : module_expr) : env =
   match me.pmod_desc with
   | Pmod_structure s | Pmod_constraint ({ pmod_desc = Pmod_structure s; _ }, _) ->
     let inner = List.fold_left update_env_si env s in
-    let added before after = List.filter (fun n -> not (List.mem n before)) after in
-    let names = added env.funcs inner.funcs @ added env.vals inner.vals in
-    (* likewise `module Store = { let count = Signal.make(0) }` makes
-       `Store.count` a signal-typed name *)
-    let sigs = added env.sigs inner.sigs in
+    (* The module's *own* top-level names, classified by what they are bound
+       to inside it. (Set-differencing against the outer env instead missed a
+       `Store.count` whenever a top-level `count` of the same kind existed.) *)
+    let own =
+      List.concat_map
+        (fun si ->
+          match si.pstr_desc with
+          | Pstr_value (_, vbs) -> List.filter_map (fun vb -> Option.map fst (simple_binding vb.pvb_pat)) vbs
+          | _ -> [])
+        s
+    in
+    let qualify n = name ^ "." ^ n in
+    let funcs = List.filter (fun n -> List.mem n inner.funcs || List.mem n inner.vals) own in
+    let sigs = List.filter_map (fun n -> Option.map (fun p -> (qualify n, p)) (List.assoc_opt n inner.sigs)) own in
+    let fns = List.filter_map (fun n -> Option.map (fun i -> (qualify n, i)) (List.assoc_opt n inner.fns)) own in
     { env with
-      qfuncs = List.map (fun n -> name ^ "." ^ n) names @ env.qfuncs;
-      qsigs = List.map (fun (n, p) -> (name ^ "." ^ n, p)) sigs @ env.qsigs }
+      qfuncs = List.map qualify funcs @ env.qfuncs;
+      qsigs = sigs @ env.qsigs;
+      fns = fns @ env.fns }
   | _ -> env
 
 and map_si (env : env) si =

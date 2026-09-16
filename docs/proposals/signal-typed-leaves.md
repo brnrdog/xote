@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proof of concept, implemented in `ppx/ppx.ml` and exercised by `ppx/example/` (cases 32–39 in `Demo.res`, asserted by both `verify.mjs` and `golden.mjs`). The rules are documented in [`ppx/README.md`](../../ppx/README.md#signal-typed-values-poc); this document is the design record — the question, what was found, the alternatives, and what is still open. |
+| **Status** | Proof of concept, implemented in `ppx/ppx.ml` and exercised by `ppx/example/` (cases 32–43 in `Demo.res`, asserted by both `verify.mjs` and `golden.mjs`). The rules are documented in [`ppx/README.md`](../../ppx/README.md#signal-typed-values-poc); this document is the design record — the question, what was found, the alternatives, and what is still open. |
 | **Related** | [Auto-tracked view blocks](./tracked-blocks.md) — the design that produced `View.tracked` and `@xote.component`; `ppx/README.md` "Not settled yet". |
 
 ## The question
@@ -90,13 +90,19 @@ Three design decisions fell out of making that rewrite safe:
    the user's), not in event handlers / `attrs` / `data` (never leaves), not in
    user-component props (never rewritten — passing the signal is how a prop
    becomes reactive), and not outside JSX at all.
-2. **Which callees keep the signal.** `Signal.peek(count)` must stay
-   `Signal.peek(count)`. The rewrite protects the *bare* signal arguments of a
-   signal-aware callee: Xote's and rescript-signals' modules, the read aliases,
-   and local reactive helpers (whose call is already a read). Every other
-   callee is assumed to take the value. The pipe reaches the ppx as an
-   operator application (`APPLY(|.)[count, Signal.get]`), so `x->f` is given
-   the same treatment as `f(x)`.
+2. **Which callees get the value.** `Signal.peek(count)` must stay
+   `Signal.peek(count)`, and — the constraint an adversarial review of the
+   first draft added — nothing that compiles today may stop compiling. So a
+   name is read only where the ppx can justify it: a bare leaf, a condition,
+   a structural position, an operand, a callback, a stdlib argument. The bare
+   arguments of a signal-aware callee keep the signal; so does anything under
+   a `(count: Signal.t<_>)` constraint. A *local* function is read by what its
+   body says about the parameter (annotated `Signal.t` or handed to a read →
+   the signal; annotated otherwise or used as a value → read; no evidence →
+   left alone), and a function from another module is opaque: its argument is
+   left as written and the call is probed, exactly as before. The pipe
+   reaches the ppx as an operator application (`APPLY(|.)[count, Signal.get]`),
+   so `x->f` is given the same treatment as `f(x)`.
 3. **Shadowing.** `name`, `count`, `items` are common names for signals *and*
    for rows. A lambda parameter, a `switch` payload, a local `let`, a tuple or
    record pattern all remove the name; the traversal's binding forms
@@ -130,11 +136,19 @@ type and the runtime coercion accepts any shape anyway.
   ReScript, makes a component body's evaluation order depend on the ppx, and
   contradicts "component bodies run once, untracked". Rejected; the boundary
   is the same one the README already teaches for hoisted reads.
-- **Protecting every unknown callee** (never deref an argument to a function
-  the ppx cannot see). Safer for helpers written against signals, but it
-  makes `String.trim(name)` and any user formatting helper stay a type error,
-  which is most of the value. The chosen guess fails loudly at the identifier
-  and has the existing `() => …` escape hatch.
+- **Reading the argument of every unknown callee** (the first draft). It
+  makes `format(count)` work for a value-taking helper from another module,
+  but it breaks `Store.wrap(count)` — a helper written against the signal,
+  which compiles today via the probe — with a type error that contradicts
+  the source, and the documented `() => …` escape hatch does not help a
+  helper that returns a wrapper (the thunk then yields the wrapper, which
+  renders as `[object Object]`). Rejected after review in favour of the
+  evidence rules above: a stdlib call and a local function with a
+  value-shaped parameter are read, anything opaque is left alone.
+- **Stopping at every lambda** (also the first draft). `xs->Array.map(x =>
+  x ++ suffix)` is the most ordinary way to build a class string, and the
+  callback runs while the leaf is evaluated; treating it as deferred made
+  the natural spelling a type error. Only `() => …` is deferred now.
 
 ## What the POC establishes
 
@@ -150,11 +164,20 @@ type and the runtime coercion accepts any shape anyway.
 
 ## Still open
 
-- **The callee guess.** A cross-module helper that takes a signal now fails to
-  compile where it used to be probed and reported at runtime. The failure is
-  loud and local, but the message ("expected `Signal.t`, got `string`") does
-  not say *why* the ppx inserted a read. A dedicated diagnostic, or a
-  `@xote.signal`-style hint on the helper, would help.
+- **Opaque callees.** A value-taking helper from another module
+  (`Store.format(count)`) is left alone, so it needs an explicit
+  `Signal.get(count)` — the ppx cannot tell it from `Store.wrap(count)`. A
+  per-function hint (an annotation on the helper, or interface-file
+  knowledge) would close that gap; the runtime probe still reports the
+  frozen-leaf case as before.
+- **Two things surfaced by the review and fixed on the way.** The server
+  renderer threw on any non-string attribute value (`replaceAll` on a
+  boolean) — a pre-existing hole for hand-written `attrs` entries that the
+  hyphenated-attribute route would have made the default; it now stringifies
+  as the client does. And the same-file module collector derived a module's
+  names by set difference against the outer scope, which dropped
+  `Store.count` whenever a top-level `count` existed (and, before this
+  change, `Store.helper()` whenever a top-level `helper` did).
 - **Type aliases and structure.** `type counter = Signal.t<int>`, a signal
   inside a record field (`store.count`), or one returned by a function are
   invisible; they keep working by the runtime path when bare, and stay a type
