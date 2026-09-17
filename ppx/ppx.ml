@@ -240,12 +240,8 @@ let simple_binding (p : pattern) : (string * core_type option) option =
 
 (* ---- binding collectors ------------------------------------------------- *)
 (* `let g = Signal.get` binds `g` as a value alias; `let cls = () => …Signal.get…`
-   binds `cls` as a reactive helper; `let count = Signal.make(0)` (or an
-   annotated `let count: Signal.t<int> = …`) binds `count` as a signal-typed
-   name; anything else shadows away a prior binding of that name. *)
-(* The parameter analysis of a local function (`fn_info_of`, defined with the
-   walk it is built on, further down) — bound here so the collector can record
-   what it learns about each function it meets. *)
+   binds `cls` as a reactive helper; anything else shadows away a prior binding
+   of that name. *)
 let collect_val_aliases (env : env) (vbs : value_binding list) : env =
   List.fold_left
     (fun env vb ->
@@ -462,9 +458,8 @@ let is_non_leaf_label (lbl : arg_label) : bool =
   match label_name lbl with
   | Some "attrs" | Some "data" -> true
   (* the `int`-typed props of `Elements.props`: no reactive form exists for
-     them, so a thunk (or a read of a signal-typed name) could only produce a
-     type error — leave them to the type checker, which reports it at the
-     value *)
+     them, so a thunk could only produce a type error — leave them to the
+     type checker, which reports it at the value *)
   | Some ("maxLength" | "minLength" | "rows" | "cols" | "tabIndex") -> true
   | Some n -> String.length n > 2 && n.[0] = 'o' && n.[1] = 'n' && n.[2] >= 'A' && n.[2] <= 'Z'
   | None -> false
@@ -545,11 +540,7 @@ let rec fine_node (env : env) (e : expression) : expression =
           to compile with "This has type: string" pointing at the literal
           rather than at the conditional. Conditioning on a plain bool (a prop,
           a local) is ordinary UI code, so this path matters as much as the
-          reactive one.
-
-          A signal-typed name in the condition/scrutinee/guard is a read
-          (`{if open_ { … }}` with `open_: Signal.t<bool>`), so it is derefed
-          first — after which the visible-read rule below tracks it. *)
+          reactive one. *)
        let branches = decompose_branches env e in
        if reads_signal_eager env e then wrap_tracked branches
        else
@@ -619,9 +610,9 @@ and thread_binding (env : env) (recurse : env -> expression -> expression) (e : 
    expression whose value becomes a node. Walking the whole expression covers
    them uniformly, and covers shapes nobody has written yet. *)
 and decompose_node_shaped (env : env) (e : expression) : expression =
-  (* The binding forms thread the environment so a name bound here — a lambda
-     parameter, a case pattern, a local `let` — shadows a signal-typed name
-     from outside (and a local `let count = Signal.make(…)` introduces one).
+  (* The binding forms thread the environment, so a local `let g = Signal.get`
+     is a visible read for the rest of the expression and a name bound here
+     shadows an alias or reactive helper of the same name from outside.
      Everything else is the plain structural walk. *)
   match e.pexp_desc with
   | Pexp_fun (l, def, p, body) ->
@@ -680,10 +671,7 @@ and decompose_branches (env : env) (e : expression) : expression =
   | Pexp_ifthenelse (c, t, eo) ->
     { e with pexp_desc = Pexp_ifthenelse (c, fine_node env t, Option.map (fine_node env) eo) }
   | Pexp_match (s, cases) ->
-    (* a case pattern shadows for its body: `| Ready(count) => {count}` reads
-       the payload, not a signal of the same name *)
-    let branch cs = { cs with pc_rhs = fine_node env cs.pc_rhs } in
-    { e with pexp_desc = Pexp_match (s, List.map branch cases) }
+    { e with pexp_desc = Pexp_match (s, List.map (fun cs -> { cs with pc_rhs = fine_node env cs.pc_rhs }) cases) }
   | _ -> e
 
 and element_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
@@ -716,8 +704,6 @@ and fine_callback (env : env) (e : expression) : expression =
   | Pexp_construct (({ txt = Longident.Lident "Function$"; _ } as c), Some fn) ->
     { e with pexp_desc = Pexp_construct (c, Some (fine_callback env fn)) }
   | Pexp_fun (l, def, p, body) ->
-    (* the parameter shadows, and is a signal in the body if annotated so:
-       `let item = (count: Signal.t<int>) => <li> {count} </li>` *)
     { e with pexp_desc = Pexp_fun (l, def, p, fine_callback env body) }
   | _ -> fine_node env e
 
@@ -763,8 +749,7 @@ and map_expr (env : env) (e : expression) : expression =
     | Pexp_ifthenelse (c, t, eo) ->
       Pexp_ifthenelse (map_expr env c, map_expr env t, Option.map (map_expr env) eo)
     | Pexp_match (x, cases) ->
-      let case cs = { cs with pc_rhs = map_expr env cs.pc_rhs } in
-      Pexp_match (map_expr env x, List.map case cases)
+      Pexp_match (map_expr env x, List.map (fun cs -> { cs with pc_rhs = map_expr env cs.pc_rhs }) cases)
     | Pexp_constraint (x, t) -> Pexp_constraint (map_expr env x, t)
     | Pexp_tuple xs -> Pexp_tuple (List.map (map_expr env) xs)
     | Pexp_array xs -> Pexp_array (List.map (map_expr env) xs)
@@ -814,8 +799,6 @@ and decompose_component_body (env : env) (e : expression) : expression =
   | Pexp_construct (({ txt = Longident.Lident "Function$"; _ } as c), Some fn) ->
     { e with pexp_desc = Pexp_construct (c, Some (decompose_component_body env fn)) }
   | Pexp_fun (l, def, p, body) ->
-    (* a prop annotated `Signal.t`/`MaybeSignal.t` is a signal-typed name in
-       the body: `~count: Signal.t<int>` makes `{count}` a reactive leaf *)
     { e with pexp_desc = Pexp_fun (l, def, p, decompose_component_body env body) }
   | _ ->
     (match thread_binding env decompose_component_body e with

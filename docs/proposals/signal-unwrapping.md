@@ -57,6 +57,40 @@ character ReScript reserves for ppxes, and errors loudly if nothing expands it.
 Both were dropped once it was clear they only bought the compound case, where
 an explicit `Signal.get` reads fine and costs nothing to maintain.
 
+## The compound case has an answer, upstream
+
+The one position left over — a signal inside an expression ordinary ReScript
+consumes — does not need the ppx at all. It needs the signal to be readable as
+a value:
+
+```rescript
+<div class={"theme-" ++ theme.value} />
+```
+
+Record field access compiles to plain property access, so an accessor over the
+stored value can subscribe the current observer exactly as `Signal.get` does.
+That is [rescript-signals#38](https://github.com/brnrdog/rescript-signals/pull/38),
+which moves the storage to a `raw` field and installs `value` as a prototype
+getter. No type knowledge is needed in the ppx, and the existing visible-read
+rule already turns the surrounding leaf into a fine-grained one.
+
+**Xote cannot adopt it yet, and the decision it forces is not free.** `Signal.t`
+is abstract here on purpose (`src/Signal.resi`, with
+`tests/consumer/forbidden/SignalValueWrite.res` pinning it): the type system
+hides the record so a write cannot bypass the scheduler. Exposing `.value`
+means exposing the record, and ReScript has no per-field privacy — an interface
+file must restate the record type exactly, so `value` cannot be published while
+`raw` stays hidden. The choice is therefore:
+
+| | |
+|---|---|
+| **Keep `t` abstract** | `.value` stays unavailable in Xote; the compound case keeps `Signal.get`. Status quo, costs nothing. |
+| **Publish the record** | `.value` works in components. `SignalValueWrite` keeps passing — upstream made `value` non-mutable, so `signal.value = 99` still does not compile — but `signal.raw = 99` does, and no `forbidden/` fixture can close a hole the type system leaves open. |
+
+The second row is the whole cost: the sharpest edge moves from `value` to
+`raw` rather than disappearing. Blocked either way until #38 merges and ships —
+Xote pins `rescript-signals@^3.1.0`.
+
 ## Why the compiler cannot simply know
 
 A ppx runs on one file's syntax tree, before type checking, so "is this a
