@@ -1,5 +1,11 @@
+/* Attribute values arrive typed as `string`, but an untyped JSX value — a
+   boolean signal in an `attrs` entry, an int through a `data-*` attribute —
+   can be any scalar at runtime. The client's `setAttribute` stringifies it;
+   the server must too, or `replaceAll` throws on the boolean. */
+let stringify: string => string = %raw(`function (v) { return typeof v === "string" ? v : String(v) }`)
+
 let escape = (str: string): string => {
-  str
+  stringify(str)
   ->String.replaceAll("&", "&amp;")
   ->String.replaceAll("<", "&lt;")
   ->String.replaceAll(">", "&gt;")

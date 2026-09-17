@@ -278,9 +278,13 @@ example's `PeekShadow` case, where a reactive helper rebound to a `peek`-based
 function is dropped from the alias environment and its attribute is left as a
 plain, once-evaluated string).
 
-Only *eager* reads trigger a thunk. A read deferred inside a nested lambda — a
-`() => …` you wrote yourself, a `Computed`, a `MaybeSignal.reactive(Computed.make(…))`,
-or a helper that merely *returns* a thunk — is already reactive and left as-is.
+Only *eager* reads trigger a thunk, and "eager" means evaluated when the leaf
+is. A `() => …` you wrote yourself, a `Computed`, a
+`MaybeSignal.reactive(Computed.make(…))`, or a helper that merely *returns* a
+thunk is already reactive and left as-is. A lambda with a real parameter is
+not deferred, though — `xs->Array.map(x => x ++ Signal.get(suffix))` runs its
+callback while the leaf is evaluated, so the read counts and the leaf is
+thunked.
 Because of that, when detection can't see a read, the safe fix is always to wrap
 the value in `() =>` yourself: it will not be double-wrapped.
 
@@ -355,6 +359,11 @@ What is *not* probed, because it can never be a hidden scalar read: event
 handlers, the `attrs` escape-hatch array and the `data` object, values
 containing JSX, and calls into `View`/`Html`/`Signal`/`Computed`/`MaybeSignal`
 themselves.
+
+The `int`-typed props (`maxLength`, `minLength`, `rows`, `cols`, `tabIndex`)
+are left alone for the same reason: no reactive form exists for them, so a
+thunk there could only be a type error, and the checker reports it at the value
+you wrote.
 
 Event handlers, `attrs` and `data` are not thunked either — none of these
 props can hold a thunk (`attrs` is an `array<(string, 'a)>`, `data` an

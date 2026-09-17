@@ -550,6 +550,39 @@ const repeats = warnings.filter((w) => w.includes('Demo.res:525:54')).length;
 mount(() => Demo.Hidden.make({}));
 check('each site is reported once, not per render', warnings.filter((w) => w.includes('Demo.res:525:54')).length === repeats);
 
+
+// --- Signal-typed values (POC) ----------------------------------------------
+// A name the ppx can tell holds a `Signal.t` — an annotated prop, a local
+// `Signal.make`/`Computed.make`, a same-file module binding — is a *read*
+// inside a JSX value leaf: bare, in a hyphenated attribute, or inside a derived
+// expression. Each case below uses its own signals so an assertion names one
+// leaf; the shadowing case deliberately reuses the file's `name`/`count`.
+const MaybeSignal = await import('xote/src/MaybeSignal.res.mjs');
+
+console.log('a signal from another file:');
+Signal.set(Store.waiting, 4);
+Signal.set(Store.busy, false);
+const es = mount(() => Demo.ExternalSignal.make({}));
+check('bare cross-module signal as an attribute (runtime-recognised)', es.className === '4');
+check('bare cross-module signal as a hyphenated attribute', es.getAttribute('data-busy') === 'false');
+check('bare cross-module signal as a child', es.childNodes[0].textContent === '4');
+check('a written-out read drives a derived expression', es.querySelector('#es-derived').className === 'few' && es.querySelector('#es-derived').textContent === '4');
+Signal.set(Store.waiting, 9);
+Signal.set(Store.busy, true);
+check('bare cross-module attribute updates', document.querySelector('#es-host').className === '9');
+check('bare cross-module hyphenated attribute updates', document.querySelector('#es-host').getAttribute('data-busy') === 'true');
+check('bare cross-module child updates', document.querySelector('#es-host').childNodes[0].textContent === '9');
+check('derived leaf updates', document.querySelector('#es-derived').className === 'many' && document.querySelector('#es-derived').textContent === '9');
+
+console.log('SSR stringifies a non-string attribute value:');
+const SSR = await import('xote/src/SSR.res.mjs');
+// `Store.busy` is a bool signal in an `attrs` entry, so it reaches the server's
+// escaper as a boolean; before it stringified, `replaceAll` threw there.
+Signal.set(Store.busy, true);
+const ssrHtml = SSR.renderToString(() => Demo.ExternalSignal.make({}));
+check('a bool signal renders "true" on the server', ssrHtml.includes('data-busy="true"'));
+check('a cross-module signal renders its value on the server', ssrHtml.includes('class="9"'));
+
 // --- ...and silent when there is nothing to report ---------------------------
 // An unresolvable call is not evidence of a read. Probing decides by what the
 // evaluation actually subscribed to, so a false positive is impossible.

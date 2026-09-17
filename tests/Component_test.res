@@ -260,6 +260,30 @@ let suite = Zekr.suite(
       )
       Dom.Assert.toHaveTextContent(container, "ab123")
     }),
+    test("child renders a reactive MaybeSignal as reactive text", () => {
+      let {container} = Dom.render("")
+      /* An untyped attribute already accepted a `MaybeSignal.t` (through
+         `ofUnknown`); a child stringified it to "[object Object]", because the
+         wrapper is neither node- nor signal-shaped. */
+      let name = Signal.make("Ada")
+      let _ = mountTo(View.child(MaybeSignal.reactive(name)), container)
+      let r1 = Dom.Assert.toHaveTextContent(container, "Ada")
+      Signal.set(name, "Grace")
+      let r2 = Dom.Assert.toHaveTextContent(container, "Grace")
+      combineResults([r1, r2])
+    }),
+    test("child renders a static MaybeSignal as plain text", () => {
+      let {container} = Dom.render("")
+      let _ = mountTo(View.child(MaybeSignal.static("fixed")), container)
+      Dom.Assert.toHaveTextContent(container, "fixed")
+    }),
+    test("child renders a MaybeSignal holding a node", () => {
+      let {container} = Dom.render("")
+      /* the wrapper's contents are coerced like any other child, so a node
+         inside one is rendered rather than stringified */
+      let _ = mountTo(View.child(MaybeSignal.static(View.text("inner"))), container)
+      Dom.Assert.toHaveTextContent(container, "inner")
+    }),
     test("child does not treat a plain record as a signal", () => {
       let {container} = Dom.render("")
       /* a non-node, non-signal object: must not reach Signal.get — it renders

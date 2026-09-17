@@ -604,3 +604,20 @@ module DisposedBranch = {
       }}
     </div>
 }
+
+/* Case 43: a signal from *another file*. The ppx never sees `Store.res`, so it
+   knows nothing about these values — and it does not need to where Xote
+   receives them: a bare signal in an attribute or a child is coerced by the
+   runtime. Inside a larger expression the value goes to ordinary ReScript
+   instead, so there the read is written out, and the ppx makes it a leaf. */
+module ExternalSignal = {
+  @xote.component
+  let make = () =>
+    <div id="es-host" class={Store.waiting} attrs=[("data-busy", Store.busy)]>
+      {Store.waiting}
+      <span id="es-derived" class={Signal.get(Store.waiting) > 4 ? "many" : "few"}>
+        {Signal.get(Store.waiting)}
+      </span>
+    </div>
+}
+
