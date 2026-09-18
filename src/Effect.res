@@ -20,7 +20,12 @@ type disposer = Signals.Effect.disposer = {dispose: unit => unit}
    scheduler's stale-dependency sweep unlinks whatever that last run would have
    re-tracked, and the effect stays dead. Cleanup is managed on this side of the
    guard for the same reason — upstream re-runs the previous cleanup before the
-   post-disposal run, which would run a cleanup the disposer already ran. */
+   post-disposal run, which would run a cleanup the disposer already ran.
+
+   Releases of `rescript-signals` after 3.1.x skip a disposed effect in the
+   scheduler themselves, which makes this guard redundant there; it stays until
+   that release is the floor this package depends on, at which point
+   `runWithDisposer` can register the upstream disposer directly. */
 let runWithDisposer = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer => {
   let disposed = ref(false)
   /* Upstream keeps storing the cleanup; taking that bookkeeping over here

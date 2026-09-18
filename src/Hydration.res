@@ -159,16 +159,12 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
       /* Get the text node */
       switch DOMWalker.next(walker) {
       | Some(textNode) => {
-          let owner = RuntimeOwner.createOwner()
-          RuntimeOwner.setOwner(textNode, owner)
-          RuntimeRender.ownComputed(owner, signal)
-
-          RuntimeOwner.runWithOwner(owner, () =>
-            Effect.run(() => {
-              RuntimeDom.setTextContent(textNode, Signal.get(signal))
-              None
-            })
-          )
+          RuntimeOwner.ownComputed(signal)
+          /* The server's text may be stale by the time the client runs, so the
+             current value is written once before the node starts following. */
+          let current = Signal.peek(signal)
+          RuntimeDom.setTextContent(textNode, current)
+          RuntimeRender.attachText(textNode, signal, Nullable.make(current))
 
           /* Skip end marker */
           let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.signalTextEndContent)
@@ -215,25 +211,11 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
       | (None, _) => () /* No content nodes, nothing to do */
       }
 
-      /* Set up reactivity */
-      let owner = RuntimeOwner.createOwner()
-      RuntimeOwner.setOwner(container, owner)
-      RuntimeRender.ownComputed(owner, signal)
-      let keyedItems: Dict.t<RuntimeRender.keyedItem<Obj.t>> = Dict.make()
-
-      RuntimeOwner.runWithOwner(owner, () =>
-        Effect.run(() => {
-          let children = Signal.get(signal)
-
-          /* The same pass the render path runs, including the rule about
-             retiring children the reconciler never tracked. A hydrated fragment
-             is not adopted the way a keyed list is: this first pass clears the
-             server's nodes and renders them again. */
-          RuntimeRender.renderFragmentChildren(~container, ~children, ~keyedItems)
-
-          None
-        })
-      )
+      /* Set up reactivity: the same pass the render path runs, including the
+         rule about retiring children the reconciler never tracked. A hydrated
+         fragment is not adopted the way a keyed list is: the first pass clears
+         the server's nodes and renders them again. */
+      RuntimeRender.driveSignalFragment(~container, ~signal)
     }
 
   | View.Keyed({child, key: _, identity: _}) => hydrateNodeWithWalker(child, walker)
@@ -241,32 +223,24 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
   | View.Element({attrs, events, children}) =>
     switch DOMWalker.next(walker) {
     | Some(domNode) => {
-        let owner = RuntimeOwner.createOwner()
-        RuntimeOwner.setOwner(domNode, owner)
+        /* Hydrate reactive attributes; static ones are already in the markup.
+           What the effects register belongs to the region being hydrated. */
+        attrs->Array.forEach(((key, value)) => {
+          switch RuntimeNode.resolveAttr(value) {
+          | RuntimeNode.ReadStatic(_) => ()
+          | RuntimeNode.ReadReactive(read) => RuntimeRender.attachAttr(domNode, key, read)
+          }
+        })
 
-        RuntimeOwner.runWithOwner(owner, () => {
-          /* Hydrate reactive attributes */
-          attrs->Array.forEach(((key, value)) => {
-            switch RuntimeNode.resolveAttr(value) {
-            | RuntimeNode.ReadStatic(_) => ()
-            | RuntimeNode.ReadReactive(read) =>
-              Effect.run(() => {
-                RuntimeDom.setAttrOrProp(domNode, key, read())
-                None
-              })
-            }
-          })
+        /* Attach event listeners */
+        events->Array.forEach(((eventName, handler)) => {
+          domNode->RuntimeDom.addEventListener(eventName, handler)
+        })
 
-          /* Attach event listeners */
-          events->Array.forEach(((eventName, handler)) => {
-            domNode->RuntimeDom.addEventListener(eventName, handler)
-          })
-
-          /* Hydrate children */
-          let childWalker = DOMWalker.make(domNode)
-          children->Array.forEach(child => {
-            hydrateNodeWithWalker(child, childWalker)
-          })
+        /* Hydrate children */
+        let childWalker = DOMWalker.make(domNode)
+        children->Array.forEach(child => {
+          hydrateNodeWithWalker(child, childWalker)
         })
       }
     | None => logHydrationWarning("Missing DOM element for Element node")
@@ -295,8 +269,9 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
         RuntimeHydrationMarkers.keyedListStartContent,
       )
 
-      let keyedItems: Dict.t<RuntimeRender.keyedItem<Obj.t>> = Dict.make()
+      let region = RuntimeRender.makeRegion()
       let endAnchor = ref(None)
+      let position = ref(0)
 
       /* Indexed once: a scan per marker would make hydrating a list quadratic
          in its length, which is the size this path exists to serve. */
@@ -324,10 +299,18 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
             switch (itemsByKey->Dict.get(key), element) {
             /* Hydrate the row through the ordinary path rather than merely
                recording it: its handlers and reactive attributes have to
-               attach, or the adopted row renders once and is then inert. */
+               attach, or the adopted row renders once and is then inert. The
+               row owns what that attaches, exactly like a rendered row. */
             | (Some(item), Some(element)) => {
-                hydrateNodeWithWalker(renderItem(item), walker)
-                keyedItems->Dict.set(key, {key, item, element})
+                let owner = RuntimeOwner.createOwner()
+                RuntimeOwner.runWithOwner(owner, () =>
+                  hydrateNodeWithWalker(renderItem(item), walker)
+                )
+                region.items->Map.set(
+                  key,
+                  {key, item, element, owner, index: position.contents, stamp: 0, anchors: true},
+                )
+                position := position.contents + 1
               }
             | (Some(_), None) =>
               logHydrationWarning(`Keyed item "${key}" rendered no element on the server`)
@@ -352,24 +335,8 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
          write was invisible and a hydrated `View.For` stayed frozen for the
          life of the page. */
       switch (startAnchor, endAnchor.contents) {
-      | (Some(startAnchor), Some(endAnchor)) => {
-          let owner = RuntimeOwner.createOwner()
-          RuntimeOwner.setOwner(startAnchor, owner)
-          RuntimeRender.ownComputed(owner, signal)
-
-          RuntimeOwner.runWithOwner(owner, () =>
-            Effect.run(() => {
-              RuntimeRender.reconcileKeyedList(
-                ~signal,
-                ~keyFn,
-                ~renderItem,
-                ~keyedItems,
-                ~endAnchor,
-              )
-              None
-            })
-          )
-        }
+      | (Some(_), Some(endAnchor)) =>
+        RuntimeRender.attachKeyedList(~region, ~signal, ~keyFn, ~renderItem, ~endAnchor)
       | _ => logHydrationWarning("Keyed list markers are missing; the list will not update")
       }
     }
