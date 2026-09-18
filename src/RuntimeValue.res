@@ -3,6 +3,11 @@ let isNullish = (value: 'value): bool => {
   %raw(`value == null`)
 }
 
+let isUndefined = (value: 'value): bool => {
+  ignore(value)
+  %raw(`value === undefined`)
+}
+
 let isObject = (value: 'value): bool => {
   ignore(value)
   %raw(`value !== null && typeof value === "object"`)
@@ -33,6 +38,16 @@ let getTag = (value: 'value): option<string> =>
   } else {
     None
   }
+
+let isString = (value: 'value): bool => {
+  ignore(value)
+  %raw(`typeof value === "string"`)
+}
+
+let isBoolean = (value: 'value): bool => {
+  ignore(value)
+  %raw(`typeof value === "boolean"`)
+}
 
 let isFunction = (value: 'value): bool => {
   ignore(value)

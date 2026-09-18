@@ -4,7 +4,11 @@
  avoid allocating a `Computed`. */
 
 let toStringAttr = (key: string, value: 'a): (string, View.attrValue) =>
-  if RuntimeValue.isFunction(value) {
+  if RuntimeValue.isString(value) {
+    /* The common case, and the one `ofUnknown` would only wrap to unwrap again. */
+    let value: string = Obj.magic(value)
+    View.attr(key, value)
+  } else if RuntimeValue.isFunction(value) {
     let compute: unit => string = Obj.magic(value)
     View.computedAttr(key, compute)
   } else {
@@ -15,7 +19,10 @@ let toStringAttr = (key: string, value: 'a): (string, View.attrValue) =>
   }
 
 let toBoolAttr = (key: string, value: 'a): (string, View.attrValue) =>
-  if RuntimeValue.isFunction(value) {
+  if RuntimeValue.isBoolean(value) {
+    let value: bool = Obj.magic(value)
+    View.attr(key, RuntimeAttr.boolToString(value))
+  } else if RuntimeValue.isFunction(value) {
     let compute: unit => bool = Obj.magic(value)
     View.computedAttr(key, () => RuntimeAttr.boolToString(compute()))
   } else {

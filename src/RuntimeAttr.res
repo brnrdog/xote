@@ -19,7 +19,15 @@ let booleanAttributes = [
   "autofocus",
 ]
 
-let isBoolean = (key: string): bool => booleanAttributes->Array.includes(key)
+/* Indexed once: the renderer asks this for every attribute it writes, and a
+   scan over the list cost ten string comparisons per write. */
+let booleanAttributeSet: Dict.t<bool> = {
+  let set = Dict.make()
+  booleanAttributes->Array.forEach(key => set->Dict.set(key, true))
+  set
+}
+
+let isBoolean = (key: string): bool => booleanAttributeSet->Dict.get(key) !== None
 
 let boolToString = (value: bool): string => value ? "true" : "false"
 
