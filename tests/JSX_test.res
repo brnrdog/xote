@@ -17,6 +17,15 @@ let mountTo = (node, container) => {
 @val external objectIs: ('a, 'a) => bool = "Object.is"
 @val external dispatchEventByName: ('a, string) => unit = "__xoteTestDispatchEventByName"
 
+/* Live subscriber links of a signal — the leak this guards against is
+   invisible from the DOM. */
+let subscriberCount: Signal.t<'a> => int = %raw(`function (signal) {
+  let count = 0
+  let link = signal.subs.first
+  while (link) { count = count + 1; link = link.nextSub }
+  return count
+}`)
+
 type keyedForItem = {id: string, label: string}
 
 let suite = Zekr.suite(
@@ -246,12 +255,19 @@ let suite = Zekr.suite(
 
       let whileMounted = renders.contents
       Signal.set(mounted, false)
+      let subscribed = subscriberCount(source)
       Signal.set(source, 2)
-      /* A live computed would recompute on read and bump `renders`; one disposed
-       with its owner stays put. */
-      let _ = captured.contents->Option.map(Signal.get)
-
-      combineResults([assertEqual(whileMounted, 1), assertEqual(renders.contents, 1)])
+      /* A live computed would still be linked to `source` and be recomputed by
+       the fragment's effect on the write; one disposed with its owner is
+       unlinked, and nothing re-renders. (Reading the disposed computed by hand
+       is allowed to recompute it — upstream keeps a disposed computed usable —
+       so that is not what is asserted here.) */
+      combineResults([
+        assertEqual(whileMounted, 1),
+        assertEqual(subscribed, 0),
+        assertEqual(renders.contents, 1),
+        assertTrue(captured.contents->Option.isSome),
+      ])
     }),
     test("View value primitives render static values", () => {
       let {container} = Dom.render("")
