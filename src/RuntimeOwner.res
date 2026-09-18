@@ -1,34 +1,42 @@
-/* Internal: the per-DOM-node scope that owns the reactive state created while a
-   node is being built and rendered, so removing the node stops it.
+/* Internal: ownership of the reactive state a rendered region creates, so that
+   removing the region stops it.
 
-   Disposers are stored as plain functions rather than `Effect.disposer` values
-   on purpose: `Effect` registers its own disposers here (an effect created
-   while a component renders belongs to that component), so a dependency in the
-   other direction would be a cycle. */
+   A region is a unit the renderer removes as a whole: a keyed row, one pass of
+   a `SignalFragment`, a hydrated row. Every effect and every library-built
+   computed created while a region renders is registered with that region's
+   owner, and disposing the owner releases all of it at once.
 
-type owner = {
-  disposers: array<unit => unit>,
-  mutable computeds: array<Obj.t>,
-}
+   Ownership used to hang off DOM nodes instead — an expando per element that
+   registered anything, and a walk over the removed subtree at disposal to find
+   them. That put a property on the DOM wrapper of one node in three and
+   visited ten nodes per row to clear a list, and it cost the region's owner
+   nothing it needed: the renderer only ever removes whole regions, so the
+   region is the right granularity.
 
-let createOwner = (): owner => {
-  disposers: [],
-  computeds: [],
-}
+   Disposers are plain functions rather than `Effect.disposer` values on
+   purpose: `Effect` registers its own disposers here (an effect created while a
+   component renders belongs to that component's region), so a dependency in
+   the other direction would be a cycle. */
 
-let addDisposer = (owner: owner, dispose: unit => unit): unit => {
-  owner.disposers->Array.push(dispose)->ignore
-}
+/* Disposers (`unit => unit`) and library-owned computeds (`Signal.t`) share one
+   array: a function is called, anything else is a computed to release. One
+   array per owner instead of two, and most regions hold a handful of entries. */
+type owner = {mutable owned: array<Obj.t>}
 
-let addComputed = (owner: owner, computed: Obj.t): unit => {
-  owner.computeds->Array.push(computed)->ignore
-}
+let createOwner = (): owner => {owned: []}
+
+let isFunction: Obj.t => bool = %raw(`function (value) { return typeof value === "function" }`)
+
+let addDisposer = (owner: owner, dispose: unit => unit): unit =>
+  owner.owned->Array.push(Obj.magic(dispose))->ignore
+
+let addComputed = (owner: owner, computed: Signal.t<'a>): unit =>
+  owner.owned->Array.push(Obj.magic(computed))->ignore
 
 /* Computeds the library builds to back a node — a reactive text leaf, a tracked
-   fragment, a mapped list — are owned by the node they back: rendering hands
-   them to that node's scope, so removing the node unlinks them from the signals
-   they read. A signal that came from the consumer is never marked, and never
-   disposed on their behalf. */
+   fragment, a mapped list — are owned by the region that renders the node, so
+   removing the region unlinks them from the signals they read. A signal that
+   came from the consumer is never marked, and never disposed on their behalf. */
 let markOwned: Signal.t<'a> => Signal.t<'a> = %raw(`function (signal) {
   signal["__xote_owned__"] = true
   return signal
@@ -40,112 +48,62 @@ let isOwned: Signal.t<'a> => bool = %raw(`function (signal) {
 
 let ownedComputed = (compute: unit => 'a): Signal.t<'a> => markOwned(Computed.make(compute))
 
-/* Fold `source` into `target`. One DOM node can be the root of more than one
-   scope — a component's own scope and the element it returns — and the second
-   `setOwner` would otherwise overwrite the first, dropping its disposers on the
-   floor instead of running them when the node goes away. */
-let absorb = (target: owner, source: owner): unit => {
-  source.disposers->Array.forEach(dispose => target.disposers->Array.push(dispose)->ignore)
-  source.computeds->Array.forEach(computed => target.computeds->Array.push(computed)->ignore)
-}
-
+/* Entries are visited by index against the live length, so a cleanup that
+   registers something with the owner it is being released from is released in
+   the same pass rather than left behind. Disposal is idempotent on both kinds
+   of entry, so an owner released twice does no harm. */
 let disposeOwner = (owner: owner): unit => {
-  owner.disposers->Array.forEach(dispose => dispose())
-
-  owner.computeds->Array.forEach(computed => {
-    let c: Signal.t<Obj.t> = Obj.magic(computed)
-    Computed.dispose(c)
-  })
-}
-
-let setOwner: (Dom.element, owner) => unit = %raw(`function (element, owner) {
-  element["__xote_owner__"] = owner
-}`)
-
-let readOwner: Dom.element => Nullable.t<owner> = %raw(`function (element) {
-  return element["__xote_owner__"]
-}`)
-
-let getOwner = (element: Dom.element): option<owner> => readOwner(element)->Nullable.toOption
-
-/* Attach without clobbering: merge into whatever scope the node already carries. */
-let attachOwner = (element: Dom.element, owner: owner): unit =>
-  switch getOwner(element) {
-  | Some(existing) => absorb(existing, owner)
-  | None => setOwner(element, owner)
-  }
-
-/* ---- scopes ---------------------------------------------------------------
-
-   Most DOM elements own nothing. A static `<td class="col-md-1">` registers no
-   effect and no computed, yet allocating its scope up front cost an owner
-   record, two arrays and an expando property on the element — and then a walk
-   over all of it at disposal. Measured on the keyed-list benchmark, 78% of the
-   owners the renderer allocated carried nothing at all: 9 per row, 7 of them
-   empty.
-
-   So a scope starts as a promise of an owner rather than an owner. Nothing is
-   allocated until something actually registers, at which point the owner is
-   created and attached to the node the scope belongs to. Elements that own
-   nothing now cost nothing. */
-
-type scope = {
-  mutable owner: option<owner>,
-  /* Where to attach on materialisation. Null for a scope whose node does not
-     exist yet — a component's, whose element only exists once its body has
-     run; the caller attaches that one itself afterwards. */
-  host: Nullable.t<Dom.element>,
-}
-
-let currentScope: ref<option<scope>> = ref(None)
-
-let scopeFor = (~host: Nullable.t<Dom.element>): scope => {owner: None, host}
-
-/* The owner this scope stands for, created on first use. */
-let materialize = (scope: scope): owner =>
-  switch scope.owner {
-  | Some(owner) => owner
-  | None => {
-      let owner = createOwner()
-      scope.owner = Some(owner)
-      switch scope.host->Nullable.toOption {
-      | Some(element) => attachOwner(element, owner)
-      | None => ()
-      }
-      owner
+  let owned = owner.owned
+  let index = ref(0)
+  while index.contents < Array.length(owned) {
+    let entry = owned->Array.getUnsafe(index.contents)
+    if isFunction(entry) {
+      let dispose: unit => unit = Obj.magic(entry)
+      dispose()
+    } else {
+      let computed: Signal.t<Obj.t> = Obj.magic(entry)
+      Computed.dispose(computed)
     }
+    index := index.contents + 1
   }
+}
 
-/* The scope pointer is restored even when `fn` throws. Without that, a
+/* The region currently rendering, if any. Outside a render — module level, an
+   event handler — there is none, and reactive state created there lives until
+   its own disposer runs. */
+let currentOwner: ref<option<owner>> = ref(None)
+
+/* The owner pointer is restored even when `fn` throws. Without that, a
    component body that raises leaves this module-global aimed at the abandoned
-   scope, and every effect created afterwards — anywhere, including outside any
-   render — registers with an owner attached to nothing, so it can never be
-   disposed. The scheduler upstream restores its own tracking state the same
-   way, for the same reason. */
-let runInScope = (scope: scope, fn: unit => 'a): 'a => {
-  let previous = currentScope.contents
-  currentScope := Some(scope)
+   region, and every effect created afterwards — anywhere, including outside any
+   render — registers with an owner nothing will ever dispose. The scheduler
+   upstream restores its own tracking state the same way, for the same reason. */
+let runWithOwner = (owner: owner, fn: unit => 'a): 'a => {
+  let previous = currentOwner.contents
+  currentOwner := Some(owner)
   try {
     let result = fn()
-    currentScope := previous
+    currentOwner := previous
     result
   } catch {
   | exn => {
-      currentScope := previous
+      currentOwner := previous
       throw(exn)
     }
   }
 }
 
-/* Run `fn` against an owner that already exists — the reactive-node scopes
-   (`SignalText`, `SignalFragment`, `KeyedList`, hydration) always register
-   something, so there is nothing to defer. */
-let runWithOwner = (owner: owner, fn: unit => 'a): 'a =>
-  runInScope({owner: Some(owner), host: Nullable.null}, fn)
-
-/* Register with the scope that is currently rendering, if there is one. */
+/* Register with the region that is currently rendering, if there is one. */
 let track = (register: (owner, 'a) => unit, value: 'a): unit =>
-  switch currentScope.contents {
-  | Some(scope) => register(materialize(scope), value)
+  switch currentOwner.contents {
+  | Some(owner) => register(owner, value)
   | None => ()
+  }
+
+/* A node backed by a computed the library created carries its release with it:
+   the region rendering the node owns the computed. A signal the consumer built
+   and handed us is left alone. */
+let ownComputed = (signal: Signal.t<'a>): unit =>
+  if isOwned(signal) {
+    track(addComputed, signal)
   }
