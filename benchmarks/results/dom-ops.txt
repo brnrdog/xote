@@ -1,6 +1,6 @@
 
 create 1k
-  xote   20000 calls   appendChild=9000 createElement=8000 createTextNode=2000 insertBefore=1000
+  xote    2046 calls   appendChild=1023 cloneNode=998 createElement=24 insertBefore=1
   react  16000 calls   createElement=8000 appendChild=8000
   vue    16000 calls   createElement=8000 insertBefore=8000
   solid   2001 calls   cloneNode=1000 insertBefore=1000 createElement=1
