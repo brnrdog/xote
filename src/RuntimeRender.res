@@ -560,7 +560,7 @@ and attachText = (
     let next = Signal.get(signal)
     if Nullable.make(next) !== last.contents {
       last := Nullable.make(next)
-      RuntimeDom.setTextContent(node, next)
+      RuntimeDom.writeText(node, next)
     }
     None
   })
