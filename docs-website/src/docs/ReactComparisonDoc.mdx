@@ -164,7 +164,7 @@ Median of 15 iterations, Chromium 141 on a 4-core Xeon. Lower is better. These a
 | Time to first render | 19.2 ms | 40.0 ms |
 | App bundle, gzipped | 10.4 KB | 66.9 KB |
 
-The results follow the architecture. Scattered updates and selection are where fine-grained reactivity pays: Xote writes only the text nodes that changed, while React re-renders the list and diffs it, so Xote runs about 2x faster on the update and several times faster on selection. Building large lists used to go the other way; Xote now clones a skeleton it learns from the first rows of a list instead of constructing every node, and creates rows as fast as React does.
+The results follow the architecture. Scattered updates and selection are where fine-grained reactivity pays: Xote writes only the text nodes that changed, while React re-renders the list and diffs it, so Xote runs about 2x faster on the update and several times faster on selection.
 
 Clearing a large list used to be Xote's weakest result by some distance. Reactive state now belongs to the row that created it rather than to individual DOM nodes, so removing rows disposes one owner per row instead of walking every node of the removed subtree, and Xote clears the list faster than React does.
 
