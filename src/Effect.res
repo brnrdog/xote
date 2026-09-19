@@ -8,57 +8,15 @@
 
 type disposer = Signals.Effect.disposer = {dispose: unit => unit}
 
-/* The scheduler's pending queue holds a plain reference to the observer, so an
-   effect disposed while it is queued — a region effect replacing its children
-   disposes the leaf effects inside, and a leaf scheduled by the same write is
-   still waiting its turn — gets one more run after disposal. Upstream, that run
-   re-tracks the effect's dependencies, which relinks the disposed effect to its
-   sources: it comes back from the dead and re-runs on every later write,
-   accumulating one resurrected effect per replacement.
-
-   The body is therefore guarded here: after disposal it reads nothing, so the
-   scheduler's stale-dependency sweep unlinks whatever that last run would have
-   re-tracked, and the effect stays dead. Cleanup is managed on this side of the
-   guard for the same reason — upstream re-runs the previous cleanup before the
-   post-disposal run, which would run a cleanup the disposer already ran.
-
-   Releases of `rescript-signals` after 3.1.x skip a disposed effect in the
-   scheduler themselves, which makes this guard redundant there; it stays until
-   that release is the floor this package depends on, at which point
-   `runWithDisposer` can register the upstream disposer directly. */
+/* Registers with the region that is rendering, so unmounting the region
+   disposes the effect. `rescript-signals` 3.1.3 and later make disposal final
+   on their side — a disposed effect still sitting in the scheduler's queue is
+   dequeued without running, and its cleanup runs exactly once — so nothing has
+   to be guarded here and the upstream disposer is registered as is. */
 let runWithDisposer = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer => {
-  let disposed = ref(false)
-  /* Upstream keeps storing the cleanup; taking that bookkeeping over here
-     would cost a ref and a closure on *every* effect, and the renderer builds
-     two per row. Instead each cleanup is handed over pre-disarmed, so the
-     leftover run cannot fire one twice — an effect that returns `None`, which
-     is every attribute and text effect, then pays nothing for the guarantee. */
-  let guarded = () =>
-    if disposed.contents {
-      None
-    } else {
-      switch fn() {
-      | None => None
-      | Some(cleanup) => {
-          let pending = ref(true)
-          Some(
-            () =>
-              if pending.contents {
-                pending := false
-                cleanup()
-              },
-          )
-        }
-      }
-    }
-  let inner = Signals.Effect.runWithDisposer(guarded, ~name?)
-  let dispose = () =>
-    if !disposed.contents {
-      disposed := true
-      inner.dispose()
-    }
-  RuntimeOwner.track(RuntimeOwner.addDisposer, dispose)
-  {dispose: dispose}
+  let disposer = Signals.Effect.runWithDisposer(fn, ~name?)
+  RuntimeOwner.track(RuntimeOwner.addDisposer, disposer.dispose)
+  disposer
 }
 
 let run = (fn: unit => option<unit => unit>, ~name: option<string>=?): unit => {
