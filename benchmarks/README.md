@@ -132,46 +132,45 @@ between runs of identical code, so read close rows as ties.
 
 **Where Xote leads or ties**
 
-- *Creating rows* — 39.5 ms for 1,000 rows against Solid's 38.3, Vue's 40.6
-  and React's 41.9: a four-way tie. Xote used to be 1.7x Solid here, building
-  every node individually (20,000 DOM calls per 1,000 rows). It now learns a
-  skeleton from the first rows of a list and clones it for the rest, so
-  `dom-ops.mjs` counts 2,046 calls (998 `cloneNode`, one `insertBefore` of a
-  fragment) against Solid's 2,001 from a compiled template.
-- *Appending 1,000 rows to 10,000* — 87.0 ms, ahead of Solid's 90.6 and Vue's
-  94.5, and half of React's 170.4. Rows that kept their relative order are not
-  touched; only the fresh run is inserted.
-- *Row selection* — 0.6 ms, level with Solid's 0.7 and about 7x faster than
+- *Appending 1,000 rows to 10,000* — 103.7 ms, level with Solid's 102.9,
+  ahead of Vue's 124.7 and half of React's 200.9. Rows that kept their
+  relative order are not touched; only the fresh run is inserted.
+- *Row selection* — 0.5 ms, level with Solid's 0.7 and about 10x faster than
   React. A thousand class effects re-run, and all but two skip the DOM because
   the class they compute is the one they last wrote.
-- *Removing a row* — 3.7 ms, level with Solid's 3.9.
-- *Reordering* — 4.5 ms, level with Solid's 4.3 and about 10x faster than
+- *Reordering* — 4.9 ms, level with Solid's 4.5 and about 12x faster than
   React. `dom-ops.mjs` shows why: 2 `insertBefore` calls, the same as Vue and
   Solid, where React still issues 997.
-- *Update every 10th row* — 5.1 ms, behind Solid's 4.3 and ahead of Vue (5.9)
-  and React (8.4). Per-row signals mean 100 text writes, no diff.
-- *Startup* — 18.6 ms, near Solid's 17.8 and well ahead of React's 34.8.
+- *Removing a row* — 4.4 ms, near Solid's 3.9 and ahead of Vue and React.
+- *Update every 10th row* — 5.5 ms, behind Solid's 4.9 and ahead of Vue (6.7)
+  and React (9.6). Per-row signals mean 100 text writes, no diff.
+- *Creating rows* — 58.5 ms for 1,000 rows, level with React's 59.2 and Vue's
+  55.3, and 1.17x Solid's 49.9. Xote used to be 1.7x Solid here, building every
+  node individually (20,000 DOM calls per 1,000 rows). It now learns a skeleton
+  from the first rows of a list and clones it for the rest, so `dom-ops.mjs`
+  counts 2,046 calls (998 `cloneNode`, one `insertBefore` of a fragment)
+  against Solid's 2,001 from a compiled template.
+- *Startup* — 20.5 ms, near Solid's 19.1 and half of React's 43.4.
 
 **Where Xote trails**
 
-- *Creating 10,000 rows* — 533.8 ms against Vue's 417.8 and Solid's 445.4,
-  though well ahead of React's 807.1. At 1,000 rows the same code is a tie;
-  the extra at 10,000 is garbage collection. Every row still builds and
-  discards a view tree — the props objects, attribute pairs and node records
-  the JSX transform produces — before the skeleton is cloned, where a compiled
-  template allocates none of that.
-- *Clearing 10,000 rows* — 64.4 ms vs Solid's 54.2, now ahead of Vue's 69.1
-  and React's 86.1 (it was 109 ms). Rows own their reactive state directly, so
-  clearing disposes one owner per row instead of walking every node of the
-  removed subtree. The rest is the effect disposers themselves, one layer
-  deeper in Xote than in Solid.
-- *Memory* — 17.5 MB at 10,000 rows against Solid's 12.3 MB, down from 40.5.
+- *Creating 10,000 rows* — 796.8 ms against Solid's 594.0 and Vue's 701.5,
+  though ahead of React's 938.9. The extra at this size is garbage collection.
+  Every row still builds and discards a view tree — the props objects,
+  attribute pairs and node records the JSX transform produces — before the
+  skeleton is cloned, where a compiled template allocates none of that.
+- *Clearing 10,000 rows* — 79.9 ms vs Solid's 71.8, level with Vue's 82.1 and
+  ahead of React's 108.1 (it was 1.8x Solid). Rows own their reactive state
+  directly, so clearing disposes one owner per row instead of walking every
+  node of the removed subtree. The rest is the effect disposers themselves,
+  one layer deeper in Xote than in Solid.
+- *Memory* — 17.6 MB at 10,000 rows against Solid's 12.3 MB, down from 40.5.
   Nothing hangs off DOM nodes any more and most nodes never get a JavaScript
   wrapper; what remains is the per-row reactive bookkeeping, which is heavier
   in `rescript-signals` than in Solid's runtime. Heap returns to 1.7 MB after
   clearing, so this is allocation weight and not a leak.
-- *Payload* — 10.8 KB gzipped for the whole app against Solid's 4.7 KB, still
-  a fraction of Vue's 24.9 KB and React's 59.9 KB. The template cloner is about
+- *Payload* — 10.4 KB gzipped for the whole app against Solid's 5.5 KB, still
+  a fraction of Vue's 24.1 KB and React's 66.9 KB. The template cloner is about
   2 KB of that.
 
 ## Caveats
