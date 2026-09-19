@@ -169,20 +169,20 @@ Median of 15 iterations, Chromium 141 on a 4-core Xeon. Lower is better. These a
 
 | Operation | Xote | SolidJS |
 | --- | --- | --- |
-| Create 1,000 rows | 39.5 ms | 38.3 ms |
-| Replace 1,000 rows | 44.4 ms | 43.2 ms |
-| Update every 10th row | 5.1 ms | 4.3 ms |
-| Select a row | 0.6 ms | 0.7 ms |
-| Swap two rows | 4.5 ms | 4.3 ms |
-| Remove a row | 3.7 ms | 3.9 ms |
-| Create 10,000 rows | 534 ms | 445 ms |
-| Clear 10,000 rows | 64.4 ms | 54.2 ms |
-| Time to first render | 18.6 ms | 17.8 ms |
-| App bundle, gzipped | 10.8 KB | 4.7 KB |
+| Create 1,000 rows | 58.5 ms | 49.9 ms |
+| Replace 1,000 rows | 68.3 ms | 59.7 ms |
+| Update every 10th row | 5.5 ms | 4.9 ms |
+| Select a row | 0.5 ms | 0.7 ms |
+| Swap two rows | 4.9 ms | 4.5 ms |
+| Remove a row | 4.4 ms | 3.9 ms |
+| Create 10,000 rows | 797 ms | 594 ms |
+| Clear 10,000 rows | 79.9 ms | 71.8 ms |
+| Time to first render | 20.5 ms | 19.1 ms |
+| App bundle, gzipped | 10.4 KB | 5.5 KB |
 
 Because both use the same reactive model, targeted updates land in the same range: updating scattered rows, selecting a row and startup are ties within the run-to-run spread, and both write single text nodes rather than diffing.
 
-Creating rows used to be the clear gap. SolidJS's JSX compiler emits a template that is cloned per row, so building 1,000 rows costs about 2,000 DOM calls, where Xote constructed each node through the view tree and spent closer to 20,000. Xote now learns the same thing at runtime: a keyed list records the skeleton of its rows from the second row it renders and clones it for the rest, so it makes about the same 2,000 DOM calls and creation lands within the run-to-run spread of SolidJS at 1,000 rows. What remains is on the larger sizes — at 10,000 rows the view tree Xote builds and discards per row costs it garbage-collection time a compiled template never allocates — and in the heap, where each Xote row still carries its view tree's reactive bookkeeping.
+Creating rows used to be the clear gap. SolidJS's JSX compiler emits a template that is cloned per row, so building 1,000 rows costs about 2,000 DOM calls, where Xote constructed each node through the view tree and spent closer to 20,000. Xote now learns the same thing at runtime: a keyed list records the skeleton of its rows from the second row it renders and clones it for the rest, so it makes about the same 2,000 DOM calls and creation lands within a fifth of SolidJS at 1,000 rows. What remains is on the larger sizes — at 10,000 rows the view tree Xote builds and discards per row costs it garbage-collection time a compiled template never allocates — and in the heap, where each Xote row still carries its view tree's reactive bookkeeping.
 
 Reordering used to be the one result that was not a constant-factor difference: Xote's keyed reconciler walked the new order against the live DOM and inserted every node whose position did not match, so a single early mismatch cascaded into 997 `insertBefore` calls against SolidJS's 2, and about 10x the time. Both now compute a minimal move set — the rows already in the right relative order are left alone — so a two-row swap costs two moves in either library and the times are a tie.
 
