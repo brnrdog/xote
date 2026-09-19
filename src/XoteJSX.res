@@ -333,163 +333,204 @@ module Elements = {
     children?: element,
   }
 
-  /* Helper to add optional attribute to attrs array */
-  let addAttr = (attrs, opt, key, converter) => {
-    switch opt {
-    | Some(v) => attrs->Array.push(converter(key, v))
-    | None => ()
-    }
-  }
+  /* How each typed prop is written: under which attribute name, and whether
+     it carries a string, a boolean, or an int. Keyed by the property name the
+     JSX transform emits (the `@as` name where there is one), so a props object
+     can be walked over the keys it actually has instead of probing every
+     optional field — a `<td class="...">` holds two properties, the record
+     declares over a hundred and twenty, and the renderer builds eight
+     elements per row. */
+  type propKind = StringProp(string) | BoolProp(string) | IntProp(string)
 
-  /* Helper to add optional int attribute */
-  let addIntAttr = (attrs, opt, key) => {
-    switch opt {
-    | Some(v) => attrs->Array.push(View.attr(key, Int.toString(v)))
-    | None => ()
-    }
-  }
-
-  /* Convert props to attrs array */
-  let propsToAttrs = (props): array<(string, View.attrValue)> => {
-    let attrs = []
+  let propKinds: Dict.t<propKind> = {
+    let table = Dict.make()
+    let string = (key, name) => table->Dict.set(key, StringProp(name))
+    let same = name => string(name, name)
+    let bool = (key, name) => table->Dict.set(key, BoolProp(name))
+    let int = (key, name) => table->Dict.set(key, IntProp(name))
 
     /* Standard attributes */
-    addAttr(attrs, props.id, "id", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.class, "class", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.style, "style", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.title, "title", RuntimeJsxProp.toStringAttr)
-
+    same("id")
+    same("class")
+    same("style")
+    same("title")
     /* Form/Input attributes */
-    addAttr(attrs, props.type_, "type", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.name, "name", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.value, "value", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.placeholder, "placeholder", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.disabled, "disabled", RuntimeJsxProp.toBoolAttr)
-    addAttr(attrs, props.checked, "checked", RuntimeJsxProp.toBoolAttr)
-    addAttr(attrs, props.required, "required", RuntimeJsxProp.toBoolAttr)
-    addAttr(attrs, props.readOnly, "readonly", RuntimeJsxProp.toBoolAttr)
-    addIntAttr(attrs, props.maxLength, "maxlength")
-    addIntAttr(attrs, props.minLength, "minlength")
-    addAttr(attrs, props.min, "min", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.max, "max", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.step, "step", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.pattern, "pattern", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.autoComplete, "autocomplete", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.multiple, "multiple", RuntimeJsxProp.toBoolAttr)
-    addAttr(attrs, props.accept, "accept", RuntimeJsxProp.toStringAttr)
-    addIntAttr(attrs, props.rows, "rows")
-    addIntAttr(attrs, props.cols, "cols")
-    addAttr(attrs, props.autofocus, "autofocus", RuntimeJsxProp.toBoolAttr)
-    addAttr(attrs, props.action, "action", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.method, "method", RuntimeJsxProp.toStringAttr)
-
+    same("type")
+    same("name")
+    same("value")
+    same("placeholder")
+    bool("disabled", "disabled")
+    bool("checked", "checked")
+    bool("required", "required")
+    bool("readOnly", "readonly")
+    int("maxLength", "maxlength")
+    int("minLength", "minlength")
+    same("min")
+    same("max")
+    same("step")
+    same("pattern")
+    string("autoComplete", "autocomplete")
+    bool("multiple", "multiple")
+    same("accept")
+    int("rows", "rows")
+    int("cols", "cols")
+    bool("autofocus", "autofocus")
+    same("action")
+    same("method")
     /* Label attributes */
-    addAttr(attrs, props.for_, "for", RuntimeJsxProp.toStringAttr)
-
+    same("for")
     /* Link attributes */
-    addAttr(attrs, props.href, "href", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.target, "target", RuntimeJsxProp.toStringAttr)
-
+    same("href")
+    same("target")
     /* Image attributes */
-    addAttr(attrs, props.src, "src", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.alt, "alt", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.width, "width", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.height, "height", RuntimeJsxProp.toStringAttr)
-
+    same("src")
+    same("alt")
+    same("width")
+    same("height")
     /* Global attributes */
-    addAttr(attrs, props.draggable, "draggable", RuntimeJsxProp.toBoolAttr)
-    addAttr(attrs, props.hidden, "hidden", RuntimeJsxProp.toBoolAttr)
-    addAttr(attrs, props.contentEditable, "contenteditable", RuntimeJsxProp.toBoolAttr)
-    addAttr(attrs, props.spellcheck, "spellcheck", RuntimeJsxProp.toBoolAttr)
-
+    bool("draggable", "draggable")
+    bool("hidden", "hidden")
+    bool("contentEditable", "contenteditable")
+    bool("spellcheck", "spellcheck")
     /* Accessibility attributes */
-    addAttr(attrs, props.role, "role", RuntimeJsxProp.toStringAttr)
-    addIntAttr(attrs, props.tabIndex, "tabindex")
-    addAttr(attrs, props.ariaLabel, "aria-label", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.ariaHidden, "aria-hidden", RuntimeJsxProp.toBoolAttr)
-    addAttr(attrs, props.ariaExpanded, "aria-expanded", RuntimeJsxProp.toBoolAttr)
-    addAttr(attrs, props.ariaSelected, "aria-selected", RuntimeJsxProp.toBoolAttr)
-
+    same("role")
+    int("tabIndex", "tabindex")
+    same("aria-label")
+    bool("aria-hidden", "aria-hidden")
+    bool("aria-expanded", "aria-expanded")
+    bool("aria-selected", "aria-selected")
     /* SVG attributes - root */
-    addAttr(attrs, props.xmlns, "xmlns", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.xmlnsXlink, "xmlns:xlink", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.version, "version", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.viewBox, "viewBox", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.preserveAspectRatio, "preserveAspectRatio", RuntimeJsxProp.toStringAttr)
-
+    same("xmlns")
+    same("xmlns:xlink")
+    same("version")
+    same("viewBox")
+    same("preserveAspectRatio")
     /* SVG attributes - geometry */
-    addAttr(attrs, props.d, "d", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.pathLength, "pathLength", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.cx, "cx", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.cy, "cy", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.r, "r", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.rx, "rx", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.ry, "ry", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.x, "x", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.y, "y", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.x1, "x1", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.y1, "y1", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.x2, "x2", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.y2, "y2", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.fx, "fx", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.fy, "fy", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.dx, "dx", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.dy, "dy", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.points, "points", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.transform, "transform", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.transformOrigin, "transform-origin", RuntimeJsxProp.toStringAttr)
-
+    same("d")
+    same("pathLength")
+    same("cx")
+    same("cy")
+    same("r")
+    same("rx")
+    same("ry")
+    same("x")
+    same("y")
+    same("x1")
+    same("y1")
+    same("x2")
+    same("y2")
+    same("fx")
+    same("fy")
+    same("dx")
+    same("dy")
+    same("points")
+    same("transform")
+    same("transform-origin")
     /* SVG attributes - presentation */
-    addAttr(attrs, props.fill, "fill", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.fillOpacity, "fill-opacity", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.fillRule, "fill-rule", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.stroke, "stroke", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.strokeWidth, "stroke-width", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.strokeLinecap, "stroke-linecap", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.strokeLinejoin, "stroke-linejoin", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.strokeDasharray, "stroke-dasharray", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.strokeDashoffset, "stroke-dashoffset", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.strokeOpacity, "stroke-opacity", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.strokeMiterlimit, "stroke-miterlimit", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.opacity, "opacity", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.color, "color", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.visibility, "visibility", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.vectorEffect, "vector-effect", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.pointerEvents, "pointer-events", RuntimeJsxProp.toStringAttr)
-
+    same("fill")
+    same("fill-opacity")
+    same("fill-rule")
+    same("stroke")
+    same("stroke-width")
+    same("stroke-linecap")
+    same("stroke-linejoin")
+    same("stroke-dasharray")
+    same("stroke-dashoffset")
+    same("stroke-opacity")
+    same("stroke-miterlimit")
+    same("opacity")
+    same("color")
+    same("visibility")
+    same("vector-effect")
+    same("pointer-events")
     /* SVG attributes - clipping/masking/filter */
-    addAttr(attrs, props.clipPath, "clip-path", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.clipRule, "clip-rule", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.mask, "mask", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.filter, "filter", RuntimeJsxProp.toStringAttr)
-
+    same("clip-path")
+    same("clip-rule")
+    same("mask")
+    same("filter")
     /* SVG attributes - text */
-    addAttr(attrs, props.textAnchor, "text-anchor", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.dominantBaseline, "dominant-baseline", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.fontFamily, "font-family", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.fontSize, "font-size", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.fontWeight, "font-weight", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.letterSpacing, "letter-spacing", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.wordSpacing, "word-spacing", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.textDecoration, "text-decoration", RuntimeJsxProp.toStringAttr)
-
+    same("text-anchor")
+    same("dominant-baseline")
+    same("font-family")
+    same("font-size")
+    same("font-weight")
+    same("letter-spacing")
+    same("word-spacing")
+    same("text-decoration")
     /* SVG attributes - gradient/stop */
-    addAttr(attrs, props.offset, "offset", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.stopColor, "stop-color", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.stopOpacity, "stop-opacity", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.gradientUnits, "gradientUnits", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.gradientTransform, "gradientTransform", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.spreadMethod, "spreadMethod", RuntimeJsxProp.toStringAttr)
-
+    same("offset")
+    same("stop-color")
+    same("stop-opacity")
+    same("gradientUnits")
+    same("gradientTransform")
+    same("spreadMethod")
     /* SVG attributes - markers */
-    addAttr(attrs, props.markerStart, "marker-start", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.markerMid, "marker-mid", RuntimeJsxProp.toStringAttr)
-    addAttr(attrs, props.markerEnd, "marker-end", RuntimeJsxProp.toStringAttr)
-
+    same("marker-start")
+    same("marker-mid")
+    same("marker-end")
     /* SVG attributes - xlink (legacy) */
-    addAttr(attrs, props.xlinkHref, "xlink:href", RuntimeJsxProp.toStringAttr)
+    same("xlink:href")
+    table
+  }
 
-    /* Data attributes */
+  /* DOM event name for each handler prop. */
+  let eventNames: Dict.t<string> = {
+    let table = Dict.make()
+    let event = (key, name) => table->Dict.set(key, name)
+    event("onClick", "click")
+    event("onInput", "input")
+    event("onChange", "change")
+    event("onSubmit", "submit")
+    event("onFocus", "focus")
+    event("onBlur", "blur")
+    event("onKeyDown", "keydown")
+    event("onKeyUp", "keyup")
+    event("onMouseEnter", "mouseenter")
+    event("onMouseLeave", "mouseleave")
+    event("onMouseDown", "mousedown")
+    event("onMouseMove", "mousemove")
+    event("onMouseUp", "mouseup")
+    event("onContextMenu", "contextmenu")
+    event("onPointerDown", "pointerdown")
+    event("onPointerMove", "pointermove")
+    event("onPointerUp", "pointerup")
+    event("onPointerCancel", "pointercancel")
+    event("onPointerEnter", "pointerenter")
+    event("onPointerLeave", "pointerleave")
+    event("onPointerOver", "pointerover")
+    event("onPointerOut", "pointerout")
+    event("onGotPointerCapture", "gotpointercapture")
+    event("onLostPointerCapture", "lostpointercapture")
+    event("onDrag", "drag")
+    event("onDragStart", "dragstart")
+    event("onDragEnd", "dragend")
+    event("onDragOver", "dragover")
+    event("onDragEnter", "dragenter")
+    event("onDragLeave", "dragleave")
+    event("onDrop", "drop")
+    table
+  }
+
+  /* The typed props record as the JavaScript object it is at runtime. An
+     optional field that was not given is absent from the object; one given as
+     `None` is present and `undefined`, and is skipped the same way. */
+  let propDict = (props): Dict.t<Obj.t> => Obj.magic(props)
+
+  let pushAttr = (attrs, key: string, value: Obj.t) =>
+    switch propKinds->Dict.get(key) {
+    | Some(StringProp(name)) => attrs->Array.push(RuntimeJsxProp.toStringAttr(name, value))->ignore
+    | Some(BoolProp(name)) => attrs->Array.push(RuntimeJsxProp.toBoolAttr(name, value))->ignore
+    | Some(IntProp(name)) => {
+        let int: int = Obj.magic(value)
+        attrs->Array.push(View.attr(name, Int.toString(int)))->ignore
+      }
+    | None => ()
+    }
+
+  /* `data` entries and the `attrs` escape hatch come after the typed props
+     whatever their position in the source, so an `attrs` entry still wins over
+     a typed prop with the same key. */
+  let finishAttrs = (props, attrs): array<(string, View.attrValue)> => {
     switch props.data {
     | Some(dataObj) => {
         let entries = objectEntries(dataObj)
@@ -500,7 +541,6 @@ module Elements = {
     | None => ()
     }
 
-    /* Escape hatch, merged last so it wins over the typed props */
     switch props.attrs {
     | Some(entries) =>
       RuntimeJsxProp.mergeAttrs(
@@ -511,50 +551,42 @@ module Elements = {
     }
   }
 
-  /* Helper to add optional event handler to events array */
-  let addEvent = (events, opt, eventName) => {
-    switch opt {
-    | Some(handler) => events->Array.push((eventName, handler))
+  /* Convert props to attrs array, in the order the props were written. */
+  let propsToAttrs = (props): array<(string, View.attrValue)> => {
+    let attrs = []
+    let dict = propDict(props)
+    dict
+    ->Dict.keysToArray
+    ->Array.forEach(key => {
+      let value = dict->Dict.getUnsafe(key)
+      if !RuntimeValue.isUndefined(value) {
+        pushAttr(attrs, key, value)
+      }
+    })
+    finishAttrs(props, attrs)
+  }
+
+  let pushEvent = (events, key: string, value: Obj.t) =>
+    switch eventNames->Dict.get(key) {
+    | Some(name) => {
+        let handler: Dom.event => unit = Obj.magic(value)
+        events->Array.push((name, handler))->ignore
+      }
     | None => ()
     }
-  }
 
   /* Convert props to events array */
   let propsToEvents = (props): array<(string, Dom.event => unit)> => {
     let events = []
-
-    addEvent(events, props.onClick, "click")
-    addEvent(events, props.onInput, "input")
-    addEvent(events, props.onChange, "change")
-    addEvent(events, props.onSubmit, "submit")
-    addEvent(events, props.onFocus, "focus")
-    addEvent(events, props.onBlur, "blur")
-    addEvent(events, props.onKeyDown, "keydown")
-    addEvent(events, props.onKeyUp, "keyup")
-    addEvent(events, props.onMouseEnter, "mouseenter")
-    addEvent(events, props.onMouseLeave, "mouseleave")
-    addEvent(events, props.onMouseDown, "mousedown")
-    addEvent(events, props.onMouseMove, "mousemove")
-    addEvent(events, props.onMouseUp, "mouseup")
-    addEvent(events, props.onContextMenu, "contextmenu")
-    addEvent(events, props.onPointerDown, "pointerdown")
-    addEvent(events, props.onPointerMove, "pointermove")
-    addEvent(events, props.onPointerUp, "pointerup")
-    addEvent(events, props.onPointerCancel, "pointercancel")
-    addEvent(events, props.onPointerEnter, "pointerenter")
-    addEvent(events, props.onPointerLeave, "pointerleave")
-    addEvent(events, props.onPointerOver, "pointerover")
-    addEvent(events, props.onPointerOut, "pointerout")
-    addEvent(events, props.onGotPointerCapture, "gotpointercapture")
-    addEvent(events, props.onLostPointerCapture, "lostpointercapture")
-    addEvent(events, props.onDrag, "drag")
-    addEvent(events, props.onDragStart, "dragstart")
-    addEvent(events, props.onDragEnd, "dragend")
-    addEvent(events, props.onDragOver, "dragover")
-    addEvent(events, props.onDragEnter, "dragenter")
-    addEvent(events, props.onDragLeave, "dragleave")
-    addEvent(events, props.onDrop, "drop")
-
+    let dict = propDict(props)
+    dict
+    ->Dict.keysToArray
+    ->Array.forEach(key => {
+      let value = dict->Dict.getUnsafe(key)
+      if !RuntimeValue.isUndefined(value) {
+        pushEvent(events, key, value)
+      }
+    })
     events
   }
 
@@ -567,12 +599,27 @@ module Elements = {
     }
   }
 
-  /* Create an element from a tag string and props */
+  /* Create an element from a tag string and props. One walk over the props
+     sorts every key into an attribute, an event, or neither. */
   let createElement = (tag: string, props): element => {
+    let attrs = []
+    let events = []
+    let dict = propDict(props)
+    dict
+    ->Dict.keysToArray
+    ->Array.forEach(key => {
+      let value = dict->Dict.getUnsafe(key)
+      if !RuntimeValue.isUndefined(value) {
+        switch propKinds->Dict.get(key) {
+        | Some(_) => pushAttr(attrs, key, value)
+        | None => pushEvent(events, key, value)
+        }
+      }
+    })
     View.Element({
       tag,
-      attrs: propsToAttrs(props),
-      events: propsToEvents(props),
+      attrs: finishAttrs(props, attrs),
+      events,
       children: getChildren(props),
     })
   }

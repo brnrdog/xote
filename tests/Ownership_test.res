@@ -371,7 +371,7 @@ let suite = Zekr.suite(
          attached to nothing, so nothing could ever dispose them. */
       combineResults([
         assertTrue(raised.contents),
-        assertTrue(RuntimeOwner.currentScope.contents->Option.isNone),
+        assertTrue(RuntimeOwner.currentOwner.contents->Option.isNone),
       ])
     }),
     test("a component's root element releases its attribute effect on unmount", () => {

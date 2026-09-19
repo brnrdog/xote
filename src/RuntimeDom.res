@@ -61,16 +61,10 @@ external getElementById: string => Nullable.t<Dom.element> = "getElementById"
 @get external getNextSibling: Dom.element => Nullable.t<Dom.element> = "nextSibling"
 @get external getFirstChild: Dom.element => Nullable.t<Dom.element> = "firstChild"
 @get external getParentNode: Dom.element => Nullable.t<Dom.element> = "parentNode"
-@get external childNodes: Dom.element => Array.arrayLike<Dom.element> = "childNodes"
 
 let isDocumentFragment: Dom.element => bool = %raw(`function (node) {
   return node != null && node.nodeType === 11
 }`)
-
-let childNodesToArray = (el: Dom.element): array<Dom.element> => {
-  ignore(el)
-  %raw(`Array.from(el.childNodes || [])`)
-}
 
 @send
 external addEventListener: (Dom.element, string, Dom.event => unit) => unit = "addEventListener"
@@ -81,7 +75,20 @@ external addEventListener: (Dom.element, string, Dom.event => unit) => unit = "a
 @send external replaceChild: (Dom.element, Dom.element, Dom.element) => unit = "replaceChild"
 @send external insertBefore: (Dom.element, Dom.element, Dom.element) => unit = "insertBefore"
 @set external setTextContent: (Dom.element, string) => unit = "textContent"
-@set external setInnerHTML: (Dom.element, string) => unit = "innerHTML"
+
+/* Write text into a node that holds only text: a text node's own data, or an
+   element whose single child is the text node written before. Updating that
+   node's data keeps it; `textContent` would drop it and make a new one on
+   every write. An element with no text yet, or with anything else in it, gets
+   `textContent`. */
+let writeText: (Dom.element, string) => unit = %raw(`function (node, value) {
+  const first = node.firstChild
+  if (first !== null && first.nodeType === 3 && first.nextSibling === null) {
+    first.data = value
+  } else {
+    node.textContent = value
+  }
+}`)
 @set external setValue: (Dom.element, string) => unit = "value"
 @set external setChecked: (Dom.element, bool) => unit = "checked"
 @set external setDisabled: (Dom.element, bool) => unit = "disabled"

@@ -1,4 +1,4 @@
-# [7.1.0-beta.9](https://github.com/brnrdog/xote/compare/v7.1.0-beta.8...v7.1.0-beta.9) (2026-08-22)
+# [7.1.0](https://github.com/brnrdog/xote/compare/v7.0.0...v7.1.0) (2026-08-23)
 
 
 ### Bug Fixes
@@ -10,7 +10,6 @@
 * **owner:** restore the active scope when a component body throws ([291d8e9](https://github.com/brnrdog/xote/commit/291d8e9d41ae21b62b7543b82cccf26c9dcbb9aa))
 * **ppx:** leave attrs and event handlers exactly as written ([7946943](https://github.com/brnrdog/xote/commit/79469433f8bc1aa53b0fe1348a5edd294d9a7bfa))
 * **ppx:** leave the data object exactly as written ([d9c88b2](https://github.com/brnrdog/xote/commit/d9c88b2bc6285f8b4fe0cc0189f82acaf939926d))
-* **ppx:** recognize namespaced value components and decompose JSX in container props ([34b3458](https://github.com/brnrdog/xote/commit/34b34585c783ac7255eed97392b1572b9afeeadf))
 * remove @rescript/core dependency ([fa11c35](https://github.com/brnrdog/xote/commit/fa11c35ae69d3dfb41f4c90ec6095f1c9126c9e6))
 * **render:** make a component body its own reactive scope ([3bab9b7](https://github.com/brnrdog/xote/commit/3bab9b71c09345f0296758fbd6c89b5c4676a2e4)), closes [#17](https://github.com/brnrdog/xote/issues/17)
 * **render:** release the computeds the library builds for a node ([71ec379](https://github.com/brnrdog/xote/commit/71ec379aa447680accfd7edc45076f54e3bd64ff))
@@ -21,6 +20,9 @@
 
 ### Features
 
+* include instructions for agents in the package ([450e210](https://github.com/brnrdog/xote/commit/450e210f3a9df0b2fa649efb73bb7d123784c98d))
+* introduce MaybeSignal, deprecate Prop  ([f5da1e3](https://github.com/brnrdog/xote/commit/f5da1e39496022d0b79f9d7064e134b38052ae60))
+* **jsx:** add attrs escape hatch and removable attributes ([d405274](https://github.com/brnrdog/xote/commit/d4052741612e6771ad144dc04f529898bfef9558))
 * **maybe-signal:** add fold and View.render, fix toSignal ([#161](https://github.com/brnrdog/xote/issues/161)) ([4222f4d](https://github.com/brnrdog/xote/commit/4222f4d3634c1598882efd78f550a976ebaafb42))
 * **ppx:** add [@xote](https://github.com/xote).component for fine-grained components ([1515c2c](https://github.com/brnrdog/xote/commit/1515c2c499f438d4145b93dff7ea86d4d3ab82ca))
 * **ppx:** ship prebuilt binaries so [@xote](https://github.com/xote).component needs no toolchain ([0a55a1f](https://github.com/brnrdog/xote/commit/0a55a1f4b536e387ed459861b838fc1e9637b987))
@@ -32,87 +34,6 @@
 * **render:** allocate an owner only when something registers ([89a120b](https://github.com/brnrdog/xote/commit/89a120bbd49a34a63c9ce604592c776af5f57a77))
 * **render:** move only the rows a reorder actually displaces ([0992cc4](https://github.com/brnrdog/xote/commit/0992cc4b2ccf3cfeb37609135d4d6a6b43f14cdd))
 * **render:** walk the disposal tree without snapshotting each node ([046e51f](https://github.com/brnrdog/xote/commit/046e51f8fe16282e391e1d6dc4db0e687be6f1ab))
-
-# [7.1.0-beta.8](https://github.com/brnrdog/xote/compare/v7.1.0-beta.7...v7.1.0-beta.8) (2026-08-12)
-
-
-### Features
-
-* include instructions for agents in the package ([450e210](https://github.com/brnrdog/xote/commit/450e210f3a9df0b2fa649efb73bb7d123784c98d))
-* **jsx:** add attrs escape hatch and removable attributes ([d405274](https://github.com/brnrdog/xote/commit/d4052741612e6771ad144dc04f529898bfef9558))
-* **ppx:** add `[@xote](https://github.com/xote).component` for fine-grained components ([cd6b4d1](https://github.com/brnrdog/xote/commit/cd6b4d16ce38abb243fd739df3a3f0a75982bdc7))
-* **ppx:** fine-grain JSX wherever it appears, including helper functions ([4638c91](https://github.com/brnrdog/xote/commit/4638c91d3d70a23f08a6858a2085e00788df65fd))
-* **ppx:** ship prebuilt binaries so `[@xote](https://github.com/xote).component` needs no toolchain ([59672b2](https://github.com/brnrdog/xote/commit/59672b2f222238e2a7e560f6fbbcc7d3d4149a73))
-* **view:** add tracked() for auto-tracked reactive blocks ([2427c6b](https://github.com/brnrdog/xote/commit/2427c6bbb15a205fed42869b0c8f45c61e5a37d8))
-* **view:** coerce bare JSX children so value primitives are optional ([8b67a43](https://github.com/brnrdog/xote/commit/8b67a4387cb175dcd5517d1ab2154b30a8a541b9))
-
-# [7.1.0-beta.7](https://github.com/brnrdog/xote/compare/v7.1.0-beta.6...v7.1.0-beta.7) (2026-08-10)
-
-
-### Features
-
-* introduce MaybeSignal, deprecate Prop  ([f5da1e3](https://github.com/brnrdog/xote/commit/f5da1e39496022d0b79f9d7064e134b38052ae60))
-* **ppx:** add [@xote](https://github.com/xote).component for fine-grained components ([26ca857](https://github.com/brnrdog/xote/commit/26ca8578c19fd4512ab8184edfce37dc0c72f757))
-* **ppx:** fine-grain JSX wherever it appears, including helper functions ([d631140](https://github.com/brnrdog/xote/commit/d631140d65a5bfe35a519f4240a722e5be3f4aa9))
-* **ppx:** ship prebuilt binaries so [@xote](https://github.com/xote).component needs no toolchain ([0f3d1b4](https://github.com/brnrdog/xote/commit/0f3d1b46eb4a28009dfbb2216d59028a2d55b07f))
-* **view:** add tracked() for auto-tracked reactive blocks ([ae5c4e9](https://github.com/brnrdog/xote/commit/ae5c4e97d67abc369bc5bd127fe40953ba2d043b))
-* **view:** coerce bare JSX children so value primitives are optional ([0721b84](https://github.com/brnrdog/xote/commit/0721b84085768d26f2432090492caacef30f59b0))
-
-# [7.1.0-beta.6](https://github.com/brnrdog/xote/compare/v7.1.0-beta.5...v7.1.0-beta.6) (2026-08-08)
-
-
-### Bug Fixes
-
-* **ppx:** reach JSX wherever it appears, including helper functions ([b7855de](https://github.com/brnrdog/xote/commit/b7855de109995cb534fbf184df01770459f1c9fc))
-
-# [7.1.0-beta.5](https://github.com/brnrdog/xote/compare/v7.1.0-beta.4...v7.1.0-beta.5) (2026-08-07)
-
-
-### Bug Fixes
-
-* **ppx:** decompose control-flow branches when the condition is not reactive ([5628084](https://github.com/brnrdog/xote/commit/5628084eb36663c9606c584f5f80fd61a9bfcea7))
-* **ppx:** decompose render callbacks so their bodies are treated as node position ([cd48499](https://github.com/brnrdog/xote/commit/cd4849907089696282eb31dc6a67263a2e89a692))
-
-# [7.1.0-beta.4](https://github.com/brnrdog/xote/compare/v7.1.0-beta.3...v7.1.0-beta.4) (2026-08-05)
-
-
-### Bug Fixes
-
-* **ppx:** harden install path and CI for the prebuilt binaries ([e814d2c](https://github.com/brnrdog/xote/commit/e814d2cc2ab3a1986b918a17d9c5edd01fa1c9b5))
-
-# [7.1.0-beta.3](https://github.com/brnrdog/xote/compare/v7.1.0-beta.2...v7.1.0-beta.3) (2026-07-23)
-
-
-### Features
-
-* **ppx:** ship prebuilt per-platform binaries and make [@xote](https://github.com/xote).component the standard setup ([cdff1e3](https://github.com/brnrdog/xote/commit/cdff1e3d8073bb4b5f70a97e8f4cdea7c2fc5162))
-
-# [7.1.0-beta.2](https://github.com/brnrdog/xote/compare/v7.1.0-beta.1...v7.1.0-beta.2) (2026-07-18)
-
-
-### Bug Fixes
-
-* **ppx:** decompose fragment bodies so nested reactive regions stay independent ([8dc4455](https://github.com/brnrdog/xote/commit/8dc44553c355cb188b947f14b3dec8c5f4b972f0))
-
-# [7.1.0-beta.1](https://github.com/brnrdog/xote/compare/v7.0.0...v7.1.0-beta.1) (2026-07-18)
-
-
-### Bug Fixes
-
-* **ppx:** don't double-thunk values already written as functions ([eb0df5b](https://github.com/brnrdog/xote/commit/eb0df5b420594473b59125f5d1a147752ed025c2))
-* **ppx:** only thunk eager signal reads, not reads deferred in lambdas ([92143c1](https://github.com/brnrdog/xote/commit/92143c186e44cd5a35d42a148012b80fa42961f1))
-* **ppx:** track local reactive helpers so hidden reads stay fine-grained ([000469b](https://github.com/brnrdog/xote/commit/000469bc1856eba7eb121b1506458b42a046ac33))
-
-
-### Features
-
-* **ppx:** add [@xote](https://github.com/xote).component component-level annotation ([27901b8](https://github.com/brnrdog/xote/commit/27901b81feaabed698183d939e1a1b3c9f419924))
-* **ppx:** alias-aware signal detection in tracked-block ppx ([cc4bd62](https://github.com/brnrdog/xote/commit/cc4bd62557afaade6aef6568655970d89168d928))
-* **ppx:** make the tracked ppx production-ready and opt-in ([f052ee9](https://github.com/brnrdog/xote/commit/f052ee975233910d92c5033a4dc8a1606f20cfc2))
-* **ppx:** prototype fine-grained tracked-block compilation ([d1e9ee0](https://github.com/brnrdog/xote/commit/d1e9ee04245a5d2cde7e6aec92b00bd7e39301db))
-* **ppx:** track only the condition in tracked control flow ([de16550](https://github.com/brnrdog/xote/commit/de16550fd93c43a420958dffafcfc09f0c67f542))
-* **view:** add tracked() auto-tracked reactive block ([239c93f](https://github.com/brnrdog/xote/commit/239c93fa2ae99f2a388c988ccb9d07aea4e53d1e)), closes [brnrdog/rescript-signals#34](https://github.com/brnrdog/rescript-signals/issues/34)
-* **view:** coerce bare JSX children so value primitives are optional ([832ff3d](https://github.com/brnrdog/xote/commit/832ff3de85d58e1f0fd62b44b5de20e624ef17c5))
 
 # [7.0.0](https://github.com/brnrdog/xote/compare/v6.4.0...v7.0.0) (2026-07-13)
 
