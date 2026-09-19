@@ -1,3 +1,52 @@
+# [7.2.0-beta.1](https://github.com/brnrdog/xote/compare/v7.1.0...v7.2.0-beta.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* **ppx,view:** harden bare-child coercion, widen read detection, warn on ppx ABI mismatch ([27fc5d0](https://github.com/brnrdog/xote/commit/27fc5d03dd121eae5047af71878854efd86c39d5))
+* **ppx:** close silent-reactivity gaps and fail fast on ABI mismatch ([91f57c4](https://github.com/brnrdog/xote/commit/91f57c4aee5b95001e49cccd110008304d9d6569))
+* **ppx:** decompose control-flow branches when the condition is not reactive ([5628084](https://github.com/brnrdog/xote/commit/5628084eb36663c9606c584f5f80fd61a9bfcea7))
+* **ppx:** decompose fragment bodies so nested reactive regions stay independent ([d27a1a4](https://github.com/brnrdog/xote/commit/d27a1a4a2954af51e2e6eaaca9fad804c077e3d1))
+* **ppx:** decompose render callbacks so their bodies are treated as node position ([cd48499](https://github.com/brnrdog/xote/commit/cd4849907089696282eb31dc6a67263a2e89a692))
+* **ppx:** don't double-thunk values already written as functions ([219f897](https://github.com/brnrdog/xote/commit/219f89725bcdb1baad1d34ce7917cc1c61cdd8e2))
+* **ppx:** harden install path and CI for the prebuilt binaries ([e814d2c](https://github.com/brnrdog/xote/commit/e814d2cc2ab3a1986b918a17d9c5edd01fa1c9b5))
+* **ppx:** harden install path and CI for the prebuilt binaries ([8ca3364](https://github.com/brnrdog/xote/commit/8ca3364e772e27de4e62f07f578f3a1edb4907ef))
+* **ppx:** only thunk eager signal reads, not reads deferred in lambdas ([3149c2f](https://github.com/brnrdog/xote/commit/3149c2fc14de13f64609950603baf5250010a5be))
+* **ppx:** reach JSX wherever it appears, including helper functions ([b7855de](https://github.com/brnrdog/xote/commit/b7855de109995cb534fbf184df01770459f1c9fc))
+* **ppx:** recognize namespaced value components and decompose JSX in container props ([34b3458](https://github.com/brnrdog/xote/commit/34b34585c783ac7255eed97392b1572b9afeeadf))
+* **ppx:** stop nested .gitignore from stripping prebuilt binaries out of the npm tarball ([86c7588](https://github.com/brnrdog/xote/commit/86c7588eb4f9683e0c4f109c52175a4784ff2529))
+* **ppx:** track local reactive helpers so hidden reads stay fine-grained ([648233c](https://github.com/brnrdog/xote/commit/648233c580b399f92d1575b561123c83f7f93386))
+* **view:** re-coerce non-scalar View.child thunks on every run ([6bccab0](https://github.com/brnrdog/xote/commit/6bccab0112c5ca4d6c9599dc62c917c925572ea9))
+
+
+### Features
+
+* **ppx:** add [@xote](https://github.com/xote).component component-level annotation ([1c10e77](https://github.com/brnrdog/xote/commit/1c10e77e94dfe85d856b43ef5b24b8d46148477b))
+* **ppx:** add [@xote](https://github.com/xote).component for fine-grained components ([26ca857](https://github.com/brnrdog/xote/commit/26ca8578c19fd4512ab8184edfce37dc0c72f757))
+* **ppx:** add `[@xote](https://github.com/xote).component` for fine-grained components ([cd6b4d1](https://github.com/brnrdog/xote/commit/cd6b4d16ce38abb243fd739df3a3f0a75982bdc7))
+* **ppx:** alias-aware signal detection in tracked-block ppx ([54ef22c](https://github.com/brnrdog/xote/commit/54ef22c95b124e3cd59bef99c39e91264be400e7))
+* **ppx:** fine-grain JSX wherever it appears, including helper functions ([4638c91](https://github.com/brnrdog/xote/commit/4638c91d3d70a23f08a6858a2085e00788df65fd))
+* **ppx:** fine-grain JSX wherever it appears, including helper functions ([d631140](https://github.com/brnrdog/xote/commit/d631140d65a5bfe35a519f4240a722e5be3f4aa9))
+* **ppx:** make the tracked ppx production-ready and opt-in ([bac136a](https://github.com/brnrdog/xote/commit/bac136a7da33fee8c55a4361ea91391d57e05f7f))
+* **ppx:** prototype fine-grained tracked-block compilation ([d591b8e](https://github.com/brnrdog/xote/commit/d591b8ea733403a8fbc598a1fffbbaeeff0c9758))
+* **ppx:** ship prebuilt binaries so [@xote](https://github.com/xote).component needs no toolchain ([0f3d1b4](https://github.com/brnrdog/xote/commit/0f3d1b46eb4a28009dfbb2216d59028a2d55b07f))
+* **ppx:** ship prebuilt binaries so `[@xote](https://github.com/xote).component` needs no toolchain ([59672b2](https://github.com/brnrdog/xote/commit/59672b2f222238e2a7e560f6fbbcc7d3d4149a73))
+* **ppx:** ship prebuilt per-platform binaries and make [@xote](https://github.com/xote).component the standard setup ([92dd208](https://github.com/brnrdog/xote/commit/92dd2086772e37f1aeabb73b43ad975d76058d31))
+* **ppx:** track only the condition in tracked control flow ([f2639f3](https://github.com/brnrdog/xote/commit/f2639f3f585ce4afd3d8d5f39e593b32467858db))
+* **view:** add tracked() auto-tracked reactive block ([6697c80](https://github.com/brnrdog/xote/commit/6697c809d4b18ca04b2aece14c4eccf768fd9a4a)), closes [brnrdog/rescript-signals#34](https://github.com/brnrdog/rescript-signals/issues/34)
+* **view:** add tracked() for auto-tracked reactive blocks ([2427c6b](https://github.com/brnrdog/xote/commit/2427c6bbb15a205fed42869b0c8f45c61e5a37d8))
+* **view:** add tracked() for auto-tracked reactive blocks ([ae5c4e9](https://github.com/brnrdog/xote/commit/ae5c4e97d67abc369bc5bd127fe40953ba2d043b))
+* **view:** coerce bare JSX children so value primitives are optional ([8b67a43](https://github.com/brnrdog/xote/commit/8b67a4387cb175dcd5517d1ab2154b30a8a541b9))
+* **view:** coerce bare JSX children so value primitives are optional ([0721b84](https://github.com/brnrdog/xote/commit/0721b84085768d26f2432090492caacef30f59b0))
+* **view:** coerce bare JSX children so value primitives are optional ([1586ef6](https://github.com/brnrdog/xote/commit/1586ef64af02e6dfbdfef9fff1589394fecf7a28))
+
+
+### Performance Improvements
+
+* **jsx:** walk only the props an element was given ([ac141b1](https://github.com/brnrdog/xote/commit/ac141b1f3094048b259ffaf16b59929fbffbb09a))
+* **render:** own state per region and clone repeated shapes ([f0798d4](https://github.com/brnrdog/xote/commit/f0798d45880d6572dcb9774c28a66a7ac79fd1a7))
+* **render:** update reactive text in place ([076774d](https://github.com/brnrdog/xote/commit/076774daadc183ea248c9ac7ca64dc44167b9516))
+
 # [7.1.0](https://github.com/brnrdog/xote/compare/v7.0.0...v7.1.0) (2026-08-23)
 
 
