@@ -133,11 +133,11 @@ between runs of identical code, so read close rows as ties.
 **Where Xote leads or ties**
 
 - *Creating rows* — 53.5 ms for 1,000 rows, ahead of Vue's 55.1 and React's
-  58.2 and within a tenth of Solid's 49.3. Xote used to be 1.7x Solid here,
-  building every node individually (20,000 DOM calls per 1,000 rows). It now
-  learns a skeleton from the first rows of a list and clones it for the rest,
-  so `dom-ops.mjs` counts 2,046 calls (998 `cloneNode`, one `insertBefore` of
-  a fragment) against Solid's 2,001 from a compiled template.
+  58.2 and within a tenth of Solid's 49.3. Xote learns a skeleton from the
+  first rows of a list and clones it for the rest, so `dom-ops.mjs` counts
+  2,046 calls (998 `cloneNode`, one `insertBefore` of a fragment) against
+  Solid's 2,001 from a compiled template and the 16,000 React and Vue spend
+  building every node.
 - *Appending 1,000 rows to 10,000* — 147.1 ms, level with Vue's 145.5, near
   Solid's 135.1 and well ahead of React's 218.7. Rows that kept their relative
   order are not touched; only the fresh run is inserted.
@@ -152,10 +152,10 @@ between runs of identical code, so read close rows as ties.
   and React (11.2). Per-row signals mean 100 text writes, no diff.
 - *Startup* — 19.2 ms, level with Solid's 19.5 and half of React's 40.0.
 - *Memory* — 13.1 MB at 10,000 rows against Solid's 12.3 MB, Vue's 19.0 and
-  React's 20.3, down from 40.5. Nothing hangs off DOM nodes any more, most
-  nodes never get a JavaScript wrapper, and `rescript-signals` 3.1.3 halved
-  the allocations behind each effect and computed. Heap returns to 1.7 MB
-  after clearing, so what is left is allocation weight and not a leak.
+  React's 20.3. Nothing hangs off DOM nodes, most nodes never get a JavaScript
+  wrapper, and each effect and computed is a handful of allocations. Heap
+  returns to 1.7 MB after clearing, so what is there is allocation weight and
+  not a leak.
 
 **Where Xote trails**
 
@@ -166,10 +166,10 @@ between runs of identical code, so read close rows as ties.
   before the skeleton is cloned, where a compiled template allocates none of
   that.
 - *Clearing 10,000 rows* — 76.1 ms vs Solid's 66.1, ahead of Vue's 90.4 and
-  React's 108.0 (it was 1.8x Solid). Rows own their reactive state directly,
-  so clearing disposes one owner per row instead of walking every node of the
-  removed subtree; removing the ten thousand rows from the document is most
-  of what remains, and costs every framework about the same.
+  React's 108.0. Rows own their reactive state directly, so clearing disposes
+  one owner per row rather than walking every node of the removed subtree;
+  removing the ten thousand rows from the document is most of the cost, and
+  it is about the same for every framework.
 - *Payload* — 10.4 KB gzipped for the whole app against Solid's 5.5 KB, still
   a fraction of Vue's 24.1 KB and React's 66.9 KB. The template cloner is about
   2 KB of that.
