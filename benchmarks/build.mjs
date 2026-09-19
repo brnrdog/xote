@@ -51,7 +51,8 @@ async function buildApp(app) {
       outDir,
       emptyOutDir: true,
       target: TARGET,
-      minify: "esbuild",
+      /* Vite's default minifier (oxc since Vite 8); esbuild is no longer bundled. */
+      minify: true,
       sourcemap: false,
       modulePreload: { polyfill: false },
       reportCompressedSize: false,
