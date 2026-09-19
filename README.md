@@ -388,17 +388,17 @@ The [`benchmarks/`](benchmarks) directory runs the same keyed-list table applica
 | | Xote | React | Vue | Solid |
 | --- | ---: | ---: | ---: | ---: |
 | **Updating an existing list** | | | | |
-| Update every 10th row (ms) | 5.5 | 9.6 | 6.7 | **4.9** |
-| Select a row (ms) | **0.5** | 4.9 | 1.8 | 0.7 |
-| Swap two rows (ms) | 4.9 | 58.2 | 5.6 | **4.5** |
+| Update every 10th row (ms) | 6.5 | 11.2 | 9.1 | **5.8** |
+| Select a row (ms) | **0.6** | 5.2 | 2.1 | 0.9 |
+| Swap two rows (ms) | 5.6 | 64.1 | 8.1 | **5.2** |
 | **Building and tearing down** | | | | |
-| Create 1,000 rows (ms) | 58.5 | 59.2 | 55.3 | **49.9** |
-| Create 10,000 rows (ms) | 796.8 | 938.9 | 701.5 | **594.0** |
-| Clear 10,000 rows (ms) | 79.9 | 108.1 | 82.1 | **71.8** |
+| Create 1,000 rows (ms) | 53.5 | 58.2 | 55.1 | **49.3** |
+| Create 10,000 rows (ms) | 734.7 | 1023.1 | 797.6 | **664.3** |
+| Clear 10,000 rows (ms) | 76.1 | 108.0 | 90.4 | **66.1** |
 | **Startup, size, memory** | | | | |
-| Time to first render (ms) | 20.5 | 43.4 | 24.9 | **19.1** |
+| Time to first render (ms) | **19.2** | 40.0 | 25.4 | 19.5 |
 | App bundle, gzipped (KB) | 10.4 | 66.9 | 24.1 | **5.5** |
-| Heap at 10,000 rows (MB) | 17.6 | 20.3 | 19.0 | **12.3** |
+| Heap at 10,000 rows (MB) | 13.1 | 20.3 | 19.0 | **12.3** |
 
 Full results, methodology, and the DOM-operation profile behind these numbers are in [`benchmarks/README.md`](benchmarks/README.md) and [`benchmarks/results/RESULTS.md`](benchmarks/results/RESULTS.md). Per-framework detail lives in the [React](https://xote.dev/docs/comparisons/react) and [SolidJS](https://xote.dev/docs/comparisons/solidjs) comparison pages.
 
