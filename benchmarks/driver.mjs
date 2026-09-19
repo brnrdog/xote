@@ -8,7 +8,7 @@
  *
  * Usage:
  *   node driver.mjs [--iterations N] [--warmup N] [--apps xote,react]
- *                   [--out <dir>] [--headed]
+ *                   [--only create-1k,clear-10k] [--out <dir>] [--headed]
  */
 
 import { createReadStream, existsSync } from "node:fs";
@@ -553,6 +553,7 @@ function parseArgs(argv) {
     iterations: 15,
     warmup: 3,
     apps: ALL_APPS,
+    only: null,
     headed: false,
     out: path.join(here, "results"),
   };
@@ -562,6 +563,7 @@ function parseArgs(argv) {
     if (arg === "--iterations") options.iterations = Number(argv[++i]);
     else if (arg === "--warmup") options.warmup = Number(argv[++i]);
     else if (arg === "--apps") options.apps = argv[++i].split(",");
+    else if (arg === "--only") options.only = argv[++i].split(",");
     else if (arg === "--out") options.out = path.resolve(argv[++i]);
     else if (arg === "--headed") options.headed = true;
     else throw new Error(`Unknown option: ${arg}`);
@@ -630,7 +632,12 @@ async function main() {
   try {
     for (const app of options.apps) report.results[app] = {};
 
-    for (const benchmark of BENCHMARKS) {
+    const selected = options.only
+      ? BENCHMARKS.filter((benchmark) => options.only.includes(benchmark.id))
+      : BENCHMARKS;
+    report.benchmarks = selected.map(({ id, name }) => ({ id, name }));
+
+    for (const benchmark of selected) {
       const perApp = await runBenchmark(browser, options.apps, urlFor, benchmark, options);
 
       for (const [app, result] of perApp) {

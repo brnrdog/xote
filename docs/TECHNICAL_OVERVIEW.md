@@ -23,7 +23,7 @@ The ReScript compiler is configured with `"namespace": true`, so every source fi
 
 There is no central `Xote.res` barrel and no `Xote__` prefixed source module naming. Consumers access modules through the generated namespace, for example `Xote.View`, `Xote.Router`, or unqualified `View` after `-open Xote`.
 
-Every public module has a `.resi` interface file that lists exactly what it exports. Implementation code lives in separate `Runtime*` modules (`RuntimeNode`, `RuntimeRender`, `RuntimeDom`, `RuntimeOwner`, `RuntimeHtml`, `RuntimeAttr`, `RuntimeValue`, `RuntimeJsxProp`, `RuntimeHydrationMarkers`) which the public modules use but never re-export.
+Every public module has a `.resi` interface file that lists exactly what it exports. Implementation code lives in separate `Runtime*` modules (`RuntimeNode`, `RuntimeRender`, `RuntimeTemplate`, `RuntimeDom`, `RuntimeOwner`, `RuntimeHtml`, `RuntimeAttr`, `RuntimeValue`, `RuntimeJsxProp`, `RuntimeHydrationMarkers`) which the public modules use but never re-export.
 
 `rescript.json`'s `sources.public` field has no effect in ReScript 12, so the `Runtime*` modules themselves remain reachable as `Xote.RuntimeDom` and friends. They are internal regardless of reachability and carry no compatibility guarantee. `tests/consumer` checks the boundary the way a downstream package sees it.
 
@@ -93,7 +93,9 @@ Rendering is fine-grained:
 - `View.tracked(body)` lowers to `SignalFragment` over a `Computed` of the body, so every signal read while the body runs subscribes the block and its dependencies are re-discovered on each run.
 - `KeyedList` uses comment anchors and key-based reconciliation to preserve DOM identity.
 - `LazyComponent` defers component evaluation until render/hydration time, and runs the component body untracked: a component is its own reactive scope, so an eager read in a body does not subscribe the region that renders it.
-- Removing a node disposes its scope: the effects the renderer attached, any `Effect.run` a component body set up, and the computeds the library allocated to back that node (`View.child`, `tracked`, `each`, `Show`/`Maybe`/`Value`, `signalText`). A signal or computed the caller built is left alone — `Computed.dispose` stays manual there.
+- Reactive state belongs to the region that rendered it — a keyed row, a `SignalFragment` pass — and removing the region disposes it: the effects the renderer attached, any `Effect.run` a component body set up, and the computeds the library allocated to back a node (`View.child`, `tracked`, `each`, `Show`/`Maybe`/`Value`, `signalText`). A signal or computed the caller built is left alone — `Computed.dispose` stays manual there.
+- A region renders repeated shapes by cloning (`RuntimeTemplate`): from the second tree of a given root onwards, a static skeleton is `cloneNode`d and walked against the recorded shape to attach handlers and effects and write the values that differ. A subtree that does not match is rendered normally and swapped in.
+- Text that is an element's only child is written through `textContent`; a reactive text leaf in that position updates the element's content directly.
 
 ### Attributes
 
