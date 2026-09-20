@@ -515,6 +515,14 @@ module Header = {
               (),
             )}
             <a
+              href="https://brnrdog.github.io/xote-playground/"
+              target="_blank"
+              class="header-nav-link"
+              onClick={_ =>
+                PostHog.capture("playground_link_clicked", ~properties={"source": "header"})}>
+              {View.text("Playground")}
+            </a>
+            <a
               href="https://github.com/brnrdog/xote"
               target="_blank"
               class="header-nav-link"
@@ -599,6 +607,15 @@ module Footer = {
             <ul>
               <li>
                 {Router.link(~to="/docs", ~children=[View.text("Introduction")], ())}
+              </li>
+              <li>
+                <a
+                  href="https://brnrdog.github.io/xote-playground/"
+                  target="_blank"
+                  onClick={_ =>
+                    PostHog.capture("playground_link_clicked", ~properties={"source": "footer"})}>
+                  {View.text("Playground \u2197")}
+                </a>
               </li>
               <li>
                 {Router.link(
