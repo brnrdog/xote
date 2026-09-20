@@ -455,7 +455,18 @@ let rec child = (value: 'a): node => {
         SignalFragment(RuntimeOwner.ownedComputed(() => [child(Obj.magic(compute()))]))
       }
     } else if RuntimeValue.isObject(value) {
-      if isSignal(value) {
+      if RuntimeValue.isMaybeSignal(value) {
+        /* A `MaybeSignal.t` is neither a node nor signal-shaped, so without
+           this it fell through to the unrenderable branch and rendered
+           "[object Object]" — the one boundary an untyped attribute already
+           handled (through `MaybeSignal.ofUnknown`) and a child did not.
+           Both cases are re-coerced rather than stringified here, so a wrapper
+           over a node, an array or an option renders like any other child. */
+        switch (Obj.magic(value): MaybeSignal.t<'b>) {
+        | Static(value) => child(value)
+        | Reactive(signal) => child(Obj.magic(() => Signal.get(signal)))
+        }
+      } else if isSignal(value) {
         let signal: Signal.t<'b> = Obj.magic(value)
         SignalText(RuntimeOwner.ownedComputed(() => stringifyChild(Signal.get(signal))))
       } else if isArray(value) {

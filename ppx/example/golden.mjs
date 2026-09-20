@@ -172,6 +172,31 @@ has('an eager read in a data entry stays a one-shot read', demo,
   'The read is an ordinary argument evaluation; what must not happen is the ' +
   'object being wrapped or probed as a whole.');
 
+
+/* The emitted code for one component, so an assertion can say "in this
+   component" rather than "somewhere in the file" — `Signal.get(name)` is
+   legitimately emitted by a dozen other cases. */
+const fn = (src, name) => {
+  /* a component in a submodule is emitted as `function Demo$Name(props)` */
+  const start = Math.max(src.indexOf(`function Demo$${name}(`), src.indexOf(`function ${name}(`));
+  if (start < 0) return '';
+  const next = [src.indexOf('\nfunction ', start + 1), src.indexOf('\nlet ', start + 1)].filter((i) => i > 0);
+  return src.slice(start, next.length ? Math.min(...next) : undefined);
+};
+/* Whitespace-insensitive, for shapes ReScript wraps across lines. */
+const compact = (s) => s.replace(/\s+/g, ' ');
+
+console.log('\ncross-module signals: the runtime\'s job, not the ppx\'s');
+const es = compact(fn(demo, 'ExternalSignal'));
+has('a bare cross-module signal is left to the runtime', es,
+  'View$Xote.child(Store.waiting)',
+  'The ppx cannot see Store.res, and does not need to: the runtime coerces ' +
+  'the value where Xote receives it.');
+has('a written-out read is thunked into a leaf', es,
+  '() => { if (Signal$Xote.get(Store.waiting) > 4)',
+  'Inside an expression the value goes to ordinary ReScript, so the read is ' +
+  'written; the ppx still turns the leaf fine-grained.');
+
 console.log(`\n${pass} passed, ${failures.length} failed`);
 
 if (failures.length > 0) {

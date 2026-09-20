@@ -36,10 +36,21 @@ let res_arity n : attribute =
 let unit_pat =
   { ppat_desc = Ppat_construct (mkloc (Longident.Lident "()"), None);
     ppat_loc = none; ppat_attributes = [] }
+
+(* Is this pattern the unit pattern `()`? A `() => …` is a deferred thunk; a
+   lambda with a real parameter is a callback its callee runs. *)
+let is_unit_pat (p : pattern) : bool =
+  match p.ppat_desc with
+  | Ppat_construct ({ txt = Longident.Lident "()"; _ }, None) -> true
+  | _ -> false
+(* The thunk carries its body's location: a type error on the thunk as a whole
+   (a function where an `int` prop expects a value) is then reported at the
+   expression the user wrote instead of nowhere. *)
 let thunk body =
-  let fn = mkexp (Pexp_fun (Nolabel, None, unit_pat, body)) in
+  let loc = body.pexp_loc in
+  let fn = { pexp_desc = Pexp_fun (Nolabel, None, unit_pat, body); pexp_loc = loc; pexp_attributes = [] } in
   { pexp_desc = Pexp_construct (mkloc (Longident.Lident "Function$"), Some fn);
-    pexp_loc = none; pexp_attributes = [ res_arity 1 ] }
+    pexp_loc = loc; pexp_attributes = [ res_arity 1 ] }
 
 let view_tracked = Longident.Ldot (Longident.Lident "View", "tracked")
 let wrap_tracked e = apply (ident view_tracked) [ thunk e ]
@@ -190,6 +201,21 @@ let rec reads_signal_eager (env : env) (e : expression) : bool =
     is_reactive_call env e || is_read_fn env e
     || List.exists (reads_signal_eager env) (sub_exprs e)
 
+(* The same question for a *leaf*, where a lambda with a real parameter —
+   `xs->Array.map(x => x ++ Signal.get(suffix))` — is a callback its callee
+   runs while the leaf is evaluated, so a read inside it is eager too. Only a
+   `() => …` thunk is deferred. (`reads_signal_eager` keeps the stricter rule:
+   it also decides whether a *helper* is reactive, and a helper returning JSX
+   whose attributes read signals must not count — those leaves are their own.) *)
+let rec reads_signal_in_leaf (env : env) (e : expression) : bool =
+  match e.pexp_desc with
+  | Pexp_fun (_, _, p, body) -> (not (is_unit_pat p)) && reads_signal_in_leaf env body
+  | Pexp_construct ({ txt = Longident.Lident "Function$"; _ }, Some fn) ->
+    reads_signal_in_leaf env fn
+  | _ ->
+    is_reactive_call env e || is_read_fn env e
+    || List.exists (reads_signal_in_leaf env) (sub_exprs e)
+
 (* Does `e` denote a function whose body eagerly reads a signal? Strip the
    function's own parameters (its uncurried `Function$` wrapper and `fun`s),
    then check the immediate body — reads_signal_eager stops at any further nested
@@ -203,6 +229,14 @@ let func_reads (env : env) (e : expression) : bool =
     reads_signal_eager env (strip_params fn)
   | Pexp_fun _ -> reads_signal_eager env (strip_params e)
   | _ -> false
+
+(* The simple binding shapes a name can be read off: `x` and `x: T`. Anything
+   else (a tuple, a record pattern) binds names no collector here tracks. *)
+let simple_binding (p : pattern) : (string * core_type option) option =
+  match p.ppat_desc with
+  | Ppat_var { txt; _ } -> Some (txt, None)
+  | Ppat_constraint ({ ppat_desc = Ppat_var { txt; _ }; _ }, t) -> Some (txt, Some t)
+  | _ -> None
 
 (* ---- binding collectors ------------------------------------------------- *)
 (* `let g = Signal.get` binds `g` as a value alias; `let cls = () => …Signal.get…`
@@ -423,6 +457,10 @@ let label_name = function Labelled n | Optional n -> Some n | Nolabel -> None
 let is_non_leaf_label (lbl : arg_label) : bool =
   match label_name lbl with
   | Some "attrs" | Some "data" -> true
+  (* the `int`-typed props of `Elements.props`: no reactive form exists for
+     them, so a thunk could only produce a type error — leave them to the
+     type checker, which reports it at the value *)
+  | Some ("maxLength" | "minLength" | "rows" | "cols" | "tabIndex") -> true
   | Some n -> String.length n > 2 && n.[0] = 'o' && n.[1] = 'n' && n.[2] >= 'A' && n.[2] <= 'Z'
   | None -> false
 
@@ -432,7 +470,7 @@ let is_non_leaf_label (lbl : arg_label) : bool =
    — are left untouched (their reads are deferred inside a lambda), so
    @xote.component is a safe drop-in on components already written that way. *)
 let should_thunk (env : env) (v : expression) : bool =
-  reads_signal_eager env v && jsx_parts v = None
+  reads_signal_in_leaf env v && jsx_parts v = None
 
 (* A value-position expression whose read status the ppx cannot decide: it is
    not a visible read (that is already thunked), and it is not provably
@@ -572,7 +610,28 @@ and thread_binding (env : env) (recurse : env -> expression -> expression) (e : 
    expression whose value becomes a node. Walking the whole expression covers
    them uniformly, and covers shapes nobody has written yet. *)
 and decompose_node_shaped (env : env) (e : expression) : expression =
-  map_sub_exprs (decompose_here env) e
+  (* The binding forms thread the environment, so a local `let g = Signal.get`
+     is a visible read for the rest of the expression and a name bound here
+     shadows an alias or reactive helper of the same name from outside.
+     Everything else is the plain structural walk. *)
+  match e.pexp_desc with
+  | Pexp_fun (l, def, p, body) ->
+    { e with
+      pexp_desc =
+        Pexp_fun (l, Option.map (decompose_here env) def, p, decompose_here env body) }
+  | Pexp_match (x, cases) ->
+    { e with pexp_desc = Pexp_match (decompose_here env x, List.map (decompose_case env) cases) }
+  | Pexp_try (x, cases) ->
+    { e with pexp_desc = Pexp_try (decompose_here env x, List.map (decompose_case env) cases) }
+  | Pexp_let (r, vbs, body) ->
+    let vbs' = List.map (fun vb -> { vb with pvb_expr = decompose_here env vb.pvb_expr }) vbs in
+    { e with pexp_desc = Pexp_let (r, vbs', decompose_here (collect_val_aliases env vbs) body) }
+  | _ -> map_sub_exprs (decompose_here env) e
+
+(* Only a case body is node position; the guard is a boolean, never a node, and
+   is left as written (see map_sub_exprs). *)
+and decompose_case (env : env) (c : case) : case =
+  { c with pc_rhs = decompose_here env c.pc_rhs }
 
 (* Decompose one expression *in place*, whatever shape it happens to be: JSX is
    fine-grained, a function returning JSX is entered through its parameters, and
@@ -805,9 +864,20 @@ and collect_module_funcs (env : env) (name : string) (me : module_expr) : env =
   match me.pmod_desc with
   | Pmod_structure s | Pmod_constraint ({ pmod_desc = Pmod_structure s; _ }, _) ->
     let inner = List.fold_left update_env_si env s in
-    let added before after = List.filter (fun n -> not (List.mem n before)) after in
-    let names = added env.funcs inner.funcs @ added env.vals inner.vals in
-    { env with qfuncs = List.map (fun n -> name ^ "." ^ n) names @ env.qfuncs }
+    (* The module's *own* top-level names, classified by what they are bound to
+       inside it. (Set-differencing against the outer env instead missed
+       `Store.helper` whenever a top-level `helper` of the same kind existed.) *)
+    let own =
+      List.concat_map
+        (fun si ->
+          match si.pstr_desc with
+          | Pstr_value (_, vbs) -> List.filter_map (fun vb -> Option.map fst (simple_binding vb.pvb_pat)) vbs
+          | _ -> [])
+        s
+    in
+    let qualify n = name ^ "." ^ n in
+    let funcs = List.filter (fun n -> List.mem n inner.funcs || List.mem n inner.vals) own in
+    { env with qfuncs = List.map qualify funcs @ env.qfuncs }
   | _ -> env
 
 and map_si (env : env) si =
