@@ -1,0 +1,105 @@
+Context lets a component make a value available to everything it renders, without passing it through every component in between.
+
+> **Info:** A provided value is scoped to the component that provides it. Siblings, parents and everything rendered outside it never see it.
+
+## When to Use Context
+
+### Context or a Module-Level Signal
+
+Signals do not need a component to own them, so a signal declared at module level is already shared state that any component can import:
+
+```rescript
+let session = Signal.make(None)
+```
+
+For a value the whole app shares on the client, that is the simplest option. Reach for context when a global stops being enough:
+
+- **Per-instance state.** Two `Tabs` on a page each need their own selected tab, shared with their own `Tab` children. A module-level signal can only hold one.
+- **Children you do not write.** A component that receives `children` from its caller cannot close over a local variable for them. Context reaches them without new props at every call site.
+- **Server rendering.** Module-level state lives as long as the server process, so one request can see another request's values unless every global is reset. A provided value only exists for the render that provided it.
+- **Tests.** Each test can mount its own provider instead of mutating and resetting a global.
+
+## Using Context
+
+### Declaring a Context
+
+Declare a context once, with the value a component gets when nothing above it provides one:
+
+```rescript
+let theme = Context.make("light")
+```
+
+### Providing a Value
+
+Wrap a subtree in `Context.Provider`:
+
+```rescript
+<Context.Provider context=theme value="dark">
+  <Toolbar />
+</Context.Provider>
+```
+
+A component can also provide a value for everything it renders by calling `Context.provide` in its own body. Every instance of the component then gets its own value:
+
+```rescript
+let selection = Context.make(Signal.make(0))
+
+module Tabs = {
+  @jsx.component
+  let make = (~children: View.node) => {
+    Context.provide(selection, Signal.make(0))
+    <div class="tabs"> {children} </div>
+  }
+}
+```
+
+`Context.provide` raises when it is called outside a component body, because there is no render to scope the value to.
+
+### Reading a Value
+
+Read the nearest provided value with `Context.use`:
+
+```rescript
+module Tab = {
+  @jsx.component
+  let make = (~index: int, ~label: string) => {
+    let selected = Context.use(selection)
+    <button
+      class={() => Signal.get(selected) == index ? "tab active" : "tab"}
+      onClick={_ => Signal.set(selected, index)}>
+      {View.text(label)}
+    </button>
+  }
+}
+```
+
+With no provider above, `use` returns the default passed to `Context.make`.
+
+### Reactive Values
+
+Providing a value does not make it reactive: `use` returns whatever was provided. To let a subtree follow a value that changes, provide a signal, as `Tabs` does above, and read it with `Signal.get` where it is used.
+
+## Scope Rules
+
+### Where use Works
+
+Call `Context.use` in a component body. The value is also correct everywhere the body's work continues later:
+
+- effects the body set up with `Effect.run`, on every run;
+- the reactive blocks it renders, such as `View.tracked`, `View.Show` and `View.For`, including rows added long after the first render.
+
+Event handlers, timers and promise callbacks run outside any render, so `use` returns the default there. Read the value in the body and close over it:
+
+```rescript
+let currentTheme = Context.use(theme)
+<button onClick={_ => Console.log(currentTheme)}> {View.text("Log theme")} </button>
+```
+
+### Server Rendering
+
+Server rendering and hydration see the same provided values as the client render, and nothing provided during one render is left behind for the next.
+
+## Next Steps
+
+- Learn how components render in the [View overview](/docs/view/overview).
+- See how providers fit into [server-side rendering](/docs/advanced/ssr).

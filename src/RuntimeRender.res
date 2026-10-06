@@ -488,8 +488,9 @@ and render = (node: node): Dom.element => {
      whole region wholesale, taking input focus and scroll position with it.
      Reads deferred into a thunk, a `Computed` or an `Effect` set up their own
      scope and are unaffected. Whatever the body registers belongs to the
-     region rendering it, which is the region that removes its element. */
-  | LazyComponent(fn) => render(Signal.untrack(fn))
+     region rendering it, which is the region that removes its element. What
+     the body provides is in place while its result renders, and only then. */
+  | LazyComponent(fn) => RuntimeContext.renderComponent(fn, render)
 
   | KeyedList({signal, keyFn, renderItem}) => {
       let startAnchor = RuntimeDom.createComment(" keyed-list-start ")

@@ -88,10 +88,10 @@ let rec renderNodeToString = (node: View.node): string => {
     }
 
   | View.LazyComponent(fn) => {
-      /* Execute the lazy component and render its result */
-      let childNode = fn()
+      /* Execute the lazy component and render its result, under what it
+         provides */
       RuntimeHydrationMarkers.lazyComponentStart ++
-      renderNodeToString(childNode) ++
+      RuntimeContext.renderComponent(fn, renderNodeToString) ++
       RuntimeHydrationMarkers.lazyComponentEnd
     }
 

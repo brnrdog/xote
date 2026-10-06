@@ -191,7 +191,10 @@ let rec record = (
 
   | Keyed({child, key: _, identity: _}) => record(child, ~skeleton, ~instance, ~hooks)
 
-  | LazyComponent(fn) => SComponent(record(Signal.untrack(fn), ~skeleton, ~instance, ~hooks))
+  | LazyComponent(fn) =>
+    SComponent(
+      RuntimeContext.renderComponent(fn, node => record(node, ~skeleton, ~instance, ~hooks)),
+    )
 
   | SignalFragment(_) | KeyedList(_) => {
       skeleton->RuntimeDom.appendChild(RuntimeDom.createTextNode(""))
@@ -390,7 +393,8 @@ let rec fillNode = (
   switch shape {
   | SComponent(inner) =>
     switch node {
-    | LazyComponent(fn) => fillNode(inner, Signal.untrack(fn), ~parent, ~cursor, ~hooks)
+    | LazyComponent(fn) =>
+      RuntimeContext.renderComponent(fn, node => fillNode(inner, node, ~parent, ~cursor, ~hooks))
     | node => replaceSpan(~parent, ~cursor, ~count=span(inner), ~node, ~hooks)
     }
 
@@ -603,11 +607,7 @@ let unwrapResult = (fragment: Dom.element): Dom.element =>
    one and past the first build, by recording one while rendering. The very
    first build of a region is rendered plainly — a region that renders once
    should not pay for a skeleton it never clones. */
-let render = (cache: cache, node: node, ~hooks: hooks): Dom.element => {
-  let node = switch unwrapKeyed(node) {
-  | LazyComponent(fn) => unwrapKeyed(Signal.untrack(fn))
-  | node => node
-  }
+let renderResolved = (cache: cache, node: node, ~hooks: hooks): Dom.element => {
   let signature = signatureOf(node)
   let builds = cache.builds
   cache.builds = builds + 1
@@ -653,3 +653,12 @@ let render = (cache: cache, node: node, ~hooks: hooks): Dom.element => {
     }
   }
 }
+
+/* A component at the root is evaluated first, so its result is what the
+   templates are matched against. */
+let render = (cache: cache, node: node, ~hooks: hooks): Dom.element =>
+  switch unwrapKeyed(node) {
+  | LazyComponent(fn) =>
+    RuntimeContext.renderComponent(fn, node => renderResolved(cache, unwrapKeyed(node), ~hooks))
+  | node => renderResolved(cache, node, ~hooks)
+  }
