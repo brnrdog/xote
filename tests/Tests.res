@@ -16,4 +16,5 @@ Zekr.runSuites([
   Hydration_test.suite,
   Template_test.suite,
   Context_test.suite,
+  ErrorBoundary_test.suite,
 ])

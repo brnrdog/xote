@@ -260,6 +260,64 @@ module Value = {
   let make = (props: props<'value>): node => render(props.value, props.render)
 }
 
+/* Catches what its subtree throws while rendering or updating, and renders
+   `fallback` in its place. The boundary is a reactive region over the failure:
+   a failure during the first render falls back synchronously, inside
+   `RuntimeContext.renderBoundary`; one from a later update is reported through
+   the signal, and the region swaps the subtree for the fallback. `reset`
+   renders the subtree afresh. */
+module ErrorBoundary = {
+  type props = {
+    fallback: (exn, unit => unit) => node,
+    onError?: exn => unit,
+    children?: node,
+  }
+
+  let make = (props: props): node => {
+    let failure: Signal.t<option<exn>> = Signal.make(None)
+    let attempt = Signal.make(0)
+    let reset = () =>
+      Signal.batch(() => {
+        Signal.set(failure, None)
+        Signal.update(attempt, n => n + 1)
+      })
+    let notify = exn =>
+      switch props.onError {
+      | Some(onError) => onError(exn)
+      | None => ()
+      }
+    let boundary: RuntimeContext.boundary = {
+      fallback: exn => {
+        notify(exn)
+        props.fallback(exn, reset)
+      },
+      report: exn => {
+        notify(exn)
+        Signal.set(failure, Some(exn))
+      },
+      rendering: false,
+      caught: None,
+    }
+    signalFragment(
+      RuntimeOwner.ownedComputed(() => {
+        let _ = Signal.get(attempt)
+        switch Signal.get(failure) {
+        /* A component, so building the fallback subscribes nothing here. */
+        | Some(exn) => [LazyComponent(() => props.fallback(exn, reset))]
+        | None => [
+            LazyComponent(
+              () => {
+                RuntimeContext.installBoundary(boundary)
+                fragment(childrenToArray(props.children))
+              },
+            ),
+          ]
+        }
+      }),
+    )
+  }
+}
+
 /* Element constructor */
 let element = (
   tag: string,

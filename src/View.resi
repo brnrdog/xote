@@ -710,6 +710,62 @@ module Value: {
 }
 
 /**
+Catches what its subtree throws and renders `fallback` in its place.
+
+It catches failures while the subtree renders and while it updates: a component
+body, a reactive block (`View.tracked`, `Show`, `For`) re-rendering, a reactive
+text or attribute expression, and an `Effect.run` set up in a component body.
+Event handlers, timers and promise callbacks run outside any render and are not
+caught; handle their failures where they happen.
+
+`fallback` receives the failure and a `reset` function that renders the subtree
+again from scratch. `onError` is called with every failure the boundary
+catches, for logging or reporting. A failure inside `fallback` itself goes to
+the boundary above, if there is one.
+
+On the server, a subtree that fails renders the fallback into the HTML.
+Hydration renders the subtree again on the client.
+
+## Examples
+
+```rescript
+module Profile = {
+  @jsx.component
+  let make = (~name: option<string>) =>
+    switch name {
+    | Some(name) => <p> {View.text(name)} </p>
+    | None => throw(Failure("no user"))
+    }
+}
+
+let node =
+  <View.ErrorBoundary
+    fallback={(_error, reset) =>
+      <button onClick={_ => reset()}> {View.text("Something went wrong. Retry")} </button>}
+    onError={error => Console.error(error)}>
+    <Profile name=None /> // renders the fallback
+  </View.ErrorBoundary>
+```
+*/
+module ErrorBoundary: {
+  /**
+  Props of `View.ErrorBoundary`.
+
+  - `fallback` — renders the failure; call the second argument to retry.
+  - `onError` — called with every failure the boundary catches.
+  - `children` — the subtree to guard.
+  */
+  type props = {
+    fallback: (exn, unit => unit) => node,
+    onError?: exn => unit,
+    children?: node,
+  }
+
+  /** Renders the subtree, or the fallback once it fails. Called for you by `<View.ErrorBoundary />`; see the module doc for usage. */
+  let make: props => node
+}
+
+/**
 Renders a string as text, from either `value` or `children`.
 
 Accepts a raw string, a `Signal.t<string>` or a `unit => string` thunk — the

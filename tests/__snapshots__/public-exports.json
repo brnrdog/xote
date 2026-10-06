@@ -3,6 +3,7 @@
     "$$null",
     "Attr",
     "Bool",
+    "ErrorBoundary",
     "Float",
     "For",
     "Int",

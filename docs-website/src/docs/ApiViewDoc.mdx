@@ -294,6 +294,24 @@ module Value: {
 
 JSX primitive that re-renders a node from one static or reactive value.
 
+<a id="view-errorboundary" />
+
+### View.ErrorBoundary
+
+```rescript
+module ErrorBoundary: {
+  type props = {
+    fallback: (exn, unit => unit) => View.node,
+    onError?: exn => unit,
+    children?: View.node,
+  }
+
+  let make: props => View.node
+}
+```
+
+Catches what its subtree throws while rendering or updating and renders `fallback` instead. `fallback` receives the failure and a `reset` function that renders the subtree again; `onError` is called with every failure caught.
+
 <a id="view-element" />
 
 ### View.element
