@@ -150,6 +150,9 @@ let jsxTree =
     <Xote.View.Float value=1.5 />
     <Xote.View.Bool value=true />
     <Xote.Context.Provider context=theme value="dark"> {Xote.View.text("themed")} </Xote.Context.Provider>
+    <Xote.View.ErrorBoundary fallback={(_exn, reset) => Xote.View.text("failed")} onError={_exn => ()}>
+      {Xote.View.text("guarded")}
+    </Xote.View.ErrorBoundary>
   </div>
 
 let jsxElement: Xote.XoteJSX.element = Xote.XoteJSX.null()
