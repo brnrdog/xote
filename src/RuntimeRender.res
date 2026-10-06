@@ -435,7 +435,7 @@ and render = (node: node): Dom.element => {
       container
     }
 
-  | Element({tag, attrs, events, children}) => {
+  | Element({tag, attrs, events, children, ref: ?elementRef}) => {
       let el = RuntimeDom.createElementForTag(tag)
 
       /* Some DOM properties need the child tree to exist before the browser
@@ -474,6 +474,11 @@ and render = (node: node): Dom.element => {
             applyAttr(el, key, value)
           }
         })
+      }
+
+      switch elementRef {
+      | Some(elementRef) => RuntimeLifecycle.attachRef(elementRef, el)
+      | None => ()
       }
 
       el
@@ -576,7 +581,9 @@ and renderInRegion = (region: region, node: node): Dom.element =>
     ~hooks={render, applyAttr, attachAttr, attachText},
   )
 
-/* Make `container` follow `signal`: one pass of its children per change.
+/* Make `container` follow `signal`: one pass of its children per change. Each
+   pass is a render operation of its own, so refs and `onMount` callbacks in it
+   run once the pass has put its children in the container.
 
    The signal's own body runs under the pass owner, so what it creates while it
    runs — a `View.signalText` leaf built by a `tracked` block, an effect a
@@ -588,9 +595,11 @@ and driveSignalFragment = (~container: Dom.element, ~signal: Signal.t<array<node
   track(addDisposer, () => disposeRegion(region))
 
   Effect.run(() => {
-    let passOwner = createOwner()
-    let children = runWithOwner(passOwner, () => Signal.get(signal))
-    renderFragmentChildren(~container, ~children, ~region, ~passOwner)
+    RuntimeLifecycle.rendering(() => {
+      let passOwner = createOwner()
+      let children = runWithOwner(passOwner, () => Signal.get(signal))
+      renderFragmentChildren(~container, ~children, ~region, ~passOwner)
+    })
     None
   })
 }
@@ -611,7 +620,9 @@ and attachKeyedList = (
   track(addDisposer, () => disposeRegion(region))
 
   Effect.run(() => {
-    reconcileKeyedList(~region, ~signal, ~keyFn, ~renderItem, ~endAnchor)
+    RuntimeLifecycle.rendering(() =>
+      reconcileKeyedList(~region, ~signal, ~keyFn, ~renderItem, ~endAnchor)
+    )
     None
   })
 }

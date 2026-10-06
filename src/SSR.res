@@ -120,8 +120,8 @@ let rec renderNodeToString = (node: View.node): string => {
 /* Render a component to an HTML string synchronously */
 let renderToString = (component: unit => View.node, ~options: renderOptions={}): string => {
   let _ = options /* Will be used for nonce/renderId in future phases */
-  let node = component()
-  renderNodeToString(node)
+  /* Markup is never inserted anywhere, so refs and `onMount` never run here. */
+  RuntimeLifecycle.server(() => renderNodeToString(component()))
 }
 
 /* Render a component and wrap with a hydration root marker */
@@ -131,8 +131,7 @@ let renderToStringWithRoot = (
   ~options: renderOptions={},
 ): string => {
   let _ = options
-  let node = component()
-  let content = renderNodeToString(node)
+  let content = RuntimeLifecycle.server(() => renderNodeToString(component()))
 
   /* Add root marker for hydration */
   `<!--xote-root:${rootId}-->${content}<!--/xote-root-->`

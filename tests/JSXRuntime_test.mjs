@@ -150,4 +150,23 @@ assert.equal(button.hasAttribute("disabled"), false);
 button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 assert.equal(clicked, 1);
 
+// `ref` takes a function called with the element once it is in the document,
+// or a View.Ref.t.
+const refContainer = document.createElement("div");
+document.body.appendChild(refContainer);
+const seen = [];
+const inputRef = View.Ref.make();
+View.mount(
+  jsxs("form", {
+    children: [
+      jsx("input", { name: "callback", ref: (element) => seen.push(element.isConnected) }),
+      jsx("input", { name: "handle", ref: inputRef }),
+    ],
+  }),
+  refContainer,
+);
+assert.deepEqual(seen, [true]);
+assert.equal(View.Ref.peek(inputRef), refContainer.querySelector('[name="handle"]'));
+assert.equal(refContainer.querySelector('[name="callback"]').hasAttribute("ref"), false);
+
 console.log("JSX runtime tests passed");

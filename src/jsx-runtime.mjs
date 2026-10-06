@@ -237,8 +237,18 @@ function buildElement(tag, props = {}) {
     mergeAttrs(attrs, extraAttrs),
     events,
     normalizeChildren(props.children),
+    toRef(props.ref),
     undefined,
   );
+}
+
+// `ref` takes a View.Ref.t, or a function called with the element once it is
+// in the document.
+function toRef(value) {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  return typeof value === "function" ? View.Ref.fromCallback(value) : value;
 }
 
 function getReservedKey(props, key) {
