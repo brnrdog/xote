@@ -376,6 +376,29 @@ module App = {
             />,
         },
         {
+          pattern: "/docs/core-concepts/context",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/core-concepts/context"
+              pageTitle="Context"
+              pageLead="Make a value available to everything a component renders, scoped to that component."
+              content={MdxDocs.context()}
+              tocItems=[
+                {text: "When to Use Context", id: "when-to-use-context", level: 2},
+                {text: "Context or a Module-Level Signal", id: "context-or-a-module-level-signal", level: 3},
+                {text: "Using Context", id: "using-context", level: 2},
+                {text: "Declaring a Context", id: "declaring-a-context", level: 3},
+                {text: "Providing a Value", id: "providing-a-value", level: 3},
+                {text: "Reading a Value", id: "reading-a-value", level: 3},
+                {text: "Reactive Values", id: "reactive-values", level: 3},
+                {text: "Scope Rules", id: "scope-rules", level: 2},
+                {text: "Where use Works", id: "where-use-works", level: 3},
+                {text: "Server Rendering", id: "server-rendering", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 2},
+              ]
+            />,
+        },
+        {
           pattern: "/docs/router/overview",
           render: _params =>
             <DocsPage

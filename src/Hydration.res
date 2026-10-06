@@ -250,10 +250,10 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
       /* Skip the lazy component markers and hydrate the content */
       let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.lazyComponentStartContent)
 
-      /* Same scope rule as `RuntimeRender`: a component body never subscribes
-         whatever observer happens to be running. */
-      let childNode = Signal.untrack(fn)
-      hydrateNodeWithWalker(childNode, walker)
+      /* Same scope rules as `RuntimeRender`: a component body never subscribes
+         whatever observer happens to be running, and what it provides is in
+         place for its result only. */
+      RuntimeContext.renderComponent(fn, childNode => hydrateNodeWithWalker(childNode, walker))
 
       let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.lazyComponentEndContent)
     }

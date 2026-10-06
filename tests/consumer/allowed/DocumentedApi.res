@@ -119,6 +119,17 @@ let describeMaybeSignal = (value: Xote.MaybeSignal.t<string>): string =>
   | Reactive(_) => "reactive"
   }
 
+/* ------------------------------------------------------------------- context */
+
+let theme: Xote.Context.t<string> = Xote.Context.make("light")
+let themed = Xote.Context.provider(theme, "dark", Xote.View.text("themed"))
+let themeReader = Xote.View.LazyComponent(
+  () => {
+    Xote.Context.provide(theme, "dark")
+    Xote.View.text(Xote.Context.use(theme))
+  },
+)
+
 /* ------------------------------------------------------------ JSX components */
 
 let jsxTree =
@@ -138,6 +149,7 @@ let jsxTree =
     <Xote.View.Int value=1 />
     <Xote.View.Float value=1.5 />
     <Xote.View.Bool value=true />
+    <Xote.Context.Provider context=theme value="dark"> {Xote.View.text("themed")} </Xote.Context.Provider>
   </div>
 
 let jsxElement: Xote.XoteJSX.element = Xote.XoteJSX.null()

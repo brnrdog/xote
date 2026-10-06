@@ -31,6 +31,7 @@ let docsNav: array<docCategory> = [
       {title: "Computeds", path: "/docs/core-concepts/computed"},
       {title: "Effects", path: "/docs/core-concepts/effects"},
       {title: "View", path: "/docs/view/overview"},
+      {title: "Context", path: "/docs/core-concepts/context"},
     ],
   },
   {

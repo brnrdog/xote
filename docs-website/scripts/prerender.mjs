@@ -109,6 +109,13 @@ const routes = [
     section: 'Core Modules',
   },
   {
+    path: '/docs/core-concepts/context',
+    title: 'Context - xote Scoped Values',
+    description:
+      'Provide values to a xote component subtree with Context, scoped per instance and safe for server rendering.',
+    section: 'Core Modules',
+  },
+  {
     path: '/docs/router/overview',
     title: 'Router - xote Signal-Based Routing',
     description:

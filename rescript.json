@@ -20,7 +20,8 @@
         "Mdx",
         "Signal",
         "Computed",
-        "Effect"
+        "Effect",
+        "Context"
       ]
     },
     {
