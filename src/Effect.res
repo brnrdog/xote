@@ -24,5 +24,5 @@ let runWithDisposer = (fn: unit => option<unit => unit>, ~name: option<string>=?
 }
 
 let run = (fn: unit => option<unit => unit>, ~name: option<string>=?): unit => {
-  let _ = runWithDisposer(RuntimeContext.bind(fn), ~name?)
+  let _ = runWithDisposer(fn, ~name?)
 }

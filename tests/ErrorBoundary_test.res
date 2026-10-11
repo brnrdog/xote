@@ -84,6 +84,51 @@ module Badge = {
   let make = () => <span class="badge"> {View.text(Context.use(theme))} </span>
 }
 
+exception Header(string)
+
+/* A region outside every boundary that fails for some values. */
+let header = (title: Signal.t<string>) =>
+  View.tracked(() =>
+    switch Signal.get(title) {
+    | "broken" => throw(Header("broken"))
+    | title => <h1 class="title"> {View.text(title)} </h1>
+    }
+  )
+
+/* Sets the page title from its body, flushing the header on its own stack. */
+module TitleSetter = {
+  @jsx.component
+  let make = (~title: Signal.t<string>, ~value: string) => {
+    Effect.run(() => {
+      Signal.set(title, value)
+      None
+    })
+    <span class="page" />
+  }
+}
+
+/* An effect whose cleanup fails when it re-runs. */
+module FailingCleanup = {
+  @jsx.component
+  let make = (~ticks: Signal.t<int>) => {
+    Effect.run(() => {
+      let _ = Signal.get(ticks)
+      Some(() => throw(Boom("cleanup")))
+    })
+    <span class="ok"> {View.text("cleanup")} </span>
+  }
+}
+
+/* Two effects that fail on their first run. */
+module TwoFailures = {
+  @jsx.component
+  let make = () => {
+    Effect.run(() => throw(Boom("first")))
+    Effect.run(() => throw(Boom("second")))
+    <span />
+  }
+}
+
 let suite = Zekr.suite(
   "ErrorBoundary",
   [
@@ -282,6 +327,59 @@ let suite = Zekr.suite(
         assertEqual(Array.length(before), 2),
         assertTrue(before->Array.everyWithIndex((node, index) => node === after->Array.getUnsafe(index))),
         assertEqual(texts(container, ".fallback"), ["first", "first"]),
+      ])
+    }),
+    test("a boundary does not claim a failure from a region outside it", () => {
+      let {container} = Dom.render("")
+      let title = Signal.make("home")
+      let errors = ref(0)
+      let raised = try {
+        View.mount(
+          <div>
+            {header(title)}
+            <View.ErrorBoundary fallback onError={_ => errors := errors.contents + 1}>
+              <TitleSetter title value="broken" />
+            </View.ErrorBoundary>
+          </div>,
+          container,
+        )
+        false
+      } catch {
+      | Header(_) => true
+      }
+      let fallback = has(container, ".fallback")
+      /* rescript-signals keeps an effect queued when a flush throws, so the
+         header's failed run would come back on the next write anywhere; put
+         the title back so it settles here. */
+      Signal.set(title, "home")
+      combineResults([
+        assertTrue(raised),
+        assertEqual(errors.contents, 0),
+        assertFalse(fallback),
+      ])
+    }),
+    test("an effect cleanup that fails on a later run is caught", () => {
+      let {container} = Dom.render("")
+      let ticks = Signal.make(0)
+      let _ = mountTo(
+        <View.ErrorBoundary fallback> <FailingCleanup ticks /> </View.ErrorBoundary>,
+        container,
+      )
+      Signal.set(ticks, 1)
+      assertEqual(texts(container, ".fallback"), ["cleanup"])
+    }),
+    test("onError hears every failure of one render; the fallback shows the first", () => {
+      let {container} = Dom.render("")
+      let errors = []
+      let _ = mountTo(
+        <View.ErrorBoundary fallback onError={exn => errors->Array.push(message(exn))->ignore}>
+          <TwoFailures />
+        </View.ErrorBoundary>,
+        container,
+      )
+      combineResults([
+        assertEqual(texts(container, ".fallback"), ["first"]),
+        assertEqual(errors->Array.toSorted(String.compare), ["first", "second"]),
       ])
     }),
     test("without a boundary a failure propagates as before", () => {
