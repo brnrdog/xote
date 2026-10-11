@@ -1,0 +1,94 @@
+A resource turns an asynchronous fetch into a signal, and `View.Suspense` shows a fallback while the resources below it load for the first time.
+
+> **Info:** A resource is a `Signal.t` of its loading state. Read it with `Signal.get` like any other signal.
+
+## Resources
+
+### Creating a Resource
+
+[`Resource.make`](#resources) takes a function that returns a promise and starts fetching right away:
+
+```rescript
+let userId = Signal.make("1")
+
+let user = Resource.make(async () => {
+  let id = Signal.get(userId) // a dependency: read before the first await
+  let response = await fetch(`/api/users/${id}`)
+  await response->json
+})
+```
+
+The fetch runs in an effect. The signals it reads **before its first `await`** are its dependencies: change `userId` and the resource fetches again. Reads after an `await` are not tracked.
+
+### Reading the State
+
+A resource holds one of four states:
+
+- `Pending`: the first fetch has not settled yet.
+- `Ready(value)`: the latest fetch settled with `value`.
+- `Refreshing(value)`: fetching again, with the previous `value` kept.
+- `Failed(exn)`: the latest fetch threw or rejected.
+
+```rescript
+let name = View.signalText(() =>
+  switch Signal.get(user) {
+  | Pending => "Loading..."
+  | Ready(user) | Refreshing(user) => user.name
+  | Failed(_) => "Could not load the user"
+  }
+)
+```
+
+`Resource.value` returns the value a state carries, if any, and `Resource.isLoading` tells whether a fetch is in flight.
+
+### Refetching and Mutating
+
+`Resource.refetch` fetches again with the same dependencies. `Resource.mutate` sets the value directly, which is useful for optimistic updates, and drops any fetch in flight.
+
+```rescript
+<button onClick={_ => Resource.refetch(user)}> {View.text("Reload")} </button>
+```
+
+Only the latest fetch can settle the state. If the user switches from one id to another and the first response arrives last, it is ignored.
+
+### Errors
+
+A failed fetch is a state like any other. To send it to a [`View.ErrorBoundary`](/docs/api/view#view-errorboundary) instead, throw it where the state is read:
+
+```rescript
+switch Signal.get(user) {
+| Failed(exn) => throw(exn)
+| state => ...
+}
+```
+
+## Suspense
+
+### Showing a Fallback
+
+Wrap the components that create resources in [`View.Suspense`](/docs/api/view#view-suspense):
+
+```rescript
+<View.Suspense fallback={<p> {View.text("Loading...")} </p>}>
+  <Profile id />
+  <Posts id />
+</View.Suspense>
+```
+
+The fallback shows until every resource created below the suspense has loaded once. The children render straight away, hidden, so their fetches start at once and their state survives the wait. Their refs and `onMount` callbacks are held back until they are shown.
+
+### Rules
+
+- A resource suspends the nearest `Suspense` above the component that **created** it, wherever it is read.
+- A resource counts once. A later fetch shows as `Refreshing` and never brings the fallback back.
+- Suspenses nest. The nearest one waits, and an inner subtree that is ready stays hidden while an outer suspense still waits.
+- Removing a component releases its resources: a fetch in flight is dropped, and a suspense waiting for it stops waiting.
+
+### Server Rendering
+
+On the server nothing is awaited: no fetch starts, and `Suspense` renders its fallback. Hydration then renders the children on the client, where the resources fetch.
+
+## Next Steps
+
+- Learn how effects track their dependencies in [Effects](/docs/core-concepts/effects).
+- Handle failures with [error boundaries](/docs/view/overview#error-boundaries).

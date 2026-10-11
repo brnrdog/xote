@@ -294,6 +294,23 @@ module Value: {
 
 JSX primitive that re-renders a node from one static or reactive value.
 
+<a id="view-suspense" />
+
+### View.Suspense
+
+```rescript
+module Suspense: {
+  type props = {
+    fallback?: View.node,
+    children?: View.node,
+  }
+
+  let make: props => View.node
+}
+```
+
+Shows `fallback` until every `Resource` created below it has loaded once. The children render hidden meanwhile, and their refs and `onMount` callbacks wait until they are shown. See [Resources](/docs/core-concepts/resources).
+
 <a id="view-ref" />
 
 ### View.Ref

@@ -106,6 +106,7 @@ let searchItems: array<searchItem> = [
   {title: "Effects", path: "/docs/core-concepts/effects", section: "Core Modules"},
   {title: "View", path: "/docs/view/overview", section: "Core Modules"},
   {title: "Context", path: "/docs/core-concepts/context", section: "Core Modules"},
+  {title: "Resources", path: "/docs/core-concepts/resources", section: "Core Modules"},
   {title: "Router", path: "/docs/router/overview", section: "Router"},
   {title: "Signal API", path: "/docs/api/signal", section: "API Reference"},
   {title: "Computed API", path: "/docs/api/computed", section: "API Reference"},

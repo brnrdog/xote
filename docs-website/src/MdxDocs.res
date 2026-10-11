@@ -8,6 +8,7 @@
 @module("./docs/BatchingDoc.mdx") external batchingDoc: Mdx.document = "default"
 @module("./docs/ViewsDoc.mdx") external viewsDoc: Mdx.document = "default"
 @module("./docs/ContextDoc.mdx") external contextDoc: Mdx.document = "default"
+@module("./docs/ResourcesDoc.mdx") external resourcesDoc: Mdx.document = "default"
 @module("./docs/RouterDoc.mdx") external routerDoc: Mdx.document = "default"
 @module("./docs/ApiSignalDoc.mdx") external apiSignalDoc: Mdx.document = "default"
 @module("./docs/ApiComputedDoc.mdx") external apiComputedDoc: Mdx.document = "default"
@@ -135,6 +136,7 @@ let effects = () => render(effectsDoc)
 let batching = () => render(batchingDoc)
 let views = () => render(viewsDoc)
 let context = () => render(contextDoc)
+let resources = () => render(resourcesDoc)
 let router = () => render(routerDoc)
 let apiSignal = () => render(apiSignalDoc)
 let apiComputed = () => render(apiComputedDoc)

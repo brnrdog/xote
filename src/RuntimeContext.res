@@ -1,10 +1,10 @@
 /* Internal: what a component renders under — the context values provided above
-   it and the nearest error boundary — and how that follows the subtree into the
-   effects that update it later.
+   it, the nearest error boundary and the nearest suspense boundary — and how
+   that follows the subtree into the effects that update it later.
 
-   Both live in a *frame*: an immutable list of what the components above
-   provided, each entry also carrying the nearest boundary so finding it is one
-   read. A component body that provides something pushes an entry; the
+   All of it lives in a *frame*: an immutable list of what the components above
+   provided, each entry also carrying the nearest boundaries so finding one is a
+   single read. A component body that provides something pushes an entry; the
    renderer puts the frame back once that component's result has rendered, so
    siblings never see it. Rendering is synchronous, but updates are not: a
    `tracked` pass, a keyed reconcile or a component's own effect runs long after
@@ -29,11 +29,33 @@ type boundary = {
   mutable caught: option<exn>,
 }
 
+/* A `View.Suspense`: how many resources below it have yet to load for the
+   first time, and the refs and `onMount` callbacks of its subtree, held back
+   while that count is above zero so they run once the subtree is shown. */
+type rec suspense = {
+  pending: Signal.t<int>,
+  /* The suspense this one renders inside, whose wait also holds back what
+     this one renders. */
+  parent: Nullable.t<suspense>,
+  heldRefs: array<scheduled>,
+  heldMounts: array<scheduled>,
+}
+/* An entry of `RuntimeLifecycle`'s post-render queue. Defined here so that a
+   suspense can hold the entries themselves: released, each is checked again —
+   for the region that scheduled it, and for its own suspense. */
+and scheduled = {
+  mutable live: bool,
+  run: unit => unit,
+  /* The suspense the entry was scheduled under, if any. */
+  suspense: Nullable.t<suspense>,
+}
+
 type rec frame = {
   context: Obj.t,
   value: Obj.t,
   parent: Nullable.t<frame>,
   boundary: Nullable.t<boundary>,
+  suspense: Nullable.t<suspense>,
 }
 
 /* The context of an entry that only installs a boundary: no context is ever
@@ -56,8 +78,18 @@ let boundaryOf = (frame: Nullable.t<frame>): Nullable.t<boundary> =>
   | None => Nullable.null
   }
 
-let push = (~context: Obj.t, ~value: Obj.t, ~boundary: Nullable.t<boundary>): unit =>
-  current := Nullable.make({context, value, parent: current.contents, boundary})
+let suspenseOf = (frame: Nullable.t<frame>): Nullable.t<suspense> =>
+  switch frame->Nullable.toOption {
+  | Some(frame) => frame.suspense
+  | None => Nullable.null
+  }
+
+let push = (
+  ~context: Obj.t,
+  ~value: Obj.t,
+  ~boundary: Nullable.t<boundary>=boundaryOf(current.contents),
+  ~suspense: Nullable.t<suspense>=suspenseOf(current.contents),
+): unit => current := Nullable.make({context, value, parent: current.contents, boundary, suspense})
 
 let lookup = (context: Obj.t): option<Obj.t> => {
   let rec walk = (frame: Nullable.t<frame>) =>
@@ -75,7 +107,7 @@ let lookup = (context: Obj.t): option<Obj.t> => {
 
 let provide = (context: Obj.t, value: Obj.t): unit =>
   if inBody.contents {
-    push(~context, ~value, ~boundary=boundaryOf(current.contents))
+    push(~context, ~value)
   } else {
     JsError.throwWithMessage(
       "[Xote] Context.provide was called outside a component body. Call it while the component renders, or use <Context.Provider>.",
@@ -84,6 +116,29 @@ let provide = (context: Obj.t, value: Obj.t): unit =>
 
 let installBoundary = (boundary: boundary): unit =>
   push(~context=noContext, ~value=noContext, ~boundary=Nullable.make(boundary))
+
+let makeSuspense = (): suspense => {
+  pending: Signal.make(0),
+  parent: suspenseOf(current.contents),
+  heldRefs: [],
+  heldMounts: [],
+}
+
+let installSuspense = (suspense: suspense): unit =>
+  push(~context=noContext, ~value=noContext, ~suspense=Nullable.make(suspense))
+
+/* The innermost suspense, from `suspense` outwards, that is still waiting:
+   where work scheduled under `suspense` has to wait. */
+let rec waitingSuspense = (suspense: Nullable.t<suspense>): option<suspense> =>
+  switch suspense->Nullable.toOption {
+  | Some(suspense) =>
+    if Signal.peek(suspense.pending) > 0 {
+      Some(suspense)
+    } else {
+      waitingSuspense(suspense.parent)
+    }
+  | None => None
+  }
 
 /* A failure that reached code with no boundary above it, and so propagates.
    It can still pass through a boundary on its way out — a write made while a
