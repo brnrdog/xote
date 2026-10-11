@@ -58,6 +58,53 @@ let loader = (~fetch, ~log: array<string>, ~name="loader") =>
     },
   )
 
+/* The style of the wrapper a suspense hides its children in, seen from an
+   element inside it. */
+let wrapperDisplay = (element: domElement): string =>
+  switch Zekr__DomBindings.parentElement(element)->Nullable.toOption {
+  | Some(wrapper) => style(wrapper)["display"]
+  | None => "no wrapper"
+  }
+
+/* Logs its own mount, with what its wrapper's display was at that moment. */
+let watcher = (~log: array<string>, ~name: string) =>
+  View.LazyComponent(
+    () => {
+      let field = View.Ref.make()
+      View.onMount(() =>
+        log
+        ->Array.push(
+          name ++ ":" ++ View.Ref.peek(field)->Option.mapOr("no element", wrapperDisplay),
+        )
+        ->ignore
+      )
+      <i ref=field />
+    },
+  )
+
+/* Creates its resource before its hooks, the natural order. */
+let resourceFirst = (~fetch, ~log: array<string>) =>
+  View.LazyComponent(
+    () => {
+      let _resource = Resource.make(fetch)
+      View.onMount(() => log->Array.push("mount")->ignore)
+      let field = View.Ref.fromCallback(_ => log->Array.push("ref")->ignore)
+      <input ref=field />
+    },
+  )
+
+/* Records unhandled promise rejections while `run` settles. */
+let catchingRejections: (unit => promise<unit>) => promise<array<string>> = %raw(`async function (run) {
+  const seen = []
+  const handler = (reason) => { seen.push(String(reason && reason.RE_EXN_ID || reason)) }
+  process.on("unhandledRejection", handler)
+  try { await run() } finally {
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    process.off("unhandledRejection", handler)
+  }
+  return seen
+}`)
+
 let mountTo = (node, container) => {
   View.mount(node, container)
   container
@@ -253,6 +300,116 @@ let suite = Zekr.asyncSuite(
       pending.resolve("late")
       await settle()
       combineResults([assertTrue(waiting), assertFalse(has(container, ".fallback"))])
+    }),
+    asyncTest("a component removed while it waits never mounts, nor hands over its refs", async () => {
+      let {container} = Dom.render("")
+      let pending = deferred()
+      let log = []
+      let shown = Signal.make(true)
+      let _ = mountTo(
+        <View.Suspense>
+          <View.Show when_={MaybeSignal.reactive(shown)}>
+            {resourceFirst(~fetch=() => pending.promise, ~log)}
+          </View.Show>
+        </View.Suspense>,
+        container,
+      )
+      Signal.set(shown, false)
+      await settle()
+      pending.resolve("late")
+      await settle()
+      assertEqual(log, [])
+    }),
+    asyncTest("a suspense removed while it waits never mounts its children", async () => {
+      let {container} = Dom.render("")
+      let pending = deferred()
+      let log = []
+      let shown = Signal.make(true)
+      let _ = mountTo(
+        <View.Show when_={MaybeSignal.reactive(shown)}>
+          <View.Suspense> {resourceFirst(~fetch=() => pending.promise, ~log)} </View.Suspense>
+        </View.Show>,
+        container,
+      )
+      Signal.set(shown, false)
+      await settle()
+      assertEqual(log, [])
+    }),
+    asyncTest("what a suspense held runs once its children are shown, however the wait ends", async () => {
+      let {container} = Dom.render("")
+      let pending = deferred()
+      let log = []
+      let shown = Signal.make(true)
+      let _ = mountTo(
+        <View.Suspense>
+          {watcher(~log, ~name="sibling")}
+          <View.Show when_={MaybeSignal.reactive(shown)}>
+            {loader(~fetch=() => pending.promise, ~log=[])}
+          </View.Show>
+        </View.Suspense>,
+        container,
+      )
+      /* The wait ends inside the Show's own update, when the only resource
+         goes. */
+      Signal.set(shown, false)
+      await settle()
+      assertEqual(log, ["sibling:contents"])
+    }),
+    asyncTest("a failure set off by settling does not make the resource Failed", async () => {
+      let pending = deferred()
+      let resource = Resource.make(() => pending.promise)
+      let thrown = ref(false)
+      Effect.run(() => {
+        switch Signal.get(resource) {
+        | Ready(_) if !thrown.contents => {
+            thrown := true
+            throw(Unavailable("view"))
+          }
+        | _ => ()
+        }
+        None
+      })
+      let rejections = await catchingRejections(async () => {
+        pending.resolve("data")
+        await settle()
+      })
+      combineResults([
+        assertEqual(describe(Signal.peek(resource)), "ready:data"),
+        assertEqual(Array.length(rejections), 1),
+      ])
+    }),
+    asyncTest("an inner suspense that waits again holds its children past the outer one", async () => {
+      let {container} = Dom.render("")
+      let outer = deferred()
+      let first = deferred()
+      let second = deferred()
+      let log = []
+      let more = Signal.make(false)
+      let _ = mountTo(
+        <View.Suspense>
+          {loader(~fetch=() => outer.promise, ~log=[], ~name="outer")}
+          <View.Suspense>
+            {loader(~fetch=() => first.promise, ~log=[], ~name="first")}
+            {watcher(~log, ~name="inner")}
+            <View.Show when_={MaybeSignal.reactive(more)}>
+              {loader(~fetch=() => second.promise, ~log=[], ~name="second")}
+            </View.Show>
+          </View.Suspense>
+        </View.Suspense>,
+        container,
+      )
+      first.resolve("1")
+      await settle()
+      Signal.set(more, true)
+      outer.resolve("o")
+      await settle()
+      let whileInnerWaits = Array.copy(log)
+      second.resolve("2")
+      await settle()
+      combineResults([
+        assertEqual(whileInnerWaits, []),
+        assertEqual(log, ["inner:contents"]),
+      ])
     }),
     asyncTest("a failure thrown where the state is read reaches an error boundary", async () => {
       let {container} = Dom.render("")

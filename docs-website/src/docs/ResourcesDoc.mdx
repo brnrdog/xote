@@ -24,7 +24,7 @@ The fetch runs in an effect. The signals it reads **before its first `await`** a
 
 A resource holds one of four states:
 
-- `Pending`: the first fetch has not settled yet.
+- `Pending`: fetching with no value yet, on the first fetch or after a failure.
 - `Ready(value)`: the latest fetch settled with `value`.
 - `Refreshing(value)`: fetching again, with the previous `value` kept.
 - `Failed(exn)`: the latest fetch threw or rejected.
@@ -86,7 +86,7 @@ The fallback shows until every resource created below the suspense has loaded on
 
 ### Server Rendering
 
-On the server nothing is awaited: no fetch starts, and `Suspense` renders its fallback. Hydration then renders the children on the client, where the resources fetch.
+During a server render (`SSR.renderToString`) nothing is awaited: no fetch starts, and `Suspense` renders its fallback. A resource created outside a render, at module level in a server process, is not covered and does fetch; create resources in components. Hydration then renders the children on the client, where the resources fetch.
 
 ## Next Steps
 

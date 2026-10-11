@@ -13,8 +13,9 @@ ignored. A fetch that throws or rejects settles as `Failed`.
 
 Created in a component, a resource belongs to it: removing the component drops
 whatever is in flight. A resource created under a `View.Suspense` makes that
-suspense show its fallback until the first fetch settles. On the server no
-fetch starts, and a resource stays `Pending`.
+suspense show its fallback until the first fetch settles. During a server
+render (`SSR.renderToString`) no fetch starts, and a resource stays `Pending`;
+one created outside a render, at module level in a server process, does fetch.
 
 ## Examples
 
@@ -42,7 +43,8 @@ Signal.set(userId, "2") // fetches again; shows `Refreshing` until it settles
 /**
 Where a resource stands.
 
-- `Pending` — the first fetch has not settled; there is no value yet.
+- `Pending` — fetching with no value yet: the first fetch, or a fetch again
+  after a failure.
 - `Ready(value)` — the latest fetch settled with `value`.
 - `Refreshing(value)` — fetching again; `value` is what the previous fetch got.
 - `Failed(exn)` — the latest fetch threw or rejected with `exn`.
@@ -74,7 +76,8 @@ let make: (unit => promise<'a>) => t<'a>
 
 /**
 Fetches again with the same dependencies, keeping the current value as
-`Refreshing` meanwhile. Does nothing for a resource created on the server.
+`Refreshing` meanwhile (`Pending` after a failure). Does nothing for a
+resource created during a server render.
 
 ## Examples
 

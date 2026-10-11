@@ -65,12 +65,13 @@ let make = (fetch: unit => promise<'a>): t<'a> => {
       )
       switch fetch() {
       | promise =>
+        /* The outcome is read first and settled after: a failure in what
+           settling sets off — a view that renders the value — is not the
+           fetch failing, and must not turn into `Failed`. */
         promise
-        ->Promise.thenResolve(value => settle(Ready(value)))
-        ->Promise.catch(exn => {
-          settle(Failed(exn))
-          Promise.resolve()
-        })
+        ->Promise.thenResolve(value => Ready(value))
+        ->Promise.catch(exn => Promise.resolve(Failed(exn)))
+        ->Promise.thenResolve(settle)
         ->ignore
       | exception exn => settle(Failed(exn))
       }
