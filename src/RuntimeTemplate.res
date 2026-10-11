@@ -370,14 +370,20 @@ and verifyAll = (shapes: array<shape>, nodes: array<node>): int => {
    after. */
 
 /* Replace the `count` nodes starting at `cursor` with the ordinary rendering
-   of `node`. */
+   of `node`. A position that rendered nothing in the template — an empty
+   fragment — occupies no node: what renders there now goes in before
+   `cursor`, which is still the next position's node. */
 let replaceSpan = (
   ~parent: Dom.element,
   ~cursor: Dom.element,
   ~count: int,
   ~node: node,
   ~hooks: hooks,
-): Nullable.t<Dom.element> => {
+): Nullable.t<Dom.element> =>
+  if count == 0 {
+    RuntimeDom.insertBefore(parent, hooks.render(node), cursor)
+    Nullable.make(cursor)
+  } else {
   let next = ref(RuntimeDom.getNextSibling(cursor))
   let remaining = ref(count - 1)
   while remaining.contents > 0 {
@@ -392,7 +398,7 @@ let replaceSpan = (
   }
   RuntimeDom.replaceChild(parent, hooks.render(node), cursor)
   next.contents
-}
+  }
 
 let rec fillNode = (
   shape: shape,

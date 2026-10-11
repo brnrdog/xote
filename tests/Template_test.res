@@ -104,6 +104,25 @@ let suite = Zekr.suite(
         assertEqual(clicks.contents, "5"),
       ])
     }),
+    test("a position the template left empty takes what a later row renders there", () => {
+      let {container} = Dom.render("")
+      /* Row 2 records the template with nothing at the first position; row 3
+         has an element there, which used to replace the next sibling. */
+      let items = Signal.make(["x", "empty", "full"])
+      let _ = mountTo(
+        <ul>
+          {View.eachWithKey(items, id => id, id =>
+            <li>
+              {id == "full" ? <em> {View.text("first")} </em> : View.fragment([])}
+              <span class="a"> {View.text("A")} </span>
+              <span class="b"> {View.text("B")} </span>
+            </li>
+          )}
+        </ul>,
+        container,
+      )
+      assertEqual(rows(container), ["AB", "AB", "firstAB"])
+    }),
     test("a list of a hundred rows creates one element per shape, not per row", () => {
       let {container} = Dom.render("")
       let items = Signal.make([])

@@ -359,7 +359,7 @@ let empty = null
 
 /* Mounting */
 let mount = (node: node, container: Dom.element): unit =>
-  RuntimeLifecycle.rendering(() => {
+  RuntimeLifecycle.rendering(~root=true, () => {
     let el = RuntimeRender.render(node)
     container->DOM.appendChild(el)
   })

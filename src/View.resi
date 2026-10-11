@@ -569,8 +569,11 @@ elements are anywhere a browser can lay them out or focus them. `onMount` waits
 until the render that created the component has inserted everything, refs
 included, and then runs `callback` once.
 
-Call it in a component body. The callback runs untracked, under the
-component's context and error boundary, and belongs to the component:
+Call it in a component body. A component function called directly rather
+than through JSX, as in `View.mount(app(), container)`, schedules it before
+anything renders; it then waits for the next `View.mount` or hydration. The
+callback runs untracked, under the component's context and error boundary, and
+belongs to the component:
 `onCleanup` and `Effect.run` called inside it are released when the component
 is removed. A component removed before its DOM was inserted, such as a subtree
 an error boundary replaced, never runs its `onMount`. It never runs during
@@ -598,7 +601,7 @@ let onMount: (unit => unit) => unit
 Runs `callback` when the calling component is removed.
 
 Call it in a component body, or inside its `onMount`. The callback runs
-untracked. Registered in the body, it runs when the component is released even
+untracked, and once. Registered in the body, it runs when the component is released even
 if it never mounted, such as a subtree an error boundary replaced, since the
 body that set things up did run. Outside any component there is nothing to be
 removed, and the callback never runs. For an effect's own teardown, return the cleanup from the

@@ -28,55 +28,106 @@ let depth = ref(0)
    nothing scheduled there runs. */
 let onServer = ref(0)
 
+/* Read at call time: a module can load before a test or a bundler's shim has
+   defined `document`. */
+let noDocument: unit => bool = %raw(`function () { return typeof document === "undefined" }`)
+
 let refs: array<entry> = []
 let mounts: array<entry> = []
 
-let takeAll = (queue: array<entry>): array<entry> => {
+/* Entries scheduled outside any render operation — by a component function
+   called eagerly, as in `View.mount(app(), container)`. They belong to
+   whichever mount or hydration comes next, not to an unrelated update that
+   happens to finish first, so only those (or a microtask, if none comes) take
+   them. */
+let eagerRefs: array<entry> = []
+let eagerMounts: array<entry> = []
+
+let takeAll = (queue: array<'a>): array<'a> => {
   let taken = Array.copy(queue)
   queue->Array.splice(~start=0, ~remove=Array.length(queue), ~insert=[])
   taken
 }
 
-let runAll = (entries: array<entry>): unit =>
+/* Drop what a failed render operation scheduled: everything past `mark`. */
+let discardFrom = (queue: array<entry>, mark: int): unit =>
+  if Array.length(queue) > mark {
+    queue
+    ->Array.splice(~start=mark, ~remove=Array.length(queue) - mark, ~insert=[])
+    ->ignore
+  }
+
+let discardAll = (queue: array<entry>): unit =>
+  takeAll(queue)->Array.forEach(entry => entry.live = false)
+
+/* Run every live entry, even when one throws: the rest of the batch still
+   belongs to DOM that is in the page. The first failure is kept for the end. */
+let runAll = (entries: array<entry>, ~failure: ref<option<exn>>): unit =>
   entries->Array.forEach(entry =>
     if entry.live {
       entry.live = false
-      entry.run()
+      try {
+        entry.run()
+      } catch {
+      | exn =>
+        if failure.contents == None {
+          failure := Some(exn)
+        }
+      }
     }
   )
 
 /* Refs first, then mounts, until nothing is left: a callback that renders
    something schedules more, which its own render operation flushes, so each
-   round only runs what was queued before it started. */
-let rec flush = (): unit =>
-  if Array.length(refs) > 0 || Array.length(mounts) > 0 {
-    runAll(takeAll(refs))
-    runAll(takeAll(mounts))
-    flush()
+   round only runs what was queued before it started. A failure is thrown once
+   both queues are empty. */
+let flush = (): unit => {
+  let failure = ref(None)
+  while Array.length(refs) > 0 || Array.length(mounts) > 0 {
+    runAll(takeAll(refs), ~failure)
+    runAll(takeAll(mounts), ~failure)
   }
-
-/* A render that throws past every boundary inserted nothing reliable, so what
-   it scheduled is dropped rather than run against detached DOM. */
-let discard = (): unit => {
-  takeAll(refs)->Array.forEach(entry => entry.live = false)
-  takeAll(mounts)->Array.forEach(entry => entry.live = false)
+  switch failure.contents {
+  | Some(exn) => throw(exn)
+  | None => ()
+  }
 }
 
-let rendering = (fn: unit => 'a): 'a => {
+/* Put the eager entries ahead of the ones the mount itself scheduled: the
+   component that scheduled them is the one being mounted. */
+let adoptEager = (): unit => {
+  refs->Array.splice(~start=0, ~remove=0, ~insert=takeAll(eagerRefs))
+  mounts->Array.splice(~start=0, ~remove=0, ~insert=takeAll(eagerMounts))
+}
+
+/* Run `fn` as a render operation. `~root` marks the operations that insert a
+   tree a component function may have been called eagerly for — `View.mount`,
+   `Hydration.hydrate` — and so take the eager entries. An operation that
+   throws drops what it scheduled, at any depth: a boundary may catch the
+   failure further out, and what the failed render queued must not outlive it. */
+let rendering = (~root: bool=false, fn: unit => 'a): 'a => {
+  let refMark = Array.length(refs)
+  let mountMark = Array.length(mounts)
   depth := depth.contents + 1
   let result = try {
     fn()
   } catch {
   | exn => {
       depth := depth.contents - 1
-      if depth.contents == 0 {
-        discard()
+      discardFrom(refs, refMark)
+      discardFrom(mounts, mountMark)
+      if depth.contents == 0 && root {
+        discardAll(eagerRefs)
+        discardAll(eagerMounts)
       }
       throw(exn)
     }
   }
   depth := depth.contents - 1
   if depth.contents == 0 {
+    if root {
+      adoptEager()
+    }
     flush()
   }
   result
@@ -101,22 +152,27 @@ let server = (fn: unit => 'a): 'a => {
 let microtaskPending = ref(false)
 
 /* Queue `run` for after the current render operation, owned by the region
-   rendering now. Scheduled outside one — a component function called eagerly,
-   as in `View.mount(app(), container)`, runs before the mount starts — it waits
-   for the next render operation to finish, or for a microtask if none comes. */
-let schedule = (queue: array<entry>, run: unit => unit): unit =>
-  if onServer.contents == 0 {
+   rendering now. Scheduled outside one, it waits for the next mount or
+   hydration, or for a microtask if none comes. Nothing is scheduled where
+   there is no document to insert into. */
+let schedule = (queue: array<entry>, ~eager: array<entry>, run: unit => unit): unit =>
+  if onServer.contents == 0 && !noDocument() {
     let entry = {live: true, run}
     RuntimeOwner.track(RuntimeOwner.addDisposer, () => entry.live = false)
-    queue->Array.push(entry)->ignore
-    if depth.contents == 0 && !microtaskPending.contents {
-      microtaskPending := true
-      queueMicrotask(() => {
-        microtaskPending := false
-        if depth.contents == 0 {
-          flush()
-        }
-      })
+    if depth.contents > 0 {
+      queue->Array.push(entry)->ignore
+    } else {
+      eager->Array.push(entry)->ignore
+      if !microtaskPending.contents {
+        microtaskPending := true
+        queueMicrotask(() => {
+          microtaskPending := false
+          if depth.contents == 0 {
+            adoptEager()
+            flush()
+          }
+        })
+      }
     }
   }
 
@@ -124,7 +180,7 @@ let schedule = (queue: array<entry>, run: unit => unit): unit =>
    region that rendered it is released — unless the ref has since moved on to
    another element. */
 let attachRef = (ref: RuntimeNode.elementRef, element: Dom.element): unit => {
-  schedule(refs, () => {
+  schedule(refs, ~eager=eagerRefs, () => {
     Signal.set(ref.element, Some(element))
     switch ref.callback->Nullable.toOption {
     | Some(callback) => Signal.untrack(() => callback(element))
@@ -151,7 +207,7 @@ let onMount = (fn: unit => unit): unit => {
     }
     None
   })
-  schedule(mounts, () => ignore(run()))
+  schedule(mounts, ~eager=eagerMounts, () => ignore(run()))
 }
 
 /* Run `fn` when the region rendering now is released. Release happens inside

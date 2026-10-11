@@ -243,12 +243,20 @@ function buildElement(tag, props = {}) {
 }
 
 // `ref` takes a View.Ref.t, or a function called with the element once it is
-// in the document.
+// in the document. Anything else — a React-style `{ current }` object — is
+// ignored with a warning rather than failing when the element is handed over.
 function toRef(value) {
   if (value === null || value === undefined) {
     return undefined;
   }
-  return typeof value === "function" ? View.Ref.fromCallback(value) : value;
+  if (typeof value === "function") {
+    return View.Ref.fromCallback(value);
+  }
+  if (typeof value === "object" && "element" in value && "callback" in value) {
+    return value;
+  }
+  console.warn("[Xote] `ref` takes a View.Ref.t or a function; this value was ignored:", value);
+  return undefined;
 }
 
 function getReservedKey(props, key) {

@@ -90,6 +90,57 @@ module Fragile = {
   let make = () => throw(Boom)
 }
 
+/* A keyed row that logs its lifecycle; `fails` makes it throw after its body
+   has scheduled everything. */
+module LoggedRow = {
+  @jsx.component
+  let make = (~id: int, ~fails: bool, ~log: array<string>) => {
+    let name = "row" ++ Int.toString(id)
+    View.onMount(() => {
+      log->Array.push(name ++ ":mount")->ignore
+      View.onCleanup(() => log->Array.push(name ++ ":cleanup-from-mount")->ignore)
+    })
+    View.onCleanup(() => log->Array.push(name ++ ":cleanup")->ignore)
+    fails ? throw(Boom) : <li />
+  }
+}
+
+/* Schedules an onMount, then fails to render. */
+module MountsThenFails = {
+  @jsx.component
+  let make = (~log: array<string>) => {
+    View.onMount(() => log->Array.push("bad:mount")->ignore)
+    throw(Boom)
+  }
+}
+
+module CleansUp = {
+  @jsx.component
+  let make = (~log: array<string>) => {
+    View.onCleanup(() => log->Array.push("cleanup")->ignore)
+    <Fragile />
+  }
+}
+
+module Logs = {
+  @jsx.component
+  let make = (~name: string, ~log: array<string>, ~fails: bool=false) => {
+    View.onMount(() => {
+      log->Array.push(name)->ignore
+      if fails {
+        throw(Boom)
+      }
+    })
+    <span />
+  }
+}
+
+let withoutDocument: (unit => unit) => unit = %raw(`function (fn) {
+  const saved = globalThis.document
+  delete globalThis.document
+  try { fn() } finally { globalThis.document = saved }
+}`)
+
 let suite = Zekr.suite(
   "Refs and lifecycle",
   [
@@ -231,6 +282,117 @@ let suite = Zekr.suite(
       /* The body ran, so what it registered with onCleanup runs; onMount never
          did, so neither does the cleanup it would have registered. */
       combineResults([assertEqual(log, ["probe:cleanup"]), assertTrue(has(container, ".fallback"))])
+    }),
+    test("rows of a keyed list that fails its first render never mount, and clean up", () => {
+      let {container} = Dom.render("")
+      let log = []
+      let shown = Signal.make(true)
+      let rows = Signal.make([1, 2])
+      let _ = mountTo(
+        <View.Show when_={MaybeSignal.reactive(shown)}>
+          <View.ErrorBoundary fallback={(_, _) => <p class="fallback" />}>
+            <ul>
+              {View.eachWithKey(rows, id => Int.toString(id), id => <LoggedRow id fails={id == 2} log />)}
+            </ul>
+          </View.ErrorBoundary>
+        </View.Show>,
+        container,
+      )
+      let mounted = Array.copy(log)
+      let fellBack = has(container, ".fallback")
+      Signal.set(shown, false)
+      combineResults([
+        assertTrue(fellBack),
+        assertEqual(mounted, ["row1:cleanup", "row2:cleanup"]),
+        assertEqual(log, ["row1:cleanup", "row2:cleanup"]),
+      ])
+    }),
+    test("a nested pass that fails on an update leaves no onMount behind", () => {
+      let {container} = Dom.render("")
+      let log = []
+      let show = Signal.make(false)
+      let _ = mountTo(
+        <View.ErrorBoundary fallback={(_, _) => <p class="fallback" />}>
+          {View.tracked(() =>
+            Signal.get(show)
+              ? View.tracked(() => <MountsThenFails log />)
+              : View.text("waiting")
+          )}
+        </View.ErrorBoundary>,
+        container,
+      )
+      Signal.set(show, true)
+      combineResults([assertEqual(log, []), assertTrue(has(container, ".fallback"))])
+    }),
+    test("a cleanup runs once when a boundary falls back and is later removed", () => {
+      let {container} = Dom.render("")
+      let log = []
+      let shown = Signal.make(true)
+      let _ = mountTo(
+        <View.Show when_={MaybeSignal.reactive(shown)}>
+          <View.ErrorBoundary fallback={(_, _) => <p class="fallback" />}>
+            <CleansUp log />
+          </View.ErrorBoundary>
+        </View.Show>,
+        container,
+      )
+      Signal.set(shown, false)
+      assertEqual(log, ["cleanup"])
+    }),
+    test("a failing onMount does not cost the rest of the batch", () => {
+      let {container} = Dom.render("")
+      let log = []
+      let raised = try {
+        View.mount(
+          <div>
+            <Logs name="first" log fails=true />
+            <Logs name="second" log />
+          </div>,
+          container,
+        )
+        false
+      } catch {
+      | Boom => true
+      }
+      combineResults([assertTrue(raised), assertEqual(log, ["first", "second"])])
+    }),
+    test("a failing ref callback does not hold back the mounts", () => {
+      let {container} = Dom.render("")
+      let log = []
+      let broken = View.Ref.fromCallback(_ => throw(Boom))
+      let raised = try {
+        View.mount(<div> <input ref=broken /> <Logs name="mounted" log /> </div>, container)
+        false
+      } catch {
+      | Boom => true
+      }
+      combineResults([assertTrue(raised), assertEqual(log, ["mounted"])])
+    }),
+    test("an eager component's onMount waits for its own mount, not an unrelated update", () => {
+      let {container} = Dom.render("")
+      let field = View.Ref.make()
+      let seen = []
+      let unrelated = Signal.make(0)
+      let _ = mountTo(
+        <div> {View.tracked(() => View.int(Signal.get(unrelated)))} </div>,
+        Dom.render("").container,
+      )
+      let app = () => {
+        View.onMount(() => seen->Array.push(View.Ref.peek(field)->Option.mapOr(false, isConnected))->ignore)
+        View.element("input", ~ref=field, ())
+      }
+      let node = app()
+      Signal.set(unrelated, 1)
+      let afterUpdate = Array.copy(seen)
+      View.mount(node, container)
+      combineResults([assertEqual(afterUpdate, []), assertEqual(seen, [true])])
+    }),
+    test("nothing is scheduled where there is no document", () => {
+      let {container} = Dom.render("")
+      let ran = ref(false)
+      withoutDocument(() => View.onMount(() => ran := true))
+      View.mount(<div />, container)
+      assertFalse(ran.contents)
     }),
     test("a failing onMount goes to the error boundary", () => {
       let {container} = Dom.render("")

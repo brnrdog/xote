@@ -169,4 +169,19 @@ assert.deepEqual(seen, [true]);
 assert.equal(View.Ref.peek(inputRef), refContainer.querySelector('[name="handle"]'));
 assert.equal(refContainer.querySelector('[name="callback"]').hasAttribute("ref"), false);
 
+// A React-style object ref is ignored with a warning instead of failing when
+// the element is handed over.
+const warnings = [];
+const realWarn = console.warn;
+console.warn = (...args) => warnings.push(args.join(" "));
+try {
+  const objectRefContainer = document.createElement("div");
+  document.body.appendChild(objectRefContainer);
+  View.mount(jsx("input", { name: "object", ref: { current: null } }), objectRefContainer);
+  assert.ok(objectRefContainer.querySelector('[name="object"]'));
+  assert.equal(warnings.length, 1);
+} finally {
+  console.warn = realWarn;
+}
+
 console.log("JSX runtime tests passed");
