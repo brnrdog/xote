@@ -42,6 +42,24 @@ exception Boom
 
 let theme = Context.make("light")
 
+module FailsFirstRun = {
+  @jsx.component
+  let make = () => {
+    Effect.run(() => throw(Boom))
+    <p class="second" />
+  }
+}
+
+/* A component whose own onMount reaches into its portal. */
+module Modal = {
+  @jsx.component
+  let make = (~target: domElement, ~seen: ref<bool>) => {
+    let field = View.Ref.make()
+    View.onMount(() => seen := View.Ref.peek(field)->Option.mapOr(false, isConnected))
+    <View.Portal target> <input ref=field /> </View.Portal>
+  }
+}
+
 let suite = Zekr.suite(
   "Portals",
   [
@@ -92,6 +110,59 @@ let suite = Zekr.suite(
         assertEqual(querySelectorAll(target, "p")->Array.length, 0),
         assertEqual(subscriberCount(ticks), 0),
       ])
+    }),
+    test("rows a keyed list adds after mount go with the portal", () => {
+      let {container} = Dom.render("")
+      let target = freshTarget()
+      let shown = Signal.make(true)
+      let items = Signal.make(["a", "b"])
+      let _ = mountTo(
+        <View.Show when_={MaybeSignal.reactive(shown)}>
+          <View.Portal target>
+            <View.KeyedFor
+              each={MaybeSignal.reactive(items)}
+              by={id => id}
+              render={id => <li> {View.text(id)} </li>}
+            />
+          </View.Portal>
+        </View.Show>,
+        container,
+      )
+      Signal.set(items, ["a", "b", "c", "d"])
+      let grown = querySelectorAll(target, "li")->Array.length
+      Signal.set(shown, false)
+      combineResults([
+        assertEqual(grown, 4),
+        assertEqual(querySelectorAll(target, "li")->Array.length, 0),
+        assertEqual(Zekr__DomBindings.textContent(target), ""),
+      ])
+    }),
+    test("an effect that fails on its first run leaves nothing in the target", () => {
+      let {container} = Dom.render("")
+      let target = freshTarget()
+      let ticks = Signal.make(0)
+      let _ = mountTo(
+        <View.ErrorBoundary fallback={(_, _) => <p class="fallback" />}>
+          <View.Portal target>
+            <p class="first" />
+            <FailsFirstRun />
+            <p class="ticks"> {View.signalText(() => Int.toString(Signal.get(ticks)))} </p>
+          </View.Portal>
+        </View.ErrorBoundary>,
+        container,
+      )
+      combineResults([
+        assertTrue(find(container, ".fallback")->Option.isSome),
+        assertEqual(querySelectorAll(target, "p")->Array.length, 0),
+        assertEqual(subscriberCount(ticks), 0),
+      ])
+    }),
+    test("a component's own onMount sees the refs inside its portal", () => {
+      let {container} = Dom.render("")
+      let target = freshTarget()
+      let seen = ref(false)
+      let _ = mountTo(<Modal target seen />, container)
+      assertTrue(seen.contents)
     }),
     test("portaled children stay reactive", () => {
       let {container} = Dom.render("")

@@ -242,7 +242,7 @@ module Search = {
 </View.Portal>
 ```
 
-The children render once the portal is mounted, under the portal's context and error boundary, and are removed from the target when the portal is removed. DOM events bubble through the target, not through the portal's place in the component tree. On the server a portal renders nothing.
+The children render with the portal, under its context and error boundary, and go into the target before any ref or `onMount` callback of that render runs, so a component's `onMount` can reach the elements inside its portal. Removing the portal removes everything it put in the target. DOM events bubble through the target, not through the portal's place in the component tree. On the server a portal renders nothing.
 
 ### Error Boundaries
 

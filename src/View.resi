@@ -602,11 +602,12 @@ Renders its children into another element, `document.body` unless `target`
 says otherwise, and nothing where it stands. For modals, tooltips and menus
 that must escape a parent's `overflow` or stacking context.
 
-The children render once the portal is mounted, so they appear just after the
-surrounding tree is in the document. They render under the portal's context
-and error boundary, behind any `Suspense` that holds the portal back, and are
-removed from the target, with everything they set up, when the portal is
-removed.
+The children render with the portal, under its context and error boundary, and
+go into the target once the render has inserted everything else, before any
+ref or `onMount` callback runs: a component's `onMount` can read the refs of
+what its portal rendered. They are placed between two comment anchors, and
+removing the portal removes everything between them, including what the
+children inserted after mounting, along with everything they set up.
 
 DOM events bubble through the target, not through the portal's position in the
 component tree. On the server a portal renders nothing; its children render on

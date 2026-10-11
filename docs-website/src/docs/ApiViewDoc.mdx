@@ -363,7 +363,7 @@ module Portal: {
 }
 ```
 
-Renders its children into `target` (`document.body` if omitted) once mounted, and nothing where it stands. The children keep the portal's context and error boundary, and are removed with it.
+Renders its children into `target` (`document.body` if omitted), and nothing where it stands; they are in the target before any `onMount` of the render runs. The children keep the portal's context and error boundary, and are removed with it.
 
 <a id="view-errorboundary" />
 

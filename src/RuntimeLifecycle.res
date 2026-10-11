@@ -219,6 +219,12 @@ let attachRef = (ref: RuntimeNode.elementRef, element: Dom.element): unit => {
   )
 }
 
+/* Run `run` with the refs of the render operation in progress, ahead of every
+   ref scheduled after it and of every `onMount`. For work that puts rendered
+   DOM in its place — a portal's content — which those callbacks expect to find
+   there. */
+let insertion = (run: unit => unit): unit => schedule(refs, ~eager=eagerRefs, run)
+
 /* Run `fn` once the component calling it is in the document. It runs under the
    component's region, so `onCleanup` and `Effect.run` inside it belong to the
    component, and under the component's context and error boundary. */
