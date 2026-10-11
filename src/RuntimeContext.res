@@ -10,13 +10,18 @@
    `tracked` pass, a keyed reconcile or a component's own effect runs long after
    the component above it returned. Every effect therefore captures the frame it
    was created under and runs under it again, so a later pass renders with the
-   context and the boundary its first pass had. */
+   context and the boundary its first pass had — including an effect created
+   under no frame at all, which must not pick up whichever frame happens to be
+   installed when a write during a render flushes it. */
 
 type boundary = {
   /* What renders in place of the subtree when its synchronous render fails. */
   fallback: exn => RuntimeNode.node,
   /* Takes a failure from a later update, after the subtree has rendered. */
   report: exn => unit,
+  /* Hears every further failure of one synchronous render; the first is the
+     one the fallback renders, and is heard through `fallback`. */
+  notify: exn => unit,
   /* True while the subtree renders synchronously: a failure inside an effect's
      first run is recorded rather than reported, and the render that started it
      falls back once it returns. */
@@ -80,15 +85,45 @@ let provide = (context: Obj.t, value: Obj.t): unit =>
 let installBoundary = (boundary: boundary): unit =>
   push(~context=noContext, ~value=noContext, ~boundary=Nullable.make(boundary))
 
+/* A failure that reached code with no boundary above it, and so propagates.
+   It can still pass through a boundary on its way out — a write made while a
+   boundary's subtree renders flushes regions elsewhere in the page, on the
+   same stack — and that boundary must not claim it. Marked on the thrown value
+   itself: a JavaScript error is rewrapped each time ReScript catches it. */
+let escaped: WeakSet.t<Obj.t> = WeakSet.make()
+
+let thrownValue: exn => Obj.t = %raw(`function (exn) {
+  return exn != null && exn.RE_EXN_ID === "JsExn" ? exn._1 : exn
+}`)
+
+let isObject: Obj.t => bool = %raw(`function (value) {
+  return value !== null && (typeof value === "object" || typeof value === "function")
+}`)
+
+let escape = (exn: exn): 'a => {
+  let value = thrownValue(exn)
+  if isObject(value) {
+    escaped->WeakSet.add(value)->ignore
+  }
+  throw(exn)
+}
+
+let hasEscaped = (exn: exn): bool => {
+  let value = thrownValue(exn)
+  isObject(value) && escaped->WeakSet.has(value)
+}
+
 /* A failure under `frame` goes to the nearest boundary, or propagates as it
    always has when there is none. */
 let fail = (frame: Nullable.t<frame>, exn: exn): unit =>
   switch boundaryOf(frame)->Nullable.toOption {
-  | None => throw(exn)
+  | None => escape(exn)
+  | Some(_) if hasEscaped(exn) => throw(exn)
   | Some(boundary) =>
     if boundary.rendering {
-      if boundary.caught == None {
-        boundary.caught = Some(exn)
+      switch boundary.caught {
+      | None => boundary.caught = Some(exn)
+      | Some(_) => Signal.untrack(() => boundary.notify(exn))
       }
     } else {
       /* The failing effect is still the running observer: nothing the
@@ -97,31 +132,54 @@ let fail = (frame: Nullable.t<frame>, exn: exn): unit =>
     }
   }
 
-/* Run an effect body under the frame it was created under, handing a failure
-   to the frame's boundary. Without a frame there is nothing to restore and no
-   boundary to report to, so the body is returned as is. */
-let bind = (fn: unit => option<unit => unit>): (unit => option<unit => unit>) =>
-  switch current.contents->Nullable.toOption {
-  | None => fn
-  | Some(_) => {
-      let frame = current.contents
-      () => {
-        let savedFrame = current.contents
-        current := frame
-        try {
-          let cleanup = fn()
-          current := savedFrame
-          cleanup
-        } catch {
-        | exn => {
-            current := savedFrame
-            fail(frame, exn)
-            None
-          }
-        }
-      }
+/* Run `fn` under `frame`, outside any component body, handing a failure to
+   the frame's boundary. */
+let within = (frame: Nullable.t<frame>, fn: unit => 'a, ~onFailure: unit => 'a): 'a => {
+  let savedFrame = current.contents
+  let savedBody = inBody.contents
+  current := frame
+  inBody := false
+  try {
+    let result = fn()
+    current := savedFrame
+    inBody := savedBody
+    result
+  } catch {
+  | exn => {
+      current := savedFrame
+      inBody := savedBody
+      fail(frame, exn)
+      onFailure()
     }
   }
+}
+
+/* Run an effect body, and the cleanup it returns, under the frame the effect
+   was created under, handing a failure to the frame's boundary.
+
+   An effect created under no frame still needs restoring to none: a write
+   made while a component renders flushes effects on the same stack, and one
+   that ran under the frame installed there would render its region with
+   context from elsewhere, and hand its failures to a boundary that is not
+   its own. In the usual case nothing is installed when it runs, and the body
+   runs as is. */
+let bind = (fn: unit => option<unit => unit>): (unit => option<unit => unit>) => {
+  let frame = current.contents
+  let wrapCleanup = (cleanup: option<unit => unit>) =>
+    switch cleanup {
+    | Some(cleanup) => Some(() => within(frame, cleanup, ~onFailure=() => ()))
+    | None => None
+    }
+  switch frame->Nullable.toOption {
+  | None => () =>
+      if Nullable.isNullable(current.contents) && !inBody.contents {
+        fn()
+      } else {
+        within(frame, fn, ~onFailure=() => None)
+      }
+  | Some(_) => () => wrapCleanup(within(frame, fn, ~onFailure=() => None))
+  }
+}
 
 /* The subtree of a component that installed a boundary renders under an owner
    of its own, so a render that fails partway can be released whole before the
@@ -141,15 +199,30 @@ let renderBoundary = (
   let outcome = try {
     Ok(RuntimeOwner.runWithOwner(owner, () => render(node)))
   } catch {
-  | exn => Error(exn)
-  }
-  boundary.rendering = wasRendering
-  let caught = boundary.caught
-  boundary.caught = None
-  switch (outcome, caught) {
-  | (Ok(result), None) => result
-  | (Error(exn), _) | (Ok(_), Some(exn)) => {
+  | exn =>
+    if hasEscaped(exn) {
+      /* Not this boundary's to handle: release what rendered, and let it go
+         on to the caller. */
       RuntimeOwner.disposeOwner(owner)
+      boundary.rendering = wasRendering
+      boundary.caught = None
+      throw(exn)
+    } else {
+      Error(exn)
+    }
+  }
+  let caught = boundary.caught
+  switch (outcome, caught) {
+  | (Ok(result), None) => {
+      boundary.rendering = wasRendering
+      result
+    }
+  | (Error(exn), _) | (Ok(_), Some(exn)) => {
+      /* Released while still rendering, so a cleanup that fails on the way
+         out is recorded here rather than reported as a new failure. */
+      RuntimeOwner.disposeOwner(owner)
+      boundary.rendering = wasRendering
+      boundary.caught = None
       /* The fallback renders outside the boundary, so a fallback that fails in
          turn goes to the boundary above. Like a component body, building it
          subscribes nothing. */

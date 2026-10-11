@@ -295,6 +295,7 @@ module ErrorBoundary = {
         notify(exn)
         Signal.set(failure, Some(exn))
       },
+      notify,
       rendering: false,
       caught: None,
     }

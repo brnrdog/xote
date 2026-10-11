@@ -714,9 +714,13 @@ Catches what its subtree throws and renders `fallback` in its place.
 
 It catches failures while the subtree renders and while it updates: a component
 body, a reactive block (`View.tracked`, `Show`, `For`) re-rendering, a reactive
-text or attribute expression, and an `Effect.run` set up in a component body.
-Event handlers, timers and promise callbacks run outside any render and are not
-caught; handle their failures where they happen.
+text or attribute expression, and an `Effect.run` set up in a component body,
+cleanup included. Event handlers, timers and promise callbacks run outside any
+render and are not caught; handle their failures where they happen. Neither is
+a `Computed` made with `~equals`, which recomputes on its own when its sources
+change: its failure goes to the code that wrote the signal. A failure from a
+region outside the boundary is never claimed, even when a write inside the
+boundary is what re-rendered that region.
 
 `fallback` receives the failure and a `reset` function that renders the subtree
 again from scratch. `onError` is called with every failure the boundary
@@ -724,7 +728,10 @@ catches, for logging or reporting. A failure inside `fallback` itself goes to
 the boundary above, if there is one.
 
 On the server, a subtree that fails renders the fallback into the HTML.
-Hydration renders the subtree again on the client.
+Hydration renders everything inside a boundary again on the client rather than
+adopting the server's markup, so wrapping a whole app in one gives up
+hydration's reuse of the server DOM; wrap the parts that can fail instead. The
+boundary also renders a `<div style="display: contents">` around its subtree.
 
 ## Examples
 

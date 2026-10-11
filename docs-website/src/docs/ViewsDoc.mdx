@@ -209,7 +209,7 @@ Use [`View.Show`](/docs/api/view#view-show) for boolean branches, [`View.Maybe`]
 
 ### Error Boundaries
 
-[`View.ErrorBoundary`](/docs/api/view#view-errorboundary) keeps one failing part of a page from taking the rest down with it. When anything in its subtree throws — a component body, a reactive block re-rendering, a reactive attribute or text, or an `Effect.run` set up in a component body — the whole subtree is released and `fallback` renders in its place.
+[`View.ErrorBoundary`](/docs/api/view#view-errorboundary) keeps one failing part of a page from taking the rest down with it. When anything in its subtree throws — a component body, a reactive block re-rendering, a reactive attribute or text, or an `Effect.run` set up in a component body, cleanup included — the whole subtree is released and `fallback` renders in its place.
 
 ```rescript
 <View.ErrorBoundary
@@ -223,7 +223,7 @@ Use [`View.Show`](/docs/api/view#view-show) for boolean branches, [`View.Maybe`]
 </View.ErrorBoundary>
 ```
 
-`reset` renders the subtree again from scratch. Boundaries nest: the nearest one catches, and a failure inside a `fallback` goes to the boundary above. Event handlers, timers and promise callbacks run outside any render, so their failures are not caught; handle those where they happen. On the server, a subtree that fails renders its fallback into the HTML, and hydration renders the subtree again on the client.
+`reset` renders the subtree again from scratch. Boundaries nest: the nearest one catches, and a failure inside a `fallback` goes to the boundary above. Event handlers, timers and promise callbacks run outside any render, so their failures are not caught; handle those where they happen. Neither is a `Computed` made with `~equals`, which recomputes on its own when its sources change. A failure from a region outside the boundary is never claimed by it. On the server, a subtree that fails renders its fallback into the HTML, and hydration renders everything inside the boundary again on the client instead of reusing the server's markup, so wrap the parts of a page that can fail rather than the whole app.
 
 ### Auto-tracked Blocks
 

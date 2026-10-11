@@ -59,6 +59,33 @@ module Watcher = {
   }
 }
 
+/* Writes during its body, which flushes regions elsewhere in the page on the
+   same stack, with this component's frame installed. */
+module Bumper = {
+  @jsx.component
+  let make = (~count: Signal.t<int>) => {
+    Signal.set(count, 1)
+    <span />
+  }
+}
+
+module EffectProvider = {
+  @jsx.component
+  let make = (~raised: ref<bool>) => {
+    Effect.run(() => {
+      raised :=
+        try {
+          Context.provide(theme, "effect")
+          false
+        } catch {
+        | _ => true
+        }
+      None
+    })
+    <span />
+  }
+}
+
 let suite = Zekr.suite(
   "Context",
   [
@@ -177,6 +204,32 @@ let suite = Zekr.suite(
       )
       click(find(container, "button"))
       assertEqual(read.contents, "light")
+    }),
+    test("a region outside a provider, re-rendered by a write inside it, keeps its own context", () => {
+      let {container} = Dom.render("")
+      let count = Signal.make(0)
+      let _ = mountTo(
+        <div>
+          {View.tracked(() => {
+            let _ = Signal.get(count)
+            <Badge />
+          })}
+          <Context.Provider context=theme value="dark">
+            <Bumper count />
+          </Context.Provider>
+        </div>,
+        container,
+      )
+      assertEqual(texts(container, ".badge"), ["light"])
+    }),
+    test("provide inside an effect raises, even on the effect's first run in a body", () => {
+      let {container} = Dom.render("")
+      let raised = ref(false)
+      let _ = mountTo(
+        <Context.Provider context=theme value="dark"> <EffectProvider raised /> </Context.Provider>,
+        container,
+      )
+      assertTrue(raised.contents)
     }),
     test("provide outside a component body raises", () => {
       let raised = try {
