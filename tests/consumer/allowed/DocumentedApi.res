@@ -156,6 +156,9 @@ let callbackRef: Xote.View.elementRef = Xote.View.Ref.fromCallback(_element => (
 let currentField: option<Dom.element> = Xote.View.Ref.get(fieldRef)
 let peekedField: option<Dom.element> = Xote.View.Ref.peek(callbackRef)
 let refElement = Xote.View.element("input", ~ref=fieldRef, ())
+let portaled = <Xote.View.Portal> {Xote.View.text("in body")} </Xote.View.Portal>
+let targeted = (target: Dom.element) =>
+  <Xote.View.Portal target> {Xote.View.text("in target")} </Xote.View.Portal>
 let lifecycleComponent = Xote.View.LazyComponent(
   () => {
     Xote.View.onMount(() => Xote.View.onCleanup(() => ()))

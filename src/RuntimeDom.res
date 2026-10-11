@@ -62,6 +62,13 @@ external getElementById: string => Nullable.t<Dom.element> = "getElementById"
 @get external getFirstChild: Dom.element => Nullable.t<Dom.element> = "firstChild"
 @get external getParentNode: Dom.element => Nullable.t<Dom.element> = "parentNode"
 
+/* Read when called, never at module load: the server has no document. */
+let documentBody: unit => Dom.element = %raw(`function () { return document.body }`)
+
+let childNodesOf: Dom.element => array<Dom.element> = %raw(`function (node) {
+  return Array.from(node.childNodes)
+}`)
+
 let isDocumentFragment: Dom.element => bool = %raw(`function (node) {
   return node != null && node.nodeType === 11
 }`)

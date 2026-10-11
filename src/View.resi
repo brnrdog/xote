@@ -598,6 +598,51 @@ module Clock = {
 let onMount: (unit => unit) => unit
 
 /**
+Renders its children into another element, `document.body` unless `target`
+says otherwise, and nothing where it stands. For modals, tooltips and menus
+that must escape a parent's `overflow` or stacking context.
+
+The children render once the portal is mounted, so they appear just after the
+surrounding tree is in the document. They render under the portal's context
+and error boundary, behind any `Suspense` that holds the portal back, and are
+removed from the target, with everything they set up, when the portal is
+removed.
+
+DOM events bubble through the target, not through the portal's position in the
+component tree. On the server a portal renders nothing; its children render on
+the client after hydration.
+
+## Examples
+
+```rescript
+module Modal = {
+  @jsx.component
+  let make = (~onClose: unit => unit, ~children: View.node) =>
+    <View.Portal>
+      <div class="modal-backdrop" onClick={_ => onClose()}>
+        <div class="modal"> {children} </div>
+      </div>
+    </View.Portal>
+}
+```
+*/
+module Portal: {
+  /**
+  Props of `View.Portal`.
+
+  - `target` — the element to render into; `document.body` if omitted.
+  - `children` — what to render there.
+  */
+  type props = {
+    target?: Dom.element,
+    children?: node,
+  }
+
+  /** Renders the children into the target once mounted. Called for you by `<View.Portal />`; see the module doc for usage. */
+  let make: props => node
+}
+
+/**
 Runs `callback` when the calling component is removed.
 
 Call it in a component body, or inside its `onMount`. The callback runs

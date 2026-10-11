@@ -389,6 +389,38 @@ module Ref = {
 let onMount = RuntimeLifecycle.onMount
 let onCleanup = RuntimeLifecycle.onCleanup
 
+/* Renders its children into another element — `document.body` unless told
+   otherwise — and nothing where it stands.
+
+   The children render once the portal itself is mounted, from its `onMount`:
+   so under the portal's context and error boundary, behind any suspense that
+   holds the portal back, and only on the client. `onMount` runs under the
+   portal's region, so what the children set up is released with the portal,
+   and the nodes they put in the target are taken out at the same time. */
+module Portal = {
+  type props = {
+    target?: Dom.element,
+    children?: node,
+  }
+
+  let make = (props: props): node => {
+    onMount(() => {
+      let target = switch props.target {
+      | Some(target) => target
+      | None => DOM.documentBody()
+      }
+      let inserted = ref([])
+      onCleanup(() => inserted.contents->Array.forEach(DOM.remove))
+      RuntimeLifecycle.rendering(() => {
+        let element = RuntimeRender.render(fragment(childrenToArray(props.children)))
+        inserted := (DOM.isDocumentFragment(element) ? DOM.childNodesOf(element) : [element])
+        target->DOM.appendChild(element)
+      })
+    })
+    fragment([])
+  }
+}
+
 /* Element constructor */
 let element = (
   tag: string,

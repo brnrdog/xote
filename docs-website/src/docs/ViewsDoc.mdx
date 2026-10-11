@@ -230,6 +230,20 @@ module Search = {
 
 `onMount` runs untracked, under the component's context and error boundary, and anything it sets up with `onCleanup` or `Effect.run` is released with the component. It never runs during server rendering, and runs after hydration on the client. A ref holds its element in a signal, so [`View.Ref.get`](/docs/api/view#view-ref) inside an effect re-runs it when the element arrives or goes. `View.Ref.fromCallback` makes a ref that also calls a function with each element it receives.
 
+### Portals
+
+[`View.Portal`](/docs/api/view#view-portal) renders its children into another element, `document.body` unless you pass `target`, and nothing where it stands. Use it for modals, tooltips and menus that have to escape a parent's `overflow` or stacking context.
+
+```rescript
+<View.Portal>
+  <div class="modal-backdrop" onClick={_ => close()}>
+    <div class="modal"> {children} </div>
+  </div>
+</View.Portal>
+```
+
+The children render once the portal is mounted, under the portal's context and error boundary, and are removed from the target when the portal is removed. DOM events bubble through the target, not through the portal's place in the component tree. On the server a portal renders nothing.
+
 ### Error Boundaries
 
 [`View.ErrorBoundary`](/docs/api/view#view-errorboundary) keeps one failing part of a page from taking the rest down with it. When anything in its subtree throws — a component body, a reactive block re-rendering, a reactive attribute or text, or an `Effect.run` set up in a component body, cleanup included — the whole subtree is released and `fallback` renders in its place.
