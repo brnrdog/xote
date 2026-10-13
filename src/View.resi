@@ -604,7 +604,8 @@ that must escape a parent's `overflow` or stacking context.
 
 The children render with the portal, under its context and error boundary, and
 go into the target once the render has inserted everything else, before any
-ref or `onMount` callback runs: a component's `onMount` can read the refs of
+ref or `onMount` callback runs (inside a `Suspense` that is still waiting,
+once it shows its children): a component's `onMount` can read the refs of
 what its portal rendered. They are placed between two comment anchors, and
 removing the portal removes everything between them, including what the
 children inserted after mounting, along with everything they set up.
