@@ -23,12 +23,15 @@ type attrValue = RuntimeNode.attrValue =
   | OptionalCompute(unit => option<string>)
 
 /* Virtual node types */
+type elementRef = RuntimeNode.elementRef
+
 type rec node = RuntimeNode.node =
   | Element({
       tag: string,
       attrs: array<(string, attrValue)>,
       events: array<(string, Dom.event => unit)>,
       children: array<node>,
+      ref?: elementRef,
     })
   | Text(string)
   | SignalText(Signal.t<string>)
@@ -319,24 +322,47 @@ module ErrorBoundary = {
   }
 }
 
+/* Element refs: a handle the renderer hands the element to once it is in the
+   document, and takes it back from when the element is removed. */
+module Ref = {
+  type t = elementRef
+
+  let make = (): t => {element: Signal.make(None), callback: Nullable.null}
+
+  let fromCallback = (callback: Dom.element => unit): t => {
+    element: Signal.make(None),
+    callback: Nullable.make(callback),
+  }
+
+  let get = (ref: t): option<Dom.element> => Signal.get(ref.element)
+
+  let peek = (ref: t): option<Dom.element> => Signal.peek(ref.element)
+}
+
+/* Lifecycle */
+let onMount = RuntimeLifecycle.onMount
+let onCleanup = RuntimeLifecycle.onCleanup
+
 /* Element constructor */
 let element = (
   tag: string,
   ~attrs: array<(string, attrValue)>=[],
   ~events: array<(string, Dom.event => unit)>=[],
   ~children: array<node>=[],
+  ~ref: option<Ref.t>=?,
   (),
-): node => Element({tag, attrs, events, children})
+): node => Element({tag, attrs, events, children, ?ref})
 
 /* Null representation */
 let null = () => text("")
 let empty = null
 
 /* Mounting */
-let mount = (node: node, container: Dom.element): unit => {
-  let el = RuntimeRender.render(node)
-  container->DOM.appendChild(el)
-}
+let mount = (node: node, container: Dom.element): unit =>
+  RuntimeLifecycle.rendering(~root=true, () => {
+    let el = RuntimeRender.render(node)
+    container->DOM.appendChild(el)
+  })
 
 let mountById = (node: node, containerId: string): unit => {
   switch DOM.getElementById(containerId)->Nullable.toOption {

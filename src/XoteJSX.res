@@ -163,6 +163,8 @@ module Elements = {
     /* Escape hatch */
     'attrs,
   > = {
+    /* The element this tag renders to, once it is in the document */
+    ref?: View.Ref.t,
     /* Standard attributes - accept raw strings or MaybeSignal.t<string> */
     id?: 'id,
     class?: 'class,
@@ -621,6 +623,7 @@ module Elements = {
       attrs: finishAttrs(props, attrs),
       events,
       children: getChildren(props),
+      ref: ?props.ref,
     })
   }
 

@@ -220,9 +220,14 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
 
   | View.Keyed({child, key: _, identity: _}) => hydrateNodeWithWalker(child, walker)
 
-  | View.Element({attrs, events, children}) =>
+  | View.Element({attrs, events, children, ref: ?elementRef}) =>
     switch DOMWalker.next(walker) {
     | Some(domNode) => {
+        switch elementRef {
+        | Some(elementRef) => RuntimeLifecycle.attachRef(elementRef, domNode)
+        | None => ()
+        }
+
         /* Hydrate reactive attributes; static ones are already in the markup.
            What the effects register belongs to the region being hydrated. */
         attrs->Array.forEach(((key, value)) => {
@@ -270,6 +275,8 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
       )
 
       let region = RuntimeRender.makeRegion()
+      /* Registered before any row hydrates, as on the render path. */
+      RuntimeOwner.track(RuntimeOwner.addDisposer, () => RuntimeRender.disposeRegion(region))
       let endAnchor = ref(None)
       let position = ref(0)
 
@@ -303,12 +310,13 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
                row owns what that attaches, exactly like a rendered row. */
             | (Some(item), Some(element)) => {
                 let owner = RuntimeOwner.createOwner()
-                RuntimeOwner.runWithOwner(owner, () =>
-                  hydrateNodeWithWalker(renderItem(item), walker)
-                )
+                /* Tracked before it hydrates, as on the render path. */
                 region.items->Map.set(
                   key,
                   {key, item, element, owner, index: position.contents, stamp: 0, anchors: true},
+                )
+                RuntimeOwner.runWithOwner(owner, () =>
+                  hydrateNodeWithWalker(renderItem(item), walker)
                 )
                 position := position.contents + 1
               }
@@ -355,22 +363,24 @@ let hydrate = (
 ): unit => {
   let _ = options.renderId
 
-  /* Execute the component to get the virtual node tree */
-  let node = component()
-
   /* Find the actual content (skip root markers if present) */
   let walker = DOMWalker.make(container)
 
-  /* Check for root marker */
-  switch DOMWalker.peek(walker) {
-  | Some(firstNode) if DOMWalker.isMarkerPrefix(firstNode, "xote-root:") => {
-      let _ = DOMWalker.next(walker) // skip root marker
+  /* Check for root marker. Hydrating is one render operation: refs and
+     `onMount` callbacks run once the whole tree is interactive. */
+  RuntimeLifecycle.rendering(~root=true, () => {
+    /* Execute the component to get the virtual node tree */
+    let node = component()
+    switch DOMWalker.peek(walker) {
+    | Some(firstNode) if DOMWalker.isMarkerPrefix(firstNode, "xote-root:") => {
+        let _ = DOMWalker.next(walker) // skip root marker
+        hydrateNodeWithWalker(node, walker)
+      }
+    | _ =>
+      /* No root marker, hydrate directly */
       hydrateNodeWithWalker(node, walker)
     }
-  | _ =>
-    /* No root marker, hydrate directly */
-    hydrateNodeWithWalker(node, walker)
-  }
+  })
 
   /* Mark as hydrated */
   let _ = %raw(`window.__XOTE_HYDRATED__ = true`)

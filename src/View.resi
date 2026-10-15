@@ -58,6 +58,12 @@ type attrValue = RuntimeNode.attrValue =
   | OptionalCompute(unit => option<string>)
 
 /**
+A handle on the DOM element an `Element` node renders to. Create one with
+`Ref.make` or `Ref.fromCallback`; see `Ref`.
+*/
+type elementRef = RuntimeNode.elementRef
+
+/**
 A virtual node: the value every component returns and `mount` renders.
 
 Most nodes are built through JSX, `Html.*` or the constructors below rather
@@ -83,6 +89,7 @@ type rec node = RuntimeNode.node =
       attrs: array<(string, attrValue)>,
       events: array<(string, Dom.event => unit)>,
       children: array<node>,
+      ref?: elementRef,
     })
   | Text(string)
   | SignalText(Signal.t<string>)
@@ -480,6 +487,10 @@ let onSubmit = View.element(
   ~children=[section],
   (),
 )
+
+// With a ref to the rendered element.
+let field = View.Ref.make()
+let input = View.element("input", ~ref=field, ())
 ```
 */
 let element: (
@@ -487,8 +498,132 @@ let element: (
   ~attrs: array<(string, attrValue)>=?,
   ~events: array<(string, Dom.event => unit)>=?,
   ~children: array<node>=?,
+  ~ref: elementRef=?,
   unit,
 ) => node
+
+/* ============================================================================
+ * Refs and lifecycle
+ * ============================================================================ */
+
+/**
+A handle on the DOM element a tag renders to, for the things the DOM has to be
+asked directly: focusing an input, measuring a box, handing a node to a
+third-party library.
+
+Pass it to an element as `ref` (`<input ref=field />` in JSX, `~ref` on
+`View.element`). The element is handed over once it is in the document, before
+any `onMount` callback runs, and taken back (the ref reads `None` again) when
+the element is removed. The ref holds the element in a signal, so `get` inside
+an effect or a computed re-runs it when the element arrives or goes.
+
+A ref follows one element at a time. Given to several elements, it holds
+whichever was inserted last.
+
+On the server no DOM is created, so a ref stays `None`.
+
+## Examples
+
+```rescript
+@send external focus: Dom.element => unit = "focus"
+
+module Search = {
+  @jsx.component
+  let make = () => {
+    let field = View.Ref.make()
+    View.onMount(() => View.Ref.peek(field)->Option.forEach(focus))
+    <input ref=field type_="search" />
+  }
+}
+
+// A callback ref runs with the element once it is in the document.
+let canvas = View.Ref.fromCallback(element => Console.log2("canvas ready", element))
+let chart = <canvas ref=canvas />
+```
+*/
+module Ref: {
+  /** A ref. Same type as `View.elementRef`. */
+  type t = elementRef
+
+  /** A ref that holds the element, `None` until it is in the document. */
+  let make: unit => t
+
+  /**
+  A ref that also calls `callback` with the element each time one is handed
+  over. The callback runs untracked.
+  */
+  let fromCallback: (Dom.element => unit) => t
+
+  /** The element, as a tracked read: an effect or computed that calls it re-runs when the element changes. */
+  let get: t => option<Dom.element>
+
+  /** The element, without subscribing to it. */
+  let peek: t => option<Dom.element>
+}
+
+/**
+Runs `callback` once the calling component's DOM is in the document.
+
+Rendering builds DOM before inserting it, so a component body runs before its
+elements are anywhere a browser can lay them out or focus them. `onMount` waits
+until the render that created the component has inserted everything, refs
+included, and then runs `callback` once.
+
+Call it in a component body. A component function called directly rather
+than through JSX, as in `View.mount(app(), container)`, schedules it before
+anything renders; it then waits for the next `View.mount` or hydration. The
+callback runs untracked, under the component's context and error boundary, and
+belongs to the component:
+`onCleanup` and `Effect.run` called inside it are released when the component
+is removed. A component removed before its DOM was inserted, such as a subtree
+an error boundary replaced, never runs its `onMount`. It never runs during
+server rendering. During hydration, it runs once the page is interactive.
+
+## Examples
+
+```rescript
+module Clock = {
+  @jsx.component
+  let make = () => {
+    let now = Signal.make(Date.now())
+    View.onMount(() => {
+      let id = setInterval(() => Signal.set(now, Date.now()), 1000)
+      View.onCleanup(() => clearInterval(id))
+    })
+    <time> {View.signalText(() => Float.toString(Signal.get(now)))} </time>
+  }
+}
+```
+*/
+let onMount: (unit => unit) => unit
+
+/**
+Runs `callback` when the calling component is removed.
+
+Call it in a component body, or inside its `onMount`. The callback runs
+untracked, and once. Registered in the body, it runs when the component is released even
+if it never mounted, such as a subtree an error boundary replaced, since the
+body that set things up did run. Outside any component there is nothing to be
+removed, and the callback never runs. For an effect's own teardown, return the cleanup from the
+effect instead.
+
+## Examples
+
+```rescript
+module Resizer = {
+  @jsx.component
+  let make = (~onResize: unit => unit) => {
+    let listener = _ => onResize()
+    View.onMount(() => {
+      Webapi.addWindowListener("resize", listener)
+      View.onCleanup(() => Webapi.removeWindowListener("resize", listener))
+    })
+    <div />
+  }
+}
+```
+*/
+let onCleanup: (unit => unit) => unit
 
 /**
 An empty placeholder, rendering an empty text node.

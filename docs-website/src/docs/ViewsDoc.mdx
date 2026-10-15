@@ -207,6 +207,29 @@ Use [`View.Show`](/docs/api/view#view-show) for boolean branches, [`View.Maybe`]
 </p>
 ```
 
+### Refs and Lifecycle
+
+Rendering builds DOM before inserting it, so a component body runs before its elements are anywhere a browser can focus or measure them. [`View.onMount`](/docs/api/view#view-onmount) runs a callback once the component's DOM is in the document, and [`View.onCleanup`](/docs/api/view#view-oncleanup) runs one when the component is removed. A [`View.Ref`](/docs/api/view#view-ref) passed to an element as `ref` receives that element before any `onMount` runs, and goes back to `None` when the element is removed.
+
+```rescript
+@send external focus: Dom.element => unit = "focus"
+
+module Search = {
+  @jsx.component
+  let make = () => {
+    let field = View.Ref.make()
+    View.onMount(() => {
+      View.Ref.peek(field)->Option.forEach(focus)
+      let id = setInterval(() => Console.log("still here"), 1000)
+      View.onCleanup(() => clearInterval(id))
+    })
+    <input ref=field type_="search" />
+  }
+}
+```
+
+`onMount` runs untracked, under the component's context and error boundary, and anything it sets up with `onCleanup` or `Effect.run` is released with the component. It never runs during server rendering, and runs after hydration on the client. A ref holds its element in a signal, so [`View.Ref.get`](/docs/api/view#view-ref) inside an effect re-runs it when the element arrives or goes. `View.Ref.fromCallback` makes a ref that also calls a function with each element it receives.
+
 ### Error Boundaries
 
 [`View.ErrorBoundary`](/docs/api/view#view-errorboundary) keeps one failing part of a page from taking the rest down with it. When anything in its subtree throws — a component body, a reactive block re-rendering, a reactive attribute or text, or an `Effect.run` set up in a component body, cleanup included — the whole subtree is released and `fallback` renders in its place.

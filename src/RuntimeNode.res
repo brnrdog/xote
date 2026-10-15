@@ -19,6 +19,14 @@ type attrValue =
   | OptionalSignalValue(Signal.t<option<string>>)
   | OptionalCompute(unit => option<string>)
 
+/* A handle on the DOM element an `Element` node renders to. The element is
+ handed over once it is in the document (see `RuntimeLifecycle`): written to
+ `element`, and passed to `callback` when there is one. */
+type elementRef = {
+  element: Signal.t<option<Dom.element>>,
+  callback: Nullable.t<Dom.element => unit>,
+}
+
 /* Virtual node types */
 type rec node =
   | Element({
@@ -26,6 +34,7 @@ type rec node =
       attrs: array<(string, attrValue)>,
       events: array<(string, Dom.event => unit)>,
       children: array<node>,
+      ref?: elementRef,
     })
   | Text(string)
   | SignalText(Signal.t<string>)

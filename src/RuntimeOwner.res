@@ -66,6 +66,10 @@ let disposeOwner = (owner: owner): unit => {
     }
     index := index.contents + 1
   }
+  /* Released once: an owner can be reached twice — a boundary disposes the
+     subtree it falls back from, and the region above disposes it again — and a
+     user's `onCleanup` must not run twice. */
+  owner.owned = []
 }
 
 /* The region currently rendering, if any. Outside a render — module level, an

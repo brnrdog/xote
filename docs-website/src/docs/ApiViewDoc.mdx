@@ -294,6 +294,43 @@ module Value: {
 
 JSX primitive that re-renders a node from one static or reactive value.
 
+<a id="view-ref" />
+
+### View.Ref
+
+```rescript
+module Ref: {
+  type t = View.elementRef
+
+  let make: unit => t
+  let fromCallback: (Dom.element => unit) => t
+  let get: t => option<Dom.element>
+  let peek: t => option<Dom.element>
+}
+```
+
+A handle on the DOM element a tag renders to. Pass it as `ref` (`<input ref=field />`, or `~ref` on `View.element`). The element is handed over once it is in the document, before any `onMount` runs, and the ref reads `None` again once the element is removed. `get` is a tracked read; `fromCallback` also calls a function with each element.
+
+<a id="view-onmount" />
+
+### View.onMount
+
+```rescript
+let onMount: (unit => unit) => unit
+```
+
+Runs a callback once the calling component's DOM is in the document. Call it in a component body. It runs untracked, under the component's context and error boundary, and never during server rendering.
+
+<a id="view-oncleanup" />
+
+### View.onCleanup
+
+```rescript
+let onCleanup: (unit => unit) => unit
+```
+
+Runs a callback when the calling component is removed. Call it in a component body or inside its `onMount`.
+
 <a id="view-errorboundary" />
 
 ### View.ErrorBoundary
@@ -322,6 +359,7 @@ let element: (
   ~attrs: array<(string, View.attrValue)>=?,
   ~events: array<(string, Dom.event => unit)>=?,
   ~children: array<View.node>=?,
+  ~ref: View.elementRef=?,
   unit,
 ) => View.node
 ```

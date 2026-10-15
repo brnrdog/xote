@@ -130,6 +130,21 @@ let themeReader = Xote.View.LazyComponent(
   },
 )
 
+/* ---------------------------------------------------------- refs, lifecycle */
+
+let fieldRef: Xote.View.Ref.t = Xote.View.Ref.make()
+let callbackRef: Xote.View.elementRef = Xote.View.Ref.fromCallback(_element => ())
+let currentField: option<Dom.element> = Xote.View.Ref.get(fieldRef)
+let peekedField: option<Dom.element> = Xote.View.Ref.peek(callbackRef)
+let refElement = Xote.View.element("input", ~ref=fieldRef, ())
+let lifecycleComponent = Xote.View.LazyComponent(
+  () => {
+    Xote.View.onMount(() => Xote.View.onCleanup(() => ()))
+    Xote.View.onCleanup(() => ())
+    <input ref=fieldRef />
+  },
+)
+
 /* ------------------------------------------------------------ JSX components */
 
 let jsxTree =
