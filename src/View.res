@@ -322,6 +322,52 @@ module ErrorBoundary = {
   }
 }
 
+/* Shows `fallback` until every resource created below it has loaded once.
+
+   The subtree renders straight away, inside a wrapper hidden while the
+   suspense waits, so the resources it creates start fetching and its state
+   survives the wait; its refs and `onMount` callbacks are held back until it is
+   shown (see `RuntimeLifecycle.suspend`). The whole thing is one reactive
+   region, so hydration renders it afresh on the client. On the server nothing
+   is awaited, and the fallback is what renders. */
+module Suspense = {
+  type props = {
+    fallback?: node,
+    children?: node,
+  }
+
+  let make = (props: props): node =>
+    if RuntimeLifecycle.serverRendering() {
+      signalFragment(RuntimeOwner.ownedComputed(() => childrenToArray(props.fallback)))
+    } else {
+      let suspense = RuntimeContext.makeSuspense()
+      let waiting = Computed.make(() => Signal.get(suspense.pending) > 0)
+      RuntimeOwner.track(RuntimeOwner.addComputed, waiting)
+      signalFragment(
+        RuntimeOwner.ownedComputed(() => [
+          Element({
+            tag: "div",
+            attrs: [
+              computedAttr("style", () =>
+                Signal.get(waiting) ? "display: none" : "display: contents"
+              ),
+            ],
+            events: [],
+            children: [
+              LazyComponent(
+                () => {
+                  RuntimeContext.installSuspense(suspense)
+                  fragment(childrenToArray(props.children))
+                },
+              ),
+            ],
+          }),
+          Show.make({when_: Reactive(waiting), children: ?props.fallback}),
+        ]),
+      )
+    }
+}
+
 /* Element refs: a handle the renderer hands the element to once it is in the
    document, and takes it back from when the element is removed. */
 module Ref = {

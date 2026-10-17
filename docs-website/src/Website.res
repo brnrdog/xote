@@ -102,6 +102,7 @@ module App = {
     {text: "View.Show", id: "view-show", level: 3},
     {text: "View.Maybe", id: "view-maybe", level: 3},
     {text: "View.Value", id: "view-value", level: 3},
+    {text: "View.Suspense", id: "view-suspense", level: 3},
     {text: "View.Ref", id: "view-ref", level: 3},
     {text: "View.onMount", id: "view-onmount", level: 3},
     {text: "View.onCleanup", id: "view-oncleanup", level: 3},
@@ -399,6 +400,28 @@ module App = {
                 {text: "Reactive Values", id: "reactive-values", level: 3},
                 {text: "Scope Rules", id: "scope-rules", level: 2},
                 {text: "Where use Works", id: "where-use-works", level: 3},
+                {text: "Server Rendering", id: "server-rendering", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 2},
+              ]
+            />,
+        },
+        {
+          pattern: "/docs/core-concepts/resources",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/core-concepts/resources"
+              pageTitle="Resources"
+              pageLead="Turn asynchronous fetches into signals, and show a fallback while they load."
+              content={MdxDocs.resources()}
+              tocItems=[
+                {text: "Resources", id: "resources", level: 2},
+                {text: "Creating a Resource", id: "creating-a-resource", level: 3},
+                {text: "Reading the State", id: "reading-the-state", level: 3},
+                {text: "Refetching and Mutating", id: "refetching-and-mutating", level: 3},
+                {text: "Errors", id: "errors", level: 3},
+                {text: "Suspense", id: "suspense", level: 2},
+                {text: "Showing a Fallback", id: "showing-a-fallback", level: 3},
+                {text: "Rules", id: "rules", level: 3},
                 {text: "Server Rendering", id: "server-rendering", level: 3},
                 {text: "Next Steps", id: "next-steps", level: 2},
               ]

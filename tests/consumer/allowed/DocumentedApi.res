@@ -130,6 +130,25 @@ let themeReader = Xote.View.LazyComponent(
   },
 )
 
+/* ----------------------------------------------------- resources, suspense */
+
+let profile: Xote.Resource.t<string> = Xote.Resource.make(() => Promise.resolve("Ada"))
+let profileState: Xote.Resource.state<string> = Xote.Signal.peek(profile)
+let profileValue: option<string> = Xote.Resource.value(profileState)
+let profileLoading: bool = Xote.Resource.isLoading(profileState)
+let () = Xote.Resource.refetch(profile)
+let () = Xote.Resource.mutate(profile, "Grace")
+let describeProfile = (state: Xote.Resource.state<string>): string =>
+  switch state {
+  | Pending => "pending"
+  | Ready(name) | Refreshing(name) => name
+  | Failed(_) => "failed"
+  }
+let suspended =
+  <Xote.View.Suspense fallback={Xote.View.text("Loading")}>
+    {Xote.View.text("Loaded")}
+  </Xote.View.Suspense>
+
 /* ---------------------------------------------------------- refs, lifecycle */
 
 let fieldRef: Xote.View.Ref.t = Xote.View.Ref.make()

@@ -33,6 +33,7 @@ const PUBLIC_MODULES = [
   "Computed",
   "Effect",
   "Context",
+  "Resource",
 ];
 
 function exportedNames(module) {

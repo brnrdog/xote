@@ -13,11 +13,20 @@
    Each scheduled entry belongs to the region rendering when it was scheduled.
    A region released before the flush — a failed subtree an error boundary
    replaced, a pass that a later pass already superseded — takes its entries
-   with it, so nothing runs for DOM that never made it into the page. */
+   with it, so nothing runs for DOM that never made it into the page.
 
-type entry = {
+   An entry scheduled inside a `View.Suspense` that is still waiting for its
+   resources is held by that suspense instead of running: the subtree is in the
+   page but not shown. When the wait ends, the held entries go back into the
+   queue on a microtask — after the update that ended it has finished and the
+   subtree is visible — and each is checked again then: one whose region went
+   in the meantime is dropped, and one whose own suspense waits again is held
+   again. */
+
+type entry = RuntimeContext.scheduled = {
   mutable live: bool,
   run: unit => unit,
+  suspense: Nullable.t<RuntimeContext.suspense>,
 }
 
 /* How many render operations are in progress; entries flush when it drops back
@@ -60,18 +69,31 @@ let discardFrom = (queue: array<entry>, mark: int): unit =>
 let discardAll = (queue: array<entry>): unit =>
   takeAll(queue)->Array.forEach(entry => entry.live = false)
 
+let heldRefs = (suspense: RuntimeContext.suspense) => suspense.heldRefs
+let heldMounts = (suspense: RuntimeContext.suspense) => suspense.heldMounts
+
 /* Run every live entry, even when one throws: the rest of the batch still
-   belongs to DOM that is in the page. The first failure is kept for the end. */
-let runAll = (entries: array<entry>, ~failure: ref<option<exn>>): unit =>
+   belongs to DOM that is in the page. The first failure is kept for the end.
+   An entry whose suspense, or an enclosing one, still waits is held there. */
+let runAll = (
+  entries: array<entry>,
+  ~held: RuntimeContext.suspense => array<entry>,
+  ~failure: ref<option<exn>>,
+): unit =>
   entries->Array.forEach(entry =>
     if entry.live {
-      entry.live = false
-      try {
-        entry.run()
-      } catch {
-      | exn =>
-        if failure.contents == None {
-          failure := Some(exn)
+      switch RuntimeContext.waitingSuspense(entry.suspense) {
+      | Some(suspense) => held(suspense)->Array.push(entry)->ignore
+      | None => {
+          entry.live = false
+          try {
+            entry.run()
+          } catch {
+          | exn =>
+            if failure.contents == None {
+              failure := Some(exn)
+            }
+          }
         }
       }
     }
@@ -84,8 +106,8 @@ let runAll = (entries: array<entry>, ~failure: ref<option<exn>>): unit =>
 let flush = (): unit => {
   let failure = ref(None)
   while Array.length(refs) > 0 || Array.length(mounts) > 0 {
-    runAll(takeAll(refs), ~failure)
-    runAll(takeAll(mounts), ~failure)
+    runAll(takeAll(refs), ~held=heldRefs, ~failure)
+    runAll(takeAll(mounts), ~held=heldMounts, ~failure)
   }
   switch failure.contents {
   | Some(exn) => throw(exn)
@@ -133,6 +155,8 @@ let rendering = (~root: bool=false, fn: unit => 'a): 'a => {
   result
 }
 
+let serverRendering = (): bool => onServer.contents > 0
+
 let server = (fn: unit => 'a): 'a => {
   onServer := onServer.contents + 1
   try {
@@ -157,7 +181,7 @@ let microtaskPending = ref(false)
    there is no document to insert into. */
 let schedule = (queue: array<entry>, ~eager: array<entry>, run: unit => unit): unit =>
   if onServer.contents == 0 && !noDocument() {
-    let entry = {live: true, run}
+    let entry = {live: true, run, suspense: RuntimeContext.suspenseOf(RuntimeContext.current.contents)}
     RuntimeOwner.track(RuntimeOwner.addDisposer, () => entry.live = false)
     if depth.contents > 0 {
       queue->Array.push(entry)->ignore
@@ -214,3 +238,48 @@ let onMount = (fn: unit => unit): unit => {
    whichever update removed the region, so `fn` runs untracked. */
 let onCleanup = (fn: unit => unit): unit =>
   RuntimeOwner.track(RuntimeOwner.addDisposer, () => Signal.untrack(fn))
+
+/* Entries whose suspense stopped waiting, back in the queue on the next
+   microtask: by then the update that ended the wait has finished, the region
+   that scheduled each entry is either still there or released, and the
+   subtree has been shown. */
+let releasedRefs: array<entry> = []
+let releasedMounts: array<entry> = []
+let releasePending = ref(false)
+
+let releaseHeld = (suspense: RuntimeContext.suspense): unit => {
+  releasedRefs->Array.pushMany(takeAll(suspense.heldRefs))
+  releasedMounts->Array.pushMany(takeAll(suspense.heldMounts))
+  if !releasePending.contents {
+    releasePending := true
+    queueMicrotask(() => {
+      releasePending := false
+      refs->Array.pushMany(takeAll(releasedRefs))
+      mounts->Array.pushMany(takeAll(releasedMounts))
+      if depth.contents == 0 {
+        flush()
+      }
+    })
+  }
+}
+
+/* Make the nearest suspense wait for one more thing, and return what ends the
+   wait. Ending it is idempotent. When the last wait ends, what the suspense
+   held is released (see `releaseHeld`). Outside any suspense there is nothing
+   to wait on. */
+let suspend = (): (unit => unit) =>
+  switch RuntimeContext.suspenseOf(RuntimeContext.current.contents)->Nullable.toOption {
+  | None => () => ()
+  | Some(suspense) => {
+      Signal.update(suspense.pending, count => count + 1)
+      let waiting = ref(true)
+      () =>
+        if waiting.contents {
+          waiting := false
+          Signal.update(suspense.pending, count => count - 1)
+          if Signal.peek(suspense.pending) == 0 {
+            releaseHeld(suspense)
+          }
+        }
+    }
+  }

@@ -116,6 +116,13 @@ const routes = [
     section: 'Core Modules',
   },
   {
+    path: '/docs/core-concepts/resources',
+    title: 'Resources - xote Async Data and Suspense',
+    description:
+      'Load asynchronous data as xote signals with Resource, and show a fallback with View.Suspense while it loads.',
+    section: 'Core Modules',
+  },
+  {
     path: '/docs/router/overview',
     title: 'Router - xote Signal-Based Routing',
     description:

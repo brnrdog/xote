@@ -21,7 +21,8 @@
         "Signal",
         "Computed",
         "Effect",
-        "Context"
+        "Context",
+        "Resource"
       ]
     },
     {

@@ -845,6 +845,64 @@ module Value: {
 }
 
 /**
+Shows `fallback` until every `Resource` created below it has loaded once.
+
+The children render straight away, hidden while the suspense waits, so the
+resources they create start fetching at once and their state survives the
+wait. Their refs and `onMount` callbacks are held back until the children are
+shown. A resource counts once: a later fetch shows as `Resource.Refreshing`
+with the previous value kept, and never brings the fallback back.
+
+A resource suspends the nearest `Suspense` above the component that *created*
+it, wherever it is read. Suspenses nest: the nearest one waits, and an inner
+subtree that is ready stays hidden while an outer suspense still waits.
+
+On the server nothing is awaited, so the fallback is what renders; hydration
+renders the children on the client.
+
+## Examples
+
+```rescript
+module Profile = {
+  @xote.component
+  let make = (~id: Signal.t<string>) => {
+    let user = Resource.make(() => fetchUser(Signal.get(id)))
+    <h2>
+      {switch Signal.get(user) {
+      | Ready(user) | Refreshing(user) => user.name
+      | Failed(_) => "Could not load the user"
+      | Pending => ""
+      }}
+    </h2>
+  }
+}
+
+module Page = {
+  @xote.component
+  let make = (~id: Signal.t<string>) =>
+    <View.Suspense fallback={<p> {"Loading..."} </p>}>
+      <Profile id />
+    </View.Suspense>
+}
+```
+*/
+module Suspense: {
+  /**
+  Props of `View.Suspense`.
+
+  - `fallback` — shown while a resource below has yet to load; nothing, if omitted.
+  - `children` — the subtree that creates the resources.
+  */
+  type props = {
+    fallback?: node,
+    children?: node,
+  }
+
+  /** Renders the children, behind the fallback until they are ready. Called for you by `<View.Suspense />`; see the module doc for usage. */
+  let make: props => node
+}
+
+/**
 Catches what its subtree throws and renders `fallback` in its place.
 
 It catches failures while the subtree renders and while it updates: a component
