@@ -411,6 +411,22 @@ let suite = Zekr.asyncSuite(
         assertEqual(log, ["inner:contents"]),
       ])
     }),
+    asyncTest("a portal inside a waiting suspense reaches its target once the suspense shows", async () => {
+      let {container} = Dom.render("")
+      let target = Dom.render("").container
+      let pending = deferred()
+      let _ = mountTo(
+        <View.Suspense>
+          {loader(~fetch=() => pending.promise, ~log=[])}
+          <View.Portal target> <p class="portaled" /> </View.Portal>
+        </View.Suspense>,
+        container,
+      )
+      let whileWaiting = has(target, ".portaled")
+      pending.resolve("ready")
+      await settle()
+      combineResults([assertFalse(whileWaiting), assertTrue(has(target, ".portaled"))])
+    }),
     asyncTest("a failure thrown where the state is read reaches an error boundary", async () => {
       let {container} = Dom.render("")
       let _ = mountTo(

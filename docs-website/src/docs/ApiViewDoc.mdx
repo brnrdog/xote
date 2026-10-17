@@ -348,6 +348,23 @@ let onCleanup: (unit => unit) => unit
 
 Runs a callback when the calling component is removed. Call it in a component body or inside its `onMount`.
 
+<a id="view-portal" />
+
+### View.Portal
+
+```rescript
+module Portal: {
+  type props = {
+    target?: Dom.element,
+    children?: View.node,
+  }
+
+  let make: props => View.node
+}
+```
+
+Renders its children into `target` (`document.body` if omitted), and nothing where it stands; they are in the target before any `onMount` of the render runs. The children keep the portal's context and error boundary, and are removed with it.
+
 <a id="view-errorboundary" />
 
 ### View.ErrorBoundary

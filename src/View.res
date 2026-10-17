@@ -389,6 +389,48 @@ module Ref = {
 let onMount = RuntimeLifecycle.onMount
 let onCleanup = RuntimeLifecycle.onCleanup
 
+/* Renders its children into another element — `document.body` unless told
+   otherwise — and nothing where it stands.
+
+   The children render with the portal, as part of the same render: under its
+   context and error boundary and owned by its region, so a failure in them is
+   the portal's failure and what they set up is released with it. They render
+   between two anchor comments, detached, and the whole range goes into the
+   target from the first entry of the ref queue — once the render that made
+   it has inserted everything else, and before any ref or `onMount` of the
+   render runs, the portal's own children's included. Removing the portal
+   removes the range, and with it whatever the children inserted into it since.
+   On the server nothing renders. */
+module Portal = {
+  type props = {
+    target?: Dom.element,
+    children?: node,
+  }
+
+  let make = (props: props): node => {
+    if RuntimeLifecycle.onServer.contents == 0 && !RuntimeLifecycle.noDocument() {
+      let start = DOM.createComment(" portal ")
+      let end_ = DOM.createComment(" /portal ")
+      let content = DOM.createDocumentFragment()
+      content->DOM.appendChild(start)
+      /* Registered before anything renders, so a render that fails partway is
+         released too. Before the insertion, the range is still in `content`,
+         and removing it there is harmless. */
+      onCleanup(() => DOM.removeRange(start, end_))
+      RuntimeLifecycle.insertion(() => {
+        let target = switch props.target {
+        | Some(target) => target
+        | None => DOM.documentBody()
+        }
+        target->DOM.appendChild(content)
+      })
+      content->DOM.appendChild(RuntimeRender.render(fragment(childrenToArray(props.children))))
+      content->DOM.appendChild(end_)
+    }
+    fragment([])
+  }
+}
+
 /* Element constructor */
 let element = (
   tag: string,
