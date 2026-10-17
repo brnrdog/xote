@@ -618,7 +618,7 @@ the client after hydration.
 
 ```rescript
 module Modal = {
-  @jsx.component
+  @xote.component
   let make = (~onClose: unit => unit, ~children: View.node) =>
     <View.Portal>
       <div class="modal-backdrop" onClick={_ => onClose()}>
