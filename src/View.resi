@@ -598,6 +598,53 @@ module Clock = {
 let onMount: (unit => unit) => unit
 
 /**
+Renders its children into another element, `document.body` unless `target`
+says otherwise, and nothing where it stands. For modals, tooltips and menus
+that must escape a parent's `overflow` or stacking context.
+
+The children render with the portal, under its context and error boundary, and
+go into the target once the render has inserted everything else, before any
+ref or `onMount` callback runs (inside a `Suspense` that is still waiting,
+once it shows its children): a component's `onMount` can read the refs of
+what its portal rendered. They are placed between two comment anchors, and
+removing the portal removes everything between them, including what the
+children inserted after mounting, along with everything they set up.
+
+DOM events bubble through the target, not through the portal's position in the
+component tree. On the server a portal renders nothing; its children render on
+the client after hydration.
+
+## Examples
+
+```rescript
+module Modal = {
+  @xote.component
+  let make = (~onClose: unit => unit, ~children: View.node) =>
+    <View.Portal>
+      <div class="modal-backdrop" onClick={_ => onClose()}>
+        <div class="modal"> {children} </div>
+      </div>
+    </View.Portal>
+}
+```
+*/
+module Portal: {
+  /**
+  Props of `View.Portal`.
+
+  - `target` — the element to render into; `document.body` if omitted.
+  - `children` — what to render there.
+  */
+  type props = {
+    target?: Dom.element,
+    children?: node,
+  }
+
+  /** Renders the children into the target once mounted. Called for you by `<View.Portal />`; see the module doc for usage. */
+  let make: props => node
+}
+
+/**
 Runs `callback` when the calling component is removed.
 
 Call it in a component body, or inside its `onMount`. The callback runs

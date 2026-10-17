@@ -9,6 +9,7 @@
     "Int",
     "KeyedFor",
     "Maybe",
+    "Portal",
     "Ref",
     "Show",
     "Suspense",
