@@ -215,7 +215,7 @@ Rendering builds DOM before inserting it, so a component body runs before its el
 @send external focus: Dom.element => unit = "focus"
 
 module Search = {
-  @jsx.component
+  @xote.component
   let make = () => {
     let field = View.Ref.make()
     View.onMount(() => {
@@ -238,8 +238,8 @@ module Search = {
 <View.ErrorBoundary
   fallback={(_error, reset) =>
     <p>
-      <View.Text> "This panel failed to load. " </View.Text>
-      <button onClick={_ => reset()}> <View.Text> "Retry" </View.Text> </button>
+      {"This panel failed to load. "}
+      <button onClick={_ => reset()}> {"Retry"} </button>
     </p>}
   onError={error => Console.error(error)}>
   <Dashboard />
