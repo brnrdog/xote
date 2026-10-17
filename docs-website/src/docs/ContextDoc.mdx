@@ -45,7 +45,7 @@ A component can also provide a value for everything it renders by calling `Conte
 let selection = Context.make(Signal.make(0))
 
 module Tabs = {
-  @jsx.component
+  @xote.component
   let make = (~children: View.node) => {
     Context.provide(selection, Signal.make(0))
     <div class="tabs"> {children} </div>
@@ -61,13 +61,13 @@ Read the nearest provided value with `Context.use`:
 
 ```rescript
 module Tab = {
-  @jsx.component
+  @xote.component
   let make = (~index: int, ~label: string) => {
     let selected = Context.use(selection)
     <button
-      class={() => Signal.get(selected) == index ? "tab active" : "tab"}
+      class={Signal.get(selected) == index ? "tab active" : "tab"}
       onClick={_ => Signal.set(selected, index)}>
-      {View.text(label)}
+      {label}
     </button>
   }
 }
@@ -92,7 +92,7 @@ Event handlers, timers and promise callbacks run outside any render, so `use` re
 
 ```rescript
 let currentTheme = Context.use(theme)
-<button onClick={_ => Console.log(currentTheme)}> {View.text("Log theme")} </button>
+<button onClick={_ => Console.log(currentTheme)}> {"Log theme"} </button>
 ```
 
 ### Server Rendering

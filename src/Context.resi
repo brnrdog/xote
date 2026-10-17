@@ -31,8 +31,11 @@ used.
 let theme = Context.make("light")
 
 module Badge = {
-  @jsx.component
-  let make = () => <span class={Context.use(theme)}> {View.text("New")} </span>
+  @xote.component
+  let make = () => {
+    let current = Context.use(theme)
+    <span class={current}> {"New"} </span>
+  }
 }
 
 let app =
@@ -74,13 +77,13 @@ at module level — there is no provider above, and it returns the default.
 let selection = Context.make(Signal.make(0))
 
 module Tab = {
-  @jsx.component
+  @xote.component
   let make = (~index: int, ~label: string) => {
     let selected = Context.use(selection)
     <button
-      class={() => Signal.get(selected) == index ? "tab active" : "tab"}
+      class={Signal.get(selected) == index ? "tab active" : "tab"}
       onClick={_ => Signal.set(selected, index)}>
-      {View.text(label)}
+      {label}
     </button>
   }
 }
@@ -102,7 +105,7 @@ code uses `Provider` instead, which does this for its children.
 let selection = Context.make(Signal.make(0))
 
 module Tabs = {
-  @jsx.component
+  @xote.component
   let make = (~children: View.node) => {
     // Each Tabs instance gets its own selection.
     Context.provide(selection, Signal.make(0))
@@ -134,10 +137,13 @@ Renders its children with `value` provided for `context`.
 ```rescript
 let theme = Context.make("light")
 
-let node =
-  <Context.Provider context=theme value="dark">
-    <p> {View.text("Rendered under the dark theme")} </p>
-  </Context.Provider>
+module Dark = {
+  @xote.component
+  let make = () =>
+    <Context.Provider context=theme value="dark">
+      <p> {"Rendered under the dark theme"} </p>
+    </Context.Provider>
+}
 ```
 */
 module Provider: {
