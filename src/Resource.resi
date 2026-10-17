@@ -28,13 +28,17 @@ let user = Resource.make(async () => {
   await response->json
 })
 
-let name = View.signalText(() =>
-  switch Signal.get(user) {
-  | Pending => "Loading..."
-  | Ready(user) | Refreshing(user) => user.name
-  | Failed(_) => "Could not load the user"
-  }
-)
+module UserName = {
+  @xote.component
+  let make = () =>
+    <p>
+      {switch Signal.get(user) {
+      | Pending => "Loading..."
+      | Ready(user) | Refreshing(user) => user.name
+      | Failed(_) => "Could not load the user"
+      }}
+    </p>
+}
 
 Signal.set(userId, "2") // fetches again; shows `Refreshing` until it settles
 ```
@@ -84,7 +88,10 @@ resource created during a server render.
 ```rescript
 let todos = Resource.make(() => loadTodos())
 
-let reload = <button onClick={_ => Resource.refetch(todos)}> {View.text("Reload")} </button>
+module Reload = {
+  @xote.component
+  let make = () => <button onClick={_ => Resource.refetch(todos)}> {"Reload"} </button>
+}
 ```
 */
 let refetch: t<'a> => unit

@@ -30,13 +30,17 @@ A resource holds one of four states:
 - `Failed(exn)`: the latest fetch threw or rejected.
 
 ```rescript
-let name = View.signalText(() =>
-  switch Signal.get(user) {
-  | Pending => "Loading..."
-  | Ready(user) | Refreshing(user) => user.name
-  | Failed(_) => "Could not load the user"
-  }
-)
+module UserName = {
+  @xote.component
+  let make = () =>
+    <p>
+      {switch Signal.get(user) {
+      | Pending => "Loading..."
+      | Ready(user) | Refreshing(user) => user.name
+      | Failed(_) => "Could not load the user"
+      }}
+    </p>
+}
 ```
 
 `Resource.value` returns the value a state carries, if any, and `Resource.isLoading` tells whether a fetch is in flight.
@@ -46,7 +50,7 @@ let name = View.signalText(() =>
 `Resource.refetch` fetches again with the same dependencies. `Resource.mutate` sets the value directly, which is useful for optimistic updates, and drops any fetch in flight.
 
 ```rescript
-<button onClick={_ => Resource.refetch(user)}> {View.text("Reload")} </button>
+<button onClick={_ => Resource.refetch(user)}> {"Reload"} </button>
 ```
 
 Only the latest fetch can settle the state. If the user switches from one id to another and the first response arrives last, it is ignored.
@@ -69,7 +73,7 @@ switch Signal.get(user) {
 Wrap the components that create resources in [`View.Suspense`](/docs/api/view#view-suspense):
 
 ```rescript
-<View.Suspense fallback={<p> {View.text("Loading...")} </p>}>
+<View.Suspense fallback={<p> {"Loading..."} </p>}>
   <Profile id />
   <Posts id />
 </View.Suspense>

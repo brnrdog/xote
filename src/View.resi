@@ -864,25 +864,26 @@ renders the children on the client.
 
 ```rescript
 module Profile = {
-  @jsx.component
+  @xote.component
   let make = (~id: Signal.t<string>) => {
     let user = Resource.make(() => fetchUser(Signal.get(id)))
     <h2>
-      {View.signalText(() =>
-        switch Signal.get(user) {
-        | Ready(user) | Refreshing(user) => user.name
-        | Failed(_) => "Could not load the user"
-        | Pending => ""
-        }
-      )}
+      {switch Signal.get(user) {
+      | Ready(user) | Refreshing(user) => user.name
+      | Failed(_) => "Could not load the user"
+      | Pending => ""
+      }}
     </h2>
   }
 }
 
-let page =
-  <View.Suspense fallback={<p> {View.text("Loading...")} </p>}>
-    <Profile id />
-  </View.Suspense>
+module Page = {
+  @xote.component
+  let make = (~id: Signal.t<string>) =>
+    <View.Suspense fallback={<p> {"Loading..."} </p>}>
+      <Profile id />
+    </View.Suspense>
+}
 ```
 */
 module Suspense: {
