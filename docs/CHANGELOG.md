@@ -1,3 +1,26 @@
+# [7.2.0-beta.2](https://github.com/brnrdog/xote/compare/v7.2.0-beta.1...v7.2.0-beta.2) (2026-10-19)
+
+
+### Bug Fixes
+
+* **context:** keep effects and boundaries to their own subtree ([cf2cec7](https://github.com/brnrdog/xote/commit/cf2cec73f384ae51ef3505677572d2a919ba82b7))
+
+
+### Features
+
+* add Resource and View.Suspense ([#173](https://github.com/brnrdog/xote/issues/173)) ([32ce93e](https://github.com/brnrdog/xote/commit/32ce93e2eafbcbc3d33aab70d096b4a2242c0b33))
+* **context:** add Context for values scoped to a subtree ([edd5192](https://github.com/brnrdog/xote/commit/edd5192d6ca89b5e76a62de60ba2cb94d77bc0b6))
+* **view:** add element refs, onMount and onCleanup ([#170](https://github.com/brnrdog/xote/issues/170)) ([80e91d1](https://github.com/brnrdog/xote/commit/80e91d107480f4a1f152dd52ebe671199bc1a496))
+* **view:** add View.ErrorBoundary ([689bf18](https://github.com/brnrdog/xote/commit/689bf18fe8567ce3ede2b4e33fc12c8dc81d7317))
+* **view:** add View.Portal ([#174](https://github.com/brnrdog/xote/issues/174)) ([49979eb](https://github.com/brnrdog/xote/commit/49979eb3a4d7b395395a8985ff80c8591aaa50d6))
+
+
+### Performance Improvements
+
+* **jsx:** walk only the props an element was given ([d956450](https://github.com/brnrdog/xote/commit/d956450659b54d9b93f9a96a1db8898a6fafeee4))
+* **render:** own state per region and clone repeated shapes ([9622940](https://github.com/brnrdog/xote/commit/9622940525fe26b778d189eeb2c0faa426d09662))
+* **render:** update reactive text in place ([19ceee2](https://github.com/brnrdog/xote/commit/19ceee29320a4fcf0309ab90dc67e0e39323b6da))
+
 # [7.2.0-beta.1](https://github.com/brnrdog/xote/compare/v7.1.0...v7.2.0-beta.1) (2026-09-19)
 
 
