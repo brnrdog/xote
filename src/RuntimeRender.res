@@ -351,8 +351,10 @@ let reconcileKeyed = (
           stamp: pass,
           anchors: false,
         }
-        buildInto(row, item)
+        /* Tracked before it is built, so a build that fails partway is still
+           released with the region. */
         items->Map.set(key, row)
+        buildInto(row, item)
         order->Array.push(row)->ignore
       }
     }
@@ -435,7 +437,7 @@ and render = (node: node): Dom.element => {
       container
     }
 
-  | Element({tag, attrs, events, children}) => {
+  | Element({tag, attrs, events, children, ref: ?elementRef}) => {
       let el = RuntimeDom.createElementForTag(tag)
 
       /* Some DOM properties need the child tree to exist before the browser
@@ -476,6 +478,11 @@ and render = (node: node): Dom.element => {
         })
       }
 
+      switch elementRef {
+      | Some(elementRef) => RuntimeLifecycle.attachRef(elementRef, el)
+      | None => ()
+      }
+
       el
     }
 
@@ -488,13 +495,17 @@ and render = (node: node): Dom.element => {
      whole region wholesale, taking input focus and scroll position with it.
      Reads deferred into a thunk, a `Computed` or an `Effect` set up their own
      scope and are unaffected. Whatever the body registers belongs to the
-     region rendering it, which is the region that removes its element. */
-  | LazyComponent(fn) => render(Signal.untrack(fn))
+     region rendering it, which is the region that removes its element. What
+     the body provides is in place while its result renders, and only then. */
+  | LazyComponent(fn) => RuntimeContext.renderComponent(fn, render)
 
   | KeyedList({signal, keyFn, renderItem}) => {
       let startAnchor = RuntimeDom.createComment(" keyed-list-start ")
       let endAnchor = RuntimeDom.createComment(" keyed-list-end ")
       let region = makeRegion()
+      /* Released with whatever renders the list — registered before any row
+         renders, so a row that fails partway is still reachable from here. */
+      track(addDisposer, () => disposeRegion(region))
 
       /* Initial render */
       let fragment = RuntimeDom.createDocumentFragment()
@@ -503,13 +514,22 @@ and render = (node: node): Dom.element => {
       let initialItems = Signal.peek(signal)
       region.pass = 1
       initialItems->Array.forEachWithIndex((item, index) => {
-        let owner = createOwner()
-        let element = runWithOwner(owner, () => renderInRegion(region, renderItem(item)))
         let key = keyFn(item)
-        region.items->Map.set(
+        /* Tracked before it renders, so a row that fails partway is released
+           with the region. */
+        let row: keyedItem<Obj.t> = {
           key,
-          {key, item, element, owner, index, stamp: 1, anchors: !RuntimeDom.isDocumentFragment(element)},
-        )
+          item,
+          element: Obj.magic(Nullable.null),
+          owner: createOwner(),
+          index,
+          stamp: 1,
+          anchors: false,
+        }
+        region.items->Map.set(key, row)
+        let element = runWithOwner(row.owner, () => renderInRegion(region, renderItem(item)))
+        row.element = element
+        row.anchors = !RuntimeDom.isDocumentFragment(element)
         fragment->RuntimeDom.appendChild(element)
       })
 
@@ -575,7 +595,9 @@ and renderInRegion = (region: region, node: node): Dom.element =>
     ~hooks={render, applyAttr, attachAttr, attachText},
   )
 
-/* Make `container` follow `signal`: one pass of its children per change.
+/* Make `container` follow `signal`: one pass of its children per change. Each
+   pass is a render operation of its own, so refs and `onMount` callbacks in it
+   run once the pass has put its children in the container.
 
    The signal's own body runs under the pass owner, so what it creates while it
    runs — a `View.signalText` leaf built by a `tracked` block, an effect a
@@ -587,18 +609,20 @@ and driveSignalFragment = (~container: Dom.element, ~signal: Signal.t<array<node
   track(addDisposer, () => disposeRegion(region))
 
   Effect.run(() => {
-    let passOwner = createOwner()
-    let children = runWithOwner(passOwner, () => Signal.get(signal))
-    renderFragmentChildren(~container, ~children, ~region, ~passOwner)
+    RuntimeLifecycle.rendering(() => {
+      let passOwner = createOwner()
+      let children = runWithOwner(passOwner, () => Signal.get(signal))
+      renderFragmentChildren(~container, ~children, ~region, ~passOwner)
+    })
     None
   })
 }
 
 /* Keep a keyed list's rows in step with its signal, given the region that
    tracks the rows the list already shows and the anchor its rows precede. The
-   region is released with whatever region rendered the list; the render path
-   and hydration both end up here, so a hydrated list cannot drift from a
-   rendered one. */
+   caller registers the region's release with whatever renders the list, before
+   it builds the first rows; the render path and hydration both end up here, so
+   a hydrated list cannot drift from a rendered one. */
 and attachKeyedList = (
   ~region: region,
   ~signal: Signal.t<array<Obj.t>>,
@@ -607,10 +631,11 @@ and attachKeyedList = (
   ~endAnchor: Dom.element,
 ): unit => {
   ownComputed(signal)
-  track(addDisposer, () => disposeRegion(region))
 
   Effect.run(() => {
-    reconcileKeyedList(~region, ~signal, ~keyFn, ~renderItem, ~endAnchor)
+    RuntimeLifecycle.rendering(() =>
+      reconcileKeyedList(~region, ~signal, ~keyFn, ~renderItem, ~endAnchor)
+    )
     None
   })
 }

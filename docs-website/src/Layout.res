@@ -105,6 +105,8 @@ let searchItems: array<searchItem> = [
   {title: "Computeds", path: "/docs/core-concepts/computed", section: "Core Modules"},
   {title: "Effects", path: "/docs/core-concepts/effects", section: "Core Modules"},
   {title: "View", path: "/docs/view/overview", section: "Core Modules"},
+  {title: "Context", path: "/docs/core-concepts/context", section: "Core Modules"},
+  {title: "Resources", path: "/docs/core-concepts/resources", section: "Core Modules"},
   {title: "Router", path: "/docs/router/overview", section: "Router"},
   {title: "Signal API", path: "/docs/api/signal", section: "API Reference"},
   {title: "Computed API", path: "/docs/api/computed", section: "API Reference"},
@@ -515,6 +517,14 @@ module Header = {
               (),
             )}
             <a
+              href="https://brnrdog.github.io/xote-playground/"
+              target="_blank"
+              class="header-nav-link"
+              onClick={_ =>
+                PostHog.capture("playground_link_clicked", ~properties={"source": "header"})}>
+              {View.text("Playground")}
+            </a>
+            <a
               href="https://github.com/brnrdog/xote"
               target="_blank"
               class="header-nav-link"
@@ -599,6 +609,15 @@ module Footer = {
             <ul>
               <li>
                 {Router.link(~to="/docs", ~children=[View.text("Introduction")], ())}
+              </li>
+              <li>
+                <a
+                  href="https://brnrdog.github.io/xote-playground/"
+                  target="_blank"
+                  onClick={_ =>
+                    PostHog.capture("playground_link_clicked", ~properties={"source": "footer"})}>
+                  {View.text("Playground \u2197")}
+                </a>
               </li>
               <li>
                 {Router.link(

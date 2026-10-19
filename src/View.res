@@ -23,12 +23,15 @@ type attrValue = RuntimeNode.attrValue =
   | OptionalCompute(unit => option<string>)
 
 /* Virtual node types */
+type elementRef = RuntimeNode.elementRef
+
 type rec node = RuntimeNode.node =
   | Element({
       tag: string,
       attrs: array<(string, attrValue)>,
       events: array<(string, Dom.event => unit)>,
       children: array<node>,
+      ref?: elementRef,
     })
   | Text(string)
   | SignalText(Signal.t<string>)
@@ -260,24 +263,194 @@ module Value = {
   let make = (props: props<'value>): node => render(props.value, props.render)
 }
 
+/* Catches what its subtree throws while rendering or updating, and renders
+   `fallback` in its place. The boundary is a reactive region over the failure:
+   a failure during the first render falls back synchronously, inside
+   `RuntimeContext.renderBoundary`; one from a later update is reported through
+   the signal, and the region swaps the subtree for the fallback. `reset`
+   renders the subtree afresh. */
+module ErrorBoundary = {
+  type props = {
+    fallback: (exn, unit => unit) => node,
+    onError?: exn => unit,
+    children?: node,
+  }
+
+  let make = (props: props): node => {
+    let failure: Signal.t<option<exn>> = Signal.make(None)
+    let attempt = Signal.make(0)
+    let reset = () =>
+      Signal.batch(() => {
+        Signal.set(failure, None)
+        Signal.update(attempt, n => n + 1)
+      })
+    let notify = exn =>
+      switch props.onError {
+      | Some(onError) => onError(exn)
+      | None => ()
+      }
+    let boundary: RuntimeContext.boundary = {
+      fallback: exn => {
+        notify(exn)
+        props.fallback(exn, reset)
+      },
+      report: exn => {
+        notify(exn)
+        Signal.set(failure, Some(exn))
+      },
+      notify,
+      rendering: false,
+      caught: None,
+    }
+    signalFragment(
+      RuntimeOwner.ownedComputed(() => {
+        let _ = Signal.get(attempt)
+        switch Signal.get(failure) {
+        /* A component, so building the fallback subscribes nothing here. */
+        | Some(exn) => [LazyComponent(() => props.fallback(exn, reset))]
+        | None => [
+            LazyComponent(
+              () => {
+                RuntimeContext.installBoundary(boundary)
+                fragment(childrenToArray(props.children))
+              },
+            ),
+          ]
+        }
+      }),
+    )
+  }
+}
+
+/* Shows `fallback` until every resource created below it has loaded once.
+
+   The subtree renders straight away, inside a wrapper hidden while the
+   suspense waits, so the resources it creates start fetching and its state
+   survives the wait; its refs and `onMount` callbacks are held back until it is
+   shown (see `RuntimeLifecycle.suspend`). The whole thing is one reactive
+   region, so hydration renders it afresh on the client. On the server nothing
+   is awaited, and the fallback is what renders. */
+module Suspense = {
+  type props = {
+    fallback?: node,
+    children?: node,
+  }
+
+  let make = (props: props): node =>
+    if RuntimeLifecycle.serverRendering() {
+      signalFragment(RuntimeOwner.ownedComputed(() => childrenToArray(props.fallback)))
+    } else {
+      let suspense = RuntimeContext.makeSuspense()
+      let waiting = Computed.make(() => Signal.get(suspense.pending) > 0)
+      RuntimeOwner.track(RuntimeOwner.addComputed, waiting)
+      signalFragment(
+        RuntimeOwner.ownedComputed(() => [
+          Element({
+            tag: "div",
+            attrs: [
+              computedAttr("style", () =>
+                Signal.get(waiting) ? "display: none" : "display: contents"
+              ),
+            ],
+            events: [],
+            children: [
+              LazyComponent(
+                () => {
+                  RuntimeContext.installSuspense(suspense)
+                  fragment(childrenToArray(props.children))
+                },
+              ),
+            ],
+          }),
+          Show.make({when_: Reactive(waiting), children: ?props.fallback}),
+        ]),
+      )
+    }
+}
+
+/* Element refs: a handle the renderer hands the element to once it is in the
+   document, and takes it back from when the element is removed. */
+module Ref = {
+  type t = elementRef
+
+  let make = (): t => {element: Signal.make(None), callback: Nullable.null}
+
+  let fromCallback = (callback: Dom.element => unit): t => {
+    element: Signal.make(None),
+    callback: Nullable.make(callback),
+  }
+
+  let get = (ref: t): option<Dom.element> => Signal.get(ref.element)
+
+  let peek = (ref: t): option<Dom.element> => Signal.peek(ref.element)
+}
+
+/* Lifecycle */
+let onMount = RuntimeLifecycle.onMount
+let onCleanup = RuntimeLifecycle.onCleanup
+
+/* Renders its children into another element — `document.body` unless told
+   otherwise — and nothing where it stands.
+
+   The children render with the portal, as part of the same render: under its
+   context and error boundary and owned by its region, so a failure in them is
+   the portal's failure and what they set up is released with it. They render
+   between two anchor comments, detached, and the whole range goes into the
+   target from the first entry of the ref queue — once the render that made
+   it has inserted everything else, and before any ref or `onMount` of the
+   render runs, the portal's own children's included. Removing the portal
+   removes the range, and with it whatever the children inserted into it since.
+   On the server nothing renders. */
+module Portal = {
+  type props = {
+    target?: Dom.element,
+    children?: node,
+  }
+
+  let make = (props: props): node => {
+    if RuntimeLifecycle.onServer.contents == 0 && !RuntimeLifecycle.noDocument() {
+      let start = DOM.createComment(" portal ")
+      let end_ = DOM.createComment(" /portal ")
+      let content = DOM.createDocumentFragment()
+      content->DOM.appendChild(start)
+      /* Registered before anything renders, so a render that fails partway is
+         released too. Before the insertion, the range is still in `content`,
+         and removing it there is harmless. */
+      onCleanup(() => DOM.removeRange(start, end_))
+      RuntimeLifecycle.insertion(() => {
+        let target = switch props.target {
+        | Some(target) => target
+        | None => DOM.documentBody()
+        }
+        target->DOM.appendChild(content)
+      })
+      content->DOM.appendChild(RuntimeRender.render(fragment(childrenToArray(props.children))))
+      content->DOM.appendChild(end_)
+    }
+    fragment([])
+  }
+}
+
 /* Element constructor */
 let element = (
   tag: string,
   ~attrs: array<(string, attrValue)>=[],
   ~events: array<(string, Dom.event => unit)>=[],
   ~children: array<node>=[],
+  ~ref: option<Ref.t>=?,
   (),
-): node => Element({tag, attrs, events, children})
+): node => Element({tag, attrs, events, children, ?ref})
 
 /* Null representation */
 let null = () => text("")
 let empty = null
 
 /* Mounting */
-let mount = (node: node, container: Dom.element): unit => {
-  let el = RuntimeRender.render(node)
-  container->DOM.appendChild(el)
-}
+let mount = (node: node, container: Dom.element): unit =>
+  RuntimeLifecycle.rendering(~root=true, () => {
+    let el = RuntimeRender.render(node)
+    container->DOM.appendChild(el)
+  })
 
 let mountById = (node: node, containerId: string): unit => {
   switch DOM.getElementById(containerId)->Nullable.toOption {

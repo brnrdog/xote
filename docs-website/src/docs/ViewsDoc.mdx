@@ -207,6 +207,61 @@ Use [`View.Show`](/docs/api/view#view-show) for boolean branches, [`View.Maybe`]
 </p>
 ```
 
+### Refs and Lifecycle
+
+Rendering builds DOM before inserting it, so a component body runs before its elements are anywhere a browser can focus or measure them. [`View.onMount`](/docs/api/view#view-onmount) runs a callback once the component's DOM is in the document, and [`View.onCleanup`](/docs/api/view#view-oncleanup) runs one when the component is removed. A [`View.Ref`](/docs/api/view#view-ref) passed to an element as `ref` receives that element before any `onMount` runs, and goes back to `None` when the element is removed.
+
+```rescript
+@send external focus: Dom.element => unit = "focus"
+
+module Search = {
+  @jsx.component
+  let make = () => {
+    let field = View.Ref.make()
+    View.onMount(() => {
+      View.Ref.peek(field)->Option.forEach(focus)
+      let id = setInterval(() => Console.log("still here"), 1000)
+      View.onCleanup(() => clearInterval(id))
+    })
+    <input ref=field type_="search" />
+  }
+}
+```
+
+`onMount` runs untracked, under the component's context and error boundary, and anything it sets up with `onCleanup` or `Effect.run` is released with the component. It never runs during server rendering, and runs after hydration on the client. A ref holds its element in a signal, so [`View.Ref.get`](/docs/api/view#view-ref) inside an effect re-runs it when the element arrives or goes. `View.Ref.fromCallback` makes a ref that also calls a function with each element it receives.
+
+### Portals
+
+[`View.Portal`](/docs/api/view#view-portal) renders its children into another element, `document.body` unless you pass `target`, and nothing where it stands. Use it for modals, tooltips and menus that have to escape a parent's `overflow` or stacking context.
+
+```rescript
+<View.Portal>
+  <div class="modal-backdrop" onClick={_ => close()}>
+    <div class="modal"> {children} </div>
+  </div>
+</View.Portal>
+```
+
+The children render with the portal, under its context and error boundary, and go into the target before any ref or `onMount` callback of that render runs, so a component's `onMount` can reach the elements inside its portal. Removing the portal removes everything it put in the target. DOM events bubble through the target, not through the portal's place in the component tree. On the server a portal renders nothing.
+
+### Error Boundaries
+
+[`View.ErrorBoundary`](/docs/api/view#view-errorboundary) keeps one failing part of a page from taking the rest down with it. When anything in its subtree throws — a component body, a reactive block re-rendering, a reactive attribute or text, or an `Effect.run` set up in a component body, cleanup included — the whole subtree is released and `fallback` renders in its place.
+
+```rescript
+<View.ErrorBoundary
+  fallback={(_error, reset) =>
+    <p>
+      <View.Text> "This panel failed to load. " </View.Text>
+      <button onClick={_ => reset()}> <View.Text> "Retry" </View.Text> </button>
+    </p>}
+  onError={error => Console.error(error)}>
+  <Dashboard />
+</View.ErrorBoundary>
+```
+
+`reset` renders the subtree again from scratch. Boundaries nest: the nearest one catches, and a failure inside a `fallback` goes to the boundary above. Event handlers, timers and promise callbacks run outside any render, so their failures are not caught; handle those where they happen. Neither is a `Computed` made with `~equals`, which recomputes on its own when its sources change. A failure from a region outside the boundary is never claimed by it. On the server, a subtree that fails renders its fallback into the HTML, and hydration renders everything inside the boundary again on the client instead of reusing the server's markup, so wrap the parts of a page that can fail rather than the whole app.
+
 ### Auto-tracked Blocks
 
 When one block of UI depends on several signals at once, the primitives above require you to wire each dependency explicitly — a `MaybeSignal.reactive` here, a computed there. [`View.tracked`](/docs/api/view#view-tracked) is the escape hatch for those cases: every signal read while its body runs subscribes the block automatically, and the block re-renders when any of them changes.

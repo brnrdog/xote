@@ -4,7 +4,11 @@
    one addition: an effect created while a component is rendering is registered
    with that component's scope, so unmounting the component stops it. An effect
    created outside a render — at module level, from an event handler — has no
-   scope to belong to and lives until its disposer is called, exactly as before. */
+   scope to belong to and lives until its disposer is called, exactly as before.
+
+   Every run also happens under the context the effect was created under, and a
+   failure in it goes to the nearest error boundary above, if there is one: a
+   later update renders with the same context and boundary its first run had. */
 
 type disposer = Signals.Effect.disposer = {dispose: unit => unit}
 
@@ -14,7 +18,7 @@ type disposer = Signals.Effect.disposer = {dispose: unit => unit}
    dequeued without running, and its cleanup runs exactly once — so nothing has
    to be guarded here and the upstream disposer is registered as is. */
 let runWithDisposer = (fn: unit => option<unit => unit>, ~name: option<string>=?): disposer => {
-  let disposer = Signals.Effect.runWithDisposer(fn, ~name?)
+  let disposer = Signals.Effect.runWithDisposer(RuntimeContext.bind(fn), ~name?)
   RuntimeOwner.track(RuntimeOwner.addDisposer, disposer.dispose)
   disposer
 }

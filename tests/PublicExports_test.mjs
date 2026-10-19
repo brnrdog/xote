@@ -32,6 +32,8 @@ const PUBLIC_MODULES = [
   "Signal",
   "Computed",
   "Effect",
+  "Context",
+  "Resource",
 ];
 
 function exportedNames(module) {

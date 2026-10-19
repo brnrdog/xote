@@ -15,4 +15,8 @@ Zekr.runSuites([
   SSRState_test.suite,
   Hydration_test.suite,
   Template_test.suite,
+  Context_test.suite,
+  ErrorBoundary_test.suite,
+  Lifecycle_test.suite,
+  Portal_test.suite,
 ])

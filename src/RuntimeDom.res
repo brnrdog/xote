@@ -62,6 +62,22 @@ external getElementById: string => Nullable.t<Dom.element> = "getElementById"
 @get external getFirstChild: Dom.element => Nullable.t<Dom.element> = "firstChild"
 @get external getParentNode: Dom.element => Nullable.t<Dom.element> = "parentNode"
 
+/* Read when called, never at module load: the server has no document. */
+let documentBody: unit => Dom.element = %raw(`function () { return document.body }`)
+
+/* Remove `start`, `end_` and everything between them, wherever they are now:
+   what a region inserted between its own anchors after it first rendered —
+   a keyed row, a replaced pass — goes too. */
+let removeRange: (Dom.element, Dom.element) => unit = %raw(`function (start, end) {
+  let node = start
+  while (node !== null) {
+    const next = node.nextSibling
+    node.remove()
+    if (node === end) break
+    node = next
+  }
+}`)
+
 let isDocumentFragment: Dom.element => bool = %raw(`function (node) {
   return node != null && node.nodeType === 11
 }`)

@@ -119,6 +119,54 @@ let describeMaybeSignal = (value: Xote.MaybeSignal.t<string>): string =>
   | Reactive(_) => "reactive"
   }
 
+/* ------------------------------------------------------------------- context */
+
+let theme: Xote.Context.t<string> = Xote.Context.make("light")
+let themed = Xote.Context.provider(theme, "dark", Xote.View.text("themed"))
+let themeReader = Xote.View.LazyComponent(
+  () => {
+    Xote.Context.provide(theme, "dark")
+    Xote.View.text(Xote.Context.use(theme))
+  },
+)
+
+/* ----------------------------------------------------- resources, suspense */
+
+let profile: Xote.Resource.t<string> = Xote.Resource.make(() => Promise.resolve("Ada"))
+let profileState: Xote.Resource.state<string> = Xote.Signal.peek(profile)
+let profileValue: option<string> = Xote.Resource.value(profileState)
+let profileLoading: bool = Xote.Resource.isLoading(profileState)
+let () = Xote.Resource.refetch(profile)
+let () = Xote.Resource.mutate(profile, "Grace")
+let describeProfile = (state: Xote.Resource.state<string>): string =>
+  switch state {
+  | Pending => "pending"
+  | Ready(name) | Refreshing(name) => name
+  | Failed(_) => "failed"
+  }
+let suspended =
+  <Xote.View.Suspense fallback={Xote.View.text("Loading")}>
+    {Xote.View.text("Loaded")}
+  </Xote.View.Suspense>
+
+/* ---------------------------------------------------------- refs, lifecycle */
+
+let fieldRef: Xote.View.Ref.t = Xote.View.Ref.make()
+let callbackRef: Xote.View.elementRef = Xote.View.Ref.fromCallback(_element => ())
+let currentField: option<Dom.element> = Xote.View.Ref.get(fieldRef)
+let peekedField: option<Dom.element> = Xote.View.Ref.peek(callbackRef)
+let refElement = Xote.View.element("input", ~ref=fieldRef, ())
+let portaled = <Xote.View.Portal> {Xote.View.text("in body")} </Xote.View.Portal>
+let targeted = (target: Dom.element) =>
+  <Xote.View.Portal target> {Xote.View.text("in target")} </Xote.View.Portal>
+let lifecycleComponent = Xote.View.LazyComponent(
+  () => {
+    Xote.View.onMount(() => Xote.View.onCleanup(() => ()))
+    Xote.View.onCleanup(() => ())
+    <input ref=fieldRef />
+  },
+)
+
 /* ------------------------------------------------------------ JSX components */
 
 let jsxTree =
@@ -138,6 +186,10 @@ let jsxTree =
     <Xote.View.Int value=1 />
     <Xote.View.Float value=1.5 />
     <Xote.View.Bool value=true />
+    <Xote.Context.Provider context=theme value="dark"> {Xote.View.text("themed")} </Xote.Context.Provider>
+    <Xote.View.ErrorBoundary fallback={(_exn, reset) => Xote.View.text("failed")} onError={_exn => ()}>
+      {Xote.View.text("guarded")}
+    </Xote.View.ErrorBoundary>
   </div>
 
 let jsxElement: Xote.XoteJSX.element = Xote.XoteJSX.null()

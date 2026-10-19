@@ -562,6 +562,11 @@ let hatchStep = Signal.make(2)
 let hatchClicks = Signal.make(0)
 let hatchData = Signal.make("light")
 let stepHandler = (step: int) => (_evt: Dom.event) => Signal.update(hatchClicks, c => c + step)
+/* A `ref` is a handle the renderer writes to, never a value leaf: an eager read
+   choosing which ref is a one-shot read, not a thunk the prop cannot hold. */
+let hatchRefs = [View.Ref.make(), View.Ref.make()]
+let pickRef = (index: int) => hatchRefs->Array.getUnsafe(index)
+let hatchRefIndex = Signal.make(1)
 
 module EscapeHatch = {
   @xote.component
@@ -576,6 +581,7 @@ module EscapeHatch = {
         data={Obj.magic(Dict.fromArray([("theme", Signal.get(hatchData))]))}
       />
       <button id="eh-button" onClick={stepHandler(Signal.get(hatchStep))}> {"go"} </button>
+      <input id="eh-ref" ref={pickRef(Signal.get(hatchRefIndex))} />
     </div>
 }
 

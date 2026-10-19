@@ -51,6 +51,9 @@ module App = {
     {text: "Attributes and Events", id: "attributes-and-events", level: 3},
     {text: "Lists", id: "lists", level: 3},
     {text: "Conditional Output", id: "conditional-output", level: 3},
+    {text: "Refs and Lifecycle", id: "refs-and-lifecycle", level: 3},
+    {text: "Portals", id: "portals", level: 3},
+    {text: "Error Boundaries", id: "error-boundaries", level: 3},
     {text: "Mounting", id: "mounting", level: 3},
     {text: "In Practice", id: "in-practice", level: 2},
     {text: "Example: Todo List", id: "example-todo-list", level: 3},
@@ -100,6 +103,12 @@ module App = {
     {text: "View.Show", id: "view-show", level: 3},
     {text: "View.Maybe", id: "view-maybe", level: 3},
     {text: "View.Value", id: "view-value", level: 3},
+    {text: "View.Suspense", id: "view-suspense", level: 3},
+    {text: "View.Ref", id: "view-ref", level: 3},
+    {text: "View.onMount", id: "view-onmount", level: 3},
+    {text: "View.onCleanup", id: "view-oncleanup", level: 3},
+    {text: "View.Portal", id: "view-portal", level: 3},
+    {text: "View.ErrorBoundary", id: "view-errorboundary", level: 3},
     {text: "View.element", id: "view-element", level: 3},
     {text: "View.mount", id: "view-mount", level: 3},
     {text: "View.Text", id: "view-text-component", level: 3},
@@ -373,6 +382,51 @@ module App = {
               pageLead="How the View module and JSX components render once and stay reactive over time."
               content={MdxDocs.views()}
               tocItems=viewTocItems
+            />,
+        },
+        {
+          pattern: "/docs/core-concepts/context",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/core-concepts/context"
+              pageTitle="Context"
+              pageLead="Make a value available to everything a component renders, scoped to that component."
+              content={MdxDocs.context()}
+              tocItems=[
+                {text: "When to Use Context", id: "when-to-use-context", level: 2},
+                {text: "Context or a Module-Level Signal", id: "context-or-a-module-level-signal", level: 3},
+                {text: "Using Context", id: "using-context", level: 2},
+                {text: "Declaring a Context", id: "declaring-a-context", level: 3},
+                {text: "Providing a Value", id: "providing-a-value", level: 3},
+                {text: "Reading a Value", id: "reading-a-value", level: 3},
+                {text: "Reactive Values", id: "reactive-values", level: 3},
+                {text: "Scope Rules", id: "scope-rules", level: 2},
+                {text: "Where use Works", id: "where-use-works", level: 3},
+                {text: "Server Rendering", id: "server-rendering", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 2},
+              ]
+            />,
+        },
+        {
+          pattern: "/docs/core-concepts/resources",
+          render: _params =>
+            <DocsPage
+              currentPath="/docs/core-concepts/resources"
+              pageTitle="Resources"
+              pageLead="Turn asynchronous fetches into signals, and show a fallback while they load."
+              content={MdxDocs.resources()}
+              tocItems=[
+                {text: "Resources", id: "resources", level: 2},
+                {text: "Creating a Resource", id: "creating-a-resource", level: 3},
+                {text: "Reading the State", id: "reading-the-state", level: 3},
+                {text: "Refetching and Mutating", id: "refetching-and-mutating", level: 3},
+                {text: "Errors", id: "errors", level: 3},
+                {text: "Suspense", id: "suspense", level: 2},
+                {text: "Showing a Fallback", id: "showing-a-fallback", level: 3},
+                {text: "Rules", id: "rules", level: 3},
+                {text: "Server Rendering", id: "server-rendering", level: 3},
+                {text: "Next Steps", id: "next-steps", level: 2},
+              ]
             />,
         },
         {
