@@ -73,9 +73,6 @@ let openSearch = () => {
 }
 let closeSearch = () => Signal.set(searchOpen, false)
 
-// ---- Scroll state ----
-let isScrolled = Signal.make(false)
-
 // ---- Search items ----
 type searchItem = {
   title: string,
@@ -413,59 +410,24 @@ module SearchModal = {
 }
 
 // ---- Logo Mark ----
+// The ring mark, coloured by tokens (core in the signal colour, rings in ink
+// tones) so it follows the theme and turns near-black on the lime hero.
 module LogoMark = {
   type props = {size: option<int>}
 
   let make = (props: props) => {
-    let s = props.size->Option.getOr(24)
-    let sizeStr = Int.toString(s)
-    View.element(
-      "svg",
-      ~attrs=[
-        View.attr("width", sizeStr),
-        View.attr("height", sizeStr),
-        View.attr("viewBox", "0 0 100 100"),
-        View.attr("fill", "none"),
-      ],
-      ~children=[
-        // Outer silver ring (faint)
-        View.element("circle", ~attrs=[
-          View.attr("cx", "50"),
-          View.attr("cy", "50"),
-          View.attr("r", "40"),
-          View.attr("stroke", "#c3c1b8"),
-          View.attr("stroke-width", "2.2"),
-          View.attr("opacity", "0.2"),
-        ], ()),
-        // Middle silver ring
-        View.element("circle", ~attrs=[
-          View.attr("cx", "50"),
-          View.attr("cy", "50"),
-          View.attr("r", "27"),
-          View.attr("stroke", "#c3c1b8"),
-          View.attr("stroke-width", "2.6"),
-          View.attr("opacity", "0.48"),
-        ], ()),
-        // Inner gold ring
-        View.element("circle", ~attrs=[
-          View.attr("cx", "50"),
-          View.attr("cy", "50"),
-          View.attr("r", "15"),
-          View.attr("stroke", "#c9a169"),
-          View.attr("stroke-width", "3.4"),
-        ], ()),
-        // Center gold dot
-        View.element("circle", ~attrs=[
-          View.attr("cx", "50"),
-          View.attr("cy", "50"),
-          View.attr("r", "6.5"),
-          View.attr("fill", "#c9a169"),
-        ], ()),
-      ],
-      (),
-    )
+    let sizeStr = props.size->Option.getOr(24)->Int.toString
+    <svg
+      class="logo-mark" width={sizeStr} height={sizeStr} viewBox="0 0 100 100" fill="none" ariaHidden=true>
+      <circle class="logo-ring-outer" cx="50" cy="50" r="40" />
+      <circle class="logo-ring-mid" cx="50" cy="50" r="27" />
+      <circle class="logo-ring-core" cx="50" cy="50" r="15" />
+      <circle class="logo-dot" cx="50" cy="50" r="6.5" />
+    </svg>
   }
 }
+
+let isDocsPath = path => path == "/docs" || path->String.startsWith("/docs/")
 
 // ---- Header ----
 module Header = {
@@ -474,114 +436,98 @@ module Header = {
   let make = (_props: props) => {
     let headerClass = () => {
       let path = Signal.get(Router.location()).pathname
-      path == "/docs" || path->String.startsWith("/docs/")
-        ? "header-inner header-inner-docs"
-        : "header-inner"
+      if path == "/" {
+        "site-header site-header-hero"
+      } else if isDocsPath(path) {
+        "site-header site-header-docs"
+      } else {
+        "site-header"
+      }
     }
 
-    // Scroll listener (client-only)
-    if SSRContext.isClient {
-      Effect.run(() => {
-        let handleScroll = () => {
-          let scrollY: float = %raw(`window.scrollY`)
-          Signal.set(isScrolled, scrollY > 10.0)
-        }
-        addEventListener("scroll", handleScroll)
-        Some(() => removeEventListener("scroll", handleScroll))
-      })
-    }
+    let externalLink = (~href, ~label, ~event) =>
+      <a
+        href
+        target="_blank"
+        class="header-nav-link"
+        onClick={_ => PostHog.capture(event, ~properties={"source": "header"})}>
+        {View.text(label)}
+      </a>
 
-    <header class="site-header">
-      <div class={headerClass}>
-        <div class="header-left">
+    <header class={headerClass}>
+      <div class="header-inner">
+        {Router.link(
+          ~to="/",
+          ~attrs=[View.attr("class", "header-logo-link"), View.attr("aria-label", "Xote home")],
+          ~children=[<LogoMark size={Some(28)} />, <span class="logo-text"> {View.text("xote")} </span>],
+          (),
+        )}
+        {Router.link(
+          ~to="/docs/changelog",
+          ~attrs=[View.attr("class", "header-version")],
+          ~children=[View.text("v" ++ RepoData.latestVersion)],
+          (),
+        )}
+        {View.element(
+          "button",
+          ~attrs=[View.attr("class", "search-trigger"), View.attr("type", "button")],
+          ~events=[("click", _ => openSearch())],
+          ~children=[
+            <svg width="15" height="15" viewBox="0 0 16 16" ariaHidden=true>
+              <circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M11 11l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>,
+            <span> {View.text("Search docs")} </span>,
+            <kbd class="search-trigger-key"> {View.text("⌘K")} </kbd>,
+          ],
+          (),
+        )}
+        <nav class="header-nav" ariaLabel="Main">
           {Router.link(
-            ~to="/",
-            ~attrs=[View.attr("class", "header-logo-link")],
-            ~children=[
-              <LogoMark size={Some(26)} />,
-              <span class="logo-text"> {View.text("xote")} </span>,
-            ],
+            ~to="/docs",
+            ~attrs=[View.attr("class", "header-nav-link")],
+            ~children=[View.text("Docs")],
             (),
           )}
-          {Router.link(
-            ~to="/docs/changelog",
-            ~attrs=[View.attr("class", "header-version")],
-            ~children=[View.text("v" ++ RepoData.latestVersion)],
-            (),
+          {externalLink(
+            ~href="https://brnrdog.github.io/xote-playground/",
+            ~label="Playground",
+            ~event="playground_link_clicked",
           )}
-          <nav class="header-nav">
-            {Router.link(
-              ~to="/docs",
-              ~attrs=[View.attr("class", "header-nav-link")],
-              ~children=[View.text("Docs")],
-              (),
-            )}
-            <a
-              href="https://brnrdog.github.io/xote-playground/"
-              target="_blank"
-              class="header-nav-link"
-              onClick={_ =>
-                PostHog.capture("playground_link_clicked", ~properties={"source": "header"})}>
-              {View.text("Playground")}
-            </a>
-            <a
-              href="https://github.com/brnrdog/xote"
-              target="_blank"
-              class="header-nav-link"
-              onClick={_ =>
-                PostHog.capture("github_link_clicked", ~properties={"source": "header"})}>
-              {View.text("GitHub")}
-            </a>
-          </nav>
-        </div>
-        <div class="header-right">
-          <a
-            href="https://github.com/brnrdog/xote"
-            target="_blank"
-            class="gh-star-btn"
-            ariaLabel="Star xote on GitHub"
-            onClick={_ =>
-              PostHog.capture("github_star_clicked", ~properties={"source": "header"})}>
-            <span class="gh-star-icon" ariaHidden=true> {View.text("\u2605")} </span>
-            <span class="gh-star-label"> {View.text("Star")} </span>
-          </a>
-          {View.element(
-            "button",
-            ~attrs=[View.attr("class", "search-trigger")],
-            ~events=[("click", _ => openSearch())],
-            ~children=[
-              <span> {View.text("Search")} </span>,
-              <div class="search-trigger-keys">
-                <span class="search-trigger-key"> {View.text("\u2318K")} </span>
-              </div>,
-            ],
-            (),
+          {externalLink(
+            ~href="https://github.com/brnrdog/xote",
+            ~label="GitHub",
+            ~event="github_link_clicked",
           )}
-          {View.element(
-            "button",
-            ~attrs=[
-              View.attr("class", "header-icon-btn"),
-              View.attr("title", "Toggle theme"),
-            ],
-            ~events=[("click", _ => toggleTheme())],
-            ~children=[
-              View.signalText(() =>
-                Signal.get(theme) == "dark" ? "\u263E" : "\u2600"
-              ),
-            ],
-            (),
-          )}
-          {View.element(
-            "button",
-            ~attrs=[
-              View.attr("class", "header-icon-btn mobile-menu-btn"),
-              View.attr("title", "Menu"),
-            ],
-            ~events=[("click", _ => openSearch())],
-            ~children=[View.text("\u2261")],
-            (),
-          )}
-        </div>
+        </nav>
+        {View.signalFragment(
+          Computed.make(() =>
+            isDocsPath(Signal.get(Router.location()).pathname) ? [<DocsLayer.Switch />] : []
+          ),
+        )}
+        {View.element(
+          "button",
+          ~attrs=[
+            View.attr("class", "header-icon-btn"),
+            View.attr("type", "button"),
+            View.attr("title", "Toggle theme"),
+            View.attr("aria-label", "Toggle colour theme"),
+          ],
+          ~events=[("click", _ => toggleTheme())],
+          ~children=[View.signalText(() => Signal.get(theme) == "dark" ? "☾" : "☀")],
+          (),
+        )}
+        {View.element(
+          "button",
+          ~attrs=[
+            View.attr("class", "header-icon-btn mobile-menu-btn"),
+            View.attr("type", "button"),
+            View.attr("aria-label", "Search the docs"),
+          ],
+          ~events=[("click", _ => openSearch())],
+          ~children=[View.text("≡")],
+          (),
+        )}
       </div>
     </header>
   }
@@ -591,80 +537,89 @@ module Header = {
 module Footer = {
   type props = {}
 
+  type link = {label: string, to: string}
+
+  let columns: array<(string, array<link>)> = [
+    (
+      "Get started",
+      [
+        {label: "Introduction", to: "/docs"},
+        {label: "Learning ReScript", to: "/docs/getting-started/rescript"},
+        {label: "JavaScript runtime", to: "/docs/getting-started/javascript-typescript"},
+      ],
+    ),
+    (
+      "Core",
+      [
+        {label: "Signals", to: "/docs/core-concepts/signals"},
+        {label: "Computeds", to: "/docs/core-concepts/computed"},
+        {label: "Effects", to: "/docs/core-concepts/effects"},
+        {label: "View", to: "/docs/view/overview"},
+        {label: "Context", to: "/docs/core-concepts/context"},
+        {label: "Resources", to: "/docs/core-concepts/resources"},
+      ],
+    ),
+    (
+      "Guides",
+      [
+        {label: "Router", to: "/docs/router/overview"},
+        {label: "Server-side rendering", to: "/docs/advanced/ssr"},
+        {label: "MDX support", to: "/docs/advanced/mdx-support"},
+        {label: "Batching", to: "/docs/advanced/batching"},
+      ],
+    ),
+    (
+      "Reference",
+      [
+        {label: "Signal API", to: "/docs/api/signal"},
+        {label: "View API", to: "/docs/api/view"},
+        {label: "Technical overview", to: "/docs/technical-overview"},
+        {label: "Changelog", to: "/docs/changelog"},
+      ],
+    ),
+  ]
+
   let make = (_props: props) => {
     <footer class="site-footer">
       <div class="footer-inner">
-        <div class="footer-grid">
+        <div class="footer-top">
           <div class="footer-brand">
-            <div class="footer-brand-lockup">
-              <LogoMark size={Some(48)} />
-              <div class="footer-brand-text">
-                <span class="logo-text footer-logo-text"> {View.text("xote")} </span>
-                <span class="footer-tagline"> {View.text("Sound Reactivity UI Library")} </span>
-              </div>
+            {Router.link(
+              ~to="/",
+              ~attrs=[View.attr("class", "header-logo-link")],
+              ~children=[<LogoMark size={Some(28)} />, <span class="logo-text"> {View.text("xote")} </span>],
+              (),
+            )}
+            <p> {View.text("Fine-grained reactivity for ReScript.")} </p>
+          </div>
+          <nav class="footer-sitemap" ariaLabel="Sitemap">
+            {View.fragment(
+              columns->Array.map(((title, links)) =>
+                <div class="footer-col">
+                  <span class="footer-col-title"> {View.text(title)} </span>
+                  {View.fragment(
+                    links->Array.map(link =>
+                      Router.link(~to=link.to, ~children=[View.text(link.label)], ())
+                    ),
+                  )}
+                </div>
+              ),
+            )}
+            <div class="footer-col">
+              <span class="footer-col-title"> {View.text("Community")} </span>
+              <a href="https://github.com/brnrdog/xote" target="_blank"> {View.text("GitHub")} </a>
+              <a href="https://github.com/brnrdog/xote/issues" target="_blank">
+                {View.text("Issues")}
+              </a>
+              <a href="https://www.npmjs.com/package/xote" target="_blank"> {View.text("npm")} </a>
+              <a href="https://brnrdog.github.io/xote-playground/" target="_blank">
+                {View.text("Playground")}
+              </a>
             </div>
-          </div>
-          <div class="footer-col">
-            <h3> {View.text("Docs")} </h3>
-            <ul>
-              <li>
-                {Router.link(~to="/docs", ~children=[View.text("Introduction")], ())}
-              </li>
-              <li>
-                <a
-                  href="https://brnrdog.github.io/xote-playground/"
-                  target="_blank"
-                  onClick={_ =>
-                    PostHog.capture("playground_link_clicked", ~properties={"source": "footer"})}>
-                  {View.text("Playground \u2197")}
-                </a>
-              </li>
-              <li>
-                {Router.link(
-                  ~to="/docs/core-concepts/signals",
-                  ~children=[View.text("Core Modules")],
-                  (),
-                )}
-              </li>
-              <li>
-                {Router.link(
-                  ~to="/docs/api/signal",
-                  ~children=[View.text("API Reference")],
-                  (),
-                )}
-              </li>
-              <li>
-                {Router.link(~to="/docs/changelog", ~children=[View.text("Changelog")], ())}
-              </li>
-            </ul>
-          </div>
-          <div class="footer-col">
-            <h3> {View.text("Community")} </h3>
-            <ul>
-              <li>
-                <a href="https://github.com/brnrdog/xote" target="_blank">
-                  {View.text("GitHub \u2197")}
-                </a>
-              </li>
-              <li>
-                <a href="https://www.npmjs.com/package/xote" target="_blank">
-                  {View.text("npm \u2197")}
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://github.com/brnrdog/xote/issues"
-                  target="_blank">
-                  {View.text("Issues \u2197")}
-                </a>
-              </li>
-            </ul>
-          </div>
+          </nav>
         </div>
         <div class="footer-bottom">
-          <div>
-            {View.text("Bernardo Gurgel \u00B7  MIT License \u00B7 Built with ReScript and xote")}
-          </div>
+          <span> {View.text("© Bernardo Gurgel · MIT License · Built with ReScript and Xote")} </span>
           {Router.link(
             ~to="/docs/changelog",
             ~attrs=[View.attr("class", "footer-version")],
@@ -707,12 +662,8 @@ if SSRContext.isClient {
 type props = {children: View.node}
 
 let make = (props: props) => {
-  let mainClass = () => {
-    let path = Signal.get(Router.location()).pathname
-    path == "/docs" || path->String.startsWith("/docs/")
-      ? "site-main site-main-docs"
-      : "site-main"
-  }
+  let mainClass = () =>
+    isDocsPath(Signal.get(Router.location()).pathname) ? "site-main site-main-docs" : "site-main"
 
   <div>
     <Header />

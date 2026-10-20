@@ -41,6 +41,8 @@ Xote is a lightweight UI library for ReScript that combines fine-grained reactiv
 
 Note: the docs site is a real PPX consumer — its `res:build` compiles the PPX first, so building `docs-website/` locally requires `ocamlopt` on the `PATH` (any recent OCaml; CI uses 4.14 via apt `ocaml-nox`).
 
+The docs site serves every page in two layers: a short human layer and a complete agent layer, switched in the header (`DocsLayer.res`, remembered per visitor, forced with `?layer=agent`). The agent layer appends the module's API reference where one exists (`DocsPage.agentFactsFor`). `build:prerender` also writes a plain-Markdown copy of each docs page next to its HTML (`/docs/core-concepts/signals.md`, `/docs/index.md`) and an `/llms.txt` index; when you add a docs page, add its MDX sources to `markdownSources` in `scripts/prerender.mjs`. Styling is split between `src/styles.css` (design tokens at the top, MDX content and demo styles) and `src/site.css` (shell, home page, docs layers).
+
 ### Build Artifacts
 The build process generates:
 - `dist/xote.mjs` - ES module
