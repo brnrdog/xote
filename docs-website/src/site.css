@@ -343,28 +343,14 @@ pre code {
   color: var(--ground);
 }
 
-/* On the home page the header sits on top of the lime hero and scrolls away
-   with it; once the hero has been passed it comes back as a fixed frosted
-   bar. Neither state takes space in the flow, so nothing jumps. */
+/* On the home page the sticky header overlaps the lime hero (the negative
+   margin lets the hero run underneath it) and takes the hero's colours while
+   it is over it, then turns into the usual frosted bar. */
 .site-header-home {
-  position: fixed;
-  left: 0;
-  right: 0;
-  animation: header-drop 0.24s ease-out;
-}
-@keyframes header-drop {
-  from {
-    transform: translateY(-100%);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .site-header-home {
-    animation: none;
-  }
+  margin-bottom: calc(-1 * var(--header-height));
+  transition: background-color 0.2s ease;
 }
 .site-header-hero {
-  position: absolute;
-  animation: none;
   background: transparent;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
