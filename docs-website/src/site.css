@@ -1801,3 +1801,65 @@ mark.search-hit {
 blockquote > :last-child {
   margin-bottom: 0;
 }
+
+/* ---- Alerts: "> **Info:** …" blockquotes and .callout notes ----
+   A neutral surface (like code blocks) with a small ring-and-dot mark;
+   the leading bold label becomes a lime caption on its own line. */
+.docs-content blockquote,
+.callout {
+  position: relative;
+  margin: 28px 0;
+  padding: 20px 24px 20px 60px;
+  border: 0;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--lift);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 26px;
+}
+.docs-content blockquote::before,
+.callout::before {
+  content: "";
+  position: absolute;
+  left: 24px;
+  top: 20px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--signal-text) 0 3.5px, transparent 4px),
+    radial-gradient(circle, transparent 0 7.3px, color-mix(in srgb, var(--signal-text) 55%, transparent) 7.5px 8.7px, transparent 9px);
+}
+.docs-content blockquote p {
+  margin: 0;
+  max-width: none;
+  color: var(--ink);
+}
+.docs-content blockquote p + p {
+  margin-top: 10px;
+}
+.docs-content blockquote > p:first-child > strong:first-child,
+.callout-label {
+  display: block;
+  margin-bottom: 4px;
+  font: 600 11px/18px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--signal-text);
+}
+.docs-content blockquote a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--signal-text) 60%, transparent);
+  text-underline-offset: 3px;
+}
+.docs-content blockquote a:hover {
+  text-decoration-color: var(--signal-text);
+}
+.docs-content blockquote code {
+  background: var(--soft-2);
+}
+.docs-layout.is-agent .docs-content blockquote {
+  font: 400 14px/23px var(--font-mono);
+}
