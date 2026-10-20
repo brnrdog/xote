@@ -39,6 +39,32 @@ if SSRContext.isClient {
   })
 }
 
+// ---- Header over the hero ----
+// On the home page the sticky header wears the hero's lime colours until the
+// hero has scrolled out from under it.
+@val @scope("window") external scrollY: float = "scrollY"
+@val @scope("window")
+external addWindowListener: (string, unit => unit, {"passive": bool}) => unit = "addEventListener"
+@val @scope("document") @return(nullable)
+external querySelector: string => option<{"offsetHeight": float}> = "querySelector"
+
+let infinity = Float.Constants.positiveInfinity
+
+let overHero = Signal.make(true)
+
+let syncOverHero = () => {
+  let heroHeight = switch querySelector(".home-hero") {
+  | Some(hero) => hero["offsetHeight"]
+  | None => infinity
+  }
+  Signal.set(overHero, scrollY < heroHeight -. 72.0)
+}
+
+let _ = if SSRContext.isClient {
+  addWindowListener("scroll", syncOverHero, {"passive": true})
+  addWindowListener("resize", syncOverHero, {"passive": true})
+}
+
 // ---- Logo Mark ----
 // The ring mark, coloured by tokens (core in the signal colour, rings in ink
 // tones) so it follows the theme and turns near-black on the lime hero.
@@ -67,7 +93,7 @@ module Header = {
     let headerClass = () => {
       let path = Signal.get(Router.location()).pathname
       if path == "/" {
-        "site-header site-header-hero"
+        Signal.get(overHero) ? "site-header site-header-home site-header-hero" : "site-header site-header-home"
       } else if isDocsPath(path) {
         "site-header site-header-docs"
       } else {
