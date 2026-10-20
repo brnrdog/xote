@@ -241,6 +241,7 @@ async function prerender() {
 
   writeSitemap()
   writeRobots()
+  writeMarkdown()
 
   console.log('\nPre-rendering complete!')
 }
@@ -351,6 +352,133 @@ Sitemap: ${siteUrl}/sitemap.xml
 
   fs.writeFileSync(path.join(buildDir, 'robots.txt'), robots)
   console.log('  robots.txt')
+}
+
+// ---- Agent layer: plain-Markdown copies of every docs page + llms.txt ----
+
+const docsDir = path.join(__dirname, '..', 'src', 'docs')
+
+// Each docs route and the MDX sources that make up its agent layer (the page,
+// then its API reference where one exists).
+const markdownSources = {
+  '/docs': ['IntroDoc'],
+  '/docs/getting-started/rescript': ['LearningReScriptDoc'],
+  '/docs/getting-started/javascript-typescript': ['JavaScriptTypeScriptDoc'],
+  '/docs/core-concepts/signals': ['SignalsDoc', 'ApiSignalDoc'],
+  '/docs/core-concepts/computed': ['ComputedDoc', 'ApiComputedDoc'],
+  '/docs/core-concepts/effects': ['EffectsDoc', 'ApiEffectDoc'],
+  '/docs/core-concepts/context': ['ContextDoc'],
+  '/docs/core-concepts/resources': ['ResourcesDoc'],
+  '/docs/view/overview': ['ViewsDoc', 'ApiViewDoc'],
+  '/docs/components/overview': ['ViewsDoc', 'ApiViewDoc'],
+  '/docs/router/overview': ['RouterDoc'],
+  '/docs/advanced/ssr': ['SSRDoc'],
+  '/docs/advanced/mdx-support': ['MdxDoc'],
+  '/docs/advanced/batching': ['BatchingDoc'],
+  '/docs/api/signal': ['ApiSignalDoc'],
+  '/docs/api/signals': ['ApiSignalDoc'],
+  '/docs/api/computed': ['ApiComputedDoc'],
+  '/docs/api/effect': ['ApiEffectDoc'],
+  '/docs/api/view': ['ApiViewDoc'],
+  '/docs/comparisons/react': ['ReactComparisonDoc'],
+  '/docs/comparisons/solidjs': ['SolidJSComparisonDoc'],
+  '/docs/technical-overview': ['TechnicalOverviewDoc'],
+}
+
+function markdownPath(routePath) {
+  return routePath === '/docs' ? '/docs/index.md' : `${routePath}.md`
+}
+
+function pageTitle(route) {
+  const [first, second] = route.title.split(/ [-—] /)
+  return first === 'xote Docs' && second ? second : first
+}
+
+// MDX to plain Markdown: keep prose and code fences, turn example panels into
+// fenced code, and drop imports, exports and other top-level JSX.
+function mdxToMarkdown(source) {
+  const out = []
+  const lines = source.split('\n')
+  let inFence = false
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence
+      out.push(line)
+      continue
+    }
+    if (inFence) {
+      out.push(line)
+      continue
+    }
+    if (/^\s*<DocsExamplePanel/.test(line)) {
+      let block = line
+      while (!/<\/DocsExamplePanel>/.test(block) && i < lines.length - 1) {
+        i++
+        block += '\n' + lines[i]
+      }
+      const filename = /filename="([^"]+)"/.exec(block)
+      const code = /code=\{`([\s\S]*?)`\}/.exec(block)
+      if (code) {
+        if (filename) out.push(`\`${filename[1]}\`:`, '')
+        out.push('```rescript', code[1].replace(/\\`/g, '`'), '```')
+      }
+      continue
+    }
+    if (/^(import|export) /.test(line) || /^\s*<[A-Z][\w.]*[^>]*\/>\s*$/.test(line)) continue
+    out.push(line)
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+}
+
+function writeMarkdown() {
+  const entries = []
+  for (const route of routes) {
+    const sources = markdownSources[route.path]
+    const title = pageTitle(route)
+    let body
+    if (sources) {
+      body = sources
+        .map((name, index) => {
+          const md = mdxToMarkdown(fs.readFileSync(path.join(docsDir, `${name}.mdx`), 'utf-8'))
+          return index === 0 ? md : `## API reference\n\n${md.replace(/^(#{1,5}) /gm, '#$1 ')}`
+        })
+        .join('\n\n')
+    } else if (route.path === '/docs/changelog') {
+      body = `Release notes for every version are published at https://github.com/brnrdog/xote/releases.`
+    } else {
+      continue
+    }
+    const markdown = `# ${title}\n\n> ${route.description}\n\nSource: ${routeUrl(route.path)} · Xote ${latestVersion()}\n\n${body}\n`
+    const filePath = path.join(buildDir, markdownPath(route.path))
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    fs.writeFileSync(filePath, markdown)
+    entries.push({ route, title })
+  }
+  console.log(`  ${entries.length} Markdown pages`)
+
+  const sections = new Map()
+  for (const { route, title } of entries) {
+    const section = route.section || 'Docs'
+    if (!sections.has(section)) sections.set(section, [])
+    sections.get(section).push(`- [${title}](${siteUrl}${markdownPath(route.path)}): ${route.description}`)
+  }
+  const llms = `# Xote
+
+> Xote is a small UI library for ReScript with fine-grained reactivity: signals, computeds and effects, declarative views with JSX, a router, server-side rendering and hydration.
+
+Every docs page is available as plain Markdown at the same path with a \`.md\` suffix (\`/docs\` is \`/docs/index.md\`). Pages about a module include its API reference.
+
+${[...sections].map(([name, items]) => `## ${name}\n\n${items.join('\n')}`).join('\n\n')}
+`
+  fs.writeFileSync(path.join(buildDir, 'llms.txt'), llms)
+  console.log('  llms.txt')
+}
+
+function latestVersion() {
+  const repoData = fs.readFileSync(path.join(__dirname, '..', 'src', 'RepoData.res'), 'utf-8')
+  const match = /let latestVersion = "([^"]+)"/.exec(repoData)
+  return match ? match[1] : ''
 }
 
 prerender()

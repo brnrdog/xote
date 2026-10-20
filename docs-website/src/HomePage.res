@@ -1,683 +1,598 @@
-// ---- Feature data ----
-type feature = {
-  number: string,
-  title: string,
-  description: string,
-  linkText: option<string>,
-  linkTo: option<string>,
+// ---- Browser bindings ----
+@val external setTimeout: (unit => unit, int) => int = "setTimeout"
+@val external clearTimeout: int => unit = "clearTimeout"
+
+let copyToClipboard = (_text: string) => {
+  let _ = %raw(`(() => { try { navigator.clipboard && navigator.clipboard.writeText(_text) } catch (_) {} })()`)
 }
 
-let features: array<feature> = [
-  {
-    number: "01",
-    title: "Fine-grained reactivity",
-    description: "Signals, computeds, and effects recompute only what changed. No virtual DOM diff.",
-    linkText: Some("Learn about signals"),
-    linkTo: Some("/docs/core-concepts/signals"),
-  },
-  {
-    number: "02",
-    title: "Sound type system",
-    description: "ReScript catches invalid states at compile time with exhaustive matching and stronger null-safety by default.",
-    linkText: Some("Read the introduction"),
-    linkTo: Some("/docs"),
-  },
-  {
-    number: "03",
-    title: "Minimal footprint",
-    description: "A small runtime, tree-shakeable modules, and built-in primitives instead of a stack of add-on packages.",
-    linkText: Some("Read the overview"),
-    linkTo: Some("/docs/technical-overview"),
-  },
-  {
-    number: "04",
-    title: "JSX support + built-in router",
-    description: "Write components in JSX and handle routing with first-party primitives instead of stitching the basics together yourself.",
-    linkText: Some("View and router"),
-    linkTo: Some("/docs/view/overview"),
-  },
-]
+let eventValue = (_evt: Dom.event): string => %raw(`_evt.target.value`)
+let eventKey = (_evt: Dom.event): string => %raw(`_evt.key`)
 
-module FeatureCard = {
-  type props = {feature: feature}
+// "7.2.0-beta.2" -> "Xote 7.2 beta"
+let releaseName = {
+  let version = RepoData.latestVersion
+  let short = version->String.split(".")->Array.slice(~start=0, ~end=2)->Array.join(".")
+  let channel = if version->String.includes("beta") {
+    " beta"
+  } else if version->String.includes("rc") {
+    " RC"
+  } else {
+    ""
+  }
+  "Xote " ++ short ++ channel
+}
 
-  let make = (props: props) => {
-    let {feature: f} = props
-    <div class="feature-card">
-      <h3> {View.text(f.title)} </h3>
-      <p> {View.text(f.description)} </p>
-      {switch (f.linkText, f.linkTo) {
-      | (Some(text), Some(to)) =>
-        View.element(
-          "span",
-          ~events=[
-            (
-              "click",
-              _ =>
-                PostHog.capture(
-                  "feature_card_link_clicked",
-                  ~properties={"destination": to, "link_text": text},
-                ),
-            ),
-          ],
-          ~children=[
-            Router.link(
-              ~to,
-              ~attrs=[View.attr("class", "feature-card-link")],
-              ~children=[View.text(text ++ " \u2192")],
-              (),
-            ),
-          ],
-          (),
-        )
-      | _ => View.fragment([])
-      }}
+// ---- Shared pieces ----
+
+// The npm install line, with a copy button that confirms for a moment.
+module InstallCopy = {
+  @xote.component
+  let make = () => {
+    let copied = Signal.make(false)
+    let timer = ref(None)
+
+    let copy = _ => {
+      copyToClipboard("npm install xote")
+      Signal.set(copied, true)
+      timer.contents->Option.forEach(clearTimeout)
+      timer := Some(setTimeout(() => Signal.set(copied, false), 1600))
+      PostHog.capture("install_copied")
+    }
+
+    <div class="install">
+      <span class="install-prompt" ariaHidden=true> {View.text("$")} </span>
+      <span class="install-command"> {View.text("npm install xote")} </span>
+      <button
+        type_="button"
+        class="install-copy"
+        ariaLabel={Signal.get(copied) ? "Copied" : "Copy install command"}
+        onClick={copy}>
+        {Signal.get(copied) ? View.text("✓") : View.text("Copy")}
+      </button>
     </div>
   }
 }
 
-module HeroBackground = {
-  type props = {}
-  type rect
-  type svgViewBox
-  type svgViewBoxBase
-  type classList
-  type triangleTemplate = {
-    id: string,
-    points: string,
-    cx: float,
-    cy: float,
-  }
-  type triangleState = {
-    element: Dom.element,
-    cx: float,
-    cy: float,
-    mutable delayTimeout: option<int>,
-    mutable activeTimeout: option<int>,
+let ringIcon =
+  <svg width="14" height="14" viewBox="0 0 14 14" ariaHidden=true>
+    <circle cx="7" cy="7" r="6" fill="none" stroke="currentColor" strokeWidth="1.2" />
+    <circle class="section-eyebrow-dot" cx="7" cy="7" r="2.6" />
+  </svg>
+
+// The shared heading for every home section: eyebrow, two-tone title, and a
+// short paragraph (plus an optional link) on the right.
+module SectionHead = {
+  type props = {
+    label: string,
+    title: string,
+    titleMuted: string,
+    body: string,
+    link?: (string, string),
   }
 
-  let cols = 56
-  let rows = 20
-  let size = 24
-  let svgId = "hero-bg-svg"
-  let hoverIdleMs = 600.
-  let throttleMs = 140.
-  let tau = 6.283185307179586
-
-  @val external getById: string => Nullable.t<Dom.element> = "document.getElementById"
-  @val external queueMicrotask: (unit => unit) => unit = "queueMicrotask"
-  @val external setTimeout: (unit => unit, float) => int = "setTimeout"
-  @val external clearTimeout: int => unit = "clearTimeout"
-  @val @scope("performance") external performanceNow: unit => float = "now"
-  @val @scope("document.body") external bodyContains: Dom.element => bool = "contains"
-
-  @send
-  external addEventListener: (Dom.element, string, Dom.event => unit) => unit = "addEventListener"
-  @send
-  external removeEventListener: (Dom.element, string, Dom.event => unit) => unit =
-    "removeEventListener"
-  @send external getBoundingClientRect: Dom.element => rect = "getBoundingClientRect"
-  @send external queryWithin: (Dom.element, string) => Nullable.t<Dom.element> = "querySelector"
-  @get external rectLeft: rect => float = "left"
-  @get external rectTop: rect => float = "top"
-  @get external rectWidth: rect => float = "width"
-  @get external rectHeight: rect => float = "height"
-  @get external clientX: Dom.event => float = "clientX"
-  @get external clientY: Dom.event => float = "clientY"
-  @get external viewBox: Dom.element => svgViewBox = "viewBox"
-  @get external baseVal: svgViewBox => svgViewBoxBase = "baseVal"
-  @get external viewBoxWidth: svgViewBoxBase => float = "width"
-  @get external viewBoxHeight: svgViewBoxBase => float = "height"
-  @get external classList: Dom.element => classList = "classList"
-  @send external addClass: (classList, string) => unit = "add"
-  @send external removeClass: (classList, string) => unit = "remove"
-  @send external toggleClass: (classList, string, bool) => unit = "toggle"
-
-  let clearTimer = (timerRef: ref<option<int>>) => {
-    switch timerRef.contents {
-    | Some(id) =>
-      clearTimeout(id)
-      timerRef := None
-    | None => ()
-    }
-  }
-
-  let clearTriangleTimers = (triangle: triangleState) => {
-    switch triangle.delayTimeout {
-    | Some(id) =>
-      clearTimeout(id)
-      triangle.delayTimeout = None
-    | None => ()
-    }
-    switch triangle.activeTimeout {
-    | Some(id) =>
-      clearTimeout(id)
-      triangle.activeTimeout = None
-    | None => ()
-    }
-  }
-
-  let resetTriangle = (triangle: triangleState) => {
-    clearTriangleTimers(triangle)
-    let classes = triangle.element->classList
-    classes->removeClass("active")
-    classes->removeClass("active-accent")
-  }
-
-  let activateTriangle = (~triangle, ~delayMs, ~ttlMs, ~accent) => {
-    clearTriangleTimers(triangle)
-    let safeDelay = Math.max(0., delayMs)
-    let delayId = setTimeout(() => {
-      triangle.delayTimeout = None
-      let classes = triangle.element->classList
-      classes->toggleClass("active-accent", accent)
-      classes->addClass("active")
-      let activeId = setTimeout(() => {
-        triangle.activeTimeout = None
-        classes->removeClass("active")
-        classes->removeClass("active-accent")
-      }, ttlMs)
-      triangle.activeTimeout = Some(activeId)
-    }, safeDelay)
-    triangle.delayTimeout = Some(delayId)
-  }
-
-  let makeTriangleTemplates = (): array<triangleTemplate> => {
-    let out = []
-    for r in 0 to rows - 1 {
-      for c in 0 to cols - 1 {
-        let x = c * size
-        let y = r * size
-        let x2 = x + size
-        let y2 = y + size
-        let fx = Int.toFloat(x)
-        let fy = Int.toFloat(y)
-        let fx2 = Int.toFloat(x2)
-        let fy2 = Int.toFloat(y2)
-        let sx = Int.toString(x)
-        let sy = Int.toString(y)
-        let sx2 = Int.toString(x2)
-        let sy2 = Int.toString(y2)
-        let cellId = `${Int.toString(r)}-${Int.toString(c)}`
-        out->Array.push({
-          id: `${cellId}-upper`,
-          points: `${sx},${sy} ${sx2},${sy} ${sx},${sy2}`,
-          cx: (fx +. fx2 +. fx) /. 3.,
-          cy: (fy +. fy +. fy2) /. 3.,
-        })
-        ->ignore
-        out->Array.push({
-          id: `${cellId}-lower`,
-          points: `${sx2},${sy} ${sx2},${sy2} ${sx},${sy2}`,
-          cx: (fx2 +. fx2 +. fx) /. 3.,
-          cy: (fy +. fy2 +. fy2) /. 3.,
-        })
-        ->ignore
-      }
-    }
-    out
-  }
-
-  let triangleTemplates = makeTriangleTemplates()
-  let width = cols * size
-  let height = rows * size
-  let viewBoxValue = `0 0 ${Int.toString(width)} ${Int.toString(height)}`
-
-  let hydrateTriangles = (svg: Dom.element): array<triangleState> =>
-    triangleTemplates
-    ->Array.filterMap(template => {
-      let selector = `[data-tri-id="${template.id}"]`
-      switch svg->queryWithin(selector)->Nullable.toOption {
-      | Some(element) =>
-        Some({
-          element,
-          cx: template.cx,
-          cy: template.cy,
-          delayTimeout: None,
-          activeTimeout: None,
-        })
-      | None => None
-      }
-    })
-
-  let findNearestTriangle = (~triangles, ~cx, ~cy) => {
-    let nearest: ref<option<triangleState>> = ref(None)
-    let nearestD2 = ref(0.)
-    triangles->Array.forEach(triangle => {
-      let dx = triangle.cx -. cx
-      let dy = triangle.cy -. cy
-      let d2 = dx *. dx +. dy *. dy
-      switch nearest.contents {
-      | Some(_) =>
-        if d2 < nearestD2.contents {
-          nearest := Some(triangle)
-          nearestD2 := d2
-        }
-      | None =>
-        nearest := Some(triangle)
-        nearestD2 := d2
-      }
-    })
-    nearest.contents
-  }
-
-  let triggerRipple = (~triangles, ~seed, ~vbWidth, ~vbHeight, ~throttle, ~idle, ~lastRippleAt) => {
-    let now = performanceNow()
-    let shouldPropagate =
-      if throttle {
-        switch lastRippleAt.contents {
-        | Some(last) if now -. last < throttleMs =>
-          activateTriangle(
-            ~triangle=seed,
-            ~delayMs=0.,
-            ~ttlMs=600.,
-            ~accent=Math.random() < 0.18,
+  let make = (props: props) => {
+    <div class="section-head">
+      <div class="section-head-main">
+        <span class="section-eyebrow"> ringIcon <span> {View.text(props.label)} </span> </span>
+        <h2 class="section-title">
+          {View.text(props.title ++ " ")}
+          <span class="section-title-muted"> {View.text(props.titleMuted)} </span>
+        </h2>
+      </div>
+      <div class="section-head-side">
+        <p> {View.text(props.body)} </p>
+        {switch props.link {
+        | Some((to, label)) =>
+          Router.link(
+            ~to,
+            ~attrs=[View.attr("class", "text-link")],
+            ~children=[View.text(label ++ " →")],
+            (),
           )
-          false
-        | _ =>
-          lastRippleAt := Some(now)
-          true
-        }
-      } else {
-        lastRippleAt := Some(now)
-        true
-      }
-
-    if shouldPropagate {
-      let cellVb = (vbWidth /. 42. +. vbHeight /. 15.) /. 2.
-      let maxRings = idle ? 5 : 3
-      let ringStep = cellVb *. (idle ? 1.4 : 1.2)
-      let ringDelay = idle ? 140. : 70.
-      let ringDuration = idle ? 520. : 360.
-      let biasAngle = idle ? Math.random() *. tau : 0.
-      let biasStrength = idle ? 0.55 : 0.
-
-      triangles->Array.forEach(triangle => {
-        let dx = triangle.cx -. seed.cx
-        let dy = triangle.cy -. seed.cy
-        let dist = Math.sqrt(dx *. dx +. dy *. dy)
-        let ring = Int.fromFloat(Math.round(dist /. ringStep))
-        if ring <= maxRings {
-          let probability =
-            if idle {
-              let directionWeight =
-                if dist > 0. {
-                  let angle = Math.atan2(~y=dy, ~x=dx)
-                  let alignment = Math.cos(angle -. biasAngle)
-                  1. +. biasStrength *. alignment
-                } else {
-                  1.
-                }
-              if ring == 0 {
-                1.
-              } else {
-                Math.max(0., (0.55 -. Int.toFloat(ring) *. 0.09) *. directionWeight)
-              }
-            } else if ring == 0 {
-              1.
-            } else {
-              0.35 -. Int.toFloat(ring) *. 0.08
-            }
-
-          if Math.random() <= probability {
-            let jitter = (Math.random() -. 0.5) *. (idle ? 120. : 60.)
-            let ttl =
-              ringDuration +.
-              Int.toFloat(ring) *. (idle ? 110. : 50.) +.
-              Math.random() *. (idle ? 320. : 160.)
-            let accentProbability = idle ? 0.12 : 0.18
-            let accent = ring > 0 && Math.random() < accentProbability
-            activateTriangle(
-              ~triangle,
-              ~delayMs=Int.toFloat(ring) *. ringDelay +. jitter,
-              ~ttlMs=ttl,
-              ~accent,
-            )
-          }
-        }
-      })
-    }
-  }
-
-  let makeTriangles = () =>
-    triangleTemplates->Array.map(template =>
-      View.element(
-        "polygon",
-        ~attrs=[
-          View.attr("points", template.points),
-          View.attr("class", "hero-tri"),
-          View.attr("data-tri-id", template.id),
-        ],
-        (),
-      )
-    )
-
-  let make = (_props: props) => {
-    if SSRContext.isClient {
-      Effect.run(() => {
-        let disposed = ref(false)
-        let hoverActive = ref(false)
-        let hoverEndTimer: ref<option<int>> = ref(None)
-        let idleTimer: ref<option<int>> = ref(None)
-        let lastRippleAt: ref<option<float>> = ref(None)
-        let mouseMoveHandler: ref<option<Dom.event => unit>> = ref(None)
-        let boundSvg: ref<option<Dom.element>> = ref(None)
-        let triangles: ref<array<triangleState>> = ref([])
-
-        let scheduleIdle = ref(() => ())
-        let cleanup = () => {
-          disposed := true
-          clearTimer(hoverEndTimer)
-          clearTimer(idleTimer)
-          triangles.contents->Array.forEach(resetTriangle)
-          switch (boundSvg.contents, mouseMoveHandler.contents) {
-          | (Some(svg), Some(handler)) => svg->removeEventListener("mousemove", handler)
-          | _ => ()
-          }
-          hoverActive := false
-          boundSvg := None
-          mouseMoveHandler := None
-          triangles := []
-        }
-
-        scheduleIdle := () => {
-          clearTimer(idleTimer)
-          let delay = 900. +. Math.random() *. 1600.
-          idleTimer := Some(setTimeout(() => {
-            idleTimer := None
-            switch boundSvg.contents {
-            | Some(svg) if !disposed.contents && bodyContains(svg) =>
-              if !hoverActive.contents {
-                let readyTriangles = triangles.contents
-                let triangleCount = Array.length(readyTriangles)
-                if triangleCount > 0 {
-                  let index = Int.fromFloat(Math.floor(Math.random() *. Int.toFloat(triangleCount)))
-                  switch readyTriangles->Array.get(index) {
-                  | Some(seed) =>
-                    triggerRipple(
-                      ~triangles=readyTriangles,
-                      ~seed,
-                      ~vbWidth=svg->viewBox->baseVal->viewBoxWidth,
-                      ~vbHeight=svg->viewBox->baseVal->viewBoxHeight,
-                      ~throttle=false,
-                      ~idle=true,
-                      ~lastRippleAt,
-                    )
-                  | None => ()
-                  }
-                }
-              }
-              scheduleIdle.contents()
-            | _ => ()
-            }
-          }, delay))
-        }
-
-        queueMicrotask(() => {
-          if !disposed.contents {
-            switch getById(svgId)->Nullable.toOption {
-            | Some(svg) =>
-              let readyTriangles = hydrateTriangles(svg)
-              triangles := readyTriangles
-              boundSvg := Some(svg)
-
-              let handler = (evt: Dom.event) => {
-                hoverActive := true
-                clearTimer(hoverEndTimer)
-                hoverEndTimer := Some(setTimeout(() => {
-                  hoverEndTimer := None
-                  hoverActive := false
-                }, hoverIdleMs))
-
-                let rect = svg->getBoundingClientRect
-                let width = rect->rectWidth
-                let height = rect->rectHeight
-                if width > 0. && height > 0. {
-                  let vb = svg->viewBox->baseVal
-                  let cx = (evt->clientX -. rect->rectLeft) *. (vb->viewBoxWidth /. width)
-                  let cy = (evt->clientY -. rect->rectTop) *. (vb->viewBoxHeight /. height)
-                  switch findNearestTriangle(~triangles=readyTriangles, ~cx, ~cy) {
-                  | Some(seed) =>
-                    triggerRipple(
-                      ~triangles=readyTriangles,
-                      ~seed,
-                      ~vbWidth=vb->viewBoxWidth,
-                      ~vbHeight=vb->viewBoxHeight,
-                      ~throttle=true,
-                      ~idle=false,
-                      ~lastRippleAt,
-                    )
-                  | None => ()
-                  }
-                }
-              }
-
-              mouseMoveHandler := Some(handler)
-              svg->addEventListener("mousemove", handler)
-              scheduleIdle.contents()
-            | None => ()
-            }
-          }
-        })
-
-        Some(cleanup)
-      })
-    }
-
-    View.element(
-      "div",
-      ~attrs=[View.attr("class", "hero-bg"), View.attr("aria-hidden", "true")],
-      ~children=[
-        View.element(
-          "svg",
-          ~attrs=[
-            View.attr("id", svgId),
-            View.attr("viewBox", viewBoxValue),
-            View.attr("preserveAspectRatio", "xMidYMid slice"),
-            View.attr("class", "hero-bg-svg"),
-          ],
-          ~children=makeTriangles(),
-          (),
-        ),
-      ],
-      (),
-    )
+        | None => View.fragment([])
+        }}
+      </div>
+    </div>
   }
 }
 
+// ---- Hero ----
 module Hero = {
   type props = {}
 
   let make = (_props: props) => {
-    <section class="hero">
-      <HeroBackground />
-      <h1 class="hero-display">
-        {View.text("A ReScript Library for Building User Interfaces")}
-      </h1>
-      <p class="hero-lead">
-        {View.text(
-          "Build components and web applications with fine-grained reactivity in a sound type system world.",
-        )}
-      </p>
-      <div class="hero-ctas">
-        {View.element(
-          "span",
-          ~events=[("click", _ => PostHog.capture("get_started_clicked"))],
-          ~children=[
-            Router.link(
-              ~to="/docs",
-              ~attrs=[View.attr("class", "btn btn-primary")],
-              ~children=[View.text("Get started")],
-              (),
-            ),
-          ],
-          (),
-        )}
+    <section class="home-hero" ariaLabel="Introduction">
+      <div class="hero-rings" ariaHidden=true />
+      <div class="hero-inner">
         {Router.link(
-          ~to="/docs/core-concepts/signals",
-          ~attrs=[View.attr("class", "btn-secondary-link")],
-          ~children=[View.text("Read the docs \u2192")],
+          ~to="/docs/changelog",
+          ~attrs=[View.attr("class", "hero-release")],
+          ~children=[View.text(releaseName ++ " is out — see what’s new →")],
           (),
         )}
+        <h1 class="hero-title">
+          {View.text("Signals,")}
+          <br />
+          {View.text("all the way down.")}
+        </h1>
+        <p class="hero-lead">
+          {View.text(
+            "Build applications with fine-grained reactivity while leveraging a robust type system with ReScript.",
+          )}
+        </p>
+        <div class="hero-actions">
+          {View.element(
+            "span",
+            ~events=[("click", _ => PostHog.capture("get_started_clicked"))],
+            ~children=[
+              Router.link(
+                ~to="/docs",
+                ~attrs=[View.attr("class", "btn-pill btn-ink btn-lg")],
+                ~children=[View.text("Get started →")],
+                (),
+              ),
+            ],
+            (),
+          )}
+          <InstallCopy />
+        </div>
       </div>
+      <a class="hero-next" href="#examples"> {View.text("↓ See it in code")} </a>
     </section>
   }
 }
 
-module Tutorial = {
-  type props = {}
+// ---- Examples: three small programs, each running live next to its code ----
 
-  let step1Code = `type tempUnit = Celsius | Fahrenheit | Kelvin
-
-let symbolFor = u =>
-  switch u {
-  | Celsius => "°C"
-  | Fahrenheit => "°F"
-  | Kelvin => "K"
-  }
+let counterCode = `open Xote
 
 @xote.component
-let make = (~value: float, ~unit: tempUnit) =>
-  <div class="temp-display">
-    <span class="temp-value">
-      <View.Text> {value->Float.toFixed(~digits=1)} </View.Text>
-    </span>
-    <span class="temp-unit">
-      <View.Text> {symbolFor(unit)} </View.Text>
-    </span>
-  </div>`
+let make = () => {
+  let count = Signal.make(0)
+  let doubled = Computed.make(() => Signal.get(count) * 2)
 
-  let step2Code = `let celsius = Signal.make(22.0)
+  <button onClick={_ => Signal.update(count, n => n + 1)}>
+    {"Doubled: " ++ Int.toString(Signal.get(doubled))}
+  </button>
+}`
 
-let fahrenheit = Computed.make(() =>
-  Signal.get(celsius) *. 9.0 /. 5.0 +. 32.0
-)
-let kelvin = Computed.make(() =>
-  Signal.get(celsius) +. 273.15
+let todosCode = `type todo = {id: string, text: string, done: Signal.t<bool>}
+
+let todos = Signal.make([
+  {id: "1", text: "Learn signals", done: Signal.make(true)},
+  {id: "2", text: "Build something small", done: Signal.make(false)},
+])
+
+let left = Computed.make(() =>
+  Signal.get(todos)->Array.filter(t => !Signal.get(t.done))->Array.length
 )
 
 @xote.component
 let make = () =>
-  <div class="temp-row">
-    <TemperatureDisplay
-      value={() => Signal.get(celsius)} unit=Celsius
-    />
-    <TemperatureDisplay
-      value={() => Signal.get(fahrenheit)} unit=Fahrenheit
-    />
-    <TemperatureDisplay
-      value={() => Signal.get(kelvin)} unit=Kelvin
-    />
-  </div>`
+  <section>
+    <ul>
+      {View.eachWithKey(todos, t => t.id, t =>
+        <li
+          class={Signal.get(t.done) ? "done" : ""}
+          onClick={_ => Signal.update(t.done, d => !d)}>
+          {View.text(t.text)}
+        </li>
+      )}
+    </ul>
+    {Int.toString(Signal.get(left)) ++ " left"}
+  </section>`
 
-  let step3Code = `let capital = Signal.make(pickRandomCapital())
-let celsius = Signal.make(None)
-
-let fahrenheit = Computed.make(() =>
-  switch Signal.get(celsius) {
-  | Some(c) => Some(c *. 9.0 /. 5.0 +. 32.0)
-  | None => None
-  }
-)
+let autosaveCode = `let draft = Signal.make("")
+let status = Signal.make("Idle")
 
 Effect.run(() => {
-  let c = Signal.get(capital)
-  Signal.set(celsius, None)
+  let text = Signal.get(draft)
+  Signal.set(status, "Saving…")
+  let id = setTimeout(() => Signal.set(status, "Saved: " ++ text), 600)
+  Some(() => clearTimeout(id)) // cleanup: runs before the next change
+})
 
-  let url =
-    \`https://api.open-meteo.com/v1/forecast?\` ++
-    \`latitude=\${c.lat}&longitude=\${c.lng}\` ++
-    \`&current_weather=true\`
+@xote.component
+let make = () =>
+  <div>
+    <input
+      value={Signal.get(draft)}
+      onInput={e => Signal.set(draft, targetValue(e))}
+    />
+    {Signal.get(status)}
+  </div>`
 
-  fetch(url)
-  ->Promise.then(r => r->Response.json)
-  ->Promise.then(json => {
-    Signal.set(celsius, Some(json["current_weather"]["temperature"]))
-    Promise.resolve()
-  })
-  ->ignore
+module CounterDemo = {
+  @xote.component
+  let make = () => {
+    let count = Signal.make(0)
+    let doubled = Computed.make(() => Signal.get(count) * 2)
 
-  None
-})`
+    <div class="demo-counter">
+      <button type_="button" class="btn-pill btn-soft btn-lg" onClick={_ => Signal.update(count, n => n + 1)}>
+        {"Doubled: " ++ Int.toString(Signal.get(doubled))}
+      </button>
+      <span class="demo-meta"> {"count = " ++ Int.toString(Signal.get(count))} </span>
+    </div>
+  }
+}
 
-  let stepHeader = (~n, ~title, ~blurb) =>
-    <div class="tutorial-step-head">
-      <span class="tutorial-step-number"> {View.text(n)} </span>
-      <div>
-        <h3 class="tutorial-step-title"> {View.text(title)} </h3>
-        <p class="tutorial-step-blurb"> {View.text(blurb)} </p>
+module TodosDemo = {
+  type todo = {id: string, text: string, done: Signal.t<bool>}
+
+  @xote.component
+  let make = () => {
+    let todos = Signal.make([
+      {id: "1", text: "Learn signals", done: Signal.make(true)},
+      {id: "2", text: "Build something small", done: Signal.make(false)},
+      {id: "3", text: "Ship it", done: Signal.make(false)},
+    ])
+    let draft = Signal.make("")
+    let nextId = ref(4)
+    let left = Computed.make(() =>
+      Signal.get(todos)->Array.filter(t => !Signal.get(t.done))->Array.length
+    )
+
+    let add = () => {
+      let text = Signal.peek(draft)->String.trim
+      if text != "" {
+        let id = Int.toString(nextId.contents)
+        nextId := nextId.contents + 1
+        Signal.batch(() => {
+          Signal.update(todos, ts => Array.concat(ts, [{id, text, done: Signal.make(false)}]))
+          Signal.set(draft, "")
+        })
+      }
+    }
+
+    <div class="demo-todos">
+      <div class="demo-row">
+        <input
+          class="demo-input"
+          type_="text"
+          placeholder="Add a task"
+          ariaLabel="New task"
+          value={Signal.get(draft)}
+          onInput={e => Signal.set(draft, eventValue(e))}
+          onKeyDown={e => eventKey(e) == "Enter" ? add() : ()}
+        />
+        <button type_="button" class="btn-pill btn-soft" onClick={_ => add()}>
+          {View.text("Add")}
+        </button>
       </div>
+      <ul class="demo-list">
+        {View.eachWithKey(todos, t => t.id, t =>
+          <li>
+            <button
+              type_="button"
+              class={Signal.get(t.done) ? "demo-todo done" : "demo-todo"}
+              onClick={_ => Signal.update(t.done, d => !d)}>
+              <span class="demo-todo-box" ariaHidden=true />
+              {View.text(t.text)}
+            </button>
+          </li>
+        )}
+      </ul>
+      <span class="demo-meta">
+        {switch Signal.get(left) {
+        | 1 => "1 left"
+        | n => Int.toString(n) ++ " left"
+        }}
+      </span>
     </div>
+  }
+}
 
-  let codeBlock = (~filename, ~code) =>
-    <div class="tutorial-code">
-      <div class="tutorial-code-filename"> {View.text(filename)} </div>
-      <pre class="tutorial-code-pre">
-        <code> {SyntaxHighlight.highlight(code)} </code>
-      </pre>
+module AutosaveDemo = {
+  @xote.component
+  let make = () => {
+    let draft = Signal.make("")
+    let status = Signal.make("Idle")
+    let saving = Signal.make(false)
+    let saves: Signal.t<array<string>> = Signal.make([])
+
+    Effect.run(() => {
+      let text = Signal.get(draft)->String.trim
+      if text == "" {
+        Signal.set(status, "Idle")
+        Signal.set(saving, false)
+        None
+      } else {
+        Signal.set(status, "Saving…")
+        Signal.set(saving, true)
+        let id = setTimeout(() => {
+          Signal.batch(() => {
+            Signal.set(status, "Saved")
+            Signal.set(saving, false)
+            Signal.update(saves, list => Array.concat([text], list)->Array.slice(~start=0, ~end=3))
+          })
+        }, 600)
+        Some(() => clearTimeout(id))
+      }
+    })
+
+    <div class="demo-autosave">
+      <label class="demo-label" for_="demo-autosave-input"> {View.text("Draft")} </label>
+      <input
+        id="demo-autosave-input"
+        class="demo-input"
+        type_="text"
+        placeholder="Write a short note…"
+        value={Signal.get(draft)}
+        onInput={e => Signal.set(draft, eventValue(e))}
+      />
+      <div class="demo-status" role="status">
+        <span class={Signal.get(saving) ? "demo-dot saving" : Signal.get(status) == "Saved" ? "demo-dot saved" : "demo-dot"} />
+        {Signal.get(status)}
+      </div>
+      <ul class="demo-saves">
+        {View.each(saves, text => <li> {View.text("“" ++ text ++ "”")} </li>)}
+      </ul>
     </div>
+  }
+}
 
-  let stage = (~caption, ~children) =>
-    <figure class="tutorial-figure">
-      <div class="tutorial-figure-stage"> {children} </div>
-      <figcaption class="tutorial-figure-caption"> {View.text(caption)} </figcaption>
-    </figure>
+type example = {
+  id: string,
+  label: string,
+  file: string,
+  code: string,
+  caption: string,
+}
+
+let examples = [
+  {
+    id: "counter",
+    label: "Counter",
+    file: "Counter.res",
+    code: counterCode,
+    caption: "Click it: only the button’s text changes.",
+  },
+  {
+    id: "todos",
+    label: "Todo list",
+    file: "Todos.res",
+    code: todosCode,
+    caption: "Each todo owns a signal, so ticking one updates that item alone.",
+  },
+  {
+    id: "autosave",
+    label: "Auto-save",
+    file: "Autosave.res",
+    code: autosaveCode,
+    caption: "Each keystroke re-runs the effect; its cleanup cancels the pending save.",
+  },
+]
+
+module Examples = {
+  type props = {}
 
   let make = (_props: props) => {
-    <section class="tutorial-section">
-      <div class="tutorial-step">
-        {stepHeader(
-          ~n="01",
-          ~title="Build a presentational view",
-          ~blurb="Views are plain functions. TemperatureDisplay takes a value and a unit and renders them in a styled card.",
-        )}
-        <div class="tutorial-step-body">
-          {codeBlock(~filename="TemperatureDisplay.res", ~code=step1Code)}
-          {stage(
-            ~caption="Preview: TemperatureDisplay with a static value of 22 °C",
-            ~children=<TutorialDemos.Step1 />,
-          )}
+    let selected = Signal.make("counter")
+
+    let tab = (example: example) =>
+      View.element(
+        "button",
+        ~attrs=[
+          View.attr("type", "button"),
+          View.attr("role", "tab"),
+          View.computedAttr("class", () =>
+            Signal.get(selected) == example.id ? "examples-tab active" : "examples-tab"
+          ),
+          View.computedAttr("aria-selected", () =>
+            Signal.get(selected) == example.id ? "true" : "false"
+          ),
+        ],
+        ~events=[
+          (
+            "click",
+            _ => {
+              Signal.set(selected, example.id)
+              PostHog.capture("home_example_selected", ~properties={"example": example.id})
+            },
+          ),
+        ],
+        ~children=[View.text(example.label)],
+        (),
+      )
+
+    let current = Computed.make(() => {
+      let id = Signal.get(selected)
+      examples->Array.find(e => e.id == id)->Option.getOr(examples->Array.getUnsafe(0))
+    })
+
+    <section id="examples" class="home-section" ariaLabel="Examples">
+      <SectionHead
+        label="Examples"
+        title="See some examples."
+        titleMuted="Then try it yourself."
+        body="Have a quick look at how small applications written in Xote look. Then try it yourself in the playground."
+        link=("/docs/core-concepts/signals", "All examples")
+      />
+      <div class="examples-panel">
+        <div class="examples-tabs" role="tablist" ariaLabel="Examples">
+          {View.fragment(examples->Array.map(tab))}
+          <span class="examples-file"> {View.signalText(() => Signal.get(current).file)} </span>
         </div>
-      </div>
-      <div class="tutorial-step">
-        {stepHeader(
-          ~n="02",
-          ~title="Add reactivity with signals and computeds",
-          ~blurb="One signal holds the Celsius value. Computeds derive Fahrenheit and Kelvin automatically. Move the slider — the display updates without re-rendering the tree.",
-        )}
-        <div class="tutorial-step-body">
-          {codeBlock(~filename="TemperatureDashboard.res", ~code=step2Code)}
-          {stage(
-            ~caption="Preview: one signal drives three synchronized readouts",
-            ~children=<TutorialDemos.Step2 />,
-          )}
-        </div>
-      </div>
-      <div class="tutorial-step">
-        {stepHeader(
-          ~n="03",
-          ~title="Fetch live data in an effect",
-          ~blurb="An effect tracks the selected capital and fetches the current temperature from the Open-Meteo API. When the capital changes, the effect re-runs and the dashboard re-renders.",
-        )}
-        <div class="tutorial-step-body">
-          {codeBlock(~filename="CapitalWeather.res", ~code=step3Code)}
-          {stage(
-            ~caption="Preview: real weather from a random world capital",
-            ~children=<TutorialDemos.Step3 />,
-          )}
+        <div class="examples-body">
+          <div class="examples-code">
+            {View.signalFragment(
+              Computed.make(() => [
+                <pre class="examples-pre"> {SyntaxHighlight.highlight(Signal.get(current).code)} </pre>,
+              ]),
+            )}
+          </div>
+          <div class="examples-demo">
+            <div class="examples-stage">
+              {View.signalFragment(
+                Computed.make(() =>
+                  switch Signal.get(selected) {
+                  | "todos" => [<TodosDemo />]
+                  | "autosave" => [<AutosaveDemo />]
+                  | _ => [<CounterDemo />]
+                  }
+                ),
+              )}
+            </div>
+            <p class="examples-caption"> {View.signalText(() => Signal.get(current).caption)} </p>
+          </div>
         </div>
       </div>
     </section>
   }
 }
 
-module Features = {
+// ---- How it works + why it matters, sharing one ring background ----
+
+let triadSignalCode = `let count = Signal.make(0)`
+let triadComputedCode = `let doubled = Computed.make(() =>
+  Signal.get(count) * 2
+)`
+let triadEffectCode = `Effect.run(() => {
+  Console.log(Signal.get(doubled))
+  None
+})`
+
+module TriadItem = {
+  type props = {
+    role: string,
+    name: string,
+    description: string,
+    code: string,
+    icon: View.node,
+    linked: bool,
+  }
+
+  let make = (props: props) => {
+    <li class="triad-item">
+      <div class="triad-row">
+        {props.icon}
+        {props.linked ? <span class="triad-link" ariaHidden=true /> : View.fragment([])}
+      </div>
+      <span class="triad-role"> {View.text(props.role)} </span>
+      <h3 class="triad-name"> {View.text(props.name)} </h3>
+      <p> {View.text(props.description)} </p>
+      <pre class="triad-code"> {SyntaxHighlight.highlight(props.code)} </pre>
+    </li>
+  }
+}
+
+let triadIcon = children =>
+  <svg class="triad-node" width="64" height="64" viewBox="0 0 64 64" ariaHidden=true>
+    <circle class="triad-node-ring" cx="32" cy="32" r="30" />
+    {children}
+  </svg>
+
+module HowItWorks = {
   type props = {}
 
   let make = (_props: props) => {
-    <section class="features-section">
-      <div class="features-grid">
-        {View.fragment(features->Array.map(f => <FeatureCard feature={f} />))}
+    <section class="home-pane" ariaLabel="How it works">
+      <div class="home-pane-inner">
+        <SectionHead
+          label="How it works"
+          title="Meet the triad."
+          titleMuted="The core of everything in Xote."
+          body="Signals hold state, computed values derive from it, and effects carry changes out to the page. That’s everything you need before you build."
+          link=("/docs/core-concepts/signals", "Read the guide")
+        />
+        <ol class="triad">
+          <TriadItem
+            role="01 · Source"
+            name="Signal"
+            description="Holds a value and tells whoever reads it when it changes."
+            code=triadSignalCode
+            linked=true
+            icon={triadIcon(
+              View.fragment([
+                <circle class="triad-signal-ring" cx="32" cy="32" r="19" />,
+                <circle class="triad-signal-dot" cx="32" cy="32" r="9" />,
+              ]),
+            )}
+          />
+          <TriadItem
+            role="02 · Derived"
+            name="Computed"
+            description="Derives a value from other signals and keeps it current on its own."
+            code=triadComputedCode
+            linked=true
+            icon={triadIcon(<circle class="triad-shape" cx="32" cy="32" r="15" />)}
+          />
+          <TriadItem
+            role="03 · Reaction"
+            name="Effect"
+            description="Runs whenever what it reads changes: update the page, save, log."
+            code=triadEffectCode
+            linked=false
+            icon={triadIcon(<path class="triad-shape" d="M32 17 L47 32 L32 47 L17 32 Z" />)}
+          />
+        </ol>
+      </div>
+    </section>
+  }
+}
+
+type benefit = {title: string, body: string}
+
+let benefits = [
+  {title: "Fast by default", body: "No virtual DOM. Updates touch only the nodes that changed."},
+  {title: "Sound types", body: "ReScript catches mistakes before they reach the browser."},
+  {title: "Small surface", body: "Sixteen modules you can keep in your head."},
+  {title: "Full stack", body: "Router, SSR and hydration when you need them."},
+]
+
+module WhyItMatters = {
+  type props = {}
+
+  let make = (_props: props) => {
+    <section class="home-section" ariaLabel="Why it matters">
+      <SectionHead
+        label="Why it matters"
+        title="Less to learn and hold."
+        titleMuted="Less to break."
+        body="A small API on top of a sound type system: fewer concepts to hold in your head, and fewer surprises once it ships."
+      />
+      <div class="benefits">
+        {View.fragment(
+          benefits->Array.map(b =>
+            <div class="benefit">
+              <h3> {View.text(b.title)} </h3>
+              <p> {View.text(b.body)} </p>
+            </div>
+          ),
+        )}
+      </div>
+    </section>
+  }
+}
+
+// ---- Closing call to action ----
+module GetStarted = {
+  type props = {}
+
+  let make = (_props: props) => {
+    <section class="home-cta" ariaLabel="Get started">
+      <div class="home-cta-inner">
+        <div class="home-cta-copy">
+          <h2>
+            {View.text("Start with")}
+            <br />
+            {View.text("one signal.")}
+          </h2>
+          <p>
+            {View.text("Install the package, add the JSX transform, and render your first component in a few minutes.")}
+          </p>
+        </div>
+        <div class="home-cta-actions">
+          {Router.link(
+            ~to="/docs",
+            ~attrs=[View.attr("class", "btn-pill btn-ink btn-lg")],
+            ~children=[View.text("Read the quick start →")],
+            (),
+          )}
+          <InstallCopy />
+        </div>
       </div>
     </section>
   }
@@ -689,8 +604,12 @@ let make = (_props: props) => {
   <Layout
     children={View.fragment([
       <Hero />,
-      <Features />,
-      <Tutorial />,
+      <Examples />,
+      <div class="home-rings-area">
+        <HowItWorks />
+        <WhyItMatters />
+      </div>,
+      <GetStarted />,
     ])}
   />
 }
