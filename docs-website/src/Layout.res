@@ -40,8 +40,8 @@ if SSRContext.isClient {
 }
 
 // ---- Header over the hero ----
-// On the home page the sticky header wears the hero's lime colours until the
-// hero has scrolled out from under it.
+// On the home page the header scrolls away with the hero and only turns
+// sticky once the hero has been passed.
 @val @scope("window") external scrollY: float = "scrollY"
 @val @scope("window")
 external addWindowListener: (string, unit => unit, {"passive": bool}) => unit = "addEventListener"
@@ -57,7 +57,7 @@ let syncOverHero = () => {
   | Some(hero) => hero["offsetHeight"]
   | None => infinity
   }
-  Signal.set(overHero, scrollY < heroHeight -. 72.0)
+  Signal.set(overHero, scrollY < heroHeight)
 }
 
 let _ = if SSRContext.isClient {
