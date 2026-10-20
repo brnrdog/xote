@@ -199,13 +199,14 @@ pre code {
   stroke-width: 2.6;
   opacity: 0.8;
 }
-/* The core is lime in both themes, matching the logo files. */
+/* The core is lime, and a deeper lime in the light theme, matching the logo
+   files. */
 .logo-ring-core {
-  stroke: var(--signal);
+  stroke: var(--logo-core);
   stroke-width: 3.4;
 }
 .logo-mark .logo-dot {
-  fill: var(--signal);
+  fill: var(--logo-core);
 }
 
 /* ---- Header ---- */

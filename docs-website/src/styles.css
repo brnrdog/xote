@@ -18,6 +18,7 @@
   --line-strong: #5f6862;
   --signal: #c8f53c;
   --signal-text: #c8f53c;
+  --logo-core: #c8f53c;
   --signal-tint: #1c240e;
   --on-hue: #0b0d0c;
   --focus: #c8f53c;
@@ -115,6 +116,9 @@
   --line: #dcdfd6;
   --line-strong: #7d847e;
   --signal-text: #3d5700;
+  /* Lime pale enough to vanish on white, so the light logo uses a deeper
+     lime (3.4:1 on white). */
+  --logo-core: #6b9a00;
   --signal-tint: #eef8cc;
   --focus: #3d5700;
   --danger: #c01e3c;

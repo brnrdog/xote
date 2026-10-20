@@ -1,5 +1,15 @@
 <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="50" cy="50" r="37" stroke="#838c86" stroke-width="4" opacity="0.6"/>
-  <circle cx="50" cy="50" r="18" stroke="#c8f53c" stroke-width="6"/>
-  <circle cx="50" cy="50" r="8" fill="#c8f53c"/>
+  <style>
+    .ring { stroke: #838c86; }
+    .core { stroke: #c8f53c; }
+    .dot { fill: #c8f53c; }
+    @media (prefers-color-scheme: light) {
+      .ring { stroke: #5f6762; }
+      .core { stroke: #6b9a00; }
+      .dot { fill: #6b9a00; }
+    }
+  </style>
+  <circle class="ring" cx="50" cy="50" r="37" stroke-width="4" opacity="0.6"/>
+  <circle class="core" cx="50" cy="50" r="18" stroke-width="6"/>
+  <circle class="dot" cx="50" cy="50" r="8"/>
 </svg>
