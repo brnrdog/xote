@@ -1097,7 +1097,7 @@ pre code {
 .sidebar-link {
   margin: 2px 0;
   padding: 7px 14px;
-  border-radius: 12px;
+  border-radius: var(--r-pill);
   font-size: 14px;
   line-height: 20px;
   color: var(--ink-muted);
