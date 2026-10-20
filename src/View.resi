@@ -528,7 +528,7 @@ On the server no DOM is created, so a ref stays `None`.
 @send external focus: Dom.element => unit = "focus"
 
 module Search = {
-  @jsx.component
+  @xote.component
   let make = () => {
     let field = View.Ref.make()
     View.onMount(() => View.Ref.peek(field)->Option.forEach(focus))
@@ -583,14 +583,14 @@ server rendering. During hydration, it runs once the page is interactive.
 
 ```rescript
 module Clock = {
-  @jsx.component
+  @xote.component
   let make = () => {
     let now = Signal.make(Date.now())
     View.onMount(() => {
       let id = setInterval(() => Signal.set(now, Date.now()), 1000)
       View.onCleanup(() => clearInterval(id))
     })
-    <time> {View.signalText(() => Float.toString(Signal.get(now)))} </time>
+    <time> {Signal.get(now)} </time>
   }
 }
 ```
@@ -658,7 +658,7 @@ effect instead.
 
 ```rescript
 module Resizer = {
-  @jsx.component
+  @xote.component
   let make = (~onResize: unit => unit) => {
     let listener = _ => onResize()
     View.onMount(() => {
@@ -977,21 +977,24 @@ boundary also renders a `<div style="display: contents">` around its subtree.
 
 ```rescript
 module Profile = {
-  @jsx.component
+  @xote.component
   let make = (~name: option<string>) =>
     switch name {
-    | Some(name) => <p> {View.text(name)} </p>
+    | Some(name) => <p> {name} </p>
     | None => throw(Failure("no user"))
     }
 }
 
-let node =
-  <View.ErrorBoundary
-    fallback={(_error, reset) =>
-      <button onClick={_ => reset()}> {View.text("Something went wrong. Retry")} </button>}
-    onError={error => Console.error(error)}>
-    <Profile name=None /> // renders the fallback
-  </View.ErrorBoundary>
+module Guarded = {
+  @xote.component
+  let make = () =>
+    <View.ErrorBoundary
+      fallback={(_error, reset) =>
+        <button onClick={_ => reset()}> {"Something went wrong. Retry"} </button>}
+      onError={error => Console.error(error)}>
+      <Profile name=None /> // renders the fallback
+    </View.ErrorBoundary>
+}
 ```
 */
 module ErrorBoundary: {
