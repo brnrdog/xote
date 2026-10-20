@@ -51,7 +51,6 @@ external querySelector: string => option<{"offsetHeight": float}> = "querySelect
 let infinity = Float.Constants.positiveInfinity
 
 let overHero = Signal.make(true)
-let atTop = Signal.make(true)
 
 let syncOverHero = () => {
   let heroHeight = switch querySelector(".home-hero") {
@@ -59,7 +58,6 @@ let syncOverHero = () => {
   | None => infinity
   }
   Signal.set(overHero, scrollY < heroHeight -. 72.0)
-  Signal.set(atTop, scrollY <= 0.0)
 }
 
 let _ = if SSRContext.isClient {
@@ -95,11 +93,7 @@ module Header = {
     let headerClass = () => {
       let path = Signal.get(Router.location()).pathname
       if path == "/" {
-        switch (Signal.get(overHero), Signal.get(atTop)) {
-        | (true, true) => "site-header site-header-home site-header-hero is-top"
-        | (true, false) => "site-header site-header-home site-header-hero"
-        | _ => "site-header site-header-home"
-        }
+        Signal.get(overHero) ? "site-header site-header-home site-header-hero" : "site-header site-header-home"
       } else if isDocsPath(path) {
         "site-header site-header-docs"
       } else {

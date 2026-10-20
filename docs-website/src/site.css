@@ -350,16 +350,25 @@ pre code {
   margin-bottom: calc(-1 * var(--header-height));
   transition: background-color 0.2s ease;
 }
-/* Over the hero the bar is solid lime, so the headline scrolls cleanly
-   underneath it; at the very top it stays clear so the rings run up to the
-   window edge. */
 .site-header-hero {
-  background: var(--signal);
+  background: transparent;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
-.site-header-hero.is-top {
-  background: transparent;
+/* Over the hero the bar has no edge: a lime-tinted blur that is strongest at
+   the top and fades out below the bar keeps its links readable over the
+   headline without drawing a line across the hero. */
+.site-header-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 -28px;
+  z-index: -1;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--signal) 72%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
 }
 .site-header-hero .header-logo-link,
 .site-header-hero .header-nav-link,
