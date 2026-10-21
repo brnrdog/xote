@@ -1,12 +1,10 @@
-Signals are the state primitive in Xote. A signal stores a value, tracks who reads it, and notifies dependents when the value actually changes.
+A signal holds a piece of state. It remembers who reads it and tells them when its value actually changes. Most Xote state starts as a signal.
 
 > **Info:** Xote re-exports [`Signal`](/docs/api/signal#signal-module), [`Computed`](/docs/api/computed#computed-module), and [`Effect`](/docs/api/effect#effect-module) from [rescript-signals](https://brnrdog.github.io/rescript-signals).
 
-## Working with Signals
+## Create a signal
 
-### Creating Signals
-
-Use [`Signal.make`](/docs/api/signal#signal-make) to create a signal. You can optionally pass `~name` for debugging and `~equals` when the default equality is not enough.
+Use [`Signal.make`](/docs/api/signal#signal-make) with a starting value. Optionally pass `~name` for debugging, and `~equals` when the default equality check isn't what you want.
 
 ```rescript
 open Xote
@@ -19,13 +17,13 @@ let settings = Signal.make({
 })
 ```
 
-### Reading Signal Values
+## Read a signal
 
-There are two read modes. Choose based on whether the current code should subscribe to future updates.
+There are two ways to read. Pick based on whether the code should run again when the signal changes.
 
-#### `Signal.get()`
+### `Signal.get`: read and subscribe
 
-Use [`Signal.get`](/docs/api/signal#signal-get) inside a computed, effect, or reactive node when the current code should re-run if the signal changes.
+Use [`Signal.get`](/docs/api/signal#signal-get) inside a computed, an effect, or a component's JSX. That code re-runs whenever the signal changes.
 
 ```rescript
 let firstName = Signal.make("Ada")
@@ -36,9 +34,9 @@ let fullName = Computed.make(() =>
 )
 ```
 
-#### `Signal.peek()`
+### `Signal.peek`: read without subscribing
 
-Use [`Signal.peek`](/docs/api/signal#signal-peek) when you need the current value without subscribing. This is useful for logging, snapshots, and one-off reads inside effects.
+Use [`Signal.peek`](/docs/api/signal#signal-peek) when you need the current value but don't want to react to changes. It's handy for logging, snapshots, and one-off reads inside effects.
 
 ```rescript
 Effect.run(() => {
@@ -51,9 +49,9 @@ Effect.run(() => {
 })
 ```
 
-### Updating Signals
+## Update a signal
 
-#### `Signal.set()`
+### `Signal.set`: replace the value
 
 Use [`Signal.set`](/docs/api/signal#signal-set) when you already know the next value.
 
@@ -62,9 +60,9 @@ Signal.set(count, 10)
 Signal.set(userName, "Grace")
 ```
 
-#### `Signal.update()`
+### `Signal.update`: change it based on the current value
 
-Use [`Signal.update`](/docs/api/signal#signal-update) when the next value depends on the current one. This keeps the intent obvious and avoids an extra read.
+Use [`Signal.update`](/docs/api/signal#signal-update) when the next value depends on the current one. The intent stays obvious and you skip an extra read.
 
 ```rescript
 Signal.update(count, n => n + 1)
@@ -74,15 +72,13 @@ Signal.update(settings, current => {...current,
 })
 ```
 
-## How Signals Decide to Update
+## When a signal notifies
 
-### Equality and Change Detection
+A signal only notifies its dependents when the new value is different from the current one. By default "different" means JavaScript strict equality, `===`.
 
-Signals only notify dependents when the new value is considered different from the current value. By default that check uses JavaScript strict equality, `===`.
+### Default equality
 
-#### Default Equality
-
-For primitives, setting the same value is a no-op. For arrays, records, and objects, a new reference counts as a change even when the fields look the same.
+Setting a primitive to the same value does nothing. For arrays, records and objects, a new reference counts as a change, even if the contents look the same.
 
 ```rescript
 let count = Signal.make(5)
@@ -94,9 +90,9 @@ let items = Signal.make([1, 2, 3])
 Signal.set(items, [1, 2, 3]) // New array reference, so this updates
 ```
 
-#### Custom Equality
+### Custom equality
 
-When you want value-based comparison for compound data, pass `~equals` to [`Signal.make`](/docs/api/signal#signal-make).
+To compare compound data by value, pass `~equals` to [`Signal.make`](/docs/api/signal#signal-make).
 
 ```rescript
 type position = {x: int, y: int}
@@ -110,9 +106,9 @@ Signal.set(position, {x: 0, y: 0}) // No update
 Signal.set(position, {x: 0, y: 1}) // Update
 ```
 
-### Dependency Tracking
+## How dependencies are tracked
 
-Every [`Signal.get`](/docs/api/signal#signal-get) call inside an active computed or effect becomes a dependency. On the next run, dependencies are cleared and tracked again, so the graph follows control flow instead of staying fixed forever.
+Every [`Signal.get`](/docs/api/signal#signal-get) inside a running computed or effect becomes a dependency. Before each re-run the dependencies are cleared and collected again, so they follow your control flow. Below, `temperature` only depends on `fahrenheit` while `useMetric` is `false`.
 
 ```rescript
 let useMetric = Signal.make(true)
@@ -128,11 +124,9 @@ let temperature = Computed.make(() =>
 )
 ```
 
-## In Practice
+## Example: counter
 
-### Example: Counter
-
-This is the same pattern most Xote state starts with: a signal, a few updates, and a reactive view read in the UI.
+Most Xote state starts like this: a signal, a few updates, and a read in the UI.
 
 <DocsExamplePanel
       filename="Counter.res"
@@ -155,19 +149,10 @@ let reset = (_evt: Dom.event) => {
 @xote.component
 let make = () => {
   <div>
-    <h1>
-      <View.Text> "Count: " </View.Text>
-      <View.Int> {Signal.get(count)} </View.Int>
-    </h1>
-    <button onClick={increment}>
-      <View.Text> "+" </View.Text>
-    </button>
-    <button onClick={decrement}>
-      <View.Text> "-" </View.Text>
-    </button>
-    <button onClick={reset}>
-      <View.Text> "Reset" </View.Text>
-    </button>
+    <h1> {"Count: "} {Signal.get(count)} </h1>
+    <button onClick={decrement}> {"-"} </button>
+    <button onClick={reset}> {"Reset"} </button>
+    <button onClick={increment}> {"+"} </button>
   </div>
 }
 
@@ -178,17 +163,10 @@ let make = () => {
       <CounterDemo />
     </DocsExamplePanel>
 
-## Working Style
+## Tips
 
-### Best Practices
-
-- Keep one signal focused on one job. A small record is fine; a grab-bag of unrelated state is not.
+- Keep each signal focused on one job. A small record is fine; a grab bag of unrelated state is not.
 - Prefer [`Signal.update`](/docs/api/signal#signal-update) when the next value depends on the current one.
-- Treat [`Signal.peek`](/docs/api/signal#signal-peek) as a snapshot tool, not your default read API.
-- Add custom equality only when strict equality creates real noise in the UI or effects.
-
-### Next Steps
-
-- [Read Computeds](/docs/core-concepts/computed) if the next question is how to derive state instead of storing it twice.
-- [Read Effects](/docs/core-concepts/effects) if you need to connect signals to timers, network requests, or browser APIs.
-- [Use the Signal API reference](/docs/api/signal) when you want signatures and quick examples.
+- Treat [`Signal.peek`](/docs/api/signal#signal-peek) as a snapshot tool, not your default way to read.
+- Add custom equality only when strict equality causes real noise in the UI or in effects.
+- If a value can be worked out from other signals, don't store it in its own signal: derive it with a [computed](/docs/learn/computeds). To connect signals to timers, requests or browser APIs, use an [effect](/docs/learn/effects).

@@ -1,50 +1,96 @@
-// ---- Shared types & bindings ----
+// Demos for the docs tutorial (/docs/tutorial). Each StepN module is the live
+// version of the code shown for that step; module and helper names match the
+// shown code where the step's code is self-contained.
+
+// ---- Shared types & helpers ----
 
 type tempUnit = Celsius | Fahrenheit | Kelvin
 
-let symbolFor = u =>
-  switch u {
+let symbolFor = unit =>
+  switch unit {
   | Celsius => "°C"
   | Fahrenheit => "°F"
   | Kelvin => "K"
   }
 
-let unitClass = u =>
-  switch u {
-  | Celsius => "temp-display temp-celsius"
-  | Fahrenheit => "temp-display temp-fahrenheit"
-  | Kelvin => "temp-display temp-kelvin"
-  }
-
-let unitLabel = u =>
-  switch u {
+let labelFor = unit =>
+  switch unit {
   | Celsius => "Celsius"
   | Fahrenheit => "Fahrenheit"
   | Kelvin => "Kelvin"
   }
 
-// ---- TemperatureDisplay (reactive-ready) ----
-// Takes a thunk so the value can be driven by signals or computeds.
+let classFor = unit =>
+  switch unit {
+  | Celsius => "temp-display temp-celsius"
+  | Fahrenheit => "temp-display temp-fahrenheit"
+  | Kelvin => "temp-display temp-kelvin"
+  }
 
-module TemperatureDisplay = {
+@get external target: Dom.event => {"value": string} = "target"
+
+// ---- Step 1: a static display ----
+
+module StaticDisplay = {
   @xote.component
-  let make = (~value: unit => float, ~unit: tempUnit) =>
-    <div class={unitClass(unit)}>
-      <span class="temp-value">
-        <View.Text> {() => value()->Float.toFixed(~digits=1)} </View.Text>
-      </span>
-      <span class="temp-unit"> <View.Text> {symbolFor(unit)} </View.Text> </span>
-      <span class="temp-label"> <View.Text> {unitLabel(unit)} </View.Text> </span>
+  let make = (~value: float, ~unit: tempUnit) =>
+    <div class={classFor(unit)}>
+      <span class="temp-value"> {value->Float.toFixed(~digits=1)} </span>
+      <span class="temp-unit"> {symbolFor(unit)} </span>
+      <span class="temp-label"> {labelFor(unit)} </span>
     </div>
 }
-
-// ---- Step 1: static display ----
 
 module Step1 = {
   @xote.component
   let make = () =>
     <div class="temp-row">
-      <TemperatureDisplay value={() => 22.0} unit=Celsius />
+      <StaticDisplay value=22.0 unit=Celsius />
+    </div>
+}
+
+// ---- The reactive display used from step 2 on ----
+// Takes the signal itself: a component prop is read once, so passing
+// `Signal.get(celsius)` would freeze the value.
+
+module TemperatureDisplay = {
+  @xote.component
+  let make = (~value: Signal.t<float>, ~unit: tempUnit) =>
+    <div class={classFor(unit)}>
+      <span class="temp-value"> {Signal.get(value)->Float.toFixed(~digits=1)} </span>
+      <span class="temp-unit"> {symbolFor(unit)} </span>
+      <span class="temp-label"> {labelFor(unit)} </span>
+    </div>
+}
+
+// ---- Step 2: one signal and a slider ----
+
+module Step2 = {
+  let celsius = Signal.make(22.0)
+
+  let onSlide = evt =>
+    switch Float.fromString(target(evt)["value"]) {
+    | Some(value) => Signal.set(celsius, value)
+    | None => ()
+    }
+
+  @xote.component
+  let make = () =>
+    <div class="tutorial-stage">
+      <div class="temp-row">
+        <TemperatureDisplay value=celsius unit=Celsius />
+      </div>
+      <label class="tutorial-slider">
+        <span> {"Drag to change °C"} </span>
+        <input
+          type_="range"
+          min="-20"
+          max="40"
+          step="0.5"
+          value={Signal.get(celsius)->Float.toString}
+          onInput=onSlide
+        />
+      </label>
     </div>
 }
 
@@ -181,41 +227,39 @@ module DomInspector = {
   }
 }
 
-// ---- Step 2: one signal, derived computeds ----
+// ---- Step 3: derived values with computeds ----
 
-module Step2 = {
+module Step3 = {
   let celsius = Signal.make(22.0)
   let fahrenheit = Computed.make(() => Signal.get(celsius) *. 9.0 /. 5.0 +. 32.0)
   let kelvin = Computed.make(() => Signal.get(celsius) +. 273.15)
 
-  let onSlide = (evt: Dom.event) => {
-    let target: {"value": string} = (evt->Obj.magic)["target"]
-    switch Float.fromString(target["value"]) {
-    | Some(n) => Signal.set(celsius, n)
+  let onSlide = evt =>
+    switch Float.fromString(target(evt)["value"]) {
+    | Some(value) => Signal.set(celsius, value)
     | None => ()
     }
-  }
 
-  let stageId = "tutorial-step2-stage"
+  let stageId = "tutorial-step3-stage"
 
   @xote.component
   let make = () =>
     <div class="tutorial-step2">
       <div class="tutorial-stage" id=stageId>
         <div class="temp-row">
-          <TemperatureDisplay value={() => Signal.get(celsius)} unit=Celsius />
-          <TemperatureDisplay value={() => Signal.get(fahrenheit)} unit=Fahrenheit />
-          <TemperatureDisplay value={() => Signal.get(kelvin)} unit=Kelvin />
+          <TemperatureDisplay value=celsius unit=Celsius />
+          <TemperatureDisplay value=fahrenheit unit=Fahrenheit />
+          <TemperatureDisplay value=kelvin unit=Kelvin />
         </div>
         <label class="tutorial-slider">
-          <span> {View.text("Drag to change °C")} </span>
+          <span> {"Drag to change °C"} </span>
           <input
             type_="range"
             min="-20"
             max="40"
             step="0.5"
-            value={Signal.peek(celsius)->Float.toString}
-            onInput={onSlide}
+            value={Signal.get(celsius)->Float.toString}
+            onInput=onSlide
           />
         </label>
       </div>
@@ -223,7 +267,7 @@ module Step2 = {
     </div>
 }
 
-// ---- Step 3: fetch live weather for a random capital ----
+// ---- Step 4: live weather from an effect ----
 
 type capital = {name: string, lat: float, lng: float}
 
@@ -238,96 +282,85 @@ let capitals = [
   {name: "Reykjavik", lat: 64.1466, lng: -21.9426},
 ]
 
-let pickRandomCapital = () => {
-  let n = Math.random() *. Array.length(capitals)->Int.toFloat
-  let idx = Float.toInt(Math.floor(n))
-  capitals->Array.getUnsafe(idx)
+let pickCapital = () => capitals->Array.getUnsafe(Math.Int.random(0, Array.length(capitals)))
+
+type response
+type currentWeather = {temperature: float}
+type forecast = {current_weather: currentWeather}
+
+@val external fetch: string => promise<response> = "fetch"
+@send external json: response => promise<forecast> = "json"
+
+let fetchTemperature = async (capital: capital) => {
+  let url =
+    "https://api.open-meteo.com/v1/forecast" ++
+    `?latitude=${capital.lat->Float.toString}` ++
+    `&longitude=${capital.lng->Float.toString}` ++ "&current_weather=true"
+  let response = await fetch(url)
+  let forecast = await json(response)
+  forecast.current_weather.temperature
 }
 
-@val external fetch: string => promise<'a> = "fetch"
+type status = Loading | Ready | Failed
 
-module Step3 = {
-  type status = Loading | Ready(float) | Failed(string)
-
-  let capital = Signal.make(pickRandomCapital())
-  let status = Signal.make(Loading)
-
-  let fetchWeather = (c: capital) => {
-    Signal.set(status, Loading)
-    let url =
-      `https://api.open-meteo.com/v1/forecast?latitude=${Float.toString(
-          c.lat,
-        )}&longitude=${Float.toString(c.lng)}&current_weather=true`
-
-    fetch(url)
-    ->Promise.then(res => (res->Obj.magic)["json"]())
-    ->Promise.then(json => {
-      let weather = (json->Obj.magic)["current_weather"]
-      let temp: Nullable.t<float> = (weather->Obj.magic)["temperature"]
-      switch temp->Nullable.toOption {
-      | Some(t) => Signal.set(status, Ready(t))
-      | None => Signal.set(status, Failed("No data"))
-      }
-      Promise.resolve()
-    })
-    ->Promise.catch(_ => {
-      Signal.set(status, Failed("Network error"))
-      Promise.resolve()
-    })
-    ->ignore
-  }
-
-  if SSRContext.isClient {
-    Effect.run(() => {
-      let c = Signal.get(capital)
-      fetchWeather(c)
-      None
-    })
-  }
-
-  let shuffle = (_evt: Dom.event) => Signal.set(capital, pickRandomCapital())
-
-  let formatFor = (convert: float => float) => () =>
-    switch Signal.get(status) {
-    | Ready(c) => convert(c)->Float.toFixed(~digits=1)
-    | _ => "-"
-    }
-
-  let displayCelsius = formatFor(c => c)
-  let displayFahrenheit = formatFor(c => c *. 9.0 /. 5.0 +. 32.0)
-  let displayKelvin = formatFor(c => c +. 273.15)
-
-  let card = (~unit, ~text) =>
-    <div class={unitClass(unit)}>
-      <span class="temp-value"> <View.Text> {text} </View.Text> </span>
-      <span class="temp-unit"> <View.Text> {symbolFor(unit)} </View.Text> </span>
-      <span class="temp-label"> <View.Text> {unitLabel(unit)} </View.Text> </span>
-    </div>
-
-  let statusText = () =>
-    switch Signal.get(status) {
-    | Loading => "Fetching current weather..."
-    | Failed(msg) => "Error: " ++ msg
-    | Ready(_) => " "
-    }
-
+module Step4 = {
   @xote.component
-  let make = () =>
+  let make = () => {
+    // Start from a fixed capital so the server-rendered HTML and the first
+    // client render agree; shuffling picks at random.
+    let capital = Signal.make(capitals->Array.getUnsafe(0))
+    let status = Signal.make(Loading)
+    let celsius = Signal.make(0.0)
+    let fahrenheit = Computed.make(() => Signal.get(celsius) *. 9.0 /. 5.0 +. 32.0)
+    let kelvin = Computed.make(() => Signal.get(celsius) +. 273.15)
+
+    // The docs site renders this page on the server too; only fetch in the
+    // browser. An app that only renders in the browser needs no guard.
+    if SSRContext.isClient {
+      Effect.run(() => {
+        let current = Signal.get(capital)
+        let stale = ref(false)
+        Signal.set(status, Loading)
+
+        fetchTemperature(current)
+        ->Promise.thenResolve(temperature =>
+          if !stale.contents {
+            Signal.set(celsius, temperature)
+            Signal.set(status, Ready)
+          }
+        )
+        ->Promise.catch(_ => {
+          if !stale.contents {
+            Signal.set(status, Failed)
+          }
+          Promise.resolve()
+        })
+        ->ignore
+
+        Some(() => stale := true)
+      })
+    }
+
+    let shuffle = _ => Signal.set(capital, pickCapital())
+
     <div class="tutorial-stage">
       <div class="tutorial-capital">
-        <span class="tutorial-capital-label"> {View.text("Now in")} </span>
-        <span class="tutorial-capital-name">
-          <View.Text> {() => Signal.get(capital).name} </View.Text>
-        </span>
+        <span class="tutorial-capital-label"> {"Now in"} </span>
+        <span class="tutorial-capital-name"> {Signal.get(capital).name} </span>
       </div>
-      <div class="temp-row">
-        {card(~unit=Celsius, ~text=displayCelsius)}
-        {card(~unit=Fahrenheit, ~text=displayFahrenheit)}
-        {card(~unit=Kelvin, ~text=displayKelvin)}
-      </div>
-      <div class="tutorial-status"> <View.Text> {statusText} </View.Text> </div>
-      <button class="btn btn-ghost tutorial-shuffle" onClick={shuffle}>
-        {View.text("Try another capital")}
+      {switch Signal.get(status) {
+      | Loading => <p class="tutorial-status"> {"Fetching the current weather…"} </p>
+      | Failed => <p class="tutorial-status"> {"Couldn't reach the weather service."} </p>
+      | Ready =>
+        <div class="temp-row">
+          <TemperatureDisplay value=celsius unit=Celsius />
+          <TemperatureDisplay value=fahrenheit unit=Fahrenheit />
+          <TemperatureDisplay value=kelvin unit=Kelvin />
+        </div>
+      }}
+      <button class="btn-pill btn-soft tutorial-shuffle" onClick=shuffle>
+        {"Try another capital"}
       </button>
     </div>
+  }
 }

@@ -1,0 +1,141 @@
+Xote has no styling system of its own: you write CSS and point elements at it with `class`, `style` and data attributes. What Xote adds is that any of those can follow a signal, so the page restyles itself when state changes.
+
+## Add a stylesheet
+
+The simplest setup is a plain CSS file linked from `index.html`. Vite processes it in development and bundles it for production:
+
+```html
+<link rel="stylesheet" href="/src/styles.css" />
+```
+
+You can also import CSS from a ReScript module. ReScript has no CSS import syntax, so use a raw top-level import; Vite picks it up like any other import:
+
+```rescript
+// App.res
+%%raw(`import "./App.css"`)
+```
+
+This keeps a component's styles next to its code, which is handy once the app grows.
+
+## Use static classes
+
+`class` takes a string, exactly like HTML's `class` attribute:
+
+```rescript
+@xote.component
+let make = () => <section class="card card-elevated"> {"Static classes"} </section>
+```
+
+## Switch classes with state
+
+Read a signal in the `class` expression. Under `@xote.component`, that attribute becomes its own reactive binding, so only the attribute updates when the signal changes:
+
+```rescript
+let isOpen = Signal.make(false)
+
+@xote.component
+let make = () =>
+  <div class={Signal.get(isOpen) ? "panel panel-open" : "panel"}>
+    <button onClick={_ => Signal.update(isOpen, v => !v)}> {"Toggle"} </button>
+  </div>
+```
+
+When several classes toggle independently, a small helper keeps the markup readable. Signal reads inside its arguments are still tracked, because they appear in the attribute:
+
+```rescript
+let classNames = (pairs: array<(string, bool)>) =>
+  pairs->Array.filterMap(((name, on)) => on ? Some(name) : None)->Array.join(" ")
+
+@xote.component
+let make = () =>
+  <li
+    class={classNames([
+      ("option", true),
+      ("option-selected", Signal.get(selected)),
+      ("option-disabled", Signal.get(disabled)),
+    ])}>
+    {"Item"}
+  </li>
+```
+
+## Set inline styles
+
+`style` takes a CSS declaration string, like the HTML attribute (not an object). Inline styles are best for values that really are dynamic, such as a width or a position:
+
+```rescript
+let progress = Signal.make(40)
+
+@xote.component
+let make = () =>
+  <div class="bar">
+    <div class="bar-fill" style={`width: ${Int.toString(Signal.get(progress))}%`} />
+  </div>
+```
+
+For everything else, prefer a class: it keeps the look in your CSS, where hover states and media queries live.
+
+## Style with data attributes
+
+Data attributes are a good fit for state that CSS should react to, like a status or a variant. Set them through the `attrs` prop. A value there can be a plain string, a signal, or a `() => …` function:
+
+```rescript
+let status = Signal.make("idle")
+
+@xote.component
+let make = () =>
+  <span class="badge" attrs=[("data-status", () => Signal.get(status))]>
+    {Signal.get(status)}
+  </span>
+```
+
+```css
+.badge[data-status="saving"] { opacity: 0.6; }
+.badge[data-status="error"] { color: crimson; }
+```
+
+`attrs` is not rewritten by `@xote.component`. Pass the signal itself or a function, as above; a bare `Signal.get(status)` there is read once and never updates.
+
+## Theme with a signal
+
+Keep the theme in a signal and expose it to CSS as a data attribute. For a section of the page, put it on that element:
+
+```rescript
+let theme = Signal.make("dark")
+
+@xote.component
+let make = () =>
+  <div class="app" attrs=[("data-theme", theme)]>
+    <button onClick={_ => Signal.update(theme, t => t == "dark" ? "light" : "dark")}>
+      {"Switch theme"}
+    </button>
+  </div>
+```
+
+To theme the whole document, including `<body>`, set the attribute on `<html>` from an [effect](/docs/learn/effects). The effect re-runs whenever the theme changes:
+
+```rescript
+@val @scope("document") external documentElement: Dom.element = "documentElement"
+@send external setAttribute: (Dom.element, string, string) => unit = "setAttribute"
+
+let _ = Effect.run(() => {
+  documentElement->setAttribute("data-theme", Signal.get(theme))
+  None
+})
+```
+
+Then define your colours as CSS custom properties per theme:
+
+```css
+:root { --bg: #0b0d0c; --text: #f2f4ee; }
+[data-theme="light"] { --bg: #ffffff; --text: #0b0d0c; }
+body { background: var(--bg); color: var(--text); }
+```
+
+Switching the theme now changes one attribute, and the browser restyles everything that uses the variables.
+
+## Common mistakes
+
+- **Passing an object to `style`.** `style` is a string of declarations, as in HTML: `"width: 40%; color: red"`.
+- **Expecting `attrs` to track `Signal.get`.** `attrs` entries are read once unless the value is a signal or a function.
+- **Rebuilding markup to change a look.** Swapping whole elements to change colours is slower and loses focus. Toggle a class or data attribute instead.
+- **Hiding a read in a `let`.** `let cls = Signal.get(isOpen) ? "a" : "b"` in the component body is read once. Put the expression in the attribute, where the annotation can track it. See [Thinking in signals](/docs/thinking-in-signals).

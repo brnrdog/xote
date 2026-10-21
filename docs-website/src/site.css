@@ -1905,3 +1905,77 @@ blockquote > :last-child {
     margin: 0 auto;
   }
 }
+
+/* ---- Docs demos added with the docs restructure ---- */
+.intro-demo,
+.forms-demo,
+.fetch-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  max-width: 420px;
+}
+.intro-demo-note,
+.forms-demo-note,
+.fetch-demo-status {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+.forms-demo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  font-size: 14px;
+  color: var(--ink);
+}
+.forms-demo-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink);
+}
+.forms-demo select,
+.fetch-demo-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--soft-2);
+  color: var(--ink);
+  font: inherit;
+}
+.forms-demo button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.fetch-demo-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  transition: opacity 0.2s ease;
+}
+.fetch-demo-list li {
+  padding: 4px 12px;
+  border-radius: var(--r-pill);
+  background: var(--soft-2);
+  font-size: 14px;
+  color: var(--ink);
+}
+.fetch-demo-list.is-stale {
+  opacity: 0.5;
+}
+
+/* Long inline code (a full expression) may break anywhere rather than push
+   the page wider than a phone screen. */
+.docs-content :not(pre) > code {
+  overflow-wrap: anywhere;
+}
