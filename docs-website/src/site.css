@@ -1494,14 +1494,15 @@ blockquote {
 }
 
 /* ---- Live example panels inside the docs ----
-   One column, the width of the article: the running demo on a soft stage,
-   then the code that makes it. */
+   One column, the width of the article: the code on top, the running demo
+   underneath, and a divider between them that resizes the two
+   (DocsExamplePanel.res sets grid-template-rows from the divider). */
 .docs-content .docs-example-panel {
   --border: transparent;
   --border-soft: transparent;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
   max-width: 100%;
   margin: 28px 0;
@@ -1512,35 +1513,19 @@ blockquote {
   box-shadow: var(--lift);
   overflow: hidden;
 }
-.docs-example-demo {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 0;
+.docs-example-split {
+  display: grid;
+  grid-template-rows: 45% auto minmax(0, 1fr);
+  height: clamp(480px, 78vh, 640px);
 }
-.docs-example-demo-stage {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 160px;
-  padding: 36px 28px;
-  border: 0;
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 1px 1px, var(--soft-3) 1px, transparent 0) 0 0 / 18px 18px,
-    var(--soft);
-  overflow-x: auto;
-}
-.docs-example-caption {
-  margin: 0;
-  padding: 0 14px 4px;
-  font: 400 13px/18px var(--font-body);
-  font-style: normal;
-  color: var(--ink-muted);
+.docs-example-split.is-dragging {
+  cursor: row-resize;
+  user-select: none;
 }
 .docs-example-code {
   display: flex;
   flex-direction: column;
+  min-height: 0;
   border-radius: 18px;
   background: var(--sunken);
   overflow: hidden;
@@ -1550,8 +1535,8 @@ blockquote {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 40px;
-  padding: 6px 8px 0 18px;
+  min-height: 36px;
+  padding: 8px 18px 0;
   border: 0;
   background: transparent;
 }
@@ -1560,40 +1545,89 @@ blockquote {
   letter-spacing: 0;
   color: var(--ink-faint);
 }
-.docs-example-toggle {
-  min-height: 28px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: var(--r-pill);
-  background: var(--soft-2);
-  color: var(--ink-muted);
-  font: 500 12px/16px var(--font-body);
-  cursor: pointer;
-}
-.docs-example-toggle:hover {
-  color: var(--ink);
-}
 .docs-example-code-pre {
+  flex: 1 1 auto;
+  min-height: 0;
   max-height: none;
   margin: 0;
-  padding: 12px 0 18px;
+  padding: 10px 0 18px;
   border: 0;
   border-radius: 0;
   background: transparent;
   font-size: 14px;
   line-height: 1.6;
-  overflow-x: auto;
+  overflow: auto;
 }
-/* The sticky line-number gutter takes the code area's colour. */
+/* A code-only panel sizes to its code, up to a limit. */
+.docs-example-panel > .docs-example-code .docs-example-code-pre {
+  max-height: 460px;
+}
 .docs-example-code .syntax-line-number {
   background: var(--sunken);
 }
-/* Phones: filename and toggle stay on one row; the stage tightens; a todo
-   row keeps its Remove button beside the text. */
+.docs-example-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  cursor: row-resize;
+  touch-action: none;
+  outline: none;
+}
+.docs-example-grip {
+  width: 44px;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--soft-3);
+  transition: background 0.15s ease, width 0.15s ease;
+}
+.docs-example-divider:hover .docs-example-grip,
+.docs-example-divider:focus-visible .docs-example-grip,
+.is-dragging .docs-example-grip {
+  width: 64px;
+  background: var(--signal-text);
+}
+.docs-example-divider:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--focus);
+  border-radius: var(--r-pill);
+}
+.docs-example-demo {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+  border-radius: 18px;
+  overflow: auto;
+}
+.docs-example-demo-stage {
+  display: flex;
+  flex: 1 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 32px 28px;
+  border: 0;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 1px 1px, var(--soft-3) 1px, transparent 0) 0 0 / 18px 18px,
+    var(--soft);
+}
+.docs-example-caption {
+  margin: 0;
+  padding: 0 14px 6px;
+  font: 400 13px/18px var(--font-body);
+  font-style: normal;
+  color: var(--ink-muted);
+}
+/* Phones: a shorter panel, a tighter stage, and a todo row keeps its
+   Remove button beside the text. */
 @media (max-width: 760px) {
   .docs-content .docs-example-header {
     flex-direction: row;
     align-items: center;
+  }
+  .docs-example-split {
+    height: clamp(460px, 80vh, 600px);
   }
   .docs-content .docs-example-demo-stage {
     padding: 24px 16px;
@@ -1605,13 +1639,6 @@ blockquote {
     grid-column: auto;
     margin-top: 0;
   }
-}
-/* Collapsed: show the first lines and fade them out above the toggle. */
-.docs-example-code.is-collapsed .docs-example-code-pre {
-  max-height: 340px;
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent);
-  mask-image: linear-gradient(to bottom, #000 70%, transparent);
 }
 .docs-example-demo-stage,
 .docs-example-panel [class$="-panel"],
@@ -2076,4 +2103,154 @@ blockquote > :last-child {
    the page wider than a phone screen. */
 .docs-content :not(pre) > code {
   overflow-wrap: anywhere;
+}
+
+/* ---- Tutorial demos, in the design system ----
+   Temperature cards are soft surfaces with a coloured dot for the unit
+   (lime for the one you set, quieter for the derived ones); the DOM
+   inspector stays a dark console in both themes, with lime for new values. */
+.temp-row {
+  gap: 10px;
+}
+.temp-display {
+  gap: 2px;
+  min-width: 0;
+  padding: 22px 16px 18px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--lift);
+}
+.temp-display.temp-celsius,
+.temp-display.temp-fahrenheit,
+.temp-display.temp-kelvin {
+  border-top: 0;
+}
+.temp-display .temp-value {
+  font: 700 clamp(34px, 6vw, 48px) / 1 var(--font-display);
+  letter-spacing: -0.04em;
+  color: var(--ink);
+}
+.temp-display .temp-unit {
+  margin-top: 6px;
+  font: 500 13px/16px var(--font-mono);
+  color: var(--ink-muted);
+}
+.temp-display .temp-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font: 500 12px/16px var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-faint);
+}
+.temp-display .temp-label::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--soft-3);
+}
+.temp-display.temp-celsius .temp-label::before {
+  background: var(--signal-text);
+}
+.temp-display.temp-fahrenheit .temp-label::before {
+  background: var(--ink-muted);
+}
+
+.tutorial-stage,
+.tutorial-step2 {
+  gap: 18px;
+}
+.tutorial-slider {
+  gap: 10px;
+  font: 500 13px/18px var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-muted);
+}
+.tutorial-slider input[type="range"] {
+  accent-color: var(--signal-text);
+}
+.tutorial-capital {
+  align-items: center;
+  gap: 10px;
+}
+.tutorial-capital-label {
+  font: 500 12px/16px var(--font-mono);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-faint);
+}
+.tutorial-capital-name {
+  font: 700 28px/1.1 var(--font-display);
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  min-width: 0;
+}
+.tutorial-status {
+  font: 400 13px/20px var(--font-mono);
+  color: var(--ink-muted);
+}
+
+.dom-inspector {
+  border: 0;
+  border-radius: 16px;
+  background: #0b0d0c;
+  color: #e7ebe4;
+  font: 400 12px/1.6 var(--font-mono);
+  box-shadow: var(--lift);
+}
+.dom-inspector-header {
+  padding: 10px 14px;
+  border-bottom: 0;
+  background: rgba(255, 255, 255, 0.04);
+}
+.dom-inspector-title {
+  font: 600 12px/16px var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  color: #f2f4ee;
+}
+.dom-inspector-hint {
+  font-style: normal;
+  letter-spacing: 0;
+  color: #838c86;
+}
+.dom-inspector-row {
+  padding: 4px 14px;
+  border-bottom: 0;
+}
+.dom-inspector-target {
+  color: #838c86;
+}
+.dom-inspector-old,
+.dom-inspector-arrow {
+  color: #5f6762;
+}
+.dom-inspector-new {
+  color: #c8f53c;
+}
+.dom-inspector-empty {
+  padding: 12px 14px;
+  font-style: normal;
+  color: #5f6762;
+}
+@keyframes dom-inspector-flash {
+  0% {
+    background: rgba(200, 245, 60, 0.16);
+  }
+  100% {
+    background: transparent;
+  }
+}
+@media (max-width: 520px) {
+  .temp-row {
+    flex-wrap: wrap;
+  }
+  .temp-row .temp-display {
+    flex: 1 1 90px;
+  }
 }
