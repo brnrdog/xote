@@ -1,12 +1,14 @@
 // A live example in the docs, inside the article column: the code on top, the
 // running demo underneath, and a divider between them that can be dragged (or
 // moved with the arrow keys, Home and End) to give either side more room.
+// Pointing a mouse at either side slides the divider to show more of it.
 
 @send external setPointerCapture: (Dom.element, int) => unit = "setPointerCapture"
 @get external currentTarget: Dom.event => Dom.element = "currentTarget"
 @get external pointerId: Dom.event => int = "pointerId"
 @get external clientY: Dom.event => float = "clientY"
 @get external key: Dom.event => string = "key"
+@get external pointerType: Dom.event => string = "pointerType"
 @send external preventDefault: Dom.event => unit = "preventDefault"
 @send external getBoundingClientRect: Dom.element => {"height": float} = "getBoundingClientRect"
 @get @return(nullable) external firstElementChild: Dom.element => option<Dom.element> = "firstElementChild"
@@ -29,6 +31,9 @@ let clamp = share => Math.max(minShare, Math.min(maxShare, share))
 
 // The code pane's starting share of the panel: enough for the code, but never
 // so much that the demo has no room.
+// Which side the mouse is over, if any.
+type focus = Neither | Code | Demo
+
 let initialShare = (code: string) => {
   let lines = code->String.split("\n")->Array.length->Int.toFloat
   Math.max(0.3, Math.min(0.5, (lines *. lineHeight +. 72.0) /. designHeight))
@@ -36,8 +41,8 @@ let initialShare = (code: string) => {
 
 @xote.component
 let make = (~filename, ~code, ~caption=?, ~children=?) => {
-  let codePane = (~ref=?) =>
-    <div class="docs-example-code">
+  let codePane = (~ref=?, ~onPointerEnter=?) =>
+    <div ?onPointerEnter class="docs-example-code">
       <div class="docs-example-header">
         <span class="docs-example-filename"> {filename} </span>
       </div>
@@ -59,6 +64,26 @@ let make = (~filename, ~code, ~caption=?, ~children=?) => {
     let height: Signal.t<option<float>> = Signal.make(None)
     // Where a drag started: pointer position, share, and panel height.
     let start = ref((0.0, defaultShare, designHeight))
+    // The mouse's side, and the shares that show all of the code or all of
+    // the demo (measured on mount; these defaults apply until then).
+    let focus = Signal.make(Neither)
+    let codeFull = ref(0.75)
+    let demoFull = ref(0.25)
+
+    // The divider's position on screen: the chosen share, moved out of the
+    // way of whichever side the mouse is over (never moved the other way).
+    let shown = Computed.make(() =>
+      switch Signal.get(focus) {
+      | Neither => Signal.get(share)
+      | Code => Math.max(Signal.get(share), codeFull.contents)
+      | Demo => Math.min(Signal.get(share), demoFull.contents)
+      }
+    )
+
+    let pointAt = (side, event) =>
+      if pointerType(event) == "mouse" && !Signal.peek(dragging) {
+        Signal.set(focus, side)
+      }
 
     let onPointerDown = event => {
       let handle = currentTarget(event)
@@ -67,8 +92,14 @@ let make = (~filename, ~code, ~caption=?, ~children=?) => {
       | Some(el) => getBoundingClientRect(el)["height"]
       | None => designHeight
       }
-      start := (clientY(event), Signal.peek(share), height)
-      Signal.set(dragging, true)
+      // Grab the divider where it is shown, and make that the chosen share.
+      let from = Signal.peek(shown)
+      Signal.batch(() => {
+        Signal.set(share, from)
+        Signal.set(focus, Neither)
+        Signal.set(dragging, true)
+      })
+      start := (clientY(event), from, height)
       preventDefault(event)
     }
 
@@ -97,6 +128,8 @@ let make = (~filename, ~code, ~caption=?, ~children=?) => {
         let demoShare = Math.min((demoNeeded +. dividerHeight) /. total, 0.72)
         Signal.set(height, Some(total))
         Signal.set(share, wanted <= limit ? codeNeeded /. total : clamp(1.0 -. demoShare))
+        codeFull := Math.min(0.8, codeNeeded /. total)
+        demoFull := Math.max(0.2, 1.0 -. (demoNeeded +. dividerHeight) /. total)
       | _ => ()
       }
     )
@@ -106,10 +139,10 @@ let make = (~filename, ~code, ~caption=?, ~children=?) => {
       switch key(event) {
       | "ArrowUp" =>
         preventDefault(event)
-        Signal.update(share, s => clamp(s -. step))
+        Signal.set(share, clamp(Signal.peek(shown) -. step))
       | "ArrowDown" =>
         preventDefault(event)
-        Signal.update(share, s => clamp(s +. step))
+        Signal.set(share, clamp(Signal.peek(shown) +. step))
       | "Home" =>
         preventDefault(event)
         Signal.set(share, minShare)
@@ -126,12 +159,13 @@ let make = (~filename, ~code, ~caption=?, ~children=?) => {
       <div
         ref=split
         class={Signal.get(dragging) ? "docs-example-split is-dragging" : "docs-example-split"}
-        style={`grid-template-rows: ${percent(Signal.get(share))}% auto minmax(0, 1fr)` ++
+        onPointerLeave={_ => Signal.set(focus, Neither)}
+        style={`grid-template-rows: ${percent(Signal.get(shown))}% auto minmax(0, 1fr)` ++
         switch Signal.get(height) {
         | Some(px) => `; height: ${Float.toFixed(px, ~digits=0)}px`
         | None => ""
         }}>
-        {codePane(~ref=codePre)}
+        {codePane(~ref=codePre, ~onPointerEnter=pointAt(Code, _))}
         <div
           class="docs-example-divider"
           role="separator"
@@ -142,7 +176,7 @@ let make = (~filename, ~code, ~caption=?, ~children=?) => {
             View.attr("aria-valuemin", "15"),
             View.attr("aria-valuemax", "85"),
             View.computedAttr("aria-valuenow", () =>
-              Float.toFixed(Signal.get(share) *. 100.0, ~digits=0)
+              Float.toFixed(Signal.get(shown) *. 100.0, ~digits=0)
             ),
           ]
           onPointerDown
@@ -152,7 +186,7 @@ let make = (~filename, ~code, ~caption=?, ~children=?) => {
           onKeyDown>
           <span class="docs-example-grip" />
         </div>
-        <div class="docs-example-demo">
+        <div class="docs-example-demo" onPointerEnter={pointAt(Demo, _)}>
           <div ref=stage class="docs-example-demo-stage"> {children} </div>
         </div>
       </div>
