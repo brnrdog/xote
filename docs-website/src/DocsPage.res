@@ -438,6 +438,70 @@ module LayerNote = {
 }
 
 // ---- Table of Contents (right side) ----
+// ---- Scroll spy for "On this page" ----
+// One window listener tracks which heading of the current page was scrolled
+// past last; the TOC links read it to mark themselves active.
+module TocSpy = {
+  @val external getById: string => Nullable.t<Dom.element> = "document.getElementById"
+  @send external getBoundingClientRect: Dom.element => {"top": float} = "getBoundingClientRect"
+  @val @scope("window") external scrollY: float = "scrollY"
+  @val @scope("window") external innerHeight: float = "innerHeight"
+  @val @scope(("document", "documentElement")) external scrollHeight: float = "scrollHeight"
+  @val @scope("window")
+  external addWindowListener: (string, unit => unit, {"passive": bool}) => unit = "addEventListener"
+  @val external requestAnimationFrame: (unit => unit) => int = "requestAnimationFrame"
+  @val external setTimeout: (unit => unit, int) => int = "setTimeout"
+
+  // A heading counts as current once its top passes this line, just below
+  // the sticky header.
+  let activationLine = 120.0
+
+  let activeId = Signal.make("")
+  let ids: ref<array<string>> = ref([])
+  let scheduled = ref(false)
+
+  let sync = () => {
+    scheduled := false
+    let headings = ids.contents->Array.filterMap(id => getById(id)->Nullable.toOption)
+    let atBottom = scrollY +. innerHeight >= scrollHeight -. 2.0
+    let current = if atBottom {
+      ids.contents->Array.at(-1)
+    } else {
+      let passed = ids.contents->Array.filterWithIndex((_, i) =>
+        switch headings[i] {
+        | Some(el) => getBoundingClientRect(el)["top"] <= activationLine
+        | None => false
+        }
+      )
+      switch passed->Array.at(-1) {
+      | Some(id) => Some(id)
+      | None => ids.contents[0]
+      }
+    }
+    Signal.set(activeId, current->Option.getOr(""))
+  }
+
+  let schedule = () =>
+    if !scheduled.contents {
+      scheduled := true
+      let _ = requestAnimationFrame(sync)
+    }
+
+  let _ = if SSRContext.isClient {
+    addWindowListener("scroll", schedule, {"passive": true})
+    addWindowListener("resize", schedule, {"passive": true})
+  }
+
+  // Called when a page's TOC renders: track its headings once they are in
+  // the DOM.
+  let track = (pageIds: array<string>) => {
+    ids := pageIds
+    if SSRContext.isClient {
+      let _ = setTimeout(sync, 0)
+    }
+  }
+}
+
 module TableOfContents = {
   type tocItem = {
     text: string,
@@ -448,6 +512,7 @@ module TableOfContents = {
   type props = {items: array<tocItem>, currentPath: string}
 
   let make = (props: props) => {
+    TocSpy.track(props.items->Array.map(item => item.id))
     <aside class="docs-toc">
       {if Array.length(props.items) == 0 {
         View.fragment([])
@@ -457,7 +522,17 @@ module TableOfContents = {
           {View.fragment(
             props.items->Array.map(item => {
               let className = "toc-link" ++ (item.level >= 3 ? " toc-link-h3" : "")
-              <a href={"#" ++ item.id} class={className}> {View.text(item.text)} </a>
+              <a
+                href={"#" ++ item.id}
+                class={() =>
+                  Signal.get(TocSpy.activeId) == item.id ? className ++ " active" : className}
+                attrs=[
+                  View.computedAttr("aria-current", () =>
+                    Signal.get(TocSpy.activeId) == item.id ? "location" : "false"
+                  ),
+                ]>
+                {View.text(item.text)}
+              </a>
             }),
           )}
         </nav>
