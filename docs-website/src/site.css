@@ -1518,9 +1518,19 @@ blockquote {
   grid-template-rows: 45% auto minmax(0, 1fr);
   height: clamp(480px, 78vh, 640px);
 }
+/* Hovering a side slides the divider; dragging follows the pointer exactly. */
+.docs-example-split {
+  transition: grid-template-rows 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
 .docs-example-split.is-dragging {
   cursor: row-resize;
   user-select: none;
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .docs-example-split {
+    transition: none;
+  }
 }
 .docs-example-code {
   display: flex;
