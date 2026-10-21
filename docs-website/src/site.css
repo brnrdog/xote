@@ -1493,27 +1493,125 @@ blockquote {
   min-height: 1lh;
 }
 
-/* ---- Live example panels inside the docs: soft, no rules ---- */
-.docs-example-panel {
+/* ---- Live example panels inside the docs ----
+   One column, the width of the article: the running demo on a soft stage,
+   then the code that makes it. */
+.docs-content .docs-example-panel {
   --border: transparent;
   --border-soft: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 100%;
+  margin: 28px 0;
+  padding: 6px;
+  border: 0;
   border-radius: 24px;
-  overflow: hidden;
   background: var(--surface);
   box-shadow: var(--lift);
+  overflow: hidden;
 }
-.docs-example-header,
-.docs-example-body {
+.docs-example-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+}
+.docs-example-demo-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 36px 28px;
+  border: 0;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 1px 1px, var(--soft-3) 1px, transparent 0) 0 0 / 18px 18px,
+    var(--soft);
+  overflow-x: auto;
+}
+.docs-example-caption {
+  margin: 0;
+  padding: 0 14px 4px;
+  font: 400 13px/18px var(--font-body);
+  font-style: normal;
+  color: var(--ink-muted);
+}
+.docs-example-code {
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  background: var(--sunken);
+  overflow: hidden;
+}
+.docs-example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  padding: 6px 8px 0 18px;
+  border: 0;
   background: transparent;
 }
-.docs-example-tab {
-  border: 0;
+.docs-example-filename {
+  font: 500 12px/16px var(--font-mono);
+  letter-spacing: 0;
+  color: var(--ink-faint);
 }
-.docs-example-tab.active {
+.docs-example-toggle {
+  min-height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-pill);
   background: var(--soft-2);
+  color: var(--ink-muted);
+  font: 500 12px/16px var(--font-body);
+  cursor: pointer;
+}
+.docs-example-toggle:hover {
+  color: var(--ink);
 }
 .docs-example-code-pre {
+  max-height: none;
+  margin: 0;
+  padding: 12px 0 18px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+/* The sticky line-number gutter takes the code area's colour. */
+.docs-example-code .syntax-line-number {
   background: var(--sunken);
+}
+/* Phones: filename and toggle stay on one row; the stage tightens; a todo
+   row keeps its Remove button beside the text. */
+@media (max-width: 760px) {
+  .docs-content .docs-example-header {
+    flex-direction: row;
+    align-items: center;
+  }
+  .docs-content .docs-example-demo-stage {
+    padding: 24px 16px;
+  }
+  .docs-example-panel .todo-demo-item {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .docs-example-panel .todo-demo-delete-btn {
+    grid-column: auto;
+    margin-top: 0;
+  }
+}
+/* Collapsed: show the first lines and fade them out above the toggle. */
+.docs-example-code.is-collapsed .docs-example-code-pre {
+  max-height: 340px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent);
 }
 .docs-example-demo-stage,
 .docs-example-panel [class$="-panel"],

@@ -1,75 +1,46 @@
+// A live example in the docs: the running demo on top, the code that makes it
+// underneath, both inside the article column. Long code starts collapsed.
+
+// Code longer than this many lines starts collapsed behind "Show all".
+let collapsedLines = 18
+
 @xote.component
 let make = (~filename, ~code, ~caption=?, ~children=?) => {
-  let activeTab = Signal.make("code")
-  let hasDemo = switch children {
-  | Some(_) => true
-  | None => false
-  }
-  let exampleClass = hasDemo ? "docs-example-panel docs-example-panel-has-demo" : "docs-example-panel"
+  let lineCount = code->String.split("\n")->Array.length
+  let isLong = lineCount > collapsedLines
+  let expanded = Signal.make(false)
 
-  let setTab = (tab, _evt: Dom.event) => Signal.set(activeTab, tab)
-  let tabClass = tab =>
-    if Signal.get(activeTab) == tab {
-      "docs-example-tab active"
-    } else {
-      "docs-example-tab"
-    }
-  let panelClass = tab =>
-    if Signal.get(activeTab) == tab {
-      "docs-example-view active"
-    } else {
-      "docs-example-view"
-    }
-
-  <section class={exampleClass}>
-    <div class="docs-example-header">
-      <div class="docs-example-tabs" role="tablist">
-        <button
-          class={() => tabClass("code")}
-          onClick={setTab("code", _)}
-          role="tab"
-          type_="button"
-          ariaSelected={() => Signal.get(activeTab) == "code"}
-        >
-          {View.text("Code")}
-        </button>
-        {switch children {
-        | Some(_) =>
-          <button
-            class={() => tabClass("demo")}
-            onClick={setTab("demo", _)}
-            role="tab"
-            type_="button"
-            ariaSelected={() => Signal.get(activeTab) == "demo"}
-          >
-            {View.text("Demo")}
-          </button>
-        | None => View.fragment([])
+  <section class="docs-example-panel">
+    {switch children {
+    | Some(children) =>
+      <div class="docs-example-demo">
+        <div class="docs-example-demo-stage"> {children} </div>
+        {switch caption {
+        | Some(text) => <div class="docs-example-caption"> {text} </div>
+        | None => View.null()
         }}
       </div>
-      <div class="docs-example-filename"> {View.text(filename)} </div>
-    </div>
-
-    <div class="docs-example-body">
-      <div class={() => panelClass("code")}>
-        <pre class="docs-example-code-pre">
-          <code> {SyntaxHighlight.highlight(code)} </code>
-        </pre>
+    | None => View.null()
+    }}
+    <div
+      class={isLong && !Signal.get(expanded)
+        ? "docs-example-code is-collapsed"
+        : "docs-example-code"}>
+      <div class="docs-example-header">
+        <span class="docs-example-filename"> {filename} </span>
+        {isLong
+          ? <button
+              type_="button"
+              class="docs-example-toggle"
+              ariaExpanded={Signal.get(expanded)}
+              onClick={_ => Signal.update(expanded, open_ => !open_)}>
+              {Signal.get(expanded) ? "Show less" : `Show all ${Int.toString(lineCount)} lines`}
+            </button>
+          : View.null()}
       </div>
-
-      {switch children {
-      | Some(children) =>
-        <div class={() => panelClass("demo")}>
-          <div class="docs-example-demo">
-            <div class="docs-example-demo-stage"> {children} </div>
-            {switch caption {
-            | Some(text) => <div class="docs-example-caption"> {View.text(text)} </div>
-            | None => View.fragment([])
-            }}
-          </div>
-        </div>
-      | None => View.fragment([])
-      }}
+      <pre class="docs-example-code-pre">
+        <code> {SyntaxHighlight.highlight(code)} </code>
+      </pre>
     </div>
   </section>
 }

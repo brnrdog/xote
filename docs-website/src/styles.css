@@ -1150,66 +1150,6 @@ td strong {
   margin-top: var(--s-2);
 }
 
-@media (min-width: 1280px) {
-  .docs-content .docs-example-panel.docs-example-panel-has-demo {
-    width: min(
-      1040px,
-      calc(100vw - var(--sidebar-width) - var(--toc-width) - var(--s-12) - var(--s-8))
-    );
-    max-width: none;
-    margin-left: 50%;
-    transform: translateX(-50%);
-  }
-
-  .docs-example-panel-has-demo .docs-example-tabs {
-    display: none;
-  }
-
-  .docs-example-panel-has-demo .docs-example-header {
-    justify-content: flex-end;
-  }
-
-  .docs-example-panel-has-demo .docs-example-body {
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-    align-items: stretch;
-    height: min(560px, calc(100vh - var(--header-height) - var(--s-10)));
-    overflow: hidden;
-  }
-
-  .docs-example-panel-has-demo .docs-example-view,
-  .docs-example-panel-has-demo .docs-example-view.active {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-  }
-
-  .docs-example-panel-has-demo .docs-example-view:first-child {
-    border-right: 1px solid var(--border);
-  }
-
-  .docs-example-panel-has-demo .docs-example-code-pre {
-    flex: 1 1 auto;
-    min-height: 0;
-    max-height: none;
-  }
-
-  .docs-example-panel-has-demo .docs-example-demo {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    height: 100%;
-    min-height: 0;
-  }
-
-  .docs-example-panel-has-demo .docs-example-demo-stage {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: auto;
-  }
-}
-
 .computed-order-demo {
   width: 100%;
   display: grid;
