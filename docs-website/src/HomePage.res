@@ -408,7 +408,7 @@ module Examples = {
         title="See some examples."
         titleMuted="Then try it yourself."
         body="Have a quick look at how small applications written in Xote look. Then try it yourself in the playground."
-        link=("/docs/core-concepts/signals", "All examples")
+        link=("/docs/learn/signals", "All examples")
       />
       <div class="examples-panel">
         <div class="examples-tabs" role="tablist" ariaLabel="Examples">
@@ -495,7 +495,7 @@ module HowItWorks = {
           title="Meet the triad."
           titleMuted="The core of everything in Xote."
           body="Signals hold state, computed values derive from it, and effects carry changes out to the page. That’s everything you need before you build."
-          link=("/docs/core-concepts/signals", "Read the guide")
+          link=("/docs/learn/signals", "Read the guide")
         />
         <ol class="triad">
           <TriadItem

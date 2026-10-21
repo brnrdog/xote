@@ -1,25 +1,3 @@
-@module("./docs/IntroDoc.mdx") external introDoc: Mdx.document = "default"
-@module("./docs/LearningReScriptDoc.mdx") external learningReScriptDoc: Mdx.document = "default"
-@module("./docs/JavaScriptTypeScriptDoc.mdx") external javaScriptTypeScriptDoc: Mdx.document =
-  "default"
-@module("./docs/SignalsDoc.mdx") external signalsDoc: Mdx.document = "default"
-@module("./docs/ComputedDoc.mdx") external computedDoc: Mdx.document = "default"
-@module("./docs/EffectsDoc.mdx") external effectsDoc: Mdx.document = "default"
-@module("./docs/BatchingDoc.mdx") external batchingDoc: Mdx.document = "default"
-@module("./docs/ViewsDoc.mdx") external viewsDoc: Mdx.document = "default"
-@module("./docs/ContextDoc.mdx") external contextDoc: Mdx.document = "default"
-@module("./docs/ResourcesDoc.mdx") external resourcesDoc: Mdx.document = "default"
-@module("./docs/RouterDoc.mdx") external routerDoc: Mdx.document = "default"
-@module("./docs/ApiSignalDoc.mdx") external apiSignalDoc: Mdx.document = "default"
-@module("./docs/ApiComputedDoc.mdx") external apiComputedDoc: Mdx.document = "default"
-@module("./docs/ApiEffectDoc.mdx") external apiEffectDoc: Mdx.document = "default"
-@module("./docs/ApiViewDoc.mdx") external apiViewDoc: Mdx.document = "default"
-@module("./docs/ReactComparisonDoc.mdx") external reactComparisonDoc: Mdx.document = "default"
-@module("./docs/SolidJSComparisonDoc.mdx") external solidComparisonDoc: Mdx.document = "default"
-@module("./docs/TechnicalOverviewDoc.mdx") external technicalOverviewDoc: Mdx.document = "default"
-@module("./docs/SSRDoc.mdx") external ssrDoc: Mdx.document = "default"
-@module("./docs/MdxDoc.mdx") external mdxDoc: Mdx.document = "default"
-@module("./docs/ChangelogDoc.mdx") external changelogDoc: Mdx.document = "default"
 
 type mdxProps = {
   children?: Mdx.children,
@@ -123,28 +101,15 @@ let components = Mdx.components([
   ("ComputedOrderDemo", Mdx.component(ComputedOrderDemo.make)),
   ("EffectAutosaveDemo", Mdx.component(EffectAutosaveDemo.make)),
   ("TodoListDemo", Mdx.component(TodoListDemo.make)),
+  ("IntroCounterDemo", Mdx.component(IntroCounterDemo.make)),
+  ("RunsOnceDemo", Mdx.component(RunsOnceDemo.make)),
+  ("FormsSignupDemo", Mdx.component(FormsSignupDemo.make)),
+  ("FetchingDataDemo", Mdx.component(FetchingDataDemo.make)),
+  ("TutorialStep1", Mdx.component(TutorialDemos.Step1.make)),
+  ("TutorialStep2", Mdx.component(TutorialDemos.Step2.make)),
+  ("TutorialStep3", Mdx.component(TutorialDemos.Step3.make)),
+  ("TutorialStep4", Mdx.component(TutorialDemos.Step4.make)),
 ])
 
+// MDX documents are imported in the generated DocsIndex module.
 let render = document => Mdx.render(document, ~components, ())
-
-let intro = () => render(introDoc)
-let learningReScript = () => render(learningReScriptDoc)
-let javaScriptTypeScript = () => render(javaScriptTypeScriptDoc)
-let signals = () => render(signalsDoc)
-let computed = () => render(computedDoc)
-let effects = () => render(effectsDoc)
-let batching = () => render(batchingDoc)
-let views = () => render(viewsDoc)
-let context = () => render(contextDoc)
-let resources = () => render(resourcesDoc)
-let router = () => render(routerDoc)
-let apiSignal = () => render(apiSignalDoc)
-let apiComputed = () => render(apiComputedDoc)
-let apiEffect = () => render(apiEffectDoc)
-let apiView = () => render(apiViewDoc)
-let reactComparison = () => render(reactComparisonDoc)
-let solidComparison = () => render(solidComparisonDoc)
-let technicalOverview = () => render(technicalOverviewDoc)
-let ssr = () => render(ssrDoc)
-let mdx = () => render(mdxDoc)
-let changelog = () => render(changelogDoc)

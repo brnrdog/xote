@@ -1,6 +1,6 @@
-Xote is a ReScript-first library, but the package also ships JavaScript modules that can be imported by JavaScript applications.
+Xote is ReScript-first, but the package also ships JavaScript modules you can import from a JavaScript app.
 
-The main difference is syntax: ReScript projects usually use Xote's JSX integration, while JavaScript projects should use the runtime constructors directly.
+The main difference is syntax. ReScript projects use Xote's JSX (see the [Quick start](/docs/quick-start)); JavaScript projects call the runtime constructors directly.
 
 ## Install
 
@@ -8,9 +8,9 @@ The main difference is syntax: ReScript projects usually use Xote's JSX integrat
 npm install xote
 ```
 
-## Use the Client Entry
+## Use the client entry
 
-For browser-rendered UI, import from `xote/client`. It contains the core rendering modules without router, SSR, hydration, or MDX code.
+For UI rendered in the browser, import from `xote/client`. It has the core rendering modules without the router, SSR, hydration or MDX code.
 
 ```js
 import { Signal, Computed, Effect, View } from "xote/client";
@@ -24,9 +24,9 @@ Use the other entries only when a feature needs them:
 - `xote/hydration` for client hydration
 - `xote/mdx` for MDX integration
 
-## JavaScript Counter
+## Example: counter
 
-Build Xote views with `View.element(tag, attrs, events, children)`. Attributes are `View.attr(name, value)` pairs. Events are `[eventName, handler]` pairs.
+Build views with `View.element(tag, attrs, events, children)`. Attributes are `View.attr(name, value)` pairs; events are `[eventName, handler]` pairs.
 
 ```js
 import { Signal, Computed, Effect, View } from "xote/client";
@@ -65,9 +65,9 @@ View.mountById(app, "app");
 
 The reactive reads happen inside `Computed.make`, `Effect.run`, and `View.signalText`. When `count` changes, the text nodes update in place.
 
-## Working with Existing Apps
+## Add Xote to an existing app
 
-Xote can be mounted into any existing DOM node:
+You can mount Xote into any existing DOM node:
 
 ```html
 <div id="xote-widget"></div>
@@ -87,4 +87,4 @@ View.mountById(
 );
 ```
 
-That makes JavaScript usage a good fit for small widgets, gradual adoption, and integration tests around the compiled runtime. New full applications should still prefer ReScript so the JSX and type system work together.
+That makes JavaScript a good fit for small widgets, gradual adoption, and integration tests around the compiled runtime. For a new full app, prefer ReScript, so JSX and the type system work together. New to ReScript? Start with [Learning ReScript](/docs/learning-rescript).

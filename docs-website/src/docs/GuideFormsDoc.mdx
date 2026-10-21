@@ -1,0 +1,190 @@
+Forms in Xote are plain HTML elements wired to signals. Each field reads its value from a signal and writes back on input, so validation, disabled buttons and resets are just more signal reads.
+
+<DocsExamplePanel
+      filename="SignupForm.res"
+      code={`@get external target: Dom.event => Dom.element = "target"
+@get external value: Dom.element => string = "value"
+@get external checked: Dom.element => bool = "checked"
+@send external preventDefault: Dom.event => unit = "preventDefault"
+
+let name = Signal.make("")
+let plan = Signal.make("free")
+let agreed = Signal.make(false)
+let submitted = Signal.make(None)
+
+let nameError = Computed.make(() =>
+  String.trim(Signal.get(name)) == "" ? Some("Tell us your name.") : None
+)
+let canSubmit = Computed.make(() => Signal.get(nameError) == None && Signal.get(agreed))
+
+let reset = () => {
+  Signal.set(name, "")
+  Signal.set(plan, "free")
+  Signal.set(agreed, false)
+}
+
+let submit = (evt: Dom.event) => {
+  preventDefault(evt)
+  if Signal.peek(canSubmit) {
+    Signal.set(submitted, Some(Signal.peek(name) ++ " joined the " ++ Signal.peek(plan) ++ " plan."))
+    reset()
+  }
+}
+
+@xote.component
+let make = () =>
+  <form onSubmit={submit}>
+    <label>
+      {"Name"}
+      <input
+        value={name}
+        placeholder="Ada Lovelace"
+        onInput={e => Signal.set(name, e->target->value)}
+      />
+    </label>
+    <label>
+      {"Plan"}
+      <select value={plan} onChange={e => Signal.set(plan, e->target->value)}>
+        <option value="free"> {"Free"} </option>
+        <option value="team"> {"Team"} </option>
+      </select>
+    </label>
+    <label>
+      <input
+        type_="checkbox"
+        checked={agreed}
+        onChange={e => Signal.set(agreed, e->target->checked)}
+      />
+      {"I agree to the terms"}
+    </label>
+    <button type_="submit" disabled={!Signal.get(canSubmit)}> {"Sign up"} </button>
+    <p>
+      {switch Signal.get(submitted) {
+      | Some(message) => message
+      | None => Signal.get(nameError)->Option.getOr("Ready to sign up.")
+      }}
+    </p>
+  </form>`}
+    >
+      <FormsSignupDemo />
+    </DocsExamplePanel>
+
+## Read values from events
+
+Event handlers receive a `Dom.event`. To get the field's current value, add a few small bindings once, near the top of the file (or in a shared module):
+
+```rescript
+@get external target: Dom.event => Dom.element = "target"
+@get external value: Dom.element => string = "value"
+@get external checked: Dom.element => bool = "checked"
+@send external preventDefault: Dom.event => unit = "preventDefault"
+```
+
+`e->target->value` then gives you the text of an input, select or textarea, and `e->target->checked` the state of a checkbox.
+
+## Bind a text input
+
+Keep the text in a signal. Pass the signal as `value`, and write to it in `onInput`:
+
+```rescript
+let name = Signal.make("")
+
+@xote.component
+let make = () =>
+  <input value={name} onInput={e => Signal.set(name, e->target->value)} />
+```
+
+Passing the signal itself keeps the field in sync: when code calls `Signal.set(name, "")`, the input clears. Xote writes `value` and `checked` as DOM properties, so this works after the user has typed.
+
+A `<textarea>` works the same way, with `value` and `onInput`:
+
+```rescript
+let bio = Signal.make("")
+
+<textarea rows={4} value={bio} onInput={e => Signal.set(bio, e->target->value)} />
+```
+
+## Bind checkboxes and selects
+
+A checkbox uses `checked` and `onChange`. A `<select>` uses `value` and `onChange`, and its `value` picks the matching `<option>`:
+
+```rescript
+let agreed = Signal.make(false)
+let plan = Signal.make("free")
+
+<input type_="checkbox" checked={agreed} onChange={e => Signal.set(agreed, e->target->checked)} />
+
+<select value={plan} onChange={e => Signal.set(plan, e->target->value)}>
+  <option value="free"> {"Free"} </option>
+  <option value="team"> {"Team"} </option>
+</select>
+```
+
+Note the prop is `type_`, because `type` is a ReScript keyword.
+
+## Validate with computeds
+
+Validation is derived state, so it belongs in a [computed](/docs/learn/computeds). It re-runs only when the fields it reads change:
+
+```rescript
+let nameError = Computed.make(() =>
+  String.trim(Signal.get(name)) == "" ? Some("Tell us your name.") : None
+)
+
+let canSubmit = Computed.make(() => Signal.get(nameError) == None && Signal.get(agreed))
+```
+
+Show the message wherever you need it. Under `@xote.component`, a `switch` on a signal read in the markup updates on its own:
+
+```rescript
+<p class="field-error">
+  {switch Signal.get(nameError) {
+  | Some(message) => message
+  | None => ""
+  }}
+</p>
+```
+
+## Disable the submit button
+
+Read the computed inside the attribute. The annotation turns that attribute into its own reactive binding:
+
+```rescript
+<button type_="submit" disabled={!Signal.get(canSubmit)}> {"Sign up"} </button>
+```
+
+## Handle submit
+
+Put the handler on the `<form>` with `onSubmit`, and call `preventDefault` so the browser does not reload the page. This also makes the Enter key submit the form.
+
+Inside the handler, read the fields with [`Signal.peek`](/docs/api/signal#signal-peek). A handler is not a reactive scope, so there is nothing to subscribe to:
+
+```rescript
+let submit = (evt: Dom.event) => {
+  preventDefault(evt)
+  if Signal.peek(canSubmit) {
+    save({name: Signal.peek(name), plan: Signal.peek(plan)})
+    reset()
+  }
+}
+```
+
+## Reset the form
+
+Because each field follows its signal, resetting is just setting the signals back. Wrap several writes in [`Signal.batch`](/docs/advanced/batching) if you want them to land as one update:
+
+```rescript
+let reset = () =>
+  Signal.batch(() => {
+    Signal.set(name, "")
+    Signal.set(plan, "free")
+    Signal.set(agreed, false)
+  })
+```
+
+## Common mistakes
+
+- **Reading a signal once into `value`.** `value={Signal.get(name)}` on a field works under `@xote.component`, but passing the signal itself (`value={name}`) is shorter and makes the binding obvious.
+- **Forgetting `preventDefault`.** Without it, submitting a `<form>` reloads the page.
+- **Validating in an effect.** Writing an error signal from an [effect](/docs/learn/effects) works, but a computed is simpler and never goes out of sync.
+- **Using `onChange` for text.** On text inputs, `change` fires only when the field loses focus. Use `onInput` to react to every keystroke.

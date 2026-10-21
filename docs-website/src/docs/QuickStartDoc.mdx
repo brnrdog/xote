@@ -1,0 +1,116 @@
+This page takes you from an empty folder to a working counter in the browser. It takes about five minutes.
+
+## Start a ReScript project
+
+Xote works in a ReScript 12 project with a bundler such as Vite. If you're starting fresh, create one with Vite:
+
+```bash
+npm create rescript-app@latest
+```
+
+Pick the **Vite** template when asked. You'll get a `rescript.json`, an `index.html` and a `src` folder. Already have a project? Skip ahead.
+
+## Install Xote
+
+```bash
+npm install xote
+```
+
+With pnpm, also allow Xote's install script so it can set up the JSX transform (see [Troubleshooting](#troubleshooting)):
+
+```bash
+pnpm add xote
+pnpm approve-builds
+```
+
+## Turn on the JSX transform
+
+Add these fields to your `rescript.json`:
+
+```json
+{
+  "dependencies": ["xote"],
+  "jsx": {
+    "version": 4,
+    "module": "XoteJSX"
+  },
+  "ppx-flags": ["xote/ppx/ppx"],
+  "compiler-flags": ["-open Xote"]
+}
+```
+
+What each line does:
+
+- `"dependencies"` makes Xote's modules available to your code.
+- `"jsx"` tells ReScript to compile JSX with Xote instead of React.
+- `"ppx-flags"` enables `@xote.component`, which lets you read signals right inside JSX. It's a small prebuilt binary that ships in the package. It's the recommended way to write components, though a few of its details are still settling; see its [README](https://github.com/brnrdog/xote/blob/main/ppx/README.md#not-settled-yet).
+- `"-open Xote"` lets you write `Signal` and `View` instead of `Xote.Signal` and `Xote.View`. Without it, add `open Xote` at the top of each file.
+
+## Write your first component
+
+Create `src/Counter.res`:
+
+```rescript
+let count = Signal.make(0)
+
+@xote.component
+let make = () =>
+  <div>
+    <h1> {"Counter"} </h1>
+    <p> {"Count: "} {Signal.get(count)} </p>
+    <button onClick={_ => Signal.update(count, n => n + 1)}> {"Increment"} </button>
+  </div>
+```
+
+`Signal.make(0)` creates a piece of state. `Signal.get(count)` inside the JSX shows it and keeps it up to date. `Signal.update` changes it when the button is clicked.
+
+## Mount it
+
+Create `src/Main.res` to put the component on the page:
+
+```rescript
+View.mountById(<Counter />, "app")
+```
+
+Then point `index.html` at the compiled file and give it an element with that id:
+
+```html
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/Main.res.mjs"></script>
+</body>
+```
+
+The mount lives in its own file because a ReScript module can't refer to itself by name.
+
+## Run it
+
+Start the ReScript compiler in watch mode and the Vite dev server, each in its own terminal:
+
+```bash
+npx rescript watch
+```
+
+```bash
+npx vite
+```
+
+Open the address Vite prints and click the button. The count goes up, and that number is the only thing on the page that changes.
+
+## Troubleshooting
+
+**The build fails at `@xote.component` or `ppx-flags`.** The JSX transform binary wasn't set up. Package managers that skip install scripts (pnpm does by default) need `pnpm approve-builds`, or run the setup once by hand:
+
+```bash
+node node_modules/xote/ppx/postinstall.js
+```
+
+**No prebuilt binary for your platform.** Binaries ship for Linux (x64, arm64), macOS (x64, arm64) and Windows (x64). On anything else the install script builds the transform from source, which needs the OCaml compiler (`ocamlopt`). You can rerun that build with `sh node_modules/xote/ppx/build.sh`.
+
+**Rather not use the transform?** Leave out `ppx-flags` and write `@jsx.component` instead of `@xote.component`. Reactive values then need explicit wrappers; [Rendering](/docs/learn/rendering#without-the-jsx-transform) shows both styles.
+
+**"The module or file Signal can't be found."** Add `"-open Xote"` to `compiler-flags`, or `open Xote` at the top of the file.
+
+## Next
+
+Read [Thinking in signals](/docs/thinking-in-signals) next. It explains the one idea behind everything you just did, and it's short.

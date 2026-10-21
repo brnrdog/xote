@@ -1,97 +1,56 @@
-## What is Xote?
+Xote is a small UI library for [ReScript](https://rescript-lang.org/). You keep state in signals, write components in JSX, and when a value changes Xote updates exactly the text or attribute that shows it. Nothing else re-renders.
 
-Xote is a UI library for ReScript built around fine-grained reactivity. It re-exports [rescript-signals](https://brnrdog.github.io/rescript-signals) for state, derived values, and effects, then adds the pieces you need to build applications: components, JSX support, routing, SSR, and hydration.
+## A first look
 
-The design goal is simple: keep the reactive model small and explicit, then let updates flow directly to the DOM instead of re-running whole component trees.
+A signal holds a value. A computed derives one. The component reads both, and each read becomes a tiny live binding in the page.
 
-- [`Signal`](/docs/api/signal#signal-module) for local and shared state
-- [`Computed`](/docs/api/computed#computed-module) values for derived state
-- [`Effect`](/docs/api/effect#effect-module) for external side effects
-- [`View`](/docs/api/view#view-module) primitives and JSX for UI composition
-- A built-in router, SSR, and hydration
-
-## Start Here
-
-This counter shows the core model: a signal stores state, an event updates it, and a reactive view node reads it.
-
-### Using JSX Syntax
-
-```rescript
-// Counter.res
-open Xote
-
-let count = Signal.make(0)
-
-let increment = (_evt: Dom.event) => {
-  Signal.update(count, n => n + 1)
-}
+<DocsExamplePanel
+      filename="Counter.res"
+      code={`let count = Signal.make(0)
+let doubled = Computed.make(() => Signal.get(count) * 2)
 
 @xote.component
-let make = () => {
+let make = () =>
   <div>
-    <h1> {"Counter"} </h1>
-    <p> {"Count: "} {Signal.get(count)} </p>
-    <button onClick={increment}> {"Increment"} </button>
-  </div>
-}
-```
+    <button onClick={_ => Signal.update(count, n => n + 1)}>
+      {"Clicked "}
+      {Signal.get(count)}
+      {" times"}
+    </button>
+    <p> {"Doubled: "} {Signal.get(doubled)} </p>
+  </div>`}
+    >
+      <IntroCounterDemo />
+    </DocsExamplePanel>
 
-Mount it from your entry file (a module can't reference itself by its file name, so the mount lives one file up):
+Click the button and only the two numbers change. The component function ran once, when it was first rendered; the button, the paragraph and the static text were built then and stay put.
 
-```rescript
-// App.res
-open Xote
+## Why Xote
 
-View.mountById(<Counter />, "app")
-```
+- **Updates where they matter.** No virtual DOM and no re-running components. A change goes straight from the signal to the DOM node that reads it.
+- **A small surface.** Signals, computeds and effects for state; JSX and a handful of `View` helpers for UI. Most apps need little else.
+- **Types all the way down.** ReScript checks your state, props and events at compile time, and compiles fast.
+- **The rest is built in.** A router, server rendering with hydration, context and async resources come in the same package.
 
-When `count` changes, only the reactive view node updates. The component does not need a render loop or a dependency array.
+## What's in the box
 
-The `@xote.component` annotation is what lets you read signals **inline** (no `() => …` thunks) while keeping updates fine-grained. It also lets you write plain `{…}` children — strings, numbers, or signal reads — with no `<View.Int>`/`<View.Text>` wrapper; each is coerced to a reactive text node for you. It needs a one-time setup (a small native PPX) — see [Views → JSX Configuration](/docs/view/overview#jsx-configuration).
+| Module | What it's for |
+| --- | --- |
+| [`Signal`](/docs/learn/signals) | State you can read and update |
+| [`Computed`](/docs/learn/computeds) | Values derived from other signals |
+| [`Effect`](/docs/learn/effects) | Side effects that rerun when their inputs change |
+| [`View`](/docs/learn/components) and JSX | Components, lists, conditions, refs, portals |
+| [`Context`](/docs/learn/context) | Values shared with everything a component renders |
+| [`Resource`](/docs/learn/async-data) | Async data as signals, with Suspense |
+| [`Router`](/docs/learn/routing) | URL matching, links and navigation |
+| [`SSR` and `Hydration`](/docs/advanced/ssr) | Render on the server, pick up on the client |
 
-## How the Docs Are Organized
+## Where to start
 
-The docs make more sense if you move from the reactive core outward into UI, routing, and server rendering.
+- **New to Xote?** Go to [Quick start](/docs/quick-start) to set up a project, then read [Thinking in signals](/docs/thinking-in-signals) for the one idea everything else builds on.
+- **Like learning by building?** Follow the [tutorial](/docs/tutorial) to make a small temperature converter.
+- **New to ReScript?** [Learning ReScript](/docs/learning-rescript) covers the syntax you'll see in these docs.
+- **Coming from React or SolidJS?** See how Xote [compares to React](/docs/comparisons/react) and [to SolidJS](/docs/comparisons/solidjs).
+- **Not using ReScript?** Xote's runtime also works [from JavaScript](/docs/javascript).
 
-- [Signals](/docs/core-concepts/signals) - state containers you can read and update
-- [Computeds](/docs/core-concepts/computed) - derived values that stay in sync
-- [Effects](/docs/core-concepts/effects) - side effects that react to state changes
-- [View](/docs/view/overview) - the View module, JSX, attributes, events, and lists
-- [Router](/docs/router/overview) - client-side navigation and route matching
-- [Server-Side Rendering](/docs/advanced/ssr) - rendering on the server and hydrating on the client
-- [JavaScript Runtime](/docs/getting-started/javascript-typescript) - runtime imports for non-ReScript projects
-
-### Installation
-
-Install the package, then point ReScript's JSX transform at `XoteJSX`.
-
-```rescript
-npm install xote
-# or
-yarn add xote
-# or
-pnpm add xote
-```
-
-```rescript
-{
-  "dependencies": ["xote"],
-  "jsx": {
-    "version": 4,
-    "module": "XoteJSX"
-  },
-  "compiler-flags": ["-open Xote"]
-}
-```
-
-### Next Steps
-
-- [Read Signals first](/docs/core-concepts/signals) if you want the shortest path into the reactive model.
-- [Move to View next](/docs/view/overview) once the state model feels clear.
-- [Keep the Signal API nearby](/docs/api/signal) while you are writing real code.
-
-## Philosophy
-
-Xote keeps the runtime surface small and explicit. State lives in signals, derived state lives in computeds, and external work lives in effects. That separation makes update paths easier to follow and easier to debug.
-
-Because Xote builds on [rescript-signals](https://brnrdog.github.io/rescript-signals), the reactive core stays close to the broader signals direction in JavaScript while exposing a UI API that feels natural in ReScript.
+Xote's reactive core comes from [rescript-signals](https://brnrdog.github.io/rescript-signals), which follows the same model as the JavaScript signals proposal.

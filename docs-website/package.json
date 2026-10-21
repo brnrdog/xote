@@ -5,7 +5,7 @@
   "scripts": {
     "generate-repo-data": "node scripts/generate-repo-data.cjs",
     "ppx:build": "sh ../ppx/build.sh",
-    "res:build": "npm run ppx:build && npm run generate-repo-data && npm run generate-search-index && rescript",
+    "res:build": "npm run ppx:build && npm run generate-repo-data && npm run generate-docs-index && rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript -w",
     "dev": "node server.mjs",
@@ -16,7 +16,7 @@
     "build:server": "vite build --ssr src/EntryServer.res.mjs --outDir build/server",
     "build:prerender": "node scripts/prerender.mjs",
     "preview": "NODE_ENV=production node server.mjs",
-    "generate-search-index": "node scripts/generate-search-index.mjs"
+    "generate-docs-index": "node scripts/generate-docs-index.mjs"
   },
   "dependencies": {
     "highlight.js": "^11.11.1",

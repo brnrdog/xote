@@ -2,34 +2,30 @@ Context lets a component make a value available to everything it renders, withou
 
 > **Info:** A provided value is scoped to the component that provides it. Siblings, parents and everything rendered outside it never see it.
 
-## When to Use Context
+## When to use context
 
-### Context or a Module-Level Signal
-
-Signals do not need a component to own them, so a signal declared at module level is already shared state that any component can import:
+Signals don't need a component to own them. A signal declared at module level is already shared state that any component can import:
 
 ```rescript
 let session = Signal.make(None)
 ```
 
-For a value the whole app shares on the client, that is the simplest option. Reach for context when a global stops being enough:
+For a value the whole app shares in the browser, that's the simplest option. Reach for context when a global isn't enough:
 
 - **Per-instance state.** Two `Tabs` on a page each need their own selected tab, shared with their own `Tab` children. A module-level signal can only hold one.
-- **Children you do not write.** A component that receives `children` from its caller cannot close over a local variable for them. Context reaches them without new props at every call site.
+- **Children you don't write.** A component that receives `children` from its caller can't close over a local variable for them. Context reaches them without adding props at every call site.
 - **Server rendering.** Module-level state lives as long as the server process, so one request can see another request's values unless every global is reset. A provided value only exists for the render that provided it.
 - **Tests.** Each test can mount its own provider instead of mutating and resetting a global.
 
-## Using Context
+## Declare a context
 
-### Declaring a Context
-
-Declare a context once, with the value a component gets when nothing above it provides one:
+Declare a context once, with the default value a component gets when nothing above it provides one:
 
 ```rescript
 let theme = Context.make("light")
 ```
 
-### Providing a Value
+## Provide a value
 
 Wrap a subtree in `Context.Provider`:
 
@@ -39,13 +35,13 @@ Wrap a subtree in `Context.Provider`:
 </Context.Provider>
 ```
 
-A component can also provide a value for everything it renders by calling `Context.provide` in its own body. Every instance of the component then gets its own value:
+A component can also provide a value for everything it renders by calling `Context.provide` in its body. Each instance of the component then gets its own value:
 
 ```rescript
 let selection = Context.make(Signal.make(0))
 
 module Tabs = {
-  @jsx.component
+  @xote.component
   let make = (~children: View.node) => {
     Context.provide(selection, Signal.make(0))
     <div class="tabs"> {children} </div>
@@ -53,21 +49,21 @@ module Tabs = {
 }
 ```
 
-`Context.provide` raises when it is called outside a component body, because there is no render to scope the value to.
+`Context.provide` raises if you call it outside a component body, because there's no render to scope the value to.
 
-### Reading a Value
+## Read a value
 
 Read the nearest provided value with `Context.use`:
 
 ```rescript
 module Tab = {
-  @jsx.component
+  @xote.component
   let make = (~index: int, ~label: string) => {
     let selected = Context.use(selection)
     <button
-      class={() => Signal.get(selected) == index ? "tab active" : "tab"}
+      class={Signal.get(selected) == index ? "tab active" : "tab"}
       onClick={_ => Signal.set(selected, index)}>
-      {View.text(label)}
+      {label}
     </button>
   }
 }
@@ -75,15 +71,13 @@ module Tab = {
 
 With no provider above, `use` returns the default passed to `Context.make`.
 
-### Reactive Values
+## Share a value that changes
 
-Providing a value does not make it reactive: `use` returns whatever was provided. To let a subtree follow a value that changes, provide a signal, as `Tabs` does above, and read it with `Signal.get` where it is used.
+Providing a value doesn't make it reactive: `use` returns whatever was provided. To let a subtree follow a changing value, provide a signal, as `Tabs` does above, and read it with `Signal.get` where it's used.
 
-## Scope Rules
+## Where `Context.use` works
 
-### Where use Works
-
-Call `Context.use` in a component body. The value is also correct everywhere the body's work continues later:
+Call `Context.use` in a component body. The value is also right everywhere the body's work continues later:
 
 - effects the body set up with `Effect.run`, on every run;
 - the reactive blocks it renders, such as `View.tracked`, `View.Show` and `View.For`, including rows added long after the first render.
@@ -92,14 +86,9 @@ Event handlers, timers and promise callbacks run outside any render, so `use` re
 
 ```rescript
 let currentTheme = Context.use(theme)
-<button onClick={_ => Console.log(currentTheme)}> {View.text("Log theme")} </button>
+<button onClick={_ => Console.log(currentTheme)}> {"Log theme"} </button>
 ```
 
-### Server Rendering
+## Server rendering
 
-Server rendering and hydration see the same provided values as the client render, and nothing provided during one render is left behind for the next.
-
-## Next Steps
-
-- Learn how components render in the [View overview](/docs/view/overview).
-- See how providers fit into [server-side rendering](/docs/advanced/ssr).
+[Server rendering](/docs/advanced/ssr) and hydration see the same provided values as the browser render, and nothing provided during one render is left behind for the next.

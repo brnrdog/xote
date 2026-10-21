@@ -10,6 +10,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { pages as docsPages, redirects } from '../docs.pages.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const buildDir = path.join(__dirname, '..', 'build', 'client')
@@ -17,6 +18,12 @@ const siteUrl = normalizeSiteUrl(process.env.SITE_URL || 'https://xote.dev')
 const siteName = 'xote'
 const defaultDescription =
   'A small UI library for ReScript with fine-grained reactivity. Signals, computeds, and effects recompute only what changed.'
+
+// A registered page whose MDX file is not written yet is left out (the docs
+// index generator skips it too).
+function pageIsWritten(page) {
+  return !page.file || fs.existsSync(path.join(__dirname, '..', 'src', 'docs', `${page.file}.mdx`))
+}
 
 // All routes to pre-render (app-relative paths, without base path)
 const routes = [
@@ -28,171 +35,15 @@ const routes = [
     type: 'website',
     priority: '1.0',
   },
-  {
-    path: '/docs',
-    title: 'xote Docs - Introduction',
-    description:
-      'Get started with xote, a ReScript UI library for fine-grained reactive interfaces.',
-    section: 'Getting Started',
-    priority: '0.9',
-  },
-  {
-    path: '/docs/getting-started/rescript',
-    title: 'Learning ReScript - xote Docs',
-    description:
-      'A practical tour of ReScript syntax, data modeling, pattern matching, and incremental adoption for xote users.',
-    section: 'Getting Started',
-    priority: '0.8',
-  },
-  {
-    path: '/docs/getting-started/javascript-typescript',
-    title: 'JavaScript Runtime - xote Docs',
-    description:
-      'Use xote from JavaScript projects with focused package entries and runtime view constructors.',
-    section: 'Getting Started',
-    priority: '0.8',
-  },
-  {
-    path: '/docs/core-concepts/signals',
-    title: 'Signals - xote Reactive State',
-    description:
-      'Create, read, update, and compose xote signals for precise reactive state updates in ReScript applications.',
-    section: 'Core Concepts',
-  },
-  {
-    path: '/docs/core-concepts/computed',
-    title: 'Computeds - xote Derived Signals',
-    description:
-      'Use xote computeds to derive reactive state that updates automatically when signal dependencies change.',
-    section: 'Core Concepts',
-  },
-  {
-    path: '/docs/core-concepts/effects',
-    title: 'Effects - xote Reactive Side Effects',
-    description:
-      'Run side effects from signal dependencies with cleanup callbacks, disposal, and practical ReScript examples.',
-    section: 'Core Concepts',
-  },
-  {
-    path: '/docs/advanced/ssr',
-    title: 'Server-Side Rendering - xote SSR and Hydration',
-    description:
-      'Render xote views on the server, transfer state, and hydrate reactive ReScript apps on the client.',
-    section: 'Advanced',
-  },
-  {
-    path: '/docs/advanced/mdx-support',
-    title: 'MDX Support - xote Docs',
-    description:
-      'Configure MDX with the xote JSX runtime, render MDX from ReScript, and customize Markdown components.',
-    section: 'Advanced',
-  },
-  {
-    path: '/docs/advanced/batching',
-    title: 'Batching - xote Signal Updates',
-    description:
-      'Group multiple xote signal updates to reduce repeated observer work and keep reactive interfaces efficient.',
-    section: 'Advanced',
-  },
-  {
-    path: '/docs/view/overview',
-    title: 'View - xote DOM and JSX APIs',
-    description:
-      'Build xote views with JSX, reactive DOM nodes, attributes, event handlers, lists, and mounting APIs.',
-    section: 'Core Modules',
-  },
-  {
-    path: '/docs/components/overview',
-    title: 'Components - xote View Components',
-    description:
-      'Build reusable xote components with ReScript JSX, typed props, reactive views, and component composition.',
-    section: 'Core Modules',
-  },
-  {
-    path: '/docs/core-concepts/context',
-    title: 'Context - xote Scoped Values',
-    description:
-      'Provide values to a xote component subtree with Context, scoped per instance and safe for server rendering.',
-    section: 'Core Modules',
-  },
-  {
-    path: '/docs/core-concepts/resources',
-    title: 'Resources - xote Async Data and Suspense',
-    description:
-      'Load asynchronous data as xote signals with Resource, and show a fallback with View.Suspense while it loads.',
-    section: 'Core Modules',
-  },
-  {
-    path: '/docs/router/overview',
-    title: 'Router - xote Signal-Based Routing',
-    description:
-      'Use the xote router for client-side navigation, route patterns, dynamic params, links, and location signals.',
-    section: 'Router',
-  },
-  {
-    path: '/docs/api/signal',
-    title: 'Signal API - xote Reference',
-    description:
-      'Reference the xote Signal API including make, get, peek, set, update, batch, and untrack.',
-    section: 'API Reference',
-  },
-  {
-    path: '/docs/api/signals',
-    title: 'Signal API - xote Reference',
-    description:
-      'Reference the xote Signal API including make, get, peek, set, update, batch, and untrack.',
-    section: 'API Reference',
-  },
-  {
-    path: '/docs/api/computed',
-    title: 'Computed API - xote Reference',
-    description:
-      'Reference the xote Computed API for derived signals, lazy recomputation, equality, and disposal.',
-    section: 'API Reference',
-  },
-  {
-    path: '/docs/api/effect',
-    title: 'Effect API - xote Reference',
-    description:
-      'Reference the xote Effect API for reactive side effects, cleanup callbacks, and manual disposal.',
-    section: 'API Reference',
-  },
-  {
-    path: '/docs/api/view',
-    title: 'View API - xote Reference',
-    description:
-      'Reference the xote View API for UI nodes, JSX primitives, lists, attributes, and mounting.',
-    section: 'API Reference',
-  },
-  {
-    path: '/docs/comparisons/react',
-    title: 'xote vs React - ReScript UI Framework Comparison',
-    description:
-      'Compare xote and React across reactivity, effects, lifecycle, SSR, routing, bundle size, type safety, and ecosystem tradeoffs.',
-    section: 'Comparisons',
-  },
-  {
-    path: '/docs/comparisons/solidjs',
-    title: 'xote vs SolidJS - Signal Framework Comparison',
-    description:
-      'Compare xote and SolidJS across signals, components, list rendering, SSR, routing, bundle size, type safety, and ecosystem fit.',
-    section: 'Comparisons',
-  },
-  {
-    path: '/docs/technical-overview',
-    title: 'Technical Overview - xote Architecture',
-    description:
-      'Dive into xote internals including scheduling, reactive graph behavior, view rendering, hydration markers, and router architecture.',
-    section: 'Advanced',
-  },
-  {
-    path: '/docs/changelog',
-    title: 'Changelog - xote Releases',
-    description:
-      'Review xote release notes, API changes, compatibility updates, and migration notes.',
-    section: 'Project',
-    priority: '0.6',
-  },
+  // Every docs page, from the registry in docs.pages.mjs.
+  ...docsPages.filter(pageIsWritten).map(page => ({
+    path: page.path,
+    title: `xote Docs - ${page.pageTitle ?? page.title}`,
+    description: page.lead,
+    section: page.section,
+    priority: page.path === '/docs' ? '0.9' : page.path === '/docs/changelog' ? '0.6' : '0.7',
+    page,
+  })),
 ]
 
 // Suppress expected SSR errors from client-only code that defers DOM access.
@@ -239,11 +90,37 @@ async function prerender() {
     console.log(`  ${route.path} -> ${path.relative(buildDir, filePath)}`)
   }
 
+  writeRedirects()
   writeSitemap()
   writeRobots()
   writeMarkdown()
 
   console.log('\nPre-rendering complete!')
+}
+
+// Older docs URLs get a small page that forwards to the current one, keeping
+// any #anchor, with a canonical link and a no-script fallback.
+function writeRedirects() {
+  for (const [from, to] of Object.entries(redirects)) {
+    const target = escapeHtml(to)
+    const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Moved to ${target}</title>
+<link rel="canonical" href="${escapeHtml(routeUrl(to))}">
+<meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="0; url=${target}">
+<script>location.replace(${JSON.stringify(to)} + location.hash)</script>
+</head>
+<body><p>This page moved to <a href="${target}">${target}</a>.</p></body>
+</html>
+`
+    const filePath = path.join(buildDir, from, 'index.html')
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    fs.writeFileSync(filePath, html)
+  }
+  console.log(`  ${Object.keys(redirects).length} redirects`)
 }
 
 function normalizeSiteUrl(value) {
@@ -358,31 +235,12 @@ Sitemap: ${siteUrl}/sitemap.xml
 
 const docsDir = path.join(__dirname, '..', 'src', 'docs')
 
-// Each docs route and the MDX sources that make up its agent layer (the page,
-// then its API reference where one exists).
-const markdownSources = {
-  '/docs': ['IntroDoc'],
-  '/docs/getting-started/rescript': ['LearningReScriptDoc'],
-  '/docs/getting-started/javascript-typescript': ['JavaScriptTypeScriptDoc'],
-  '/docs/core-concepts/signals': ['SignalsDoc', 'ApiSignalDoc'],
-  '/docs/core-concepts/computed': ['ComputedDoc', 'ApiComputedDoc'],
-  '/docs/core-concepts/effects': ['EffectsDoc', 'ApiEffectDoc'],
-  '/docs/core-concepts/context': ['ContextDoc'],
-  '/docs/core-concepts/resources': ['ResourcesDoc'],
-  '/docs/view/overview': ['ViewsDoc', 'ApiViewDoc'],
-  '/docs/components/overview': ['ViewsDoc', 'ApiViewDoc'],
-  '/docs/router/overview': ['RouterDoc'],
-  '/docs/advanced/ssr': ['SSRDoc'],
-  '/docs/advanced/mdx-support': ['MdxDoc'],
-  '/docs/advanced/batching': ['BatchingDoc'],
-  '/docs/api/signal': ['ApiSignalDoc'],
-  '/docs/api/signals': ['ApiSignalDoc'],
-  '/docs/api/computed': ['ApiComputedDoc'],
-  '/docs/api/effect': ['ApiEffectDoc'],
-  '/docs/api/view': ['ApiViewDoc'],
-  '/docs/comparisons/react': ['ReactComparisonDoc'],
-  '/docs/comparisons/solidjs': ['SolidJSComparisonDoc'],
-  '/docs/technical-overview': ['TechnicalOverviewDoc'],
+// The MDX sources that make up a page's agent layer: the page, then its API
+// reference where one exists.
+function markdownSources(route) {
+  const page = route.page
+  if (!page?.file || page.customToc) return undefined
+  return page.agent?.api ? [page.file, page.agent.api] : [page.file]
 }
 
 function markdownPath(routePath) {
@@ -434,7 +292,7 @@ function mdxToMarkdown(source) {
 function writeMarkdown() {
   const entries = []
   for (const route of routes) {
-    const sources = markdownSources[route.path]
+    const sources = markdownSources(route)
     const title = pageTitle(route)
     let body
     if (sources) {

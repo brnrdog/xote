@@ -1,12 +1,10 @@
-Computeds are derived signals. They let you describe state in terms of other state instead of manually keeping multiple signals in sync.
+A computed is a value worked out from other signals. You describe how to derive it once, and Xote keeps it in sync, so you never update two signals by hand.
 
-> **Important:** [`Computed.make`](/docs/api/computed#computed-make) returns a [`Signal.t<'a>`](/docs/api/signal#signal-type). You read it with [`Signal.get`](/docs/api/signal#signal-get) or [`Signal.peek`](/docs/api/signal#signal-peek), just like any other signal.
+> **Important:** [`Computed.make`](/docs/api/computed#computed-make) returns a [`Signal.t<'a>`](/docs/api/signal#signal-type). You read it with [`Signal.get`](/docs/api/signal#signal-get) or [`Signal.peek`](/docs/api/signal#signal-peek), like any other signal. It has no `set`: only its function writes it.
 
-## Working with Computeds
+## Create a computed
 
-### Creating Computed Values
-
-A computed is a function plus automatic dependency tracking. Every signal read inside the function becomes an input.
+Pass [`Computed.make`](/docs/api/computed#computed-make) a function. Every signal the function reads becomes an input.
 
 ```rescript
 open Xote
@@ -19,11 +17,11 @@ let subtotal = Computed.make(() =>
 )
 ```
 
-If you need to suppress downstream updates for equivalent derived values, [`Computed.make`](/docs/api/computed#computed-make) also accepts `~equals`.
+[`Computed.make`](/docs/api/computed#computed-make) also accepts `~equals`. When a recomputed value is equal to the previous one, its dependents aren't woken.
 
-### Reading Computed Values
+## Read a computed
 
-Read a computed exactly like a signal. Use [`Signal.get`](/docs/api/signal#signal-get) when the current code should subscribe, or [`Signal.peek`](/docs/api/signal#signal-peek) for a one-off read.
+Read a computed exactly like a signal: [`Signal.get`](/docs/api/signal#signal-get) to subscribe, [`Signal.peek`](/docs/api/signal#signal-peek) for a one-off read. A computed can depend on another computed.
 
 ```rescript
 let subtotal = Computed.make(() =>
@@ -37,9 +35,9 @@ let total = Computed.make(() =>
 Console.log(Signal.get(total))
 ```
 
-### Lazy Recomputation
+## Recomputing only when read
 
-When an upstream signal changes, a computed is marked dirty immediately but does not recompute until someone reads it. This keeps unused derived values cheap.
+When an input changes, a computed is marked dirty right away, but it only recomputes when someone reads it. Derived values nobody uses cost almost nothing.
 
 ```rescript
 let count = Signal.make(0)
@@ -56,9 +54,9 @@ ignore(Signal.get(doubled))
 // Logs "recomputing"
 ```
 
-### Dynamic Dependencies
+## Conditional dependencies
 
-Computeds re-track their dependencies every time they run. That means conditionals are allowed: the current control flow determines the active inputs.
+A computed collects its inputs again every time it runs, so conditionals are fine: whichever branch runs decides which signals it depends on.
 
 ```rescript
 let useMetric = Signal.make(true)
@@ -74,11 +72,9 @@ let temperature = Computed.make(() =>
 )
 ```
 
-## In Practice
+## Example: order summary
 
-### Example: Order Summary
-
-This is a common computed pattern: keep the writable state small, then derive display values like subtotal, shipping, and total from it.
+A common pattern: keep the writable state small, then derive the display values, like subtotal, shipping and total, from it.
 
 <DocsExamplePanel
       filename="OrderSummary.res"
@@ -107,33 +103,20 @@ let total = Computed.make(() =>
 @xote.component
 let make = () => {
   <div>
-    <p>
-      <View.Text> "Subtotal: $" </View.Text>
-      <View.Int> {Signal.get(subtotal)} </View.Int>
-    </p>
-    <p>
-      <View.Text> "Shipping: $" </View.Text>
-      <View.Int> {Signal.get(shippingCost)} </View.Int>
-    </p>
-    <p>
-      <View.Text> "Total: $" </View.Text>
-      <View.Int> {Signal.get(total)} </View.Int>
-    </p>
+    <p> {"Subtotal: $"} {Signal.get(subtotal)} </p>
+    <p> {"Shipping: $"} {Signal.get(shippingCost)} </p>
+    <p> {"Total: $"} {Signal.get(total)} </p>
   </div>
 }`}
     >
       <ComputedOrderDemo />
     </DocsExamplePanel>
 
-## Lifecycle
+## Cleaning up
 
-### Disposal
+Most computeds need no cleanup. They dispose themselves when nothing subscribes to them anymore, and one created inside a component or effect goes away with it.
 
-Most computeds do not need manual cleanup. They dispose automatically when nothing is subscribed to them anymore. In UI code that usually means they disappear with the DOM that owns them.
-
-#### Manual Disposal
-
-If you create a long-lived computed outside normal component ownership and want to tear it down explicitly, call [`Computed.dispose`](/docs/api/computed#computed-dispose).
+If you create a long-lived computed outside any component and want to tear it down yourself, call [`Computed.dispose`](/docs/api/computed#computed-dispose).
 
 ```rescript
 let doubled = Computed.make(() => Signal.get(count) * 2)
@@ -143,9 +126,9 @@ let doubled = Computed.make(() => Signal.get(count) * 2)
 Computed.dispose(doubled)
 ```
 
-### Computed vs Manual Updates
+## Derive, don't copy
 
-If a value can be derived from other reactive values, prefer a computed instead of mirroring it into another signal.
+If a value can be derived from other signals, use a computed instead of copying it into another signal.
 
 ```rescript
 // Avoid this
@@ -162,16 +145,10 @@ let count = Signal.make(0)
 let doubled = Computed.make(() => Signal.get(count) * 2)
 ```
 
-## Working Style
+## Tips
 
-### Best Practices
-
-- Keep computeds pure. If the code talks to the outside world, it probably belongs in an effect instead.
-- Read computeds with [`Signal.get`](/docs/api/signal#signal-get) or [`Signal.peek`](/docs/api/signal#signal-peek), because they are signals at the type level.
-- Avoid copying derived values into writable signals unless you truly need editable local state.
-- Reach for custom equality only when downstream updates are too noisy with the default behavior.
-
-### Next Steps
-
-- [Read Effects](/docs/core-concepts/effects) to see where reactive side effects fit on top of signals and computeds.
-- [Move to View](/docs/view/overview) when you want to wire derived values into the UI layer.
+- Keep computeds pure. If the code talks to the outside world, it belongs in an [effect](/docs/learn/effects).
+- Read computeds with [`Signal.get`](/docs/api/signal#signal-get) or [`Signal.peek`](/docs/api/signal#signal-peek); they are signals at the type level.
+- Don't copy derived values into writable signals unless you really need editable local state.
+- Reach for custom equality only when the default makes downstream updates too noisy.
+- To show derived values in the UI, read them in a component's JSX; see [Rendering](/docs/learn/rendering).

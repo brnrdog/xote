@@ -42,7 +42,7 @@ type kind = Page | Section
 type entry = {
   kind: kind,
   title: string,
-  page: SearchIndex.page,
+  page: DocsIndex.page,
   hash: string,
   order: int,
 }
@@ -54,7 +54,7 @@ let entries: array<entry> = {
     counter := order + 1
     order
   }
-  SearchIndex.pages->Array.flatMap(page => {
+  DocsIndex.pages->Array.flatMap(page => {
     let pageEntry = {kind: Page, title: page.title, page, hash: "", order: next()}
     let sections =
       page.headings->Array.map(heading => {

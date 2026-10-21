@@ -1,12 +1,10 @@
-Batching lets you group several signal writes so dependent computeds and effects flush once after the batch finishes.
+Batching groups several signal writes so the computeds and effects that depend on them run once, after the batch, instead of after every write.
 
-> **Info:** Updates still happen synchronously. Batching changes how many times dependents flush, not whether they flush immediately.
+> **Info:** Updates still happen synchronously. Batching changes how many times dependents run, not whether they run right away.
 
-## Why and When to Batch
+## Why batch
 
-### Why Batch?
-
-Without batching, each write can trigger a new round of downstream work. That is fine for isolated updates, but noisy for coordinated state changes.
+Without batching, each write can start a new round of downstream work. That's fine for a single update, but noisy when several writes belong together.
 
 ```rescript
 let firstName = Signal.make("Ada")
@@ -25,13 +23,11 @@ Signal.set(firstName, "Grace")
 Signal.set(lastName, "Hopper")
 ```
 
-That effect can run twice. If both writes belong to the same logical update, batch them.
+That effect can run twice, once with "Grace Lovelace" in between. If both writes are one logical update, batch them.
 
-## Using Batching
+## Batch related writes
 
-### Using Signal.batch()
-
-Wrap related writes in [`Signal.batch`](/docs/api/signal#signal-batch).
+Wrap the writes in [`Signal.batch`](/docs/api/signal#signal-batch).
 
 ```rescript
 Signal.batch(() => {
@@ -40,9 +36,9 @@ Signal.batch(() => {
 })
 ```
 
-### How Batching Works
+## What happens inside a batch
 
-Inside a batch, signals update immediately, but scheduler flushing is deferred until the outermost batch completes. Readers inside the batch still see the latest values.
+Inside a batch, signals update immediately, but dependents only run when the outermost batch finishes. Code inside the batch still reads the latest values.
 
 ```rescript
 Signal.batch(() => {
@@ -54,9 +50,9 @@ Signal.batch(() => {
 })
 ```
 
-### Common Cases
+## Example: one action, several signals
 
-Batching is most useful when one user action updates several related signals.
+Batching helps most when one user action updates several related signals.
 
 ```rescript
 type formState = {
@@ -66,7 +62,7 @@ type formState = {
 
 let form = Signal.make({name: "", email: ""})
 let isSaving = Signal.make(false)
-let saveError = Signal.make(None)
+let saveError: Signal.t<option<string>> = Signal.make(None)
 
 let submit = () => {
   Signal.batch(() => {
@@ -76,9 +72,9 @@ let submit = () => {
 }
 ```
 
-### Nested Batches
+## Nested batches
 
-Batches can be nested. Flushing happens when the outermost batch ends.
+Batches can be nested. Dependents run when the outermost batch ends.
 
 ```rescript
 Signal.batch(() => {
@@ -91,9 +87,9 @@ Signal.batch(() => {
 })
 ```
 
-### Returning Values from Batches
+## Return a value from a batch
 
-A batch returns whatever the callback returns, so you can compute and write in one block.
+A batch returns whatever its callback returns, so you can write and compute a result in one block.
 
 ```rescript
 let result = Signal.batch(() => {
@@ -103,19 +99,12 @@ let result = Signal.batch(() => {
 })
 ```
 
-### When Not to Batch
+## When not to batch
 
-Do not batch by default. If one signal changes and the rest of the graph can react naturally, batching adds no clarity. Use it when several writes are one semantic update.
+Don't batch by default. If one signal changes and everything else can react naturally, batching adds nothing. Use it when several writes are one logical update.
 
-## Working Style
+## Tips
 
-### Best Practices
-
-- Batch one logical unit of work, such as a submit action, a reset, or a reducer-style update.
-- Keep batches short so the write order stays easy to reason about.
-- Do not use batching to hide duplicated or awkward state. Fix the model first.
-
-### Next Steps
-
-- [Go back to Signals](/docs/core-concepts/signals) if you want the update model before the scheduling details.
-- [Read Effects](/docs/core-concepts/effects) to see the downstream work that batching reduces.
+- Batch one logical unit of work, such as a submit, a reset, or a reducer-style update.
+- Keep batches short, so the order of writes stays easy to follow.
+- Don't use batching to hide duplicated or awkward state. Fix the model first; often a [computed](/docs/learn/computeds) removes the extra writes.
