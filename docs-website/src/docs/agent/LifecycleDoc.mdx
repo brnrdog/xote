@@ -4,15 +4,15 @@ Lifecycle tools let a component touch the real DOM and the outside world at the 
 
 ## Availability
 
-| Item | Module / entry | Stable since | Pre-release | PPX required |
+| Item | Module / entry | Stable since | Changed in 7.2.0 | PPX required |
 | --- | --- | --- | --- | --- |
-| `View.onMount`, `View.onCleanup` | `xote` · `xote/view` | — | 7.2.0-beta.2, not in 7.1.0 stable | no |
-| `View.Ref` (`make`, `fromCallback`, `get`, `peek`), `ref` prop | `xote` · `xote/view` | — | 7.2.0-beta.2, not in 7.1.0 stable | no |
-| `View.Portal` | `xote` · `xote/view` | — | 7.2.0-beta.2, not in 7.1.0 stable | no |
-| `View.ErrorBoundary` | `xote` · `xote/view` | — | 7.2.0-beta.2, not in 7.1.0 stable | no |
+| `View.onMount`, `View.onCleanup` | `xote` · `xote/view` | 7.2.0 (new) | — | no |
+| `View.Ref` (`make`, `fromCallback`, `get`, `peek`), `ref` prop | `xote` · `xote/view` | 7.2.0 (new) | — | no |
+| `View.Portal` | `xote` · `xote/view` | 7.2.0 (new) | — | no |
+| `View.ErrorBoundary` | `xote` · `xote/view` | 7.2.0 (new) | — | no |
 | Effect returning a cleanup (`Some(() => …)`) | `xote` · `xote/effect` | 7.1.0 | — | no |
 
-On 7.1.0 stable, the only lifecycle tool is an effect created in the component body with a returned cleanup; there is no mount hook, no ref and no error boundary.
+Before 7.2.0, the only lifecycle tool is an effect created in the component body with a returned cleanup; there is no mount hook, no ref and no error boundary.
 
 ## Rules
 

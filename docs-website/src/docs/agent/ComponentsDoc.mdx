@@ -4,13 +4,13 @@ A Xote component is a module whose `make` function returns a `View.node`; JSX `<
 
 ## Availability
 
-| Item | Module / entry | Stable since | Pre-release | PPX required |
+| Item | Module / entry | Stable since | Changed in 7.2.0 | PPX required |
 | --- | --- | --- | --- | --- |
-| `@xote.component` annotation | compile-time PPX, `"ppx-flags": ["xote/ppx/ppx"]` | 7.1.0 | Reach into plain helper functions in the same file, condition-only tracking of `if`/`switch`, render-callback decomposition: 7.2.0-beta.1, not in 7.1.0 stable | yes (it is the PPX) |
+| `@xote.component` annotation | compile-time PPX, `"ppx-flags": ["xote/ppx/ppx"]` | 7.1.0 | Reach into plain helper functions in the same file, condition-only tracking of `if`/`switch`, render-callback decomposition | yes (it is the PPX) |
 | `@jsx.component` with `XoteJSX` | `xote` (`"jsx": {"version": 4, "module": "XoteJSX"}`) | 7.1.0 | — | no |
 | `View.mount`, `View.mountById` | `xote` · `xote/view` | 7.1.0 | — | no |
 | `MaybeSignal` (`static`, `reactive`, `get`, `map`, …) | `xote` · `xote/maybe-signal` | 7.1.0 (replaces deprecated `Prop`) | — | no |
-| `Context` for per-instance state | `xote` · `xote/context` | — | 7.2.0-beta.2, not in 7.1.0 stable | no |
+| `Context` for per-instance state | `xote` · `xote/context` | 7.2.0 (new) | — | no |
 
 Configuration required in `rescript.json` for everything on this page: `"jsx": {"version": 4, "module": "XoteJSX"}`, `"compiler-flags": ["-open Xote"]` (or `open Xote` per file), and `"ppx-flags": ["xote/ppx/ppx"]` for `@xote.component`.
 
@@ -23,7 +23,7 @@ Configuration required in `rescript.json` for everything on this page: `"jsx": {
 5. The returned JSX is where reactivity is created. Under `@xote.component`, each attribute or bare child that reads a signal becomes a reactive leaf (see `/docs/learn/rendering`).
 6. Props of user components are NEVER made reactive by the PPX. `<Child value={Signal.get(x)} />` evaluates `Signal.get(x)` once, where the element is written. To pass something that changes, pass `x` itself (typed `Signal.t<'a>`), a `MaybeSignal.t<'a>`, or a thunk `unit => 'a`, and read it in the child's JSX.
 7. Exception to rule 6: a prop whose value is JSX, or a function returning JSX (a render callback such as `View.For`'s `render`), is decomposed like any other JSX in the file.
-8. The PPX opt-in is per file: in a file that contains at least one `@xote.component`, all JSX in the file is decomposed (7.2.0-beta.1+ also reaches plain helper functions and JSX bound with `let`). A file with no `@xote.component` is left untouched, and bare `{…}` children of non-node type are then compile errors.
+8. The PPX opt-in is per file: in a file that contains at least one `@xote.component`, all JSX in the file is decomposed (7.2.0+ also reaches plain helper functions and JSX bound with `let`). A file with no `@xote.component` is left untouched, and bare `{…}` children of non-node type are then compile errors.
 9. Moving a helper that returns JSX between an annotated and a non-annotated file changes its behaviour (reactive vs one-shot) without a type change. Keep markup helpers in annotated files.
 10. `View.mount(node, element)` replaces the contents of `element`. `View.mountById(node, id)` does nothing when no element has that id. Neither hydrates; use `Hydration.hydrate` for server-rendered HTML.
 11. A module cannot refer to itself by name, so `View.mountById(<App />, "app")` MUST live in a different module than `App` (conventionally `Main.res`).
@@ -142,8 +142,8 @@ View.mountById(<App />, "app")
 | --- | --- | --- |
 | Used by one instance only | `Signal.make` in the component body | Owned by the instance; disposed with it; each instance independent. |
 | One value for the whole app (client-only) | `let x = Signal.make(...)` at module level | Simplest; shared by every reader; never disposed. |
-| Shared by one subtree, one copy per instance of an ancestor (tabs, form fields) | `Context` providing a `Signal.t` (7.2.0-beta.2) | Scoped to the providing instance; see `/docs/learn/context`. |
-| Per-request during SSR | `Context` (7.2.0-beta.2) | Module-level signals are shared across requests in a server process. |
+| Shared by one subtree, one copy per instance of an ancestor (tabs, form fields) | `Context` providing a `Signal.t` (7.2.0) | Scoped to the providing instance; see `/docs/learn/context`. |
+| Per-request during SSR | `Context` (7.2.0) | Module-level signals are shared across requests in a server process. |
 | Derived from other state | `Computed.make` next to its inputs | Never store a copy that must be kept in sync. |
 
 ## Anti-patterns
@@ -200,7 +200,7 @@ Symptom: renders once and never updates; in development, a one-time `[Xote] … 
 
 ## Edge cases
 
-- A component called as a function (`View.mount(app(), container)`) instead of through JSX runs its body before anything renders; its `View.onMount` (7.2.0-beta.2) still waits for the mount. Prefer JSX (`<App />`).
+- A component called as a function (`View.mount(app(), container)`) instead of through JSX runs its body before anything renders; its `View.onMount` (7.2.0) still waits for the mount. Prefer JSX (`<App />`).
 - `~children` left untyped compiles (`'children` is inferred); type it `View.node` for clearer errors.
 - `View.child` (inserted by the PPX for bare children) accepts any value: a record or a variant compiles and renders `[object Object]` with a development warning. Convert to a string or node explicitly.
 - `<View.Text>`, `<View.Int>`, `<View.Float>`, `<View.Bool>` are detected by the PPX only when written qualified as `View.X`. `open View` + `<Text>` is not recognised; its child then fails to compile (`string` where `View.node` is expected).
@@ -208,7 +208,7 @@ Symptom: renders once and never updates; in development, a one-time `[Xote] … 
 
 ## SSR and hydration
 
-- `SSR.renderToString(() => <App />)` runs every component body once on the server and serialises the result. Effects created in bodies run on the server too unless guarded with `SSRContext.isClient`; `View.onMount` (7.2.0-beta.2) never runs on the server.
+- `SSR.renderToString(() => <App />)` runs every component body once on the server and serialises the result. Effects created in bodies run on the server too unless guarded with `SSRContext.isClient`; `View.onMount` (7.2.0) never runs on the server.
 - `Hydration.hydrate(() => <App />, container)` runs the bodies again on the client and attaches to the existing DOM instead of creating it. Bodies MUST produce the same structure on both sides (no random or time-based initial values in the first render).
 - Module-level signals in a server process are shared by all requests. Per-request state MUST be created in a body or provided through `Context`.
 
@@ -238,7 +238,7 @@ module Probe = {
 ## Related
 
 - `/docs/learn/rendering` — what in JSX becomes a reactive leaf, attributes, events, lists, conditionals.
-- `/docs/learn/lifecycle` — `onMount`, `onCleanup`, refs, portals, error boundaries (7.2.0-beta.2).
+- `/docs/learn/lifecycle` — `onMount`, `onCleanup`, refs, portals, error boundaries (7.2.0).
 - `/docs/learn/context` — per-instance shared state.
 - `/docs/thinking-in-signals` — the run-once model.
 - `/docs/api/view` — full `View` reference.

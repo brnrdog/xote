@@ -9,7 +9,7 @@ This page specifies Xote's execution model: which code runs once, which code re-
 | Model | all versions |
 | PPX decomposition (`@xote.component`, `View.child`, `View.probe`, condition-only tracking of control flow, helper functions decomposed) | stable since 7.1.0 (`ppx-flags: ["xote/ppx/ppx"]`) |
 | `View.tracked` | stable since 7.1.0 |
-| `View.onMount`, `View.onCleanup` | pre-release: 7.2.0-beta, not in 7.1.0 stable |
+| `View.onMount`, `View.onCleanup` | 7.2.0 (new) |
 
 ## Rules
 
@@ -99,12 +99,12 @@ Cross-module helper made reactive at the call site:
 | `useState` | `Signal.make` in the component body or at module level | body runs once, so no hook rules; module level = shared state |
 | `useMemo` | `Computed.make` | no dependency array; reads are tracked |
 | `useEffect` | `Effect.run` | runs immediately, re-runs on change, cleanup via `Some(fn)` |
-| `useEffect(…, [])` for DOM work | `View.onMount` (7.2.0-beta) | runs once after insertion, client only |
-| `useRef` (DOM) | `View.Ref.make` + `ref=` (7.2.0-beta) | |
-| `useContext` | `Context.use` (7.2.0-beta) | |
+| `useEffect(…, [])` for DOM work | `View.onMount` (7.2.0) | runs once after insertion, client only |
+| `useRef` (DOM) | `View.Ref.make` + `ref=` (7.2.0) | |
+| `useContext` | `Context.use` (7.2.0) | |
 | `React.memo`, `useCallback` | not needed | components never re-run |
 | `key` on list items | `View.For` with `by` | `Array.map` in a tracked region rebuilds every item |
-| `Suspense`, error boundary | `View.Suspense`, `View.ErrorBoundary` (7.2.0-beta) | |
+| `Suspense`, error boundary | `View.Suspense`, `View.ErrorBoundary` (7.2.0) | |
 | `className`, `htmlFor`, `type` | `class`, `for_`, `type_` | `for_` and `type_` render as `for` and `type`; `className` is a compile error |
 | re-render on prop change | not applicable | pass signals; leaves update |
 

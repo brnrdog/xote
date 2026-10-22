@@ -4,13 +4,13 @@ Use this page when porting SolidJS code to Xote or when reviewing Xote code writ
 
 ## Availability
 
-| Xote feature used in the mapping | Module / entry | Stable since | Pre-release |
+| Xote feature used in the mapping | Module / entry | Stable since | Changed in 7.2.0 |
 | --- | --- | --- | --- |
 | `Signal`, `Computed`, `Effect` (`run`, `runWithDisposer`), `Signal.batch`, `Signal.untrack` | `xote` | 7.1.0 | — |
 | `@xote.component`, `View.For`/`KeyedFor`/`Show`/`Maybe`/`Value`, `View.tracked`, `MaybeSignal` | `xote` + PPX | 7.1.0 | — |
-| `View.onMount`, `View.onCleanup`, `View.Ref`, `View.Portal`, `View.ErrorBoundary` | `xote` | — | 7.2.0-beta.2, not in 7.1.0 stable |
-| `Context` | `xote` · `xote/context` | — | 7.2.0-beta.2, not in 7.1.0 stable |
-| `Resource`, `View.Suspense` | `xote` · `xote/resource` | — | 7.2.0-beta.2, not in 7.1.0 stable |
+| `View.onMount`, `View.onCleanup`, `View.Ref`, `View.Portal`, `View.ErrorBoundary` | `xote` | 7.2.0 (new) | — |
+| `Context` | `xote` · `xote/context` | 7.2.0 (new) | — |
+| `Resource`, `View.Suspense` | `xote` · `xote/resource` | 7.2.0 (new) | — |
 | `Router`, `SSR`, `Hydration` | `xote/router`, `xote/ssr`, `xote/hydration` | 7.1.0 | — |
 
 ## Rules
@@ -19,7 +19,7 @@ Use this page when porting SolidJS code to Xote or when reviewing Xote code writ
 2. Props are plain values evaluated once at the call site. There is no props proxy: destructuring is fine, but a prop that must change MUST be passed as a `Signal.t`, `MaybeSignal.t` or thunk and read inside the child's JSX.
 3. JSX reactivity is decided at compile time by the `@xote.component` PPX, per file. Only expressions that visibly read a signal (`Signal.get`, `MaybeSignal.get`, aliases, same-file helpers) become reactive leaves. A read behind a function from another module is one-shot (a development warning is logged); wrap it in `() => …`. Files without `@xote.component` get no automatic reactivity.
 4. `Computed.make` is lazy: it recomputes on read after a dependency changed, not eagerly like `createMemo`. A computed nobody reads does not recompute.
-5. `Effect.run` runs immediately and synchronously when created, and synchronously after each dependency write (outside `Signal.batch`). It is not deferred until after rendering like `createEffect`; use `View.onMount` (7.2.0-beta.2) for post-insertion work.
+5. `Effect.run` runs immediately and synchronously when created, and synchronously after each dependency write (outside `Signal.batch`). It is not deferred until after rendering like `createEffect`; use `View.onMount` (7.2.0) for post-insertion work.
 6. Default equality is strict (`===`); `~equals` on `Signal.make` and `Computed.make` overrides it (like Solid's `equals` option).
 7. Lists are keyed by an explicit `by` function, not by item reference. A row is reused only when both key and item (`===`) are unchanged. There is no `Index` equivalent: `View.For` without `by` rebuilds every row on each change.
 8. `View.Suspense` waits for resources created by components below it (the creator's position counts, not where the resource is read), and only for their first load; refetches show `Refreshing(previous)` without the fallback.
@@ -37,8 +37,8 @@ Use this page when porting SolidJS code to Xote or when reviewing Xote code writ
 | `createEffect(fn)` | `Effect.run(() => { …; None })` | Runs immediately, synchronously; cleanup via returned `Some(fn)`. |
 | `createRenderEffect` | `Effect.run` | Already immediate. |
 | `on(deps, fn)` | read deps with `Signal.get`, others inside `Signal.untrack` | No helper; explicit tracked/untracked reads. |
-| `onMount(fn)` | `View.onMount(fn)` (7.2.0-beta.2) | Parents before children; never on the server. |
-| `onCleanup(fn)` | `View.onCleanup(fn)` (7.2.0-beta.2) or effect cleanup | Effect cleanup runs before each re-run. |
+| `onMount(fn)` | `View.onMount(fn)` (7.2.0) | Parents before children; never on the server. |
+| `onCleanup(fn)` | `View.onCleanup(fn)` (7.2.0) or effect cleanup | Effect cleanup runs before each re-run. |
 | `batch(fn)` | `Signal.batch(fn)` | Nested batches flush once at the outermost. |
 | `untrack(fn)` | `Signal.untrack(fn)` / `Signal.peek(s)` | Same. |
 | `createRoot(dispose => …)` | `Effect.runWithDisposer(fn)` returns `{dispose}` | Per effect; components own what their bodies create. |
@@ -49,15 +49,15 @@ Use this page when porting SolidJS code to Xote or when reviewing Xote code writ
 | `<Show when={opt()} keyed>{v => …}</Show>` | `<View.Maybe value={MaybeSignal.reactive(opt)} render={v => …} />` | Option-typed value. |
 | `<Switch>/<Match>` | `{switch Signal.get(s) { … }}` | Exhaustive pattern matching. |
 | `<Dynamic component={…}>` | `switch` returning different components | No dynamic component primitive. |
-| `<Portal mount={el}>` | `<View.Portal target=el>` (7.2.0-beta.2) | No wrapper element (comment anchors); default `document.body`. |
-| `<ErrorBoundary fallback={(err, reset) => …}>` | `<View.ErrorBoundary fallback={(err, reset) => …}>` (7.2.0-beta.2) | Same shape; `onError` prop for logging. |
-| `createResource(source, fetcher)` | `Resource.make(() => fetcher(Signal.get(source)))` (7.2.0-beta.2) | Dependencies are signals read before the fetch's first `await`; state is a variant (`Pending`, `Ready`, `Refreshing`, `Failed`). |
-| `<Suspense fallback>` | `<View.Suspense fallback>` (7.2.0-beta.2) | Waits for resources created below; first load only. |
-| `createContext` / `useContext` / `<Ctx.Provider value>` | `Context.make` / `Context.use` / `<Context.Provider context value>` (7.2.0-beta.2) | `use` must run during render; outside it returns the default. |
+| `<Portal mount={el}>` | `<View.Portal target=el>` (7.2.0) | No wrapper element (comment anchors); default `document.body`. |
+| `<ErrorBoundary fallback={(err, reset) => …}>` | `<View.ErrorBoundary fallback={(err, reset) => …}>` (7.2.0) | Same shape; `onError` prop for logging. |
+| `createResource(source, fetcher)` | `Resource.make(() => fetcher(Signal.get(source)))` (7.2.0) | Dependencies are signals read before the fetch's first `await`; state is a variant (`Pending`, `Ready`, `Refreshing`, `Failed`). |
+| `<Suspense fallback>` | `<View.Suspense fallback>` (7.2.0) | Waits for resources created below; first load only. |
+| `createContext` / `useContext` / `<Ctx.Provider value>` | `Context.make` / `Context.use` / `<Context.Provider context value>` (7.2.0) | `use` must run during render; outside it returns the default. |
 | `mergeProps({kind: "primary"}, props)` | `~kind: string="primary"` | Labeled defaults. |
 | `splitProps` | not needed | Props are a typed record of plain values. |
 | `children(() => props.children)` | `~children: View.node` | Rendered as given. |
-| `ref={el}` | `ref=r` with `View.Ref.make()` (7.2.0-beta.2) | Read with `View.Ref.peek` / `View.Ref.get`. |
+| `ref={el}` | `ref=r` with `View.Ref.make()` (7.2.0) | Read with `View.Ref.peek` / `View.Ref.get`. |
 | `classList={{active: a()}}` | `class={Signal.get(a) ? "item active" : "item"}` | String expression. |
 | `style={{width: "10px"}}` | `style="width: 10px"` | String only; an object renders `[object Object]`. |
 | `render(() => <App />, el)` | `View.mount(<App />, el)` | Replaces the container contents. |
@@ -65,7 +65,7 @@ Use this page when porting SolidJS code to Xote or when reviewing Xote code writ
 
 ## Patterns
 
-Resource with Suspense and an error boundary. Use when: porting `createResource` + `Suspense` (7.2.0-beta.2).
+Resource with Suspense and an error boundary. Use when: porting `createResource` + `Suspense` (7.2.0).
 
 ```rescript
 type user = {id: string, name: string}
@@ -186,7 +186,7 @@ Symptom: old data stays visible while the new request runs. Fix: render a loadin
 
 ## SSR and hydration
 
-- Effects created in component bodies run during `SSR.renderToString`; guard browser-only work with `SSRContext.isClient` or use `View.onMount` (7.2.0-beta.2).
+- Effects created in component bodies run during `SSR.renderToString`; guard browser-only work with `SSRContext.isClient` or use `View.onMount` (7.2.0).
 - Resources created during a server render do not fetch and stay `Pending`; a `View.Suspense` renders its fallback on the server and its children after hydration.
 - Transfer data from server to client with `SSRState` and hydrate with `Hydration.hydrate`.
 
@@ -198,9 +198,9 @@ Porting checklist:
 2. Every prop that changes is a `Signal.t`, `MaybeSignal.t` or thunk.
 3. Reactive reads through imported helpers are wrapped in `() => …`; no `[Xote] … reads a signal through a call` warnings in development.
 4. Each `<For>` has a `by` key; `<Index>` uses were redesigned with per-row signals.
-5. Effects that need the DOM are `View.onMount` (beta) or read refs with `View.Ref.get`.
+5. Effects that need the DOM are `View.onMount` (7.2.0) or read refs with `View.Ref.get`.
 6. Memos with side effects were split into a computed plus an effect.
-7. Features marked 7.2.0-beta.2 are only used if the project depends on the beta.
+7. Features marked 7.2.0 need xote 7.2.0 or later.
 
 Test in jsdom: mount, change signals, assert DOM updates and element identity; for resources, assert the fallback first, then the value, and that a refetch keeps the old value visible until the new one arrives.
 

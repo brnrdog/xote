@@ -17,6 +17,8 @@
  *   lead       one sentence under the title, also the meta description
  *   aliases    older URLs that redirect here
  *   agentOnly  listed in the sidebar only in the agent layer
+ *   isNew      the page covers a feature new in the upcoming release; badged
+ *              in the sidebar and on the page title (see NewBadge.res)
  *   agent      facts shown in the agent layer: module, boundary (.resi),
  *              entry (import path) and api (an API reference MDX file
  *              appended to the page in the agent layer)
@@ -117,6 +119,7 @@ export const sections = [
       {
         title: 'Refs and lifecycle',
         path: '/docs/learn/lifecycle',
+        isNew: true,
         file: 'LifecycleDoc',
         lead: 'Reach the real DOM, run code on mount and cleanup, render elsewhere, and recover from errors.',
         agent: { ...viewFacts, api: 'ApiViewDoc' },
@@ -124,6 +127,7 @@ export const sections = [
       {
         title: 'Context',
         path: '/docs/learn/context',
+        isNew: true,
         file: 'ContextDoc',
         lead: 'Make a value available to everything a component renders, scoped to that component.',
         aliases: ['/docs/core-concepts/context'],
@@ -132,6 +136,7 @@ export const sections = [
       {
         title: 'Async data',
         path: '/docs/learn/async-data',
+        isNew: true,
         file: 'ResourcesDoc',
         lead: 'Turn asynchronous work into signals, and show a fallback while it loads.',
         aliases: ['/docs/core-concepts/resources'],
@@ -159,6 +164,7 @@ export const sections = [
       {
         title: 'Fetching data',
         path: '/docs/guides/fetching-data',
+        isNew: true,
         file: 'GuideFetchingDataDoc',
         lead: 'Load data, show loading and error states, refetch when inputs change, and search as people type.',
       },

@@ -4,11 +4,11 @@ A Xote app is a ReScript 12 project that compiles each `.res` file to an ES modu
 
 ## Availability
 
-| Item | Import / entry | First stable | Pre-release only | Needs the PPX |
+| Item | Import / entry | First stable | Changed in 7.2.0 | Needs the PPX |
 | --- | --- | --- | --- | --- |
 | `XoteJSX` JSX module, `View.mountById`, `View.mount` | `xote` | 7.0.0 | — | No |
 | `@xote.component` and its prebuilt PPX binary (`xote/ppx/ppx`) | `xote` | 7.1.0 | — | — |
-| `Context` (`make`, `use`, `provide`, `Provider`) | `xote`, `xote/context` | — | pre-release: 7.2.0-beta, not in 7.1.0 stable | No |
+| `Context` (`make`, `use`, `provide`, `Provider`) | `xote`, `xote/context` | 7.2.0 (new) | — | No |
 | ReScript compiler | `rescript` 12 | — | — | — |
 
 ## Rules
@@ -30,8 +30,8 @@ A Xote app is a ReScript 12 project that compiles each `.res` file to an ES modu
 | --- | --- | --- |
 | One component instance | one per instance | `Signal.make` in the component body |
 | The whole app (session, cart, settings) | one | module-level signals in `state/X.res`, with the functions that change them |
-| One subtree, e.g. a tab group or form | one per subtree instance | a `Context` whose value is a signal, provided by the subtree's root component (pre-release) |
-| Data from the server | per view | a `Resource` in the component that shows it (pre-release) |
+| One subtree, e.g. a tab group or form | one per subtree instance | a `Context` whose value is a signal, provided by the subtree's root component (7.2.0) |
+| Data from the server | per view | a `Resource` in the component that shows it (7.2.0) |
 | Values derived from any of the above | — | a `Computed` next to its inputs |
 
 ## API
@@ -136,7 +136,7 @@ let make = (~label: string, ~children: View.node) => {
 }
 ```
 
-**Per-subtree state with Context** (pre-release) — Use when: a compound component (tabs, accordion, form) shares state with its descendants, one copy per instance.
+**Per-subtree state with Context** (7.2.0) — Use when: a compound component (tabs, accordion, form) shares state with its descendants, one copy per instance.
 
 ```rescript
 // src/components/Tabs.res

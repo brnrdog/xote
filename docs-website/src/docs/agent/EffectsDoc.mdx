@@ -9,7 +9,7 @@ An **effect** is a function that runs immediately, records the signals it reads 
 | Module | `Xote.Effect` (wraps `rescript-signals` 3.1.x `Signals.Effect`) |
 | Import / entry | `xote` (with `"-open Xote"`: `Effect.*`), also `xote/effect` |
 | First stable version | `Effect.run`, `Effect.runWithDisposer`, `Effect.disposer` are in 7.1.0 stable. Ownership by the rendering component is in 7.1.0 |
-| Pre-release (7.2.0-beta, not in 7.1.0 stable) | Effects run under the `Context` and `View.ErrorBoundary` they were created under (failures go to the boundary); `View.onMount` / `View.onCleanup` |
+| New in 7.2.0 | Effects run under the `Context` and `View.ErrorBoundary` they were created under (failures go to the boundary); `View.onMount` / `View.onCleanup` |
 | Requires `@xote.component` (PPX) | No |
 
 ## Rules
@@ -19,12 +19,12 @@ An **effect** is a function that runs immediately, records the signals it reads 
 3. Dependencies are re-collected on every run; signals not read in the latest run are no longer dependencies.
 4. Before each re-run, the cleanup returned by the previous run (if `Some`) is called. On disposal, the pending cleanup is called exactly once. A cleanup runs while the effect is re-tracking, so a `Signal.get` inside a cleanup subscribes the effect to that signal. A cleanup MUST NOT call `Signal.get`; read with `Signal.peek` if it needs a value.
 5. `fn` must return `option<unit => unit>`: `None` or `Some(cleanup)`. Returning a value of another type is a compile error.
-6. **Ownership.** An effect created while a component renders (in the component body, or synchronously during the render) is registered with that component's owner and disposed when the component is removed (its branch switches, its list item is removed, its boundary resets). Since 7.2.0-beta, an effect created inside `View.onMount` is owned the same way.
+6. **Ownership.** An effect created while a component renders (in the component body, or synchronously during the render) is registered with that component's owner and disposed when the component is removed (its branch switches, its list item is removed, its boundary resets). Since 7.2.0, an effect created inside `View.onMount` is owned the same way.
 7. An effect created outside any render (module level, an event handler, a `setTimeout`/promise callback, or **inside another effect's function**) has no owner. It lives until its disposer is called; `Effect.run` returns no disposer, so such an effect lives for the rest of the page.
 8. `Effect.runWithDisposer(fn)` is `Effect.run` that also returns `{dispose}`. `dispose()` runs the pending cleanup, unsubscribes, and drops any queued run; calling it again is a no-op. It is still owned by the rendering component when created during a render.
 9. An effect that writes to a signal it depends on is re-queued within the same flush. If the written value keeps changing, the flush never ends (the page hangs). Writes to signals the effect does not depend on are safe and join the current flush.
 10. Ordering: effects queued in one flush run in ascending level order (effects whose dependencies are deeper computed chains run later). Among effects at the same level, order is not part of the contract; do not rely on it.
-11. Errors: if `fn` throws on its first run, `Effect.run` throws. If it throws on a re-run and the effect was created under a `View.ErrorBoundary` (7.2.0-beta), the boundary shows its fallback. Otherwise the exception propagates out of the `Signal.set` / `update` / `batch` that triggered the flush, the remaining queued effects of that flush do not run, and they run (including a still-queued throwing effect) on the next flush anywhere. Effects MUST NOT throw; catch inside the effect.
+11. Errors: if `fn` throws on its first run, `Effect.run` throws. If it throws on a re-run and the effect was created under a `View.ErrorBoundary` (7.2.0), the boundary shows its fallback. Otherwise the exception propagates out of the `Signal.set` / `update` / `batch` that triggered the flush, the remaining queued effects of that flush do not run, and they run (including a still-queued throwing effect) on the next flush anywhere. Effects MUST NOT throw; catch inside the effect.
 12. `Signal.peek` and `Signal.untrack` read without subscribing; `Signal.update` reads the current value without subscribing.
 13. Effects are not for computing values. If the effect's only job is to `set` a signal from other signals, use a computed.
 
@@ -35,8 +35,8 @@ An **effect** is a function that runs immediately, records the signals it reads 
 | `Effect.run` | `(unit => option<unit => unit>, ~name: string=?) => unit` | Run now and on every dependency change; owned by the rendering component if created during a render. |
 | `Effect.runWithDisposer` | `(unit => option<unit => unit>, ~name: string=?) => Effect.disposer` | Same, and returns a handle for manual disposal. |
 | `Effect.disposer` | `{dispose: unit => unit}` | `dispose()` runs the pending cleanup and stops the effect; idempotent. |
-| `View.onMount` | `(unit => unit) => unit` | 7.2.0-beta. Runs after the component's DOM is in the document; never on the server; effects created inside are owned by the component. |
-| `View.onCleanup` | `(unit => unit) => unit` | 7.2.0-beta. Registers a callback that runs when the component is removed. |
+| `View.onMount` | `(unit => unit) => unit` | 7.2.0. Runs after the component's DOM is in the document; never on the server; effects created inside are owned by the component. |
+| `View.onCleanup` | `(unit => unit) => unit` | 7.2.0. Registers a callback that runs when the component is removed. |
 
 ## Patterns
 
@@ -89,7 +89,7 @@ let watcher = Effect.runWithDisposer(() => {
 let stopWatching = () => watcher.dispose()
 ```
 
-Browser-only work in a server-rendered app. Use `View.onMount` (7.2.0-beta) or, on 7.1.0, guard with `SSRContext.isClient`.
+Browser-only work in a server-rendered app. Use `View.onMount` (7.2.0) or, before 7.2.0, guard with `SSRContext.isClient`.
 
 ```rescript
 @val external document: Dom.document = "document"
@@ -129,7 +129,7 @@ Effect.run(() => {
 })
 ```
 
-For data loading prefer `Resource` (7.2.0-beta, `/docs/learn/async-data`), which implements this guard.
+For data loading prefer `Resource` (7.2.0, `/docs/learn/async-data`), which implements this guard.
 
 ## Anti-patterns
 
@@ -232,9 +232,9 @@ Symptom: each change to `rate` starts another interval; old ones never stop. Fix
 
 ## SSR and hydration
 
-- `Effect.run` has no server guard. An effect created while `SSR.renderToString` / `SSR.renderDocument` renders a component **runs once on the server**, and it is **not disposed** when the render ends: it stays subscribed to the signals it read. In a long-running server, effects that read module-level signals therefore leak and react to later writes. Guard browser-only effects with `SSRContext.isClient`, or create them in `View.onMount` (7.2.0-beta), which never runs on the server.
+- `Effect.run` has no server guard. An effect created while `SSR.renderToString` / `SSR.renderDocument` renders a component **runs once on the server**, and it is **not disposed** when the render ends: it stays subscribed to the signals it read. In a long-running server, effects that read module-level signals therefore leak and react to later writes. Guard browser-only effects with `SSRContext.isClient`, or create them in `View.onMount` (7.2.0), which never runs on the server.
 - During hydration the component bodies run again on the client, so client effects are created then; nothing is transferred from the server's effects.
-- Resources (7.2.0-beta) do not fetch during a server render; prefer them over effects for data.
+- Resources (7.2.0) do not fetch during a server render; prefer them over effects for data.
 
 ## Verify
 
@@ -260,7 +260,7 @@ Signal.set(n, 2) // no run
 ## Related
 
 - `/docs/learn/computeds` — use instead of effects that only derive values.
-- `/docs/learn/lifecycle` — `View.onMount`, `View.onCleanup`, error boundaries (7.2.0-beta).
+- `/docs/learn/lifecycle` — `View.onMount`, `View.onCleanup`, error boundaries (7.2.0).
 - `/docs/learn/async-data` — `Resource` for data loading with built-in staleness handling.
 - `/docs/advanced/batching` — how several writes collapse into one effect run.
 - `/docs/advanced/ssr` — server rendering, `SSRContext.isClient`.

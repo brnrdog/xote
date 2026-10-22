@@ -115,7 +115,7 @@ Changing `name` updates just the name. Changing `loggedIn` swaps the branch. Lis
 | --- | --- |
 | `useState` | `Signal.make`, at module level or in the component body |
 | `useMemo` | `Computed.make` |
-| `useEffect` | `Effect.run`, or `View.onMount` for DOM setup |
+| `useEffect` | `Effect.run`, or `View.onMount` <New /> for DOM setup |
 | Dependency arrays | None: reads are tracked automatically |
 | Re-rendering a component | Doesn't happen; bindings update in place |
 | `React.memo`, `useCallback` | Not needed |

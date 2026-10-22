@@ -13,10 +13,10 @@ Xote's compiled runtime can be used from plain JavaScript. ReScript functions co
 | `xote/hydration` | `dist/hydration.mjs` / `.cjs` | `Hydration`, `hydrate`, `hydrateById` |
 | `xote/mdx` | `dist/mdx.mjs` / `.cjs` | `Mdx`, `render`, `components`, `component`, `childrenToNodes`, `childrenToText` |
 | `xote/signal`, `xote/computed`, `xote/effect`, `xote/view`, `xote/html`, `xote/jsx`, `xote/maybe-signal`, `xote/route`, `xote/ssr-context`, `xote/ssr-state` | compiled ReScript sources (`src/*.res.mjs`, ESM only) | one module each |
-| `xote/context`, `xote/resource` | compiled sources, ESM only | pre-release: 7.2.0-beta, not in 7.1.0 stable |
+| `xote/context`, `xote/resource` | compiled sources, ESM only | 7.2.0 (new) |
 | `xote/jsx-runtime`, `xote/jsx-dev-runtime` | `src/jsx-runtime.mjs` | `jsx`, `jsxs`, `Fragment` (`jsxDEV` in the dev runtime): React-style automatic JSX runtime used by MDX |
 
-`Context` and `Resource` inside `xote`/`xote/client` exist only in 7.2.0-beta. The PPX (`@xote.component`) is ReScript-only and unavailable in JS.
+`Context` and `Resource` inside `xote`/`xote/client` were added in 7.2.0. The PPX (`@xote.component`) is ReScript-only and unavailable in JS.
 
 ## Rules
 
@@ -28,7 +28,7 @@ Xote's compiled runtime can be used from plain JavaScript. ReScript functions co
 6. In `View.element`, attributes are `[name, attrValue]` pairs built with `View.attr(name, string)` (static), `View.signalAttr(name, signal)`, or `View.computedAttr(name, () => string)` (reactive). Events are `[eventName, handler]` pairs with DOM event names (`"click"`, `"input"`).
 7. Lists: `View.each(signal, render)` re-renders all items on change; `View.eachWithKey(signal, keyFn, render)` keeps items by string key. Use the keyed form for lists that reorder or contain inputs.
 8. With the JSX runtime (`jsxImportSource: "xote"`), attribute values that are functions become reactive attributes and signals passed as attribute values are reactive; children that are functions or signals are stringified (rendered as source text / `[object Object]`). Use `View.signalText` for reactive text in JSX children.
-9. In the JSX runtime, `className` and `htmlFor` are accepted and renamed to `class`/`for`; `onXxx` function props become event listeners; `style` accepts a string or an object (camelCase keys are kebab-cased); `attrs` takes `[name, value]` pairs; `ref` takes a `View.Ref.t` or a callback (7.2.0-beta).
+9. In the JSX runtime, `className` and `htmlFor` are accepted and renamed to `class`/`for`; `onXxx` function props become event listeners; `style` accepts a string or an object (camelCase keys are kebab-cased); `attrs` takes `[name, value]` pairs; `ref` takes a `View.Ref.t` or a callback (7.2.0).
 10. A function component in the JSX runtime is called once (it becomes a lazy component node), like a ReScript component.
 11. No `.d.ts` files are published; in TypeScript, declare the modules you use (`declare module "xote/client"`) or allow JS. All values are effectively `any`.
 

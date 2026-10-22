@@ -38,7 +38,9 @@ module Sidebar = {
                 Router.link(
                   ~to=item.path,
                   ~attrs=[View.attr("class", className)],
-                  ~children=[View.text(item.title)],
+                  ~children=item.isNew
+                    ? [View.text(item.title), <span class="sidebar-new"> {View.text("New")} </span>]
+                    : [View.text(item.title)],
                   (),
                 )
               }),
@@ -444,6 +446,7 @@ let make = (props: props) => {
           <h1 class="docs-page-title">
             <span class="agent-only agent-hash" ariaHidden=true> {View.text("# ")} </span>
             {View.text(page.pageTitle)}
+            {page.isNew ? <NewBadge /> : View.fragment([])}
           </h1>
           {page.lead == ""
             ? View.fragment([])

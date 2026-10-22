@@ -8,8 +8,8 @@ Xote is a ReScript UI library with fine-grained reactivity. State lives in **sig
 | --- | --- |
 | Package | `xote` (npm) |
 | Language | ReScript 12 (JSX v4 with `"module": "XoteJSX"`) |
-| Current stable | 7.1.0 |
-| Pre-release | 7.2.0-beta (adds `Context`, `Resource`, `View.Suspense`, `View.ErrorBoundary`, `View.Portal`, `View.Ref`, `View.onMount`, `View.onCleanup`) |
+| Current stable | 7.2.0 |
+| New in 7.2.0 | adds `Context`, `Resource`, `View.Suspense`, `View.ErrorBoundary`, `View.Portal`, `View.Ref`, `View.onMount`, `View.onCleanup`) |
 | Recommended component style | `@xote.component` (the PPX, `"ppx-flags": ["xote/ppx/ppx"]`), stable since 7.1.0 |
 | Reactive core | re-exported from `rescript-signals` (`Signal`, `Computed`, `Effect`) |
 
@@ -27,8 +27,8 @@ Xote is a ReScript UI library with fine-grained reactivity. State lives in **sig
 | `SSR`, `SSRContext`, `SSRState` | server rendering, environment checks, state transfer | `Xote.SSR` | `xote/ssr` | stable |
 | `Hydration` | hydrate server-rendered HTML | `Xote.Hydration` | `xote/hydration` | stable |
 | `Mdx` | render MDX documents as Xote nodes | `Xote.Mdx` | `xote/mdx` | stable |
-| `Context` | values scoped to a subtree | `Xote.Context` | `xote`, `xote/context` | pre-release: 7.2.0-beta, not in 7.1.0 stable |
-| `Resource` | async values as signals; works with `View.Suspense` | `Xote.Resource` | `xote`, `xote/resource` | pre-release: 7.2.0-beta, not in 7.1.0 stable |
+| `Context` | values scoped to a subtree | `Xote.Context` | `xote`, `xote/context` | 7.2.0 (new) |
+| `Resource` | async values as signals; works with `View.Suspense` | `Xote.Resource` | `xote`, `xote/resource` | 7.2.0 (new) |
 
 `Prop` is a deprecated alias of `MaybeSignal`; MUST NOT be used in new code.
 
@@ -42,7 +42,7 @@ Xote is a ReScript UI library with fine-grained reactivity. State lives in **sig
 6. Effects are for work outside the node tree (timers, storage, network, logging). An effect that allocates something MUST return `Some(cleanup)`.
 7. Lists that can reorder, insert or remove MUST use `View.For` with `by` (a stable string key), not `Array.map` inside a tracked region.
 8. `if`/`switch` on a signal in JSX rebuilds only the selected branch when the condition changes; reads inside the branch stay fine-grained.
-9. Code that touches `window`/`document` MUST NOT run at module top level or in a component body of an app that is server-rendered; use `View.onMount` (7.2.0-beta) or guard with `SSRContext.isClient`.
+9. Code that touches `window`/`document` MUST NOT run at module top level or in a component body of an app that is server-rendered; use `View.onMount` (7.2.0) or guard with `SSRContext.isClient`.
 10. Signal equality defaults to `===`. Replacing a record/array with a structurally equal copy still notifies; pass `~equals` to `Signal.make` to change that.
 
 ## API
