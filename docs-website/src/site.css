@@ -2268,10 +2268,6 @@ blockquote > :last-child {
   background: var(--signal-text);
   color: var(--ground);
 }
-.cl-pill.is-pre {
-  background: var(--soft-2);
-  color: var(--ink-muted);
-}
 .cl-pill.is-breaking {
   background: var(--ink);
   color: var(--ground);

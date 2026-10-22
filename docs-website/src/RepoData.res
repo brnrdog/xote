@@ -1,6 +1,7 @@
 // ****************************************************
 // * THIS FILE IS GENERATED - DO NOT EDIT MANUALLY! *
 // * Generated from: ../../docs/CHANGELOG.md
+// * Pre-releases (versions with a "-") are left out.
 // * To update: modify docs/CHANGELOG.md and run:
 // *   npm run generate-repo-data
 // ****************************************************
@@ -27,388 +28,21 @@ type release = {
   date: string,
   formattedDate: string,
   id: string,
-  prerelease: bool,
   sections: array<releaseSection>,
 }
 
 let sourceUrl = "https://github.com/brnrdog/xote/blob/main/docs/CHANGELOG.md"
-let latestVersion = "7.2.0-beta.2"
-let latestReleaseDate = "2026-10-19"
-let latestReleaseFormattedDate = "Oct 19, 2026"
+let latestVersion = "7.1.0"
+let latestReleaseDate = "2026-08-23"
+let latestReleaseFormattedDate = "Aug 23, 2026"
 
 let releases: array<release> = [
-  {
-    version: "7.2.0-beta.2",
-    url: "https://github.com/brnrdog/xote/compare/v7.2.0-beta.1...v7.2.0-beta.2",
-    date: "2026-10-19",
-    formattedDate: "Oct 19, 2026",
-    id: "release-7-2-0-beta-2-2026-10-19",
-    prerelease: true,
-    sections: [
-      {
-        title: "Bug Fixes",
-        changes: [
-          {
-            scope: Some("context"),
-            text: [
-              View.text("keep effects and boundaries to their own subtree")
-            ],
-            refs: [{label: "cf2cec7", url: "https://github.com/brnrdog/xote/commit/cf2cec73f384ae51ef3505677572d2a919ba82b7"}],
-          }
-        ],
-      },
-      {
-        title: "Features",
-        changes: [
-          {
-            scope: None,
-            text: [
-              View.text("add Resource and View.Suspense")
-            ],
-            refs: [{label: "#173", url: "https://github.com/brnrdog/xote/issues/173"}, {label: "32ce93e", url: "https://github.com/brnrdog/xote/commit/32ce93e2eafbcbc3d33aab70d096b4a2242c0b33"}],
-          },
-          {
-            scope: Some("context"),
-            text: [
-              View.text("add Context for values scoped to a subtree")
-            ],
-            refs: [{label: "edd5192", url: "https://github.com/brnrdog/xote/commit/edd5192d6ca89b5e76a62de60ba2cb94d77bc0b6"}],
-          },
-          {
-            scope: Some("view"),
-            text: [
-              View.text("add element refs, onMount and onCleanup")
-            ],
-            refs: [{label: "#170", url: "https://github.com/brnrdog/xote/issues/170"}, {label: "80e91d1", url: "https://github.com/brnrdog/xote/commit/80e91d107480f4a1f152dd52ebe671199bc1a496"}],
-          },
-          {
-            scope: Some("view"),
-            text: [
-              View.text("add View.ErrorBoundary")
-            ],
-            refs: [{label: "689bf18", url: "https://github.com/brnrdog/xote/commit/689bf18fe8567ce3ede2b4e33fc12c8dc81d7317"}],
-          },
-          {
-            scope: Some("view"),
-            text: [
-              View.text("add View.Portal")
-            ],
-            refs: [{label: "#174", url: "https://github.com/brnrdog/xote/issues/174"}, {label: "49979eb", url: "https://github.com/brnrdog/xote/commit/49979eb3a4d7b395395a8985ff80c8591aaa50d6"}],
-          }
-        ],
-      },
-      {
-        title: "Performance Improvements",
-        changes: [
-          {
-            scope: Some("jsx"),
-            text: [
-              View.text("walk only the props an element was given")
-            ],
-            refs: [{label: "d956450", url: "https://github.com/brnrdog/xote/commit/d956450659b54d9b93f9a96a1db8898a6fafeee4"}],
-          },
-          {
-            scope: Some("render"),
-            text: [
-              View.text("own state per region and clone repeated shapes")
-            ],
-            refs: [{label: "9622940", url: "https://github.com/brnrdog/xote/commit/9622940525fe26b778d189eeb2c0faa426d09662"}],
-          },
-          {
-            scope: Some("render"),
-            text: [
-              View.text("update reactive text in place")
-            ],
-            refs: [{label: "19ceee2", url: "https://github.com/brnrdog/xote/commit/19ceee29320a4fcf0309ab90dc67e0e39323b6da"}],
-          }
-        ],
-      }
-    ],
-  },
-  {
-    version: "7.2.0-beta.1",
-    url: "https://github.com/brnrdog/xote/compare/v7.1.0...v7.2.0-beta.1",
-    date: "2026-09-19",
-    formattedDate: "Sep 19, 2026",
-    id: "release-7-2-0-beta-1-2026-09-19",
-    prerelease: true,
-    sections: [
-      {
-        title: "Bug Fixes",
-        changes: [
-          {
-            scope: Some("ppx,view"),
-            text: [
-              View.text("harden bare-child coercion, widen read detection, warn on ppx ABI mismatch")
-            ],
-            refs: [{label: "27fc5d0", url: "https://github.com/brnrdog/xote/commit/27fc5d03dd121eae5047af71878854efd86c39d5"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("close silent-reactivity gaps and fail fast on ABI mismatch")
-            ],
-            refs: [{label: "91f57c4", url: "https://github.com/brnrdog/xote/commit/91f57c4aee5b95001e49cccd110008304d9d6569"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("decompose control-flow branches when the condition is not reactive")
-            ],
-            refs: [{label: "5628084", url: "https://github.com/brnrdog/xote/commit/5628084eb36663c9606c584f5f80fd61a9bfcea7"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("decompose fragment bodies so nested reactive regions stay independent")
-            ],
-            refs: [{label: "d27a1a4", url: "https://github.com/brnrdog/xote/commit/d27a1a4a2954af51e2e6eaaca9fad804c077e3d1"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("decompose render callbacks so their bodies are treated as node position")
-            ],
-            refs: [{label: "cd48499", url: "https://github.com/brnrdog/xote/commit/cd4849907089696282eb31dc6a67263a2e89a692"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("don't double-thunk values already written as functions")
-            ],
-            refs: [{label: "219f897", url: "https://github.com/brnrdog/xote/commit/219f89725bcdb1baad1d34ce7917cc1c61cdd8e2"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("harden install path and CI for the prebuilt binaries")
-            ],
-            refs: [{label: "e814d2c", url: "https://github.com/brnrdog/xote/commit/e814d2cc2ab3a1986b918a17d9c5edd01fa1c9b5"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("harden install path and CI for the prebuilt binaries")
-            ],
-            refs: [{label: "8ca3364", url: "https://github.com/brnrdog/xote/commit/8ca3364e772e27de4e62f07f578f3a1edb4907ef"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("only thunk eager signal reads, not reads deferred in lambdas")
-            ],
-            refs: [{label: "3149c2f", url: "https://github.com/brnrdog/xote/commit/3149c2fc14de13f64609950603baf5250010a5be"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("reach JSX wherever it appears, including helper functions")
-            ],
-            refs: [{label: "b7855de", url: "https://github.com/brnrdog/xote/commit/b7855de109995cb534fbf184df01770459f1c9fc"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("recognize namespaced value components and decompose JSX in container props")
-            ],
-            refs: [{label: "34b3458", url: "https://github.com/brnrdog/xote/commit/34b34585c783ac7255eed97392b1572b9afeeadf"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("stop nested .gitignore from stripping prebuilt binaries out of the npm tarball")
-            ],
-            refs: [{label: "86c7588", url: "https://github.com/brnrdog/xote/commit/86c7588eb4f9683e0c4f109c52175a4784ff2529"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("track local reactive helpers so hidden reads stay fine-grained")
-            ],
-            refs: [{label: "648233c", url: "https://github.com/brnrdog/xote/commit/648233c580b399f92d1575b561123c83f7f93386"}],
-          },
-          {
-            scope: Some("view"),
-            text: [
-              View.text("re-coerce non-scalar View.child thunks on every run")
-            ],
-            refs: [{label: "6bccab0", url: "https://github.com/brnrdog/xote/commit/6bccab0112c5ca4d6c9599dc62c917c925572ea9"}],
-          }
-        ],
-      },
-      {
-        title: "Features",
-        changes: [
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("add @xote.component component-level annotation")
-            ],
-            refs: [{label: "1c10e77", url: "https://github.com/brnrdog/xote/commit/1c10e77e94dfe85d856b43ef5b24b8d46148477b"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("add @xote.component for fine-grained components")
-            ],
-            refs: [{label: "26ca857", url: "https://github.com/brnrdog/xote/commit/26ca8578c19fd4512ab8184edfce37dc0c72f757"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("add "),
-              <code> {View.text("@xote.component")} </code>,
-              View.text(" for fine-grained components")
-            ],
-            refs: [{label: "cd6b4d1", url: "https://github.com/brnrdog/xote/commit/cd6b4d16ce38abb243fd739df3a3f0a75982bdc7"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("alias-aware signal detection in tracked-block ppx")
-            ],
-            refs: [{label: "54ef22c", url: "https://github.com/brnrdog/xote/commit/54ef22c95b124e3cd59bef99c39e91264be400e7"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("fine-grain JSX wherever it appears, including helper functions")
-            ],
-            refs: [{label: "4638c91", url: "https://github.com/brnrdog/xote/commit/4638c91d3d70a23f08a6858a2085e00788df65fd"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("fine-grain JSX wherever it appears, including helper functions")
-            ],
-            refs: [{label: "d631140", url: "https://github.com/brnrdog/xote/commit/d631140d65a5bfe35a519f4240a722e5be3f4aa9"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("make the tracked ppx production-ready and opt-in")
-            ],
-            refs: [{label: "bac136a", url: "https://github.com/brnrdog/xote/commit/bac136a7da33fee8c55a4361ea91391d57e05f7f"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("prototype fine-grained tracked-block compilation")
-            ],
-            refs: [{label: "d591b8e", url: "https://github.com/brnrdog/xote/commit/d591b8ea733403a8fbc598a1fffbbaeeff0c9758"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("ship prebuilt binaries so @xote.component needs no toolchain")
-            ],
-            refs: [{label: "0f3d1b4", url: "https://github.com/brnrdog/xote/commit/0f3d1b46eb4a28009dfbb2216d59028a2d55b07f"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("ship prebuilt binaries so "),
-              <code> {View.text("@xote.component")} </code>,
-              View.text(" needs no toolchain")
-            ],
-            refs: [{label: "59672b2", url: "https://github.com/brnrdog/xote/commit/59672b2f222238e2a7e560f6fbbcc7d3d4149a73"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("ship prebuilt per-platform binaries and make @xote.component the standard setup")
-            ],
-            refs: [{label: "92dd208", url: "https://github.com/brnrdog/xote/commit/92dd2086772e37f1aeabb73b43ad975d76058d31"}],
-          },
-          {
-            scope: Some("ppx"),
-            text: [
-              View.text("track only the condition in tracked control flow")
-            ],
-            refs: [{label: "f2639f3", url: "https://github.com/brnrdog/xote/commit/f2639f3f585ce4afd3d8d5f39e593b32467858db"}],
-          },
-          {
-            scope: Some("view"),
-            text: [
-              View.text("add tracked() auto-tracked reactive block ("),
-              <a href="https://github.com/brnrdog/xote/commit/6697c809d4b18ca04b2aece14c4eccf768fd9a4a" target="_blank"> {View.text("6697c80")} </a>,
-              View.text("), closes "),
-              <a href="https://github.com/brnrdog/rescript-signals/issues/34" target="_blank"> {View.text("brnrdog/rescript-signals#34")} </a>
-            ],
-            refs: [],
-          },
-          {
-            scope: Some("view"),
-            text: [
-              View.text("add tracked() for auto-tracked reactive blocks")
-            ],
-            refs: [{label: "2427c6b", url: "https://github.com/brnrdog/xote/commit/2427c6bbb15a205fed42869b0c8f45c61e5a37d8"}],
-          },
-          {
-            scope: Some("view"),
-            text: [
-              View.text("add tracked() for auto-tracked reactive blocks")
-            ],
-            refs: [{label: "ae5c4e9", url: "https://github.com/brnrdog/xote/commit/ae5c4e97d67abc369bc5bd127fe40953ba2d043b"}],
-          },
-          {
-            scope: Some("view"),
-            text: [
-              View.text("coerce bare JSX children so value primitives are optional")
-            ],
-            refs: [{label: "8b67a43", url: "https://github.com/brnrdog/xote/commit/8b67a4387cb175dcd5517d1ab2154b30a8a541b9"}],
-          },
-          {
-            scope: Some("view"),
-            text: [
-              View.text("coerce bare JSX children so value primitives are optional")
-            ],
-            refs: [{label: "0721b84", url: "https://github.com/brnrdog/xote/commit/0721b84085768d26f2432090492caacef30f59b0"}],
-          },
-          {
-            scope: Some("view"),
-            text: [
-              View.text("coerce bare JSX children so value primitives are optional")
-            ],
-            refs: [{label: "1586ef6", url: "https://github.com/brnrdog/xote/commit/1586ef64af02e6dfbdfef9fff1589394fecf7a28"}],
-          }
-        ],
-      },
-      {
-        title: "Performance Improvements",
-        changes: [
-          {
-            scope: Some("jsx"),
-            text: [
-              View.text("walk only the props an element was given")
-            ],
-            refs: [{label: "ac141b1", url: "https://github.com/brnrdog/xote/commit/ac141b1f3094048b259ffaf16b59929fbffbb09a"}],
-          },
-          {
-            scope: Some("render"),
-            text: [
-              View.text("own state per region and clone repeated shapes")
-            ],
-            refs: [{label: "f0798d4", url: "https://github.com/brnrdog/xote/commit/f0798d45880d6572dcb9774c28a66a7ac79fd1a7"}],
-          },
-          {
-            scope: Some("render"),
-            text: [
-              View.text("update reactive text in place")
-            ],
-            refs: [{label: "076774d", url: "https://github.com/brnrdog/xote/commit/076774daadc183ea248c9ac7ca64dc44167b9516"}],
-          }
-        ],
-      }
-    ],
-  },
   {
     version: "7.1.0",
     url: "https://github.com/brnrdog/xote/compare/v7.0.0...v7.1.0",
     date: "2026-08-23",
     formattedDate: "Aug 23, 2026",
     id: "release-7-1-0-2026-08-23",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -597,7 +231,6 @@ let releases: array<release> = [
     date: "2026-07-13",
     formattedDate: "Jul 13, 2026",
     id: "release-7-0-0-2026-07-13",
-    prerelease: false,
     sections: [
       {
         title: "",
@@ -747,7 +380,6 @@ let releases: array<release> = [
     date: "2026-05-20",
     formattedDate: "May 20, 2026",
     id: "release-6-4-0-2026-05-20",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -781,7 +413,6 @@ let releases: array<release> = [
     date: "2026-05-12",
     formattedDate: "May 12, 2026",
     id: "release-6-3-0-2026-05-12",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -803,7 +434,6 @@ let releases: array<release> = [
     date: "2026-04-26",
     formattedDate: "Apr 26, 2026",
     id: "release-6-2-0-2026-04-26",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -844,7 +474,6 @@ let releases: array<release> = [
     date: "2026-04-25",
     formattedDate: "Apr 25, 2026",
     id: "release-6-1-2-2026-04-25",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -866,7 +495,6 @@ let releases: array<release> = [
     date: "2026-04-25",
     formattedDate: "Apr 25, 2026",
     id: "release-6-1-1-2026-04-25",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -888,7 +516,6 @@ let releases: array<release> = [
     date: "2026-04-21",
     formattedDate: "Apr 21, 2026",
     id: "release-6-1-1-2026-04-21",
-    prerelease: false,
     sections: [
       {
         title: "Performance Improvements",
@@ -910,7 +537,6 @@ let releases: array<release> = [
     date: "2026-04-10",
     formattedDate: "Apr 10, 2026",
     id: "release-6-1-0-2026-04-10",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -932,7 +558,6 @@ let releases: array<release> = [
     date: "2026-04-09",
     formattedDate: "Apr 9, 2026",
     id: "release-6-0-1-2026-04-09",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -954,7 +579,6 @@ let releases: array<release> = [
     date: "2026-04-08",
     formattedDate: "Apr 8, 2026",
     id: "release-6-0-0-2026-04-08",
-    prerelease: false,
     sections: [
       {
         title: "",
@@ -1129,7 +753,6 @@ let releases: array<release> = [
     date: "2026-04-04",
     formattedDate: "Apr 4, 2026",
     id: "release-5-0-0-2026-04-04",
-    prerelease: false,
     sections: [
       {
         title: "",
@@ -1163,7 +786,6 @@ let releases: array<release> = [
     date: "2026-03-13",
     formattedDate: "Mar 13, 2026",
     id: "release-4-16-1-2026-03-13",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -1185,7 +807,6 @@ let releases: array<release> = [
     date: "2026-03-12",
     formattedDate: "Mar 12, 2026",
     id: "release-4-16-0-2026-03-12",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1207,7 +828,6 @@ let releases: array<release> = [
     date: "2026-03-12",
     formattedDate: "Mar 12, 2026",
     id: "release-4-15-3-2026-03-12",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -1229,7 +849,6 @@ let releases: array<release> = [
     date: "2026-03-12",
     formattedDate: "Mar 12, 2026",
     id: "release-4-15-2-2026-03-12",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -1251,7 +870,6 @@ let releases: array<release> = [
     date: "2026-03-07",
     formattedDate: "Mar 7, 2026",
     id: "release-4-15-1-2026-03-07",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -1273,7 +891,6 @@ let releases: array<release> = [
     date: "2026-03-04",
     formattedDate: "Mar 4, 2026",
     id: "release-4-15-0-2026-03-04",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1295,7 +912,6 @@ let releases: array<release> = [
     date: "2026-03-01",
     formattedDate: "Mar 1, 2026",
     id: "release-4-14-0-2026-03-01",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1317,7 +933,6 @@ let releases: array<release> = [
     date: "2026-02-28",
     formattedDate: "Feb 28, 2026",
     id: "release-4-13-0-2026-02-28",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1339,7 +954,6 @@ let releases: array<release> = [
     date: "2026-02-28",
     formattedDate: "Feb 28, 2026",
     id: "release-4-12-0-2026-02-28",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1361,7 +975,6 @@ let releases: array<release> = [
     date: "2026-01-22",
     formattedDate: "Jan 22, 2026",
     id: "release-4-11-0-2026-01-22",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1383,7 +996,6 @@ let releases: array<release> = [
     date: "2026-01-10",
     formattedDate: "Jan 10, 2026",
     id: "release-4-10-1-2026-01-10",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -1405,7 +1017,6 @@ let releases: array<release> = [
     date: "2026-01-10",
     formattedDate: "Jan 10, 2026",
     id: "release-4-10-0-2026-01-10",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1427,7 +1038,6 @@ let releases: array<release> = [
     date: "2026-01-06",
     formattedDate: "Jan 6, 2026",
     id: "release-4-9-0-2026-01-06",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1449,7 +1059,6 @@ let releases: array<release> = [
     date: "2025-12-31",
     formattedDate: "Dec 31, 2025",
     id: "release-4-8-0-2025-12-31",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1471,7 +1080,6 @@ let releases: array<release> = [
     date: "2025-12-29",
     formattedDate: "Dec 29, 2025",
     id: "release-4-7-0-2025-12-29",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1500,7 +1108,6 @@ let releases: array<release> = [
     date: "2025-12-29",
     formattedDate: "Dec 29, 2025",
     id: "release-4-6-0-2025-12-29",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1522,7 +1129,6 @@ let releases: array<release> = [
     date: "2025-12-29",
     formattedDate: "Dec 29, 2025",
     id: "release-4-5-0-2025-12-29",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1544,7 +1150,6 @@ let releases: array<release> = [
     date: "2025-12-20",
     formattedDate: "Dec 20, 2025",
     id: "release-4-4-3-2025-12-20",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -1566,7 +1171,6 @@ let releases: array<release> = [
     date: "2025-12-20",
     formattedDate: "Dec 20, 2025",
     id: "release-4-4-2-2025-12-20",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -1588,7 +1192,6 @@ let releases: array<release> = [
     date: "2025-12-20",
     formattedDate: "Dec 20, 2025",
     id: "release-4-4-1-2025-12-20",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -1610,7 +1213,6 @@ let releases: array<release> = [
     date: "2025-12-19",
     formattedDate: "Dec 19, 2025",
     id: "release-4-4-0-2025-12-19",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1639,7 +1241,6 @@ let releases: array<release> = [
     date: "2025-12-18",
     formattedDate: "Dec 18, 2025",
     id: "release-4-3-1-2025-12-18",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -1661,7 +1262,6 @@ let releases: array<release> = [
     date: "2025-12-15",
     formattedDate: "Dec 15, 2025",
     id: "release-4-3-0-2025-12-15",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1683,7 +1283,6 @@ let releases: array<release> = [
     date: "2025-12-14",
     formattedDate: "Dec 14, 2025",
     id: "release-4-2-0-2025-12-14",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1705,7 +1304,6 @@ let releases: array<release> = [
     date: "2025-12-14",
     formattedDate: "Dec 14, 2025",
     id: "release-4-1-1-2025-12-14",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -1727,7 +1325,6 @@ let releases: array<release> = [
     date: "2025-12-05",
     formattedDate: "Dec 5, 2025",
     id: "release-4-1-0-2025-12-05",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -1749,7 +1346,6 @@ let releases: array<release> = [
     date: "2025-12-02",
     formattedDate: "Dec 2, 2025",
     id: "release-4-0-0-2025-12-02",
-    prerelease: false,
     sections: [
       {
         title: "Code Refactoring",
@@ -1783,7 +1379,6 @@ let releases: array<release> = [
     date: "2025-11-28",
     formattedDate: "Nov 28, 2025",
     id: "release-3-0-0-2025-11-28",
-    prerelease: false,
     sections: [
       {
         title: "",
@@ -1888,7 +1483,6 @@ let releases: array<release> = [
     date: "2025-11-27",
     formattedDate: "Nov 27, 2025",
     id: "release-2-0-0-2025-11-27",
-    prerelease: false,
     sections: [
       {
         title: "",
@@ -1929,7 +1523,6 @@ let releases: array<release> = [
     date: "2025-11-26",
     formattedDate: "Nov 26, 2025",
     id: "release-1-3-3-2025-11-26",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -1951,7 +1544,6 @@ let releases: array<release> = [
     date: "2025-11-24",
     formattedDate: "Nov 24, 2025",
     id: "release-1-3-2-2025-11-24",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -1983,7 +1575,6 @@ let releases: array<release> = [
     date: "2025-11-21",
     formattedDate: "Nov 21, 2025",
     id: "release-1-3-1-2025-11-21",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -2005,7 +1596,6 @@ let releases: array<release> = [
     date: "2025-11-21",
     formattedDate: "Nov 21, 2025",
     id: "release-1-3-0-2025-11-21",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -2027,7 +1617,6 @@ let releases: array<release> = [
     date: "2025-11-19",
     formattedDate: "Nov 19, 2025",
     id: "release-1-2-1-2025-11-19",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -2049,7 +1638,6 @@ let releases: array<release> = [
     date: "2025-11-19",
     formattedDate: "Nov 19, 2025",
     id: "release-1-2-0-2025-11-19",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -2071,7 +1659,6 @@ let releases: array<release> = [
     date: "2025-11-18",
     formattedDate: "Nov 18, 2025",
     id: "release-1-1-0-2025-11-18",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -2126,7 +1713,6 @@ let releases: array<release> = [
     date: "2025-11-02",
     formattedDate: "Nov 2, 2025",
     id: "release-1-0-1-2025-11-02",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -2251,7 +1837,6 @@ let releases: array<release> = [
     date: "2025-11-02",
     formattedDate: "Nov 2, 2025",
     id: "release-1-1-0-2025-11-02",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -2294,7 +1879,6 @@ let releases: array<release> = [
     date: "2025-11-01",
     formattedDate: "Nov 1, 2025",
     id: "release-1-1-0-2025-11-01",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -2330,7 +1914,6 @@ let releases: array<release> = [
     date: "2025-10-31",
     formattedDate: "Oct 31, 2025",
     id: "release-1-1-0-2025-10-31",
-    prerelease: false,
     sections: [
       {
         title: "Features",
@@ -2352,7 +1935,6 @@ let releases: array<release> = [
     date: "2025-10-31",
     formattedDate: "Oct 31, 2025",
     id: "release-1-0-3-2025-10-31",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -2381,7 +1963,6 @@ let releases: array<release> = [
     date: "2025-10-30",
     formattedDate: "Oct 30, 2025",
     id: "release-1-0-2-2025-10-30",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",
@@ -2403,7 +1984,6 @@ let releases: array<release> = [
     date: "2025-10-30",
     formattedDate: "Oct 30, 2025",
     id: "release-1-0-1-2025-10-30",
-    prerelease: false,
     sections: [
       {
         title: "Bug Fixes",

@@ -1,6 +1,7 @@
 // The changelog page: the latest release up top, then every release on a
 // timeline grouped by major version. Older majors start collapsed.
-// Release data comes from docs/CHANGELOG.md via RepoData.res.
+// Release data comes from docs/CHANGELOG.md via RepoData.res, which leaves
+// pre-releases out.
 
 type kind = Breaking | Feature | Fix | Perf | Refactor | Other
 
@@ -100,7 +101,6 @@ let pill = (className, label) => <span class={"cl-pill " ++ className}> {label} 
 let releaseBadges = (release: RepoData.release, ~isLatest) =>
   View.fragment([
     isLatest ? pill("is-latest", "Latest") : View.null(),
-    release.prerelease ? pill("is-pre", "Pre-release") : View.null(),
     hasBreaking(release) ? pill("is-breaking", "Breaking") : View.null(),
   ])
 
@@ -155,10 +155,7 @@ let latestCard = (release: RepoData.release) => {
       <span class="cl-latest-label"> {"Latest release"} </span>
       <time class="cl-date" attrs=[("datetime", release.date)]> {release.formattedDate} </time>
     </div>
-    <div class="cl-latest-version">
-      <span> {"v" ++ release.version} </span>
-      {release.prerelease ? pill("is-pre", "Pre-release") : View.null()}
-    </div>
+    <div class="cl-latest-version"> {"v" ++ release.version} </div>
     <p class="cl-latest-summary"> {counts->Array.join(" · ")} </p>
     <div class="cl-latest-actions">
       <a class="btn-pill btn-ink" href={"#" ++ release.id}> {"See what changed ↓"} </a>

@@ -271,13 +271,14 @@ function generateRepoData(releases) {
         })
         .join(',\n')
 
-      return `  {\n    version: "${escapeForReScript(release.version)}",\n    url: "${escapeForReScript(release.url)}",\n    date: "${escapeForReScript(release.date)}",\n    formattedDate: "${escapeForReScript(release.formattedDate)}",\n    id: "${escapeForReScript(release.id)}",\n    prerelease: ${release.version.includes('-')},\n    sections: [\n${sections}\n    ],\n  }`
+      return `  {\n    version: "${escapeForReScript(release.version)}",\n    url: "${escapeForReScript(release.url)}",\n    date: "${escapeForReScript(release.date)}",\n    formattedDate: "${escapeForReScript(release.formattedDate)}",\n    id: "${escapeForReScript(release.id)}",\n    sections: [\n${sections}\n    ],\n  }`
     })
     .join(',\n')
 
   return `// ****************************************************
 // * THIS FILE IS GENERATED - DO NOT EDIT MANUALLY! *
 // * Generated from: ../../docs/CHANGELOG.md
+// * Pre-releases (versions with a "-") are left out.
 // * To update: modify docs/CHANGELOG.md and run:
 // *   npm run generate-repo-data
 // ****************************************************
@@ -304,7 +305,6 @@ type release = {
   date: string,
   formattedDate: string,
   id: string,
-  prerelease: bool,
   sections: array<releaseSection>,
 }
 
@@ -321,7 +321,9 @@ ${releaseEntries}
 
 function main() {
   const markdown = fs.readFileSync(CHANGELOG_PATH, 'utf-8')
-  const releases = parseChangelog(markdown)
+  // Pre-releases (versions with a "-", like 7.2.0-beta.1) are internal: they
+  // are left out of the site, and the latest version is the latest stable one.
+  const releases = parseChangelog(markdown).filter(release => !release.version.includes('-'))
   const output = generateRepoData(releases)
 
   fs.writeFileSync(OUTPUT_PATH, output, 'utf-8')
