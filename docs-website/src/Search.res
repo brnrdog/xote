@@ -113,6 +113,44 @@ let search = (query: string): array<entry> => {
   }
 }
 
+// Results as the palette shows them: with no query, pages under their docs
+// section; with a query, matches under the page they belong to (the page
+// itself first), pages ordered by their best match. The flattened order is
+// the keyboard order.
+type group = {
+  label: string,
+  detail: string,
+  entries: array<entry>,
+}
+
+let groupsOf = (query: string, found: array<entry>): array<group> => {
+  let groups: array<group> = []
+  let keyOf = (entry: entry) => wordsOf(query)->Array.length == 0 ? entry.page.section : entry.page.path
+  found->Array.forEach(entry => {
+    let key = keyOf(entry)
+    switch groups->Array.find(group => group.label == key) {
+    | Some(group) => group.entries->Array.push(entry)->ignore
+    | None => groups->Array.push({label: key, detail: entry.page.section, entries: [entry]})->ignore
+    }
+  })
+  groups->Array.map(group => {
+    let first = group.entries[0]
+    if wordsOf(query)->Array.length == 0 {
+      {...group, detail: ""}
+    } else {
+      // Label the group with the page's title; its page entry goes first.
+      let pageFirst = group.entries->Array.toSorted((a, b) =>
+        (a.kind == Page ? 0.0 : 1.0) -. (b.kind == Page ? 0.0 : 1.0)
+      )
+      {
+        label: first->Option.mapOr(group.label, entry => entry.page.title),
+        detail: group.detail,
+        entries: pageFirst,
+      }
+    }
+  })
+}
+
 // Wraps every occurrence of the query words in <mark>.
 let highlight = (text: string, words: array<string>): View.node => {
   let lower = text->String.toLowerCase
@@ -168,28 +206,6 @@ let searchIcon =
     <path d="M11 11l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
   </svg>
 
-let pageIcon =
-  <svg width="16" height="16" viewBox="0 0 16 16" ariaHidden=true>
-    <path
-      d="M4 1.75h5.5L12.25 4.5v9.75H4z"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.3"
-      strokeLinejoin="round"
-    />
-    <path d="M6 8h4.25M6 10.5h4.25" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-  </svg>
-
-let sectionIcon =
-  <svg width="16" height="16" viewBox="0 0 16 16" ariaHidden=true>
-    <path
-      d="M6.5 2.5L5 13.5M11 2.5l-1.5 11M2.75 6h11M2.25 10h11"
-      stroke="currentColor"
-      strokeWidth="1.3"
-      strokeLinecap="round"
-    />
-  </svg>
-
 // ---- The palette ----
 module Modal = {
   type props = {}
@@ -198,7 +214,9 @@ module Modal = {
     let query = Signal.make("")
     let selected = Signal.make(0)
     let inputRef = View.Ref.make()
-    let results = Computed.make(() => search(Signal.get(query)))
+    let groups = Computed.make(() => groupsOf(Signal.get(query), search(Signal.get(query))))
+    // Every option in display order: what the arrow keys walk through.
+    let results = Computed.make(() => Signal.get(groups)->Array.flatMap(group => group.entries))
 
     let reset = () =>
       Signal.batch(() => {
@@ -316,6 +334,7 @@ module Modal = {
         ~attrs=[
           View.attr("id", optionId(index)),
           View.attr("role", "option"),
+          View.attr("data-kind", entry.kind == Page ? "page" : "section"),
           View.computedAttr("class", () =>
             "search-option" ++ (Signal.get(selected) == index ? " active" : "")
           ),
@@ -332,17 +351,11 @@ module Modal = {
           ("click", _ => go(entry)),
         ],
         ~children=[
-          <span class="search-option-icon"> {entry.kind == Page ? pageIcon : sectionIcon} </span>,
           <span class="search-option-text">
             <span class="search-option-title"> {highlight(entry.title, words)} </span>
-            <span class="search-option-crumb">
-              {View.text(
-                switch entry.kind {
-                | Page => entry.page.section
-                | Section => entry.page.section ++ " › " ++ entry.page.title
-                },
-              )}
-            </span>
+            {entry.kind == Page && entry.page.lead != ""
+              ? <span class="search-option-lead"> {View.text(entry.page.lead)} </span>
+              : View.fragment([])}
           </span>,
           <span class="search-option-enter" ariaHidden=true> {View.text("↵")} </span>,
         ],
@@ -350,9 +363,9 @@ module Modal = {
       )
 
     let resultList = () => {
-      let items = Signal.get(results)
+      let found = Signal.get(groups)
       let words = wordsOf(Signal.get(query))
-      if Array.length(items) == 0 {
+      if Array.length(found) == 0 {
         [
           <div class="search-empty">
             <p> {View.text("No results for “" ++ Signal.get(query)->String.trim ++ "”")} </p>
@@ -360,19 +373,52 @@ module Modal = {
           </div>,
         ]
       } else {
+        // Indexes run across groups, in display order.
+        let next = ref(0)
         [
-          <div class="search-group-label">
-            {View.text(Array.length(words) == 0 ? "Pages" : "Best matches")}
-          </div>,
           View.element(
-            "ul",
+            "div",
             ~attrs=[
               View.attr("id", "search-listbox"),
               View.attr("role", "listbox"),
               View.attr("class", "search-list"),
               View.attr("aria-label", "Search results"),
             ],
-            ~children=items->Array.mapWithIndex((entry, index) => option(entry, index, words)),
+            ~children=found->Array.map(group =>
+              View.element(
+                "div",
+                ~attrs=[
+                  View.attr("role", "group"),
+                  View.attr("class", "search-group"),
+                  View.attr("aria-label", group.label),
+                ],
+                ~children=[
+                  // When the page itself is the first match, its row already
+                  // names the group.
+                  switch (Array.length(words) > 0, group.entries[0]) {
+                  | (true, Some({kind: Page})) => View.fragment([])
+                  | _ =>
+                    <div class="search-group-label" ariaHidden=true>
+                      <span> {View.text(group.label)} </span>
+                      {group.detail == ""
+                        ? View.fragment([])
+                        : <span class="search-group-detail"> {View.text(group.detail)} </span>}
+                    </div>
+                  },
+                  View.element(
+                    "ul",
+                    ~attrs=[View.attr("class", "search-group-options"), View.attr("role", "presentation")],
+                    ~children=group.entries->Array.map(entry => {
+                      let index = next.contents
+                      next := index + 1
+                      option(entry, index, words)
+                    }),
+                    (),
+                  ),
+                ],
+                (),
+              )
+            ),
             (),
           ),
         ]
