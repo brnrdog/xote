@@ -165,7 +165,7 @@ let make = (~children: View.node) => <section class="card"> {children} </section
 
 3. **Mixing value types in `attrs`.**
    Wrong: `attrs=[("data-a", "x"), ("data-theme", theme)]`.
-   Symptom: compile error "This has type: Signal.t<string> But it's expected to have type: string".
+   Symptom: compile error `This has type: Signal.t<string> But it's expected to have type: string`.
    Right: `attrs=[View.attr("data-a", "x"), View.signalAttr("data-theme", theme)]`.
 
 4. **Computing the class in the component body.**

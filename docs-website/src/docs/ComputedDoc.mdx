@@ -17,7 +17,7 @@ let subtotal = Computed.make(() =>
 )
 ```
 
-[`Computed.make`](/docs/api/computed#computed-make) also accepts `~equals`. When a recomputed value is equal to the previous one, its dependents aren't woken.
+[`Computed.make`](/docs/api/computed#computed-make) also accepts `~equals`. By default a computed doesn't compare: when it recalculates, everything that reads it runs again, even if the new value is the same. Pass `~equals` (for example `~equals=(a, b) => a == b`) and an equal result leaves its dependents alone.
 
 ## Read a computed
 
@@ -150,5 +150,5 @@ let doubled = Computed.make(() => Signal.get(count) * 2)
 - Keep computeds pure. If the code talks to the outside world, it belongs in an [effect](/docs/learn/effects).
 - Read computeds with [`Signal.get`](/docs/api/signal#signal-get) or [`Signal.peek`](/docs/api/signal#signal-peek); they are signals at the type level.
 - Don't copy derived values into writable signals unless you really need editable local state.
-- Reach for custom equality only when the default makes downstream updates too noisy.
+- Pass `~equals` when a computed often recalculates to the same value and the things that read it are costly to run again.
 - To show derived values in the UI, read them in a component's JSX; see [Rendering](/docs/learn/rendering).

@@ -2689,3 +2689,11 @@ blockquote > :last-child {
   font-size: 15px;
   color: var(--ink-muted);
 }
+
+/* Wide tables (common in the agent layer) scroll inside their own box
+   instead of widening the page on narrow screens. */
+.docs-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
