@@ -1,0 +1,238 @@
+## Summary
+
+A resource (`Resource.make`) is a signal of the loading state of an async function: `Signal.t<Resource.state<'a>>`. The fetch runs inside an effect, so every signal it reads (tracked) **before its first `await`** is a dependency, and a change to any dependency starts a new fetch. Only the latest fetch can settle the state; an earlier one that resolves late is ignored. `View.Suspense` shows a fallback until the resources created below it settle once; a `Failed` state can be thrown to a `View.ErrorBoundary`. The rule that matters most: read every input signal before the first `await`, or changes to it will not refetch.
+
+## Availability
+
+| Item | Value |
+| --- | --- |
+| Modules | `Resource`, `View.Suspense` (plus `View.ErrorBoundary` for failures) |
+| Import / entry | `xote` (with `-open Xote`), or `xote/resource` for `Resource` alone |
+| First stable version | none: added in 7.2.0-beta.2 |
+| Pre-release status | pre-release: 7.2.0-beta, not in 7.1.0 stable (`Resource`, `View.Suspense`, `View.ErrorBoundary` all first appear in 7.2.0-beta.2) |
+| PPX required | No. `Resource` and `View.Suspense` work with `@jsx.component`; examples use `@xote.component` |
+
+## Rules
+
+1. `Resource.make(fetch)` creates the state signal with value `Pending` and immediately runs `fetch` inside an effect (unless a server render is in progress, see rule 13).
+2. The dependencies of a resource are exactly the signals read (tracked) while `fetch()` runs synchronously, that is, up to its first `await`. Reads after an `await` are not dependencies.
+3. When a dependency changes, the effect re-runs: the state moves to `Refreshing(previousValue)` if it held a value (`Ready` or `Refreshing`), otherwise to `Pending` (from `Pending` or `Failed`), and `fetch` is called again.
+4. Each fetch gets a version number. A fetch settles the state only if no later fetch, `mutate` or disposal has happened since it started. Late results of superseded fetches are dropped silently.
+5. A fetch that returns a rejected promise, or throws synchronously, settles as `Failed(exn)`. A failure that happens while rendering the settled value is not a fetch failure and does not produce `Failed`.
+6. `Resource.refetch(r)` re-runs the fetch with the same dependencies (same transitions as rule 3). It is a no-op for a resource created during a server render.
+7. `Resource.mutate(r, v)` sets `Ready(v)` immediately and invalidates any fetch in flight (its result is dropped). The next dependency change or `refetch` fetches again.
+8. A resource created while a component renders is owned by that component: disposing the component drops the fetch in flight (its result is ignored) and, if a `View.Suspense` was waiting for it, ends that wait.
+9. A resource created outside any render (module level, event handler) has no owner and lives for the rest of the program.
+10. A resource suspends the nearest `View.Suspense` above the component that **created** it, regardless of where its state is read.
+11. A resource counts toward its suspense only once: the suspense waits until the first settle (`Ready`, `Failed`, or `mutate`). Later fetches show as `Refreshing` and never bring the fallback back.
+12. Nested suspenses: the nearest one waits for its own resources; a ready inner subtree stays hidden while an outer suspense still waits.
+13. During `SSR.renderToString` / `SSR.renderDocument` no fetch starts and the resource stays `Pending` forever on the server. `View.Suspense` renders its `fallback` into the HTML. A resource created at module level in a server process is not inside a render, so it does fetch.
+14. To send a failure to an error boundary, throw it where the state is read inside the render tree: `| Failed(error) => throw(error)` in a reactive leaf or region.
+
+### State machine
+
+| From | Event | To |
+| --- | --- | --- |
+| (created) | `Resource.make` (client) | `Pending`, fetch starts |
+| `Pending` | fetch resolves with `v` | `Ready(v)` |
+| `Pending` | fetch rejects or throws `e` | `Failed(e)` |
+| `Ready(v)` | dependency change or `refetch` | `Refreshing(v)`, fetch starts |
+| `Refreshing(v)` | fetch resolves with `w` | `Ready(w)` |
+| `Refreshing(v)` | fetch rejects `e` | `Failed(e)` (the previous value is not kept) |
+| `Failed(e)` | dependency change or `refetch` | `Pending`, fetch starts |
+| any | `mutate(r, w)` | `Ready(w)`, in-flight fetch dropped |
+| any | owner disposed | unchanged; in-flight fetch dropped |
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `Resource.state` | `Pending`, `Ready('a)`, `Refreshing('a)`, `Failed(exn)` | Where a resource stands (see the state machine). |
+| `Resource.t` | `Signal.t<state<'a>>` | A resource is a signal: read it with `Signal.get` (tracked) or `Signal.peek`. |
+| `Resource.make` | `(unit => promise<'a>) => t<'a>` | Creates the resource and starts the first fetch (client only). |
+| `Resource.refetch` | `t<'a> => unit` | Fetches again with the same dependencies. |
+| `Resource.mutate` | `(t<'a>, 'a) => unit` | Sets `Ready(value)` now, drops any fetch in flight. |
+| `Resource.value` | `state<'a> => option<'a>` | `Some(v)` for `Ready(v)` and `Refreshing(v)`, `None` otherwise. |
+| `Resource.isLoading` | `state<'a> => bool` | `true` for `Pending` and `Refreshing`. |
+| `View.Suspense` | props `fallback?: node`, `children?: node` | Shows `fallback` until every resource created below has settled once. |
+| `View.ErrorBoundary` | props `fallback: (exn, unit => unit) => node`, `onError?: exn => unit`, `children?: node` | Catches render/update failures below; `fallback` gets the error and a reset function. |
+
+Note that `Resource.value` and `Resource.isLoading` take a **state**, not a resource: write `Resource.value(Signal.get(r))` or `Signal.get(r)->Resource.value`.
+
+## Patterns
+
+Use when a component loads data that depends on a prop or a signal: create the resource in the component and switch over its state.
+
+```rescript
+module UserCard = {
+  @xote.component
+  let make = (~userId: Signal.t<string>) => {
+    let user = Resource.make(() => Api.getUser(Signal.get(userId)))
+    <p>
+      {switch Signal.get(user) {
+      | Pending => "Loading…"
+      | Ready(u) | Refreshing(u) => u.name
+      | Failed(_) => "Could not load the user."
+      }}
+    </p>
+  }
+}
+```
+
+Use when loading and failure states should live outside the component: a `View.Suspense` for the first load and a `View.ErrorBoundary` for failures. The component that creates the resource MUST be inside the `Suspense`.
+
+```rescript
+module UserName = {
+  @xote.component
+  let make = (~userId: Signal.t<string>) => {
+    let user = Resource.make(() => Api.getUser(Signal.get(userId)))
+    <h2>
+      {switch Signal.get(user) {
+      | Failed(error) => throw(error)
+      | Ready(u) | Refreshing(u) => u.name
+      | Pending => ""
+      }}
+    </h2>
+  }
+}
+
+module Profile = {
+  @xote.component
+  let make = (~userId: Signal.t<string>) =>
+    <View.ErrorBoundary
+      fallback={(_error, retry) =>
+        <div>
+          <p> {"Could not load the user."} </p>
+          <button onClick={_ => retry()}> {"Try again"} </button>
+        </div>}>
+      <View.Suspense fallback={<p> {"Loading…"} </p>}>
+        <UserName userId />
+      </View.Suspense>
+    </View.ErrorBoundary>
+}
+```
+
+`retry` re-creates everything inside the boundary, so `UserName` runs again and creates a new resource, which fetches again.
+
+Use when the user edits loaded data: update optimistically with `mutate`, then `refetch` after the save. Dim stale values with `Resource.isLoading`.
+
+```rescript
+module EditableName = {
+  @xote.component
+  let make = (~userId: Signal.t<string>) => {
+    let user = Resource.make(() => Api.getUser(Signal.get(userId)))
+    let rename = name => {
+      Signal.peek(user)
+      ->Resource.value
+      ->Option.forEach(u => Resource.mutate(user, {...u, name}))
+      Api.saveName(Signal.peek(userId), name)
+      ->Promise.thenResolve(() => Resource.refetch(user))
+      ->ignore
+    }
+    <div>
+      <p class={Resource.isLoading(Signal.get(user)) ? "dim" : ""}>
+        {Signal.get(user)->Resource.value->Option.mapOr("", u => u.name)}
+      </p>
+      <button onClick={_ => rename("Grace")}> {"Rename"} </button>
+      <button onClick={_ => Resource.refetch(user)}> {"Reload"} </button>
+    </div>
+  }
+}
+```
+
+Use when several components share one piece of remote state for the life of the page: create the resource at module level. It has no owner and is never disposed.
+
+```rescript
+let currentUserId = Signal.make("1")
+let currentUser = Resource.make(() => Api.getUser(Signal.get(currentUserId)))
+```
+
+## Anti-patterns
+
+**Reading an input after the first `await`.**
+
+```rescript
+let wrong = Resource.make(async () => {
+  let q = Signal.get(query)
+  await Promise.resolve()
+  await searchApi(q, Signal.get(page)) // page read after an await: not a dependency
+})
+```
+
+Symptom: changing `page` does nothing; only changing `query` refetches. Correct: read every input first, then start the async work.
+
+```rescript
+let right = Resource.make(() => {
+  let q = Signal.get(query)
+  let p = Signal.get(page)
+  searchApi(q, p)
+})
+```
+
+Why: dependencies are recorded only while `fetch` runs synchronously (rule 2).
+
+**Creating the resource above the `Suspense` that should wait for it.**
+
+```rescript
+@xote.component
+let make = (~userId) => {
+  let user = Resource.make(() => Api.getUser(Signal.get(userId)))
+  <View.Suspense fallback={<p> {"Loading…"} </p>}>
+    <UserView user />
+  </View.Suspense>
+}
+```
+
+Symptom: the fallback never shows; `UserView` renders `Pending` itself. Correct: create the resource inside a component rendered under the `Suspense` (see the `UserName` pattern). Why: a resource suspends the nearest suspense above the component that created it (rule 10), and here there is none.
+
+**Swallowing failures under an error boundary.**
+
+```rescript
+{switch Signal.get(user) {
+| Failed(_) => ""
+| Ready(u) | Refreshing(u) => u.name
+| Pending => ""
+}}
+```
+
+Symptom: on failure the UI is blank and the boundary's fallback never appears. Correct: `| Failed(error) => throw(error)`. Why: an error boundary only sees errors thrown while rendering (rule 14); a resource never throws on its own.
+
+**Creating a resource inside a reactive region or a list row render function that re-runs.**
+
+Symptom: a new fetch on every re-run of the region (for example every time an `if` condition changes, or every `View.tracked` re-run), and earlier resources are disposed mid-flight. Correct: create the resource in a component body (runs once) or at module level, and read it in the region.
+
+**Calling `Resource.make` from an event handler.**
+
+Symptom: a resource with no owner per click; nothing disposes them, and nothing reads the old ones. Correct: create the resource once (component body or module level) and call `Resource.refetch` or change a dependency signal from the handler.
+
+## Edge cases
+
+- `Refreshing → Failed` drops the previous value: `Resource.value` returns `None` after a failed refresh.
+- `mutate` while `Pending` under a `Suspense` ends the suspense wait (the resource has settled for the suspense's purposes).
+- Signal equality: every settle writes a new `Ready(v)` value, so readers are notified even when `v` is structurally equal to the previous value.
+- `View.Suspense` renders its children immediately, inside a wrapper `div` with `display: none` while waiting and `display: contents` after; their refs and `View.onMount` callbacks are held until the children are shown. CSS child selectors see these wrappers.
+- `View.ErrorBoundary` also renders a `<div style="display: contents">` around its subtree.
+- Cancellation: there is none. A superseded fetch keeps running; only its result is ignored. Pass an `AbortController` signal yourself if the request must be aborted.
+- Ownership: a resource created in a component that is later removed stops affecting state; a resource at module level keeps re-fetching on dependency changes forever.
+
+## SSR and hydration
+
+- In a server render no fetch starts: a component's resource is `Pending` in the HTML, and `View.Suspense` writes its `fallback`.
+- On the client, the `Suspense` region is rendered again rather than adopted, so its children mount and their resources fetch in the browser.
+- To ship data with the HTML instead, load it on the server before rendering, put it in a signal, register that signal with `SSRState.sync` after it holds the data, and read the signal (not a resource) in the component. See `/docs/advanced/ssr`.
+- A module-level resource in a server process fetches (it is not created during a render); its result is not serialized unless you transfer it through `SSRState` yourself.
+
+## Verify
+
+- Type errors to expect: passing a resource where a state is expected (`Resource.value(user)`) fails to compile; write `Resource.value(Signal.get(user))`. A `switch` missing `Refreshing` is a non-exhaustive match warning.
+- Minimal jsdom test: mount a component whose fetch awaits a promise you control; assert the text is `Pending` (or the Suspense fallback) before resolving and the value after one macrotask (`await new Promise(r => setTimeout(r, 0))`).
+- Dependency check: change a signal read after an `await` and assert that no new fetch started (count calls in the fetch function).
+- Server check: `SSR.renderToString` of a component with a resource contains its `Pending` branch (or the Suspense fallback) and the fetch function is never called.
+
+## Related
+
+- `/docs/learn/effects` — resources are built on effects; the same tracking rules apply.
+- `/docs/learn/lifecycle#agent-rules` — `View.ErrorBoundary` rules (what it catches, `reset`).
+- `/docs/guides/fetching-data` — recipes: search as you type, refetch on route change.
+- `/docs/advanced/ssr` — transferring loaded data with `SSRState`.
+- `/docs/learn/signals` — reading a resource is reading a signal.
