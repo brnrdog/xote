@@ -46,7 +46,7 @@ ReScript facts an agent needs to produce Xote code that compiles on the first tr
 | `obj.prop` on untyped JS | `obj["prop"]` with an object type `{"prop": t}` |
 | `async/await` | `async`/`await` |
 | `throw new Error(m)` | `throw(Failure(m))` or a custom `exception` |
-| `switch` with `default` | exhaustive `switch`, `| _ => …` as catch-all |
+| `switch` with `default` | exhaustive `switch`, with `_ => …` as the catch-all case |
 | `enum` / tagged union | variant |
 | `console.log` | `Console.log`, `Console.log2` |
 | `setTimeout(f, 100)` | `setTimeout(f, 100)` via `@val external` |
@@ -132,17 +132,17 @@ let safe = try check(-1) catch {
 
 ## Anti-patterns
 
-`let y = xs[0] + 1` → error "This has type: option<int> But it's expected to have type: int" → `xs[0]->Option.getOr(0) + 1` or `Array.getUnsafe`.
+`let y = xs[0] + 1` → error `This has type: option<int> But it's expected to have type: int` → `xs[0]->Option.getOr(0) + 1` or `Array.getUnsafe`.
 
-`let n: option<int> = null` → error "This has type: nullable<'a>" → `None`.
+`let n: option<int> = null` → error `This has type: nullable<'a>` → `None`.
 
-`"n=" ++ count` with `count: int` → error "string concatenation is expecting: string" with the hint "You can convert int to string with Int.toString." → `"n=" ++ Int.toString(count)`.
+`"n=" ++ count` with `count: int` → error `string concatenation is expecting: string` with the hint `You can convert int to string with Int.toString.` → `"n=" ++ Int.toString(count)`.
 
-`f("x")` for `let f = (~name) => …` → error "The argument at this position should be labelled." → `f(~name="x")`.
+`f("x")` for `let f = (~name) => …` → error `The argument at this position should be labelled.` → `f(~name="x")`.
 
-`let z: int = load()` for an `async` function → error "This has type: promise<int>" → `await load()` inside an `async` function, or `load()->Promise.thenResolve(…)`.
+`let z: int = load()` for an `async` function → error `This has type: promise<int>` → `await load()` inside an `async` function, or `load()->Promise.thenResolve(…)`.
 
-`switch status { | Loading => … }` missing cases → warning 8 "You forgot to handle a possible case here" and a runtime `Match_failure` → handle every case.
+`switch status { | Loading => … }` missing cases → warning 8 `You forgot to handle a possible case here` and a runtime `Match_failure` → handle every case.
 
 ## Edge cases
 
