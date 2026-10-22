@@ -1,0 +1,215 @@
+## Summary
+
+A Xote app deploys as Vite output. Three shapes exist: a **client-only SPA** (one `index.html`, needs a host rewrite to `index.html` for deep links), a **prerendered site** (each route rendered to static HTML at build time with `SSR.renderToString`, then hydrated in the browser with `Hydration.hydrateById`), and **request-time server rendering** (render per request with `SSR.renderDocument`). Subpath hosting requires the same base path in Vite's `base` and in `Router.init`/`Router.initSSR`. The one rule that matters most: anything that runs during prerendering or server rendering (every module the server entry imports) MUST NOT touch `window`/`document` outside `View.onMount`, `SSRContext.onClient` or an `SSRContext.isClient` guard.
+
+## Availability
+
+| Item | Import / entry | First stable | Pre-release only | Needs the PPX |
+| --- | --- | --- | --- | --- |
+| `Router.init`, `Router.initSSR` (with `~basePath`) | `xote`, `xote/router` | stable (all 7.x) | — | No |
+| `SSR.renderToString`, `SSR.renderDocument` | `xote`, `xote/ssr` | stable (all 7.x) | — | No |
+| `Hydration.hydrate`, `Hydration.hydrateById` | `xote`, `xote/hydration` | stable (all 7.x) | — | No |
+| `SSRState` | `xote`, `xote/ssr-state` | 7.0.0 | — | No |
+| `SSRContext` (`isServer`, `isClient`, `onClient`, `onServer`, `match`) | `xote`, `xote/ssr-context` | stable (all 7.x) | — | No |
+| `View.onMount` | `xote` | — | pre-release: 7.2.0-beta, not in 7.1.0 stable | No |
+
+## Rules
+
+1. Build order: compile ReScript (`rescript`), then Vite (`vite build`). Vite bundles the compiled `.res.mjs` files; it does not compile `.res`.
+2. A client-only SPA MUST be served with a fallback that answers unknown paths with `index.html`; otherwise a reload or deep link to any route other than `/` returns 404.
+3. Base path: Vite `base` (for asset URLs) and `Router.init(~basePath)` (for routing) MUST name the same path. `~basePath` is normalised (leading slash added, trailing slash removed); Vite's `base` should end with `/`.
+4. With a base path, route patterns and `Router.push`/`Router.replace`/`Router.link` targets stay app-relative (`/about`). `Router.link` and `Router.Link` render `href` with the base path prefixed; `Router.location()` returns the pathname with the base stripped. A plain `<a href="/about">` is not prefixed and triggers a full page load.
+5. Server/prerender entry: call `Router.initSSR(~pathname, ())` (plus `~basePath` when used; `~pathname` is app-relative) **before** `SSR.renderToString`, for every route rendered. `initSSR` sets the shared router state, including resetting `basePath` to `"/"` when omitted.
+6. Client entry for prerendered or server-rendered HTML MUST hydrate (`Hydration.hydrateById(app, id)`), not mount: `View.mountById` renders a second copy instead of adopting the markup. The component tree MUST be identical to the one rendered on the server; mismatches leave stale markup in place.
+7. `SSR.renderToString` returns the app's HTML without a container; the HTML template supplies the container (e.g. `<div id="app"><!--ssr-outlet--></div>`) and the client hydrates that id. `SSR.renderDocument` returns a full document and places the app inside `<div id="root">`; the client then hydrates `"root"`.
+8. One prerender process renders many routes: module-level state (signals, resources, `SSRState` registry) persists between routes. Call `SSRState.clear()` per route/request and do not keep request data in module-level signals.
+9. Resources created during a server render do not fetch (they render `Pending`); data needed in the HTML must be loaded before rendering and transferred with `SSRState` (see the Fetching data guide).
+10. `SSRContext.isServer` is `typeof document === 'undefined'` evaluated when Xote loads. In Vite's SSR build run by Node it is `true`; in the browser `false`.
+11. `View.onMount` never runs on the server; in the browser it runs after hydration. Put DOM work (focus, measurement, `localStorage`) there or in `SSRContext.onClient`.
+12. Asset URLs written as string literals in code (`"/logo.svg"`) are not rewritten by Vite's `base`; import the asset or prefix with Vite's `import.meta.env.BASE_URL`.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `Router.init` | `(~basePath: string=?, unit) => unit` | Browser: reads the URL, listens to history. Call once in the entry. |
+| `Router.initSSR` | `(~basePath: string=?, ~pathname: string=?, ~search: string=?, ~hash: string=?, unit) => unit` | Server: sets the location without browser APIs. |
+| `SSR.renderToString` | `(unit => View.node, ~options: renderOptions=?) => string` | App HTML with hydration markers. |
+| `SSR.renderDocument` | `(~head: string=?, ~bodyAttrs: string=?, ~scripts: array<string>=?, ~styles: array<string>=?, ~stateScript: string=?, ~nonce: string=?, unit => View.node) => string` | Full HTML document; app inside `<div id="root">`. |
+| `Hydration.hydrateById` | `(unit => View.node, string, ~options: hydrateOptions=?) => unit` | Adopts server markup in that element; no-op if the id is missing. |
+| `SSRState.clear` | `unit => unit` | Resets transferred state between renders. |
+| `SSRState.generateScript` | `(~nonce: string=?) => string` | `<script>` with transferred state. |
+| `SSRContext.onClient` | `(unit => 'a) => option<'a>` | `Some` result in the browser, `None` on the server. |
+| `SSRContext.match` | `(~server: unit => 'a, ~client: unit => 'a) => 'a` | Environment-specific value. |
+
+## Patterns
+
+**Client-only SPA** — Use when: no SEO/first-paint requirement.
+
+```html
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/Main.res.mjs"></script>
+</body>
+```
+
+```rescript
+// src/Main.res
+Router.init()
+View.mountById(<App />, "app")
+```
+
+```bash
+npx rescript && npx vite build   # output: dist/
+```
+
+Host fallback (pick the host's mechanism):
+
+- Netlify: `public/_redirects` containing `/*  /index.html  200`.
+- Vercel: `vercel.json` with `{"rewrites": [{"source": "/(.*)", "destination": "/index.html"}]}`.
+- GitHub Pages (no rewrites): copy `dist/index.html` to `dist/404.html` after the build (deep links load the app with HTTP 404), or prerender every route.
+
+**Subpath hosting** — Use when: served at `https://example.com/my-app/`.
+
+```js
+// vite.config.mjs
+import { defineConfig } from 'vite'
+export default defineConfig({ base: '/my-app/' })
+```
+
+```rescript
+// src/Main.res
+Router.init(~basePath="/my-app", ())
+View.mountById(<App />, "app")
+```
+
+**Prerendered static site** — Use when: routes are known at build time and pages should be indexable.
+
+```rescript
+// src/EntryServer.res
+let render = (url: string) => {
+  Router.initSSR(~pathname=url, ())
+  SSR.renderToString(() => <App />)
+}
+```
+
+```rescript
+// src/EntryClient.res
+Router.init()
+Hydration.hydrateById(() => <App />, "app")
+```
+
+```html
+<!-- index.html -->
+<div id="app"><!--ssr-outlet--></div>
+<script type="module" src="/src/EntryClient.res.mjs"></script>
+```
+
+```json
+{
+  "scripts": {
+    "build": "rescript && vite build && vite build --ssr src/EntryServer.res.mjs --outDir dist-server && node scripts/prerender.mjs"
+  }
+}
+```
+
+```js
+// scripts/prerender.mjs
+import fs from 'node:fs'
+import path from 'node:path'
+
+const routes = ['/', '/about']
+const template = fs.readFileSync('dist/index.html', 'utf-8')
+const { render } = await import(path.resolve('dist-server/EntryServer.res.js'))
+
+for (const route of routes) {
+  const html = template.replace('<!--ssr-outlet-->', render(route))
+  const file = route === '/' ? 'dist/index.html' : path.join('dist', route, 'index.html')
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(file, html)
+}
+```
+
+Vite names the SSR bundle after the entry with a `.js` extension (`EntryServer.res.js`). With a base path, pass it to both routers: `Router.initSSR(~basePath="/my-app", ~pathname=url, ())` and `Router.init(~basePath="/my-app", ())`; `url` stays app-relative. The Xote docs site's own `docs-website/scripts/prerender.mjs` follows this procedure and adds per-route titles, a sitemap, redirect pages and Markdown copies.
+
+**Request-time rendering** — Use when: HTML depends on the request (user, query).
+
+```rescript
+let renderRequest = (~pathname: string) => {
+  SSRState.clear()
+  Router.initSSR(~pathname, ())
+  SSR.renderDocument(
+    ~head="<title>My app</title>",
+    ~scripts=["/assets/client.js"],
+    ~stateScript=SSRState.generateScript(),
+    () => <App />,
+  )
+}
+// client: Router.init(); Hydration.hydrateById(() => <App />, "root")
+```
+
+**Environment guards** — Use when: shared code needs browser APIs.
+
+```rescript
+let savedTheme = SSRContext.onClient(() => readThemeFromLocalStorage()) // option<string>
+let label = SSRContext.match(~server=() => "server", ~client=() => "browser")
+```
+
+## Anti-patterns
+
+1. **No SPA fallback.**
+   Symptom: navigating inside the app works; reloading `/about` returns the host's 404.
+   Right: configure the host rewrite, or prerender.
+
+2. **Base path in one place only.**
+   Wrong: Vite `base: '/my-app/'` but `Router.init()`.
+   Symptom: assets load, but no route matches (the router sees `/my-app/about`), or links point outside the app.
+   Right: same path in both; links stay app-relative.
+
+3. **Writing the base path into links.**
+   Wrong: `Router.link(~to="/my-app/about", …)`.
+   Symptom: `href="/my-app/my-app/about"`.
+   Right: `~to="/about"`.
+
+4. **Mounting over prerendered HTML.**
+   Wrong: `View.mountById(<App />, "app")` in the client entry of a prerendered site.
+   Symptom: the content appears twice, or flashes as it is rebuilt; server markup is not reused.
+   Right: `Hydration.hydrateById(() => <App />, "app")`.
+
+5. **Browser API at module top level.**
+   Wrong: `let width = window["innerWidth"]` in a component module.
+   Symptom: `vite build --ssr` succeeds but prerendering throws "window is not defined".
+   Right: `View.onMount` or `SSRContext.onClient`.
+
+6. **Request state in module-level signals on a server.**
+   Symptom: one user's data appears in another user's HTML.
+   Right: per-request rendering with `SSRState.clear()`; keep request data in components or pass it as props.
+
+7. **Hydrating `"app"` after `renderDocument`.**
+   Symptom: `hydrateById` finds the element but the markup does not line up, or finds nothing.
+   Right: `renderDocument` uses `<div id="root">`; hydrate `"root"`.
+
+## Edge cases
+
+- `Router.initSSR` mutates the shared router singleton; render routes sequentially in one process (not concurrently with interleaved awaits).
+- `Hydration.hydrateById` does nothing when the id is missing; a typo produces a silently non-interactive page. Pass `~options={onHydrated: () => …}` to log success during development.
+- A page that a crawler fetches from a client-only SPA is empty (`<div id="app"></div>`); prerender pages that must be indexed.
+- GitHub Pages serves `dist/404.html` with status 404 for unknown paths; prerendered `route/index.html` files avoid the 404 status.
+- Resources render `Pending` in prerendered HTML; data then loads in the browser after hydration unless transferred with `SSRState`.
+
+## SSR and hydration
+
+This page is the SSR deployment procedure; the full rendering model (markers, `renderId`, `SSRState` codecs) is in `/docs/advanced/ssr`. Key points for deployment: the server entry runs every imported module's top-level code in Node; the client entry must render the identical tree; transferred state must be recorded after it is final and restored (`SSRState.sync`) before hydrating.
+
+## Verify
+
+- `npx rescript && npx vite build` completes; `dist/index.html` references hashed assets under the configured `base`.
+- For prerendering: `node scripts/prerender.mjs` writes `dist/<route>/index.html`; each file contains the route's content (not just the empty container) and `<a href>` values carry the base path.
+- In the browser: reload a deep route (works with fallback or prerender); after load, clicking a `Router.link` changes the URL without a full reload; no hydration warnings in the console.
+
+## Related
+
+- `/docs/advanced/ssr` — rendering, hydration markers, `SSRState`.
+- `/docs/learn/routing` — routes, links, `basePath`.
+- `/docs/guides/fetching-data` — server data transfer timing.
+- `/docs/guides/project-structure` — entry files and module rules.

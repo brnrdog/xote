@@ -1,0 +1,219 @@
+## Summary
+
+A Xote app is a ReScript 12 project that compiles each `.res` file to an ES module (`.res.mjs`) next to it, served and bundled by Vite. It needs one `rescript.json` (with Xote's JSX module and PPX), an `index.html` with a mount element, an entry module that mounts the root component, and components organised as one component per module. State lives in the narrowest scope that works: the component body, a module, or a `Context`. The one rule that matters most: module (file) names are global across all source folders, and each module may define only one `@xote.component`.
+
+## Availability
+
+| Item | Import / entry | First stable | Pre-release only | Needs the PPX |
+| --- | --- | --- | --- | --- |
+| `XoteJSX` JSX module, `View.mountById`, `View.mount` | `xote` | 7.0.0 | — | No |
+| `@xote.component` and its prebuilt PPX binary (`xote/ppx/ppx`) | `xote` | 7.1.0 | — | — |
+| `Context` (`make`, `use`, `provide`, `Provider`) | `xote`, `xote/context` | — | pre-release: 7.2.0-beta, not in 7.1.0 stable | No |
+| ReScript compiler | `rescript` 12 | — | — | — |
+
+## Rules
+
+1. `rescript.json` MUST set `"jsx": {"version": 4, "module": "XoteJSX"}` and list `"xote"` in `"dependencies"`. Listing `"xote"` alone is sufficient; its own dependency (`rescript-signals`) is resolved transitively.
+2. `"ppx-flags": ["xote/ppx/ppx"]` enables `@xote.component`. Without it, use `@jsx.component` with explicit thunks and value components (see `/docs/learn/rendering`).
+3. `"compiler-flags": ["-open Xote"]` makes `Signal`, `Computed`, `Effect`, `View`, `Router`, … available unqualified. Without it, every file needs `open Xote` (or qualified names).
+4. `"package-specs": {"module": "esmodule", "in-source": true}` with `"suffix": ".res.mjs"` writes `Foo.res.mjs` next to `Foo.res`; `index.html` and Vite reference the compiled `.res.mjs`, never the `.res`.
+5. A module's name is its file name, and module names MUST be unique across every source directory (`"subdirs": true` does not namespace them). Two `Dup.res` files fail the build: "Duplicate module name: Dup … Rename one of these files."
+6. A module MAY contain only one component (`@xote.component` or `@jsx.component`); a second one is a compile error ("Only one component definition is allowed for each module"). Put further components in submodules (`module Tab = { @xote.component let make = … }`, used as `<Tabs.Tab />`) or separate files.
+7. A file's top-level component is used as `<FileName />` from other modules. A module cannot reference itself by name ("The module or file X can't be found"), so mounting MUST happen in a separate entry module (e.g. `Main.res`).
+8. The entry module SHOULD only initialise global services (`Router.init`, `SSRState.sync`) and mount; components stay importable and testable without side effects.
+9. A signal created in a component body is per instance and owned by that component. A signal created at module level is a single app-wide value with no owner (never disposed). A value provided with `Context.provide` is per subtree.
+10. Module-level code runs once, when the module is first imported, in every environment that imports it (browser, server render, prerender, tests). It MUST NOT touch `window`/`document` unguarded if the module is used on a server.
+
+### Where state lives
+
+| Who needs it | How many copies | Put it in |
+| --- | --- | --- |
+| One component instance | one per instance | `Signal.make` in the component body |
+| The whole app (session, cart, settings) | one | module-level signals in `state/X.res`, with the functions that change them |
+| One subtree, e.g. a tab group or form | one per subtree instance | a `Context` whose value is a signal, provided by the subtree's root component (pre-release) |
+| Data from the server | per view | a `Resource` in the component that shows it (pre-release) |
+| Values derived from any of the above | — | a `Computed` next to its inputs |
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `View.mountById` | `(View.node, string) => unit` | Renders into the element with that id. |
+| `View.mount` | `(View.node, Dom.element) => unit` | Renders into an element. |
+| `Context.make` | `'a => Context.t<'a>` | Creates a context with a default value. |
+| `Context.provide` | `(Context.t<'a>, 'a) => unit` | In a component body: provides a value to what that component renders. Raises elsewhere. |
+| `Context.use` | `Context.t<'a> => 'a` | In a component body: nearest provided value, else the default. |
+
+## Patterns
+
+**`rescript.json`** — Use when: creating or repairing a project.
+
+```json
+{
+  "name": "my-app",
+  "sources": [{ "dir": "src", "subdirs": true }],
+  "package-specs": [{ "module": "esmodule", "in-source": true }],
+  "suffix": ".res.mjs",
+  "dependencies": ["xote"],
+  "jsx": { "version": 4, "module": "XoteJSX" },
+  "ppx-flags": ["xote/ppx/ppx"],
+  "compiler-flags": ["-open Xote"]
+}
+```
+
+**`index.html` and entry** — Use when: wiring the app to the page.
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My app</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/Main.res.mjs"></script>
+  </body>
+</html>
+```
+
+```rescript
+// src/Main.res
+View.mountById(<App />, "app")
+```
+
+**`package.json` scripts** — Use when: running and building.
+
+```json
+{
+  "scripts": {
+    "res:dev": "rescript watch",
+    "dev": "vite",
+    "build": "rescript && vite build"
+  }
+}
+```
+
+Run `res:dev` and `dev` concurrently in development.
+
+**Canonical layout** — Use when: starting an app with more than one screen.
+
+```bash
+src/
+  Main.res              # entry: Router.init(), mount <App />
+  App.res               # root component, routes
+  styles.css
+  components/           # Header.res, Disclosure.res, Tabs.res
+  pages/                # HomePage.res, SettingsPage.res (unique names)
+  state/                # Session.res: app-wide signals + their setters
+```
+
+**App-wide state module** — Use when: many components share a value.
+
+```rescript
+// src/state/Session.res
+let user: Signal.t<option<string>> = Signal.make(None)
+let signedIn = Computed.make(() => Signal.get(user)->Option.isSome)
+let signIn = name => Signal.set(user, Some(name))
+let signOut = () => Signal.set(user, None)
+```
+
+Readers call `Signal.get(Session.user)` in their JSX; writers call `Session.signIn`.
+
+**Per-instance state** — Use when: every copy of a component needs its own value.
+
+```rescript
+// src/components/Disclosure.res
+@xote.component
+let make = (~label: string, ~children: View.node) => {
+  let isOpen = Signal.make(false)
+  <section class="disclosure">
+    <button onClick={_ => Signal.update(isOpen, v => !v)}> {label} </button>
+    {Signal.get(isOpen) ? children : View.null()}
+  </section>
+}
+```
+
+**Per-subtree state with Context** (pre-release) — Use when: a compound component (tabs, accordion, form) shares state with its descendants, one copy per instance.
+
+```rescript
+// src/components/Tabs.res
+let selected = Context.make(Signal.make(0))
+
+module Tab = {
+  @xote.component
+  let make = (~index: int, ~label: string) => {
+    let current = Context.use(selected)
+    <button
+      class={Signal.get(current) == index ? "tab active" : "tab"}
+      onClick={_ => Signal.set(current, index)}>
+      {label}
+    </button>
+  }
+}
+
+@xote.component
+let make = (~children: View.node) => {
+  Context.provide(selected, Signal.make(0))
+  <div class="tabs" role="tablist"> {children} </div>
+}
+```
+
+## Anti-patterns
+
+1. **Same file name in two folders.**
+   Wrong: `pages/Settings.res` and `state/Settings.res`.
+   Symptom: "Could not initialize build: Duplicate module name: Settings".
+   Right: `SettingsPage.res` and `SettingsState.res`.
+
+2. **Two components in one file.**
+   Symptom: "Only one component definition is allowed for each module".
+   Right: a submodule (`module Item = { @xote.component let make = … }`) or a separate file.
+
+3. **Mounting inside the component's own file.**
+   Wrong: `View.mountById(<App />, "app")` at the bottom of `App.res`.
+   Symptom: "The module or file App can't be found".
+   Right: mount from `Main.res`.
+
+4. **Module-level signal for per-instance state.**
+   Wrong: `let isOpen = Signal.make(false)` at the top of `Disclosure.res`.
+   Symptom: opening one disclosure opens all of them.
+   Right: create the signal inside `make`.
+
+5. **`index.html` pointing at a `.res` file, or a stale build.**
+   Wrong: `<script type="module" src="/src/Main.res">`.
+   Symptom: Vite serves ReScript source as JavaScript (syntax error) or old output.
+   Right: `/src/Main.res.mjs`, with `rescript watch` running.
+
+6. **`Context.provide` outside a component body.**
+   Symptom: it raises at runtime (there is no render to scope it to).
+   Right: call it in the providing component's body, or use `<Context.Provider context value>`.
+
+## Edge cases
+
+- Name component files in PascalCase (`MyButton.res`): the module name is the file name, and `<MyButton />` is how other modules use it.
+- Submodule components are referenced with a dot (`<Tabs.Tab />`); the parent file's own `make` is `<Tabs />`.
+- `Context.use` outside a render (event handler, timer, module level) returns the context's default value, not the nearest provided one; capture it in the component body.
+- `"namespace": true` in `rescript.json` prefixes module names for published libraries; applications do not need it.
+- Adding routing or SSR later does not change this layout: `App.res` gains `Router.routes`, and SSR adds `EntryServer.res`/`EntryClient.res` beside `Main.res` (see the Deploying guide).
+
+## SSR and hydration
+
+- Every module imported by the server entry runs its top-level code in Node. Keep `document`/`window` access inside `View.onMount`, `SSRContext.onClient`, or `if SSRContext.isClient { … }`.
+- Module-level signals in a server process are shared by all requests; per-request state belongs in components, `Context`, or is reset per request (`SSRState.clear()` for transferred state).
+
+## Verify
+
+- `npx rescript` exits without errors; the build lists each `.res` compiled to `.res.mjs`.
+- Opening `index.html` through `npx vite` renders the root component with no console errors.
+- A component file can be imported by a test without side effects (nothing mounts on import).
+
+## Related
+
+- `/docs/quick-start` — installation and the first component.
+- `/docs/learn/components` — component and props rules.
+- `/docs/learn/context` — `Context` in detail.
+- `/docs/guides/deploying` — build and SSR entries.
+- `/docs/guides/testing` — test layout and runner.

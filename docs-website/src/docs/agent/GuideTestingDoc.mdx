@@ -1,0 +1,263 @@
+## Summary
+
+Test Xote code with [Zekr](https://www.npmjs.com/package/zekr) (a ReScript test library with DOM queries, events and assertions) on Node with [jsdom](https://www.npmjs.com/package/jsdom) providing `document`. This is the setup Xote's own suite (`tests/` in the repo) uses. Signal, computed, effect and DOM updates are synchronous, so assertions can follow a `Signal.set` or a dispatched event directly; resources settle on promise ticks and need an `await`. The one rule that matters most: load jsdom **before** any Xote module is evaluated (preload it with `node --import`), because `SSRContext.isServer`/`isClient` are decided once, at module load.
+
+## Availability
+
+| Item | Import / entry | First stable | Pre-release only | Needs the PPX |
+| --- | --- | --- | --- | --- |
+| `Signal`, `Computed`, `Effect.runWithDisposer`, `Signal.batch` | `xote` | stable (all 7.x) | — | No |
+| `View.mount`, `SSR.renderToString` | `xote`, `xote/ssr` | 7.0.0 | — | No |
+| `Resource` (async tests) | `xote` | — | pre-release: 7.2.0-beta, not in 7.1.0 stable | No |
+| Zekr (tested with 1.7.0) | npm `zekr`, ReScript dependency `zekr` | external | — | — |
+| jsdom | npm `jsdom` | external | — | — |
+
+## Rules
+
+1. Install `zekr` and `jsdom` as dev dependencies, add `"zekr"` to `"dev-dependencies"` in `rescript.json`, and declare the test folder as a dev source (`{"dir": "tests", "subdirs": true, "type": "dev"}`).
+2. jsdom MUST be installed on `globalThis` (`window`, `document`, `Node`, `HTMLElement`, `Event`, `MouseEvent`, `KeyboardEvent`, `InputEvent`) before Xote's modules evaluate. Preload the setup file with `node --import ./tests/setup.mjs …`.
+3. `%%raw(`import './setup.mjs'`)` at the top of a ReScript entry is emitted **after** the entry's module imports, so Xote's modules load before jsdom exists and `SSRContext.isServer` is `true` for the whole run. DOM rendering still works (it reads `document` at call time), but code guarded by `SSRContext.isClient` does not run and `SSRState.register` records values as if on the server. Use `--import` when the test depends on `isClient`.
+4. `Zekr.runSuites` (synchronous) exits the process when it reports. Async suites MUST run from a separate entry with `Zekr.runAsyncSuites`.
+5. Signal writes propagate synchronously: computeds read with `Signal.peek` are current, effects have run, and DOM reactive leaves are updated when `Signal.set`/`Signal.update` returns, and when a dispatched DOM event's handler returns.
+6. Inside `Signal.batch`, dependents are notified once, when the outermost batch returns.
+7. An effect created in a test (outside a component) has no owner and runs until disposed. Create it with `Effect.runWithDisposer` and call `.dispose()` before the test ends.
+8. Module-level signals keep their values across tests in the same process. Create signals inside the test, or reset them in `~beforeEach`.
+9. `Dom.render(html)` appends a fresh container `div` to `document.body` and returns `{container, baseElement}`. Mount components into `container` with `View.mount`. Pass `~afterEach=Dom.cleanup` to `suite` to remove containers between tests.
+10. A resource settles after its promise resolves: `await` a macrotask (`setTimeout(_, 0)`) before asserting on its state. For deterministic ordering, return promises whose resolvers the test controls.
+11. After `open! Zekr`, `Dom` refers to Zekr's DOM helpers and the standard `Dom.element`/`Dom.event` types are hidden. Alias them before the `open` (`type domElement = Dom.element`).
+12. Assert on SSR output with `assertContains` (substrings), not full-string equality: the HTML contains hydration markers whose exact form is an implementation detail.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `Zekr.test` | `(string, unit => testResult) => testCase` | Synchronous test. |
+| `Zekr.asyncTest` | `(string, unit => promise<testResult>, ~timeout: int=?) => asyncTestCase` | Async test. |
+| `Zekr.suite` | `(string, array<testCase>, ~beforeAll=?, ~afterAll=?, ~beforeEach=?, ~afterEach=?) => testSuite` | Group with hooks. |
+| `Zekr.asyncSuite` | same, with `promise<unit>` hooks | Async group. |
+| `Zekr.runSuites` / `runAsyncSuites` | `array<testSuite> => unit` / `array<asyncTestSuite> => promise<unit>` | Run, report, and exit with status 0 or 1. |
+| `assertEqual`, `assertTrue`, `assertFalse`, `assertContains`, `assertSome`, `assertNone`, `assertThrows` | assertions returning `testResult` | Structural equality, substring, option checks. |
+| `combineResults` | `array<testResult> => testResult` | Several assertions in one test. |
+| `Dom.render` | `string => {container: Dom.element, baseElement: Dom.element}` | Fresh container in the document. |
+| `Dom.cleanup` | `unit => unit` | Removes containers created by `render`. |
+| `Dom.Query.getByRole` / `getByText` / `getByLabelText` / `getByPlaceholder` / `getByTestId` / `getByDisplayValue` (+ `queryBy…`, `getAllBy…`) | `(Dom.element, string, …) => Dom.element` | Find elements like a user; `queryBy…` returns `option`. |
+| `Dom.Event.click` / `typeText` / `clear` / `check` / `uncheck` / `selectOptions` / `focus` / `blur` | `Dom.element => unit` (plus text/values) | Dispatch realistic events (`typeText` fires keydown/input/keyup per character, then `change`). |
+| `Dom.Assert.toHaveTextContent` / `toHaveAttribute` / `toHaveClass` / `toBeInTheDocument` | `… => testResult` | DOM assertions. |
+| `Effect.runWithDisposer` | `(unit => option<unit => unit>, ~name: string=?) => {dispose: unit => unit}` | Effect you can stop. |
+| `SSR.renderToString` | `(unit => View.node, ~options=?) => string` | HTML string of a tree. |
+
+## Patterns
+
+**Setup** — Use when: adding tests to a project.
+
+```bash
+npm install --save-dev zekr jsdom
+```
+
+```json
+{
+  "sources": [
+    { "dir": "src", "subdirs": true },
+    { "dir": "tests", "subdirs": true, "type": "dev" }
+  ],
+  "dependencies": ["xote"],
+  "dev-dependencies": ["zekr"]
+}
+```
+
+```js
+// tests/setup.mjs
+import { JSDOM } from 'jsdom'
+
+const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', { url: 'http://localhost/' })
+globalThis.window = dom.window
+globalThis.document = dom.window.document
+globalThis.Node = dom.window.Node
+globalThis.HTMLElement = dom.window.HTMLElement
+globalThis.Event = dom.window.Event
+globalThis.MouseEvent = dom.window.MouseEvent
+globalThis.KeyboardEvent = dom.window.KeyboardEvent
+globalThis.InputEvent = dom.window.InputEvent
+```
+
+```rescript
+// tests/Tests.res
+Zekr.runSuites([Counter_test.suite])
+```
+
+```rescript
+// tests/AsyncTests.res
+Zekr.runAsyncSuites([Async_test.suite])->ignore
+```
+
+```json
+{
+  "scripts": {
+    "test": "rescript && node --import ./tests/setup.mjs tests/Tests.res.mjs && node --import ./tests/setup.mjs tests/AsyncTests.res.mjs"
+  }
+}
+```
+
+**State, effects and batching without a DOM** — Use when: testing logic in `state/` modules.
+
+```rescript
+open! Zekr
+
+let suite = suite(
+  "State",
+  [
+    test("a computed follows its signal", () => {
+      let count = Signal.make(2)
+      let doubled = Computed.make(() => Signal.get(count) * 2)
+      Signal.set(count, 5)
+      assertEqual(Signal.peek(doubled), 10)
+    }),
+    test("an effect runs once per batch", () => {
+      let a = Signal.make(1)
+      let b = Signal.make(2)
+      let runs = ref(0)
+      let effect = Effect.runWithDisposer(() => {
+        let _ = Signal.get(a) + Signal.get(b)
+        runs := runs.contents + 1
+        None
+      })
+      Signal.batch(() => {
+        Signal.set(a, 10)
+        Signal.set(b, 20)
+      })
+      effect.dispose()
+      Signal.set(a, 99) // disposed: no further run
+      assertEqual(runs.contents, 2)
+    }),
+  ],
+)
+```
+
+**Component interaction** — Use when: testing what a user sees and does.
+
+```rescript
+// src/Counter.res
+@xote.component
+let make = (~start=0) => {
+  let count = Signal.make(start)
+  <button onClick={_ => Signal.update(count, n => n + 1)}> {"Clicked "} {Signal.get(count)} </button>
+}
+```
+
+```rescript
+// tests/Counter_test.res
+open! Zekr
+
+let suite = suite(
+  "Counter",
+  [
+    test("clicking counts up", () => {
+      let {container} = Dom.render("")
+      View.mount(<Counter start=1 />, container)
+      let button = Dom.Query.getByRole(container, "button")
+      Dom.Event.click(button)
+      Dom.Assert.toHaveTextContent(button, "Clicked 2")
+    }),
+    test("renders on the server", () => {
+      let html = SSR.renderToString(() => <Counter start=3 />)
+      assertContains(html, "Clicked ")
+    }),
+  ],
+  ~afterEach=Dom.cleanup,
+)
+```
+
+**Resources and stale responses** (pre-release) — Use when: testing data loading.
+
+```rescript
+open! Zekr
+
+let settle = () => Promise.make((resolve, _) => setTimeout(() => resolve(), 0)->ignore)
+
+let suite = asyncSuite(
+  "Resources",
+  [
+    asyncTest("settles as Ready", async () => {
+      let user = Resource.make(() => Promise.resolve("Ada"))
+      let before = Signal.peek(user)
+      await settle()
+      combineResults([
+        assertEqual(before, Resource.Pending),
+        assertEqual(Signal.peek(user), Resource.Ready("Ada")),
+      ])
+    }),
+    asyncTest("a later dependency change wins", async () => {
+      let id = Signal.make(1)
+      let resolvers: array<string => unit> = []
+      let user = Resource.make(() => {
+        let n = Signal.get(id)
+        Promise.make((resolve, _) => resolvers->Array.push(v => resolve(v ++ Int.toString(n)))->ignore)
+      })
+      Signal.set(id, 2)
+      (resolvers->Array.getUnsafe(1))("user")
+      await settle()
+      (resolvers->Array.getUnsafe(0))("user")
+      await settle()
+      assertEqual(Signal.peek(user), Resource.Ready("user2"))
+    }),
+  ],
+)
+```
+
+## Anti-patterns
+
+1. **Relying on `%%raw` to load jsdom first.**
+   Wrong: `%%raw(`import './setup.mjs'`)` as the first line of `Tests.res`, run with `node tests/Tests.res.mjs`.
+   Symptom: rendering works, but `SSRContext.isClient` is `false`, so `if SSRContext.isClient { … }` branches never run in tests and `SSRState.register` behaves as on a server.
+   Right: `node --import ./tests/setup.mjs tests/Tests.res.mjs`.
+   Why: ReScript emits module imports before raw top-level code; ES modules evaluate imports first.
+
+2. **Undisposed effects.**
+   Wrong: `Effect.run(() => { log->Array.push(Signal.get(name)); None })` in a test.
+   Symptom: later tests that set `name` (or a shared signal) trigger the old effect; counts drift between runs.
+   Right: `let e = Effect.runWithDisposer(…)` and `e.dispose()`.
+
+3. **Async suites in the sync entry.**
+   Wrong: `Zekr.runSuites([...])` followed by `Zekr.runAsyncSuites([...])` in one file.
+   Symptom: async tests never run; the process exits after the sync report.
+   Right: separate entry files.
+
+4. **Asserting a resource immediately.**
+   Wrong: `Resource.make(…)` then `assertEqual(Signal.peek(r), Ready(…))` without awaiting.
+   Symptom: the state is still `Pending`.
+   Right: `await settle()` first.
+
+5. **Comparing whole SSR strings.**
+   Symptom: tests break when hydration markers change.
+   Right: `assertContains` on the meaningful text or attributes.
+
+6. **Using `Dom.element` after `open! Zekr`.**
+   Symptom: "This type constructor, `Dom.element`, can't be found."
+   Right: `type domElement = Dom.element` before `open! Zekr`.
+
+## Edge cases
+
+- `Dom.Event.typeText` appends to the element's current value character by character and finally dispatches `change`; use `Dom.Event.clear` first to replace text.
+- `View.onMount` callbacks run after the component is in the document; when mounting into a `Dom.render` container they have run by the time `View.mount` returns. Callbacks scheduled with timers need a real `await` (Zekr has no fake timers).
+- Code under test that uses `setTimeout` (debounce) needs the test to wait at least that long (`await` a promise around `setTimeout(_, ms + 10)`), or inject the delay as a parameter.
+- To test SSR state transfer (`SSRState.register`/`generateScript`), run that suite **without** jsdom so `SSRContext.isServer` is `true`.
+- `Dom.render` containers persist until `Dom.cleanup`; queries scoped to `container` avoid matching leftovers.
+
+## SSR and hydration
+
+- `SSR.renderToString` works under jsdom; it does not use the DOM. Resources created during the render stay `Pending`.
+- To test hydration: set `document.body` (or a container) to server HTML from `SSR.renderToString`, then call `Hydration.hydrateById(app, "container-id")` and interact; the component MUST produce the same tree as the server render.
+
+## Verify
+
+- `npm test` prints a per-suite report and exits non-zero on failure (Zekr calls `process.exit(1)`).
+- A green run of the canonical suites above in a fresh project confirms the setup (they were run against Xote's sources: 5 sync and 2 async tests pass).
+- If DOM queries throw "document is not defined", jsdom was not installed before the code ran: check the `--import` flag and the setup file path.
+
+## Related
+
+- `/docs/guides/forms` — form interaction tests (`typeText`, `queryByDisplayValue`).
+- `/docs/guides/fetching-data` — resource behaviour under test.
+- `/docs/advanced/batching` — batching rules asserted above.
+- `/docs/advanced/ssr` — rendering and hydration APIs.
+- `/docs/learn/effects` — ownership and disposal.
