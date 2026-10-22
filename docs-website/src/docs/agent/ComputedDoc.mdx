@@ -9,7 +9,7 @@ A **computed** is a read-only `Signal.t<'a>` whose value is produced by a functi
 | Module | `Xote.Computed` (re-export of `rescript-signals` 3.1.x `Signals.Computed`) |
 | Import / entry | `xote` (with `"-open Xote"`: `Computed.*`), also `xote/computed` |
 | First stable version | `Computed.make` and `Computed.dispose` are in 7.1.0 stable (and earlier) |
-| Pre-release changes | None to this API in 7.2.0-beta |
+| Changes in 7.2.0 | None |
 | Requires `@xote.component` (PPX) | No |
 
 ## Rules
@@ -20,7 +20,7 @@ A **computed** is a read-only `Signal.t<'a>` whose value is produced by a functi
 4. Dependencies are re-collected on every run. A signal read only in a branch that did not execute this time is dropped as a dependency (dynamic dependencies).
 5. **Without `~equals`**, every recompute counts as a change: dependents (effects, reactive leaves, downstream computeds) re-run even if the new value equals the old one.
 6. **With `~equals`**, a recompute whose result is equal (per `~equals(previous, next)`) to the previous value does not propagate: dependent effects and leaves do not re-run. Use `~equals=(a, b) => a == b` (structural) or `(a, b) => a === b` (reference) to suppress no-op updates.
-7. If `fn` throws during a recompute, the read that triggered it throws the same exception; the computed stays dirty and recomputes on the next read after a dependency changes. Inside a component subtree wrapped in `View.ErrorBoundary` (7.2.0-beta), a throw from a reactive leaf reading the computed goes to that boundary.
+7. If `fn` throws during a recompute, the read that triggered it throws the same exception; the computed stays dirty and recomputes on the next read after a dependency changes. Inside a component subtree wrapped in `View.ErrorBoundary` (7.2.0), a throw from a reactive leaf reading the computed goes to that boundary.
 8. A computed with no subscribers detaches from its sources: it stops receiving notifications and does no work until read again; a read checks whether any source changed and recomputes only then. This is how computeds created inside a component are released when the component's leaves and effects are disposed.
 9. `Computed.dispose(c)` detaches `c` immediately (unlinks its dependencies). The computed remains readable: the next read recomputes and re-collects dependencies. It is only needed for a long-lived computed that still has subscribers you want to cut off.
 10. A computed has no setter. `Signal.set` type-checks on it (it is a `Signal.t`) but MUST NOT be used: the written value is overwritten by the next recompute.

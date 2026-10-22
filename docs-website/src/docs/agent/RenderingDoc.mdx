@@ -4,13 +4,13 @@ Rendering in Xote builds DOM once and then updates individual reactive leaves (o
 
 ## Availability
 
-| Item | Module / entry | Stable since | Pre-release | PPX required |
+| Item | Module / entry | Stable since | Changed in 7.2.0 | PPX required |
 | --- | --- | --- | --- | --- |
 | Decomposition of an annotated component's returned JSX; bare `{…}` children via `View.child` | PPX + `xote` | 7.1.0 | — | yes |
-| Decomposition of JSX anywhere in an annotated file (helpers, `let`-bound JSX, render callbacks); `if`/`switch` regions track only their condition; local-helper and alias detection; `View.probe` warnings | PPX | — | 7.2.0-beta.1, not in 7.1.0 stable | yes |
+| Decomposition of JSX anywhere in an annotated file (helpers, `let`-bound JSX, render callbacks); `if`/`switch` regions track only their condition; local-helper and alias detection; `View.probe` warnings | PPX | 7.2.0 (new) | — | yes |
 | `View.For`, `View.KeyedFor`, `View.Show`, `View.Maybe`, `View.Value`, `View.Text/Int/Float/Bool`, `View.tracked`, `View.render` | `xote` · `xote/view` | 7.1.0 | — | no |
 | `attrs` escape hatch, removable (optional) attributes | `XoteJSX` | 7.1.0 | — | no |
-| `ref` prop on elements | `XoteJSX` | — | 7.2.0-beta.2, not in 7.1.0 stable | no |
+| `ref` prop on elements | `XoteJSX` | 7.2.0 (new) | — | no |
 
 ## Rules
 
@@ -19,7 +19,7 @@ Rendering in Xote builds DOM once and then updates individual reactive leaves (o
 1. An attribute value on an intrinsic element (`<div>`, `<input>`, …) that reads a signal is wrapped in a thunk and becomes a reactive attribute leaf (`View.computedAttr`). An attribute value that reads no signal stays static.
 2. A bare child `{expr}` is wrapped in `View.child`. If `expr` reads a signal eagerly, it is thunked first and becomes a reactive text leaf; otherwise it is coerced once.
 3. The child of `<View.Text>`, `<View.Int>`, `<View.Float>`, `<View.Bool>` that reads a signal is thunked into a reactive text leaf. These are recognised only when written qualified (`View.Text`), not after `open View` or `module V = View`.
-4. An `if`/`switch` child whose condition or scrutinee (including `when` guards) reads a signal becomes a reactive region (`View.tracked`) that tracks only the condition; leaves inside each branch stay independent reactive leaves (7.2.0-beta.1). When the condition's value changes, the selected branch is rebuilt from scratch (new DOM, new component instances); when only a leaf inside it changes, the branch DOM is kept.
+4. An `if`/`switch` child whose condition or scrutinee (including `when` guards) reads a signal becomes a reactive region (`View.tracked`) that tracks only the condition; leaves inside each branch stay independent reactive leaves (7.2.0). When the condition's value changes, the selected branch is rebuilt from scratch (new DOM, new component instances); when only a leaf inside it changes, the branch DOM is kept.
 5. An `if`/`switch` whose condition reads no signal is not a reactive region; its branches are still decomposed.
 6. A user-component prop (`<Card label={…} />`) is never thunked: it is a read (untracked) at the call site. Exceptions: a prop whose value is JSX, or a function returning JSX (such as `render={item => <li>…</li>}`), is decomposed like other JSX.
 7. Event handler props (`onClick`, …), the `attrs` array and the `data` object are never thunked or probed. Entries of `attrs` and `data` carry their own reactivity: a signal or a thunk there is reactive; `Signal.get(x)` there is a one-shot value.
@@ -248,7 +248,7 @@ Symptom: the bound signal updates only when the input loses focus. Fix: use `onI
 - `View.tracked` blocks and `Show`/`Maybe`/`Value` rebuild their subtree; component instances inside are created again and lose local state.
 - A branch swap does no diffing between old and new branch DOM.
 - `View.child` coerces at runtime: an array of strings renders one text node per element.
-- `ref` (7.2.0-beta.2) is a prop of intrinsic elements only (`View.Ref.t`), see `/docs/learn/lifecycle`.
+- `ref` (7.2.0) is a prop of intrinsic elements only (`View.Ref.t`), see `/docs/learn/lifecycle`.
 - The PPX is per file; see `/docs/learn/components` rule 8.
 
 ## SSR and hydration

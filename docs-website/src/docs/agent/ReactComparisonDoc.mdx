@@ -4,13 +4,13 @@ Use this page when porting React (hooks) code to Xote or when reviewing Xote cod
 
 ## Availability
 
-| Xote feature used in the mapping | Module / entry | Stable since | Pre-release |
+| Xote feature used in the mapping | Module / entry | Stable since | Changed in 7.2.0 |
 | --- | --- | --- | --- |
 | `Signal`, `Computed`, `Effect`, `Signal.batch`, `Signal.untrack` | `xote` | 7.1.0 | — |
 | `@xote.component`, bare children, `View.For`/`KeyedFor`/`Show`/`Maybe`/`Value`, `View.tracked` | `xote` + PPX | 7.1.0 | — |
-| `View.onMount`, `View.onCleanup`, `View.Ref`, `View.Portal`, `View.ErrorBoundary` | `xote` | — | 7.2.0-beta.2, not in 7.1.0 stable |
-| `Context` | `xote` · `xote/context` | — | 7.2.0-beta.2, not in 7.1.0 stable |
-| `Resource`, `View.Suspense` | `xote` · `xote/resource` | — | 7.2.0-beta.2, not in 7.1.0 stable |
+| `View.onMount`, `View.onCleanup`, `View.Ref`, `View.Portal`, `View.ErrorBoundary` | `xote` | 7.2.0 (new) | — |
+| `Context` | `xote` · `xote/context` | 7.2.0 (new) | — |
+| `Resource`, `View.Suspense` | `xote` · `xote/resource` | 7.2.0 (new) | — |
 | `Router` | `xote/router` | 7.1.0 | — |
 | `SSR`, `Hydration` | `xote/ssr`, `xote/hydration` | 7.1.0 | — |
 
@@ -22,7 +22,7 @@ Use this page when porting React (hooks) code to Xote or when reviewing Xote cod
 4. A write of a value equal (`===`, or the signal's `~equals`) to the current one notifies nothing. Mutating an array or record in place and setting the same reference therefore updates nothing; always produce a new value.
 5. Props are plain values read once. A prop that changes MUST be a `Signal.t`, `MaybeSignal.t` or a thunk read in the child's JSX.
 6. Hook rules do not exist: signals, computeds and effects can be created anywhere. Created in a component body they are owned by the instance and disposed with it; created at module level they live forever.
-7. `Effect.run` runs its function immediately (during the body, before DOM insertion) and again after each dependency change. It is not deferred to after paint. For "after the DOM is inserted" use `View.onMount` (7.2.0-beta.2).
+7. `Effect.run` runs its function immediately (during the body, before DOM insertion) and again after each dependency change. It is not deferred to after paint. For "after the DOM is inserted" use `View.onMount` (7.2.0).
 8. Lists: React's `key` becomes `by` on `View.For`/`View.KeyedFor`. A row is reused only if its key and its item value (`===`) are unchanged.
 9. JSX differences: `class` not `className`; `type_` for `type`; `for_` for `htmlFor`; `style` is a string; no `dangerouslySetInnerHTML`; hyphenated attributes go through `attrs` or `data`; `onChange` is the native `change` event (use `onInput` for keystrokes).
 10. Conditional rendering: an `if`/`switch` on a signal is a reactive region; changing the condition rebuilds the selected branch (no diffing between branches, component state inside is recreated).
@@ -40,19 +40,19 @@ Use this page when porting React (hooks) code to Xote or when reviewing Xote cod
 | `useCallback(fn, deps)` | a plain `let fn = …` in the body | Body runs once, so `fn` is stable. |
 | `React.memo(Component)` | nothing | Components never re-render. |
 | `useEffect(fn, deps)` | `Effect.run(() => { …; None })` | Runs immediately and on tracked changes; return `Some(cleanup)` for teardown. |
-| `useEffect(fn, [])` (mount) | `View.onMount(fn)` (7.2.0-beta.2) | Runs after the DOM is inserted; never on the server. |
-| `useLayoutEffect` | `View.onMount` (7.2.0-beta.2) | Runs after insertion, parents before children. |
-| effect cleanup | `Some(() => …)` from the effect, or `View.onCleanup` (7.2.0-beta.2) | Effect cleanup runs before each re-run and on disposal. |
-| `useRef(null)` on a DOM node | `View.Ref.make()` + `ref=r` (7.2.0-beta.2) | `View.Ref.peek` (untracked) or `View.Ref.get` (tracked). |
+| `useEffect(fn, [])` (mount) | `View.onMount(fn)` (7.2.0) | Runs after the DOM is inserted; never on the server. |
+| `useLayoutEffect` | `View.onMount` (7.2.0) | Runs after insertion, parents before children. |
+| effect cleanup | `Some(() => …)` from the effect, or `View.onCleanup` (7.2.0) | Effect cleanup runs before each re-run and on disposal. |
+| `useRef(null)` on a DOM node | `View.Ref.make()` + `ref=r` (7.2.0) | `View.Ref.peek` (untracked) or `View.Ref.get` (tracked). |
 | `useRef(value)` mutable box | `let box = ref(value)` in the body | ReScript `ref`; not reactive. |
 | `forwardRef` | accept `~inputRef: View.Ref.t` and pass `ref=inputRef` | Refs are ordinary values. |
-| `createContext` / `useContext` / `<Ctx.Provider>` | `Context.make` / `Context.use` / `<Context.Provider context value>` (7.2.0-beta.2) | Provider value is not reactive: provide a `Signal.t`. `use` outside render returns the default. |
+| `createContext` / `useContext` / `<Ctx.Provider>` | `Context.make` / `Context.use` / `<Context.Provider context value>` (7.2.0) | Provider value is not reactive: provide a `Signal.t`. `use` outside render returns the default. |
 | custom hook `useX()` | plain function returning signals/computeds | Can be called anywhere; ownership follows where it is called. |
 | `items.map(i => <li key=…>)` | `<View.For each={MaybeSignal.reactive(items)} by={i => i.id} render={i => <li>…</li>} />` | Keyed reconciliation by key and item identity. |
 | `cond && <X />` | `{Signal.get(cond) ? <X /> : View.null()}` | Reactive region; rebuilds the branch when `cond` changes. |
-| `<Suspense fallback>` + data library | `<View.Suspense fallback>` + `Resource.make` (7.2.0-beta.2) | Only resources created below; first load only. |
-| error boundary class | `<View.ErrorBoundary fallback={(error, reset) => …}>` (7.2.0-beta.2) | `reset` re-renders the subtree from scratch. |
-| `createPortal(node, el)` | `<View.Portal target=el>` (7.2.0-beta.2) | Default target `document.body`; events bubble through the target. |
+| `<Suspense fallback>` + data library | `<View.Suspense fallback>` + `Resource.make` (7.2.0) | Only resources created below; first load only. |
+| error boundary class | `<View.ErrorBoundary fallback={(error, reset) => …}>` (7.2.0) | `reset` re-renders the subtree from scratch. |
+| `createPortal(node, el)` | `<View.Portal target=el>` (7.2.0) | Default target `document.body`; events bubble through the target. |
 | `ReactDOM.createRoot(el).render(<App />)` | `View.mount(<App />, el)` / `View.mountById(<App />, "app")` | Replaces the container contents. |
 | `renderToString` / `hydrateRoot` | `SSR.renderToString` / `Hydration.hydrate` | State transfer is explicit (`SSRState`). |
 | controlled input `value` + `onChange` | `value={Signal.get(s)}` + `onInput` | Native events; read `event.target.value` through a binding. |
@@ -126,7 +126,7 @@ module Search = {
 }
 ```
 
-`forwardRef` port (7.2.0-beta.2). Use when: a parent needs a child's DOM element.
+`forwardRef` port (7.2.0). Use when: a parent needs a child's DOM element.
 
 ```rescript
 module FancyInput = {
@@ -204,7 +204,7 @@ Symptom: `className` is a compile error ("The field className does not belong to
 ## SSR and hydration
 
 - React's automatic data serialization does not exist: transfer server state with `SSRState` and hydrate with `Hydration.hydrate`.
-- Effects created in component bodies run on the server during `SSR.renderToString`; guard browser-only effects with `SSRContext.isClient` or use `View.onMount` (7.2.0-beta.2), which never runs on the server.
+- Effects created in component bodies run on the server during `SSR.renderToString`; guard browser-only effects with `SSRContext.isClient` or use `View.onMount` (7.2.0), which never runs on the server.
 
 ## Verify
 
@@ -217,7 +217,7 @@ Porting checklist:
 5. Derived values are `Computed`, not effects that set signals.
 6. Timers, listeners and subscriptions have a cleanup (`Some(cleanup)` or `View.onCleanup`).
 7. `class`, `type_`, `for_`, string `style`, `onInput` for text.
-8. Features marked 7.2.0-beta.2 above are only used if the project depends on the beta.
+8. Features marked 7.2.0 need xote 7.2.0 or later.
 
 Test: mount in jsdom, change the source signals, assert DOM text/attributes changed and the component body ran once.
 

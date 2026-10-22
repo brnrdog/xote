@@ -270,6 +270,8 @@ Three details are worth a closer look:
 
 ## Bonus: let a resource do the work
 
+<New />
+
 Step 4 tracks the loading state by hand: a `status` signal, a stale flag, and a `switch` over the outcome. Xote has built-ins for exactly this, and the card gets shorter with them:
 
 - A **resource** runs an async function and keeps its result in a signal: `Pending`, then `Ready(value)`, `Refreshing(value)` while it fetches again, or `Failed(error)`. Signals it reads before its first `await` are its inputs, so changing `capital` fetches again, and a late answer for an old capital is ignored for you.

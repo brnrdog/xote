@@ -4,15 +4,15 @@ Load remote data with `Resource.make`: it runs an async function inside an effec
 
 ## Availability
 
-| Item | Import / entry | First stable | Pre-release only | Needs the PPX |
+| Item | Import / entry | First stable | Changed in 7.2.0 | Needs the PPX |
 | --- | --- | --- | --- | --- |
-| `Resource` (`make`, `refetch`, `mutate`, `value`, `isLoading`) | `xote`, `xote/resource` | — | pre-release: 7.2.0-beta, not in 7.1.0 stable | No |
-| `View.Suspense` | `xote` | — | pre-release: 7.2.0-beta, not in 7.1.0 stable | No |
-| `View.ErrorBoundary` | `xote` | — | pre-release: 7.2.0-beta, not in 7.1.0 stable | No |
-| `Effect.run` with cleanup (manual fetching on 7.1.0) | `xote`, `xote/effect` | stable (all 7.x) | — | No |
+| `Resource` (`make`, `refetch`, `mutate`, `value`, `isLoading`) | `xote`, `xote/resource` | 7.2.0 (new) | — | No |
+| `View.Suspense` | `xote` | 7.2.0 (new) | — | No |
+| `View.ErrorBoundary` | `xote` | 7.2.0 (new) | — | No |
+| `Effect.run` with cleanup (manual fetching before 7.2.0) | `xote`, `xote/effect` | stable (all 7.x) | — | No |
 | `SSRState` (`sync`, `signal`, `generateScript`, `clear`, `Codec`) | `xote`, `xote/ssr-state` | 7.0.0 | — | No |
 
-On 7.1.0 stable, implement fetching with `Effect.run` plus a status signal and a stale flag (pattern below); `Resource` is not available.
+Before 7.2.0, implement fetching with `Effect.run` plus a status signal and a stale flag (pattern below); `Resource` is not available.
 
 ## Rules
 
@@ -39,7 +39,7 @@ On 7.1.0 stable, implement fetching with `Effect.run` plus a status signal and a
 | Optimistic update after a write | `Resource.mutate` then `Resource.refetch` |
 | Fire-and-forget request (analytics, autosave) whose result is not shown | `Effect.run` |
 | Polling, websockets, subscriptions | `Effect.run` with cleanup |
-| 7.1.0 stable (no `Resource`) | `Effect.run` + status signal + stale flag |
+| Before 7.2.0 (no `Resource`) | `Effect.run` + status signal + stale flag |
 
 ## API
 
@@ -167,7 +167,7 @@ module UserName = {
 
 Wrap the caller in `<View.ErrorBoundary fallback={(_error, reset) => …}>`; `reset` re-creates the subtree, which creates a new resource and fetches again.
 
-**Manual fetching on 7.1.0 stable** — Use when: `Resource` is unavailable.
+**Manual fetching before 7.2.0** — Use when: `Resource` is unavailable.
 
 ```rescript
 type status = Loading | Ready | Failed

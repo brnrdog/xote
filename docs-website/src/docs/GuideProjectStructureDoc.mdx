@@ -118,7 +118,7 @@ let signOut = () => Signal.set(user, None)
 
 Any component can read `Signal.get(Session.user)` and update when it changes. There is no provider to set up.
 
-**In [context](/docs/learn/context)** when the value belongs to one part of the tree, and each copy of that part needs its own. Tabs are the classic case: each `<Tabs>` provides its own selection to the `<Tabs.Tab>` buttons inside it:
+**In [context](/docs/learn/context)** <New /> when the value belongs to one part of the tree, and each copy of that part needs its own. Tabs are the classic case: each `<Tabs>` provides its own selection to the `<Tabs.Tab>` buttons inside it:
 
 ```rescript
 // src/components/Tabs.res

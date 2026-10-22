@@ -4,11 +4,11 @@ Test Xote code with [Zekr](https://www.npmjs.com/package/zekr) (a ReScript test 
 
 ## Availability
 
-| Item | Import / entry | First stable | Pre-release only | Needs the PPX |
+| Item | Import / entry | First stable | Changed in 7.2.0 | Needs the PPX |
 | --- | --- | --- | --- | --- |
 | `Signal`, `Computed`, `Effect.runWithDisposer`, `Signal.batch` | `xote` | stable (all 7.x) | — | No |
 | `View.mount`, `SSR.renderToString` | `xote`, `xote/ssr` | 7.0.0 | — | No |
-| `Resource` (async tests) | `xote` | — | pre-release: 7.2.0-beta, not in 7.1.0 stable | No |
+| `Resource` (async tests) | `xote` | 7.2.0 (new) | — | No |
 | Zekr (tested with 1.7.0) | npm `zekr`, ReScript dependency `zekr` | external | — | — |
 | jsdom | npm `jsdom` | external | — | — |
 
@@ -167,7 +167,7 @@ let suite = suite(
 )
 ```
 
-**Resources and stale responses** (pre-release) — Use when: testing data loading.
+**Resources and stale responses** (7.2.0) — Use when: testing data loading.
 
 ```rescript
 open! Zekr

@@ -125,6 +125,7 @@ ${headings}
 ${agentHeadings}
         ],
         agentOnly: ${page.agentOnly ? 'true' : 'false'},
+        isNew: ${page.isNew ? 'true' : 'false'},
         customToc: ${page.customToc ? 'true' : 'false'},
         agent: ${option(agent)},
       },`
@@ -171,6 +172,7 @@ type page = {
   agentDocument: option<Mdx.document>,
   agentHeadings: array<heading>,
   agentOnly: bool,
+  isNew: bool,
   customToc: bool,
   agent: option<agentFacts>,
 }

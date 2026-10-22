@@ -2697,3 +2697,53 @@ blockquote > :last-child {
   max-width: 100%;
   overflow-x: auto;
 }
+
+/* ---- "New in 7.2" ----
+   A lime pill for features new in the upcoming release: <New /> in MDX
+   (under a heading or inline), on the title of pages that are new as a
+   whole, and a small "New" beside those pages in the sidebar. */
+.new-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  margin: 0 0.15em;
+  padding: 0 9px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--signal-text) 16%, transparent);
+  color: var(--signal-text);
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  vertical-align: 0.1em;
+}
+/* Under a heading the pill sits on its own line; in the page title it
+   follows the title text. */
+.docs-content > .new-badge {
+  margin: -4px 0 12px;
+}
+.docs-page-title .new-badge {
+  margin-left: 16px;
+  vertical-align: 0.55em;
+  letter-spacing: 0.02em;
+}
+td .new-badge {
+  margin-left: 6px;
+}
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sidebar-new {
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--signal-text) 16%, transparent);
+  color: var(--signal-text);
+  font: 600 10px/16px var(--font-body);
+  letter-spacing: 0.02em;
+}
+.sidebar-link.active .sidebar-new {
+  background: color-mix(in srgb, var(--on-hue) 14%, transparent);
+  color: var(--on-hue);
+}

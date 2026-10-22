@@ -286,8 +286,13 @@ function mdxToMarkdown(source) {
       }
       continue
     }
+    // The "New in 7.2" badge becomes text.
+    if (/^\s*<New \/>\s*$/.test(line)) {
+      out.push('**New in 7.2.**')
+      continue
+    }
     if (/^(import|export) /.test(line) || /^\s*<[A-Z][\w.]*[^>]*\/>\s*$/.test(line)) continue
-    out.push(line)
+    out.push(line.replace(/\s*<New \/>/g, ' (new in 7.2)'))
   }
   return out.join('\n').replace(/\n{3,}/g, '\n\n').trim()
 }
@@ -330,7 +335,7 @@ function writeMarkdown() {
 
 Every docs page is available as plain Markdown at the same path with a \`.md\` suffix (\`/docs\` is \`/docs/index.md\`). These are the agent versions of the pages, written for coding agents rather than copied from the human pages: most follow the same outline (Summary, Availability, Rules, API, Patterns, Anti-patterns, Edge cases, SSR and hydration, Verify, Related), and pages about a module end with its full API reference. Terms such as "tracking scope", "reactive leaf" and "owner" are defined in the [Glossary](${siteUrl}/docs/glossary.md).
 
-Current stable release: ${latestVersion()}. Features marked "pre-release: 7.2.0-beta" in a page's Availability section are not in the stable release.
+Current stable release: ${latestVersion()}. Each page's Availability section gives the version a feature first shipped in; features new in 7.2.0 are marked "7.2.0 (new)".
 
 ${[...sections].map(([name, items]) => `## ${name}\n\n${items.join('\n')}`).join('\n\n')}
 `

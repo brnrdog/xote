@@ -4,12 +4,12 @@ A Xote form is plain HTML elements bound to signals: each field's `value` (or `c
 
 ## Availability
 
-| Item | Import / entry | First stable | Pre-release only | Needs the PPX |
+| Item | Import / entry | First stable | Changed in 7.2.0 | Needs the PPX |
 | --- | --- | --- | --- | --- |
 | `value`, `checked`, `disabled`, `type_`, event props on intrinsic elements | `xote` (JSX via `XoteJSX`) | 7.0.0 | — | No (thunks or signals work without it) |
 | Reading `Signal.get` inline in an attribute | `xote` | 7.1.0 | — | Yes (`@xote.component`) |
 | `attrs` escape hatch, attribute removal with `None` | `xote` | 7.1.0 | — | No |
-| `ref` prop, `View.Ref`, `View.onMount` (focus management) | `xote` | — | pre-release: 7.2.0-beta, not in 7.1.0 stable | No |
+| `ref` prop, `View.Ref`, `View.onMount` (focus management) | `xote` | 7.2.0 (new) | — | No |
 | `Signal.batch` | `xote` | stable (all 7.x) | — | No |
 
 ## Rules
@@ -40,7 +40,7 @@ A Xote form is plain HTML elements bound to signals: each field's `value` (or `c
 | `for_` prop | string | Renders `for` on `<label>`. |
 | `onInput`, `onChange`, `onSubmit`, `onFocus`, `onBlur`, `onKeyDown` | `Dom.event => unit` | DOM event listeners. |
 | `attrs` | `array<(string, 'a)>` | Any other attribute; all entries share one type (see Styling guide). |
-| `ref` | `View.Ref.t` | Receives the element (pre-release). |
+| `ref` | `View.Ref.t` | Receives the element (7.2.0). |
 | `View.Ref.make` | `unit => View.Ref.t` | Creates a ref. |
 | `View.Ref.peek` | `View.Ref.t => option<Dom.element>` | Reads the element without tracking. |
 | `View.onMount` | `(unit => unit) => unit` | Runs after the component's DOM is in the document; never on the server. |
@@ -177,7 +177,7 @@ let make = () =>
 
 (`saveEmail` is any `string => promise<unit>`.)
 
-**Focus a field when it appears** (pre-release) — Use when: a dialog or search box opens.
+**Focus a field when it appears** (7.2.0) — Use when: a dialog or search box opens.
 
 ```rescript
 @send external focus: Dom.element => unit = "focus"

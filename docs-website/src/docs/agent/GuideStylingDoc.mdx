@@ -4,13 +4,13 @@ Xote has no styling system: elements get CSS through `class`, `style` (a CSS dec
 
 ## Availability
 
-| Item | Import / entry | First stable | Pre-release only | Needs the PPX |
+| Item | Import / entry | First stable | Changed in 7.2.0 | Needs the PPX |
 | --- | --- | --- | --- | --- |
 | `class`, `style`, `id`, `title`, `hidden` props | `xote` (JSX) | 7.0.0 | — | No |
 | Inline `Signal.get` in `class`/`style` | `xote` | 7.1.0 | — | Yes (`@xote.component`) |
 | `attrs` escape hatch; removing an attribute with `None` | `xote` | 7.1.0 | — | No |
 | `data` object prop (left as written by the PPX) | `xote` | 7.1.0 | — | No |
-| `View.onMount` (DOM work after mount) | `xote` | — | pre-release: 7.2.0-beta, not in 7.1.0 stable | No |
+| `View.onMount` (DOM work after mount) | `xote` | 7.2.0 (new) | — | No |
 | `SSRContext.isClient` / `onClient` | `xote`, `xote/ssr-context` | stable (all 7.x) | — | No |
 
 ## Rules
