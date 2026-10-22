@@ -1,0 +1,183 @@
+## Summary
+
+Xote is a ReScript UI library with fine-grained reactivity. State lives in **signals**; derived state in **computeds**; side effects in **effects**. Components are functions that run **once** and return a node tree; afterwards, only **reactive leaves** (single attributes, single text nodes) and **reactive regions** (conditional branches, keyed lists) update. There is no virtual DOM, no diffing of component output, and no component re-execution. The rule that matters most: a signal read subscribes only where it is evaluated inside a **tracking scope**; a read in the **component body** is a one-time value.
+
+## Availability
+
+| Item | Value |
+| --- | --- |
+| Package | `xote` (npm) |
+| Language | ReScript 12 (JSX v4 with `"module": "XoteJSX"`) |
+| Current stable | 7.1.0 |
+| Pre-release | 7.2.0-beta (adds `Context`, `Resource`, `View.Suspense`, `View.ErrorBoundary`, `View.Portal`, `View.Ref`, `View.onMount`, `View.onCleanup`) |
+| Recommended component style | `@xote.component` (the PPX, `"ppx-flags": ["xote/ppx/ppx"]`), stable since 7.1.0 |
+| Reactive core | re-exported from `rescript-signals` (`Signal`, `Computed`, `Effect`) |
+
+### Module map
+
+| Module | Purpose | ReScript access | JS entry | Since |
+| --- | --- | --- | --- | --- |
+| `Signal` | writable state, `get`/`peek`/`set`/`update`/`batch`/`untrack` | `Xote.Signal` | `xote`, `xote/signal` | stable |
+| `Computed` | derived read-only values | `Xote.Computed` | `xote`, `xote/computed` | stable |
+| `Effect` | reactive side effects with cleanup | `Xote.Effect` | `xote`, `xote/effect` | stable |
+| `View` | nodes, JSX primitives (`For`, `Show`, `Maybe`, `Value`, `Text`…), mounting | `Xote.View` | `xote`, `xote/view` | stable |
+| `MaybeSignal` | a prop that is either static or reactive | `Xote.MaybeSignal` | `xote`, `xote/maybe-signal` | 7.1.0 |
+| `XoteJSX` | the JSX module (`"jsx": {"module": "XoteJSX"}`) | `Xote.XoteJSX` | `xote/jsx` | stable |
+| `Router`, `Route` | URL matching, links, navigation | `Xote.Router` | `xote/router` | stable |
+| `SSR`, `SSRContext`, `SSRState` | server rendering, environment checks, state transfer | `Xote.SSR` | `xote/ssr` | stable |
+| `Hydration` | hydrate server-rendered HTML | `Xote.Hydration` | `xote/hydration` | stable |
+| `Mdx` | render MDX documents as Xote nodes | `Xote.Mdx` | `xote/mdx` | stable |
+| `Context` | values scoped to a subtree | `Xote.Context` | `xote`, `xote/context` | pre-release: 7.2.0-beta, not in 7.1.0 stable |
+| `Resource` | async values as signals; works with `View.Suspense` | `Xote.Resource` | `xote`, `xote/resource` | pre-release: 7.2.0-beta, not in 7.1.0 stable |
+
+`Prop` is a deprecated alias of `MaybeSignal`; MUST NOT be used in new code.
+
+## Rules
+
+1. Every component MUST be a module (or file) whose `make` is annotated `@xote.component` (recommended) or `@jsx.component`. One component per module.
+2. A component body runs exactly once per instance, untracked. It MUST NOT be relied on to re-run.
+3. A `Signal.get` written in JSX position (an attribute value of an intrinsic element, or a bare `{…}` child) under `@xote.component` becomes a reactive leaf. The same call in the component body, or bound to a `let`, is a one-time read.
+4. Props of user components are evaluated once. To pass changing data, pass the `Signal.t` (or a `MaybeSignal.t`, or a thunk) and read it inside the child's JSX.
+5. Derived values MUST be computeds, not signals synchronised by effects.
+6. Effects are for work outside the node tree (timers, storage, network, logging). An effect that allocates something MUST return `Some(cleanup)`.
+7. Lists that can reorder, insert or remove MUST use `View.For` with `by` (a stable string key), not `Array.map` inside a tracked region.
+8. `if`/`switch` on a signal in JSX rebuilds only the selected branch when the condition changes; reads inside the branch stay fine-grained.
+9. Code that touches `window`/`document` MUST NOT run at module top level or in a component body of an app that is server-rendered; use `View.onMount` (7.2.0-beta) or guard with `SSRContext.isClient`.
+10. Signal equality defaults to `===`. Replacing a record/array with a structurally equal copy still notifies; pass `~equals` to `Signal.make` to change that.
+
+## API
+
+The entry points an agent touches first:
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `Signal.make` | `('a, ~name: string=?, ~equals: ('a, 'a) => bool=?) => Signal.t<'a>` | creates a signal |
+| `Signal.get` | `Signal.t<'a> => 'a` | tracked read |
+| `Signal.set` | `(Signal.t<'a>, 'a) => unit` | write; notifies if not equal |
+| `Signal.update` | `(Signal.t<'a>, 'a => 'a) => unit` | write from the current value |
+| `Computed.make` | `(unit => 'a, ~name: string=?, ~equals: ('a, 'a) => bool=?) => Signal.t<'a>` | derived value, lazy |
+| `Effect.run` | `(unit => option<unit => unit>, ~name: string=?) => unit` | runs now and on dependency change |
+| `View.mountById` | `(View.node, string) => unit` | renders into the element with that id |
+| `View.For` | JSX: `<View.For each by? render />` | list rendering, keyed with `by` |
+
+Full signatures: `/docs/api/signal`, `/docs/api/computed`, `/docs/api/effect`, `/docs/api/view`.
+
+## Patterns
+
+Minimal correct project configuration (`rescript.json`), use when creating or fixing a project:
+
+```json
+{
+  "dependencies": ["xote"],
+  "jsx": { "version": 4, "module": "XoteJSX" },
+  "ppx-flags": ["xote/ppx/ppx"],
+  "compiler-flags": ["-open Xote"]
+}
+```
+
+Minimal component and mount (two files; a module cannot reference itself by file name), use as the starting template:
+
+```rescript
+// Counter.res
+let count = Signal.make(0)
+let doubled = Computed.make(() => Signal.get(count) * 2)
+
+@xote.component
+let make = () =>
+  <div>
+    <button onClick={_ => Signal.update(count, n => n + 1)}>
+      {"Clicked "}
+      {Signal.get(count)}
+      {" times"}
+    </button>
+    <p> {"Doubled: "} {Signal.get(doubled)} </p>
+  </div>
+```
+
+```rescript
+// Main.res
+View.mountById(<Counter />, "app")
+```
+
+### Which page answers which task
+
+| Task | Read |
+| --- | --- |
+| Set up a project, fix build/PPX errors | `/docs/quick-start` |
+| Understand when code re-runs and why a value is stale | `/docs/thinking-in-signals` |
+| State, equality, batching | `/docs/learn/signals`, `/docs/advanced/batching` |
+| Derived values | `/docs/learn/computeds` |
+| Timers, storage, network side effects | `/docs/learn/effects` |
+| Component structure, props, children, mounting | `/docs/learn/components` |
+| Text, attributes, events, conditionals, lists | `/docs/learn/rendering` |
+| DOM refs, mount/cleanup, portals, error boundaries | `/docs/learn/lifecycle` |
+| Subtree-scoped values | `/docs/learn/context` |
+| Async data, loading/error states, Suspense | `/docs/learn/async-data`, `/docs/guides/fetching-data` |
+| URLs and navigation | `/docs/learn/routing` |
+| Forms | `/docs/guides/forms` |
+| Server rendering and hydration | `/docs/advanced/ssr`, `/docs/guides/deploying` |
+| Tests | `/docs/guides/testing` |
+| Calling Xote from JavaScript | `/docs/javascript` |
+| Vocabulary used across these pages | `/docs/glossary` |
+
+## Anti-patterns
+
+Hoisted read (compiles, renders a stale value):
+
+```rescript
+@xote.component
+let make = () => {
+  let label = Int.toString(Signal.get(count))
+  <p> {label} </p>
+}
+```
+
+Symptom: the paragraph never changes after the first render. Fix: read in JSX position.
+
+```rescript
+@xote.component
+let make = () => <p> {Signal.get(count)} </p>
+```
+
+Passing a value to a prop that should change (compiles, frozen):
+
+```rescript
+<Badge count={Signal.get(count)} />
+```
+
+Symptom: the badge keeps the initial number. Fix: declare `~count: Signal.t<int>` on `Badge` and pass `<Badge count />`.
+
+Synchronising state with an effect (compiles, extra work, transient inconsistency):
+
+```rescript
+let total = Signal.make(0)
+Effect.run(() => {
+  Signal.set(total, Signal.get(price) * Signal.get(quantity))
+  None
+})
+```
+
+Fix: `let total = Computed.make(() => Signal.get(price) * Signal.get(quantity))`.
+
+## Edge cases
+
+- `View.child` (the coercion behind bare children) accepts any type. A record or variant in child position compiles under the PPX and renders `[object Object]` (with a development warning). Without the PPX it is a compile error.
+- A file with no `@xote.component` is not transformed by the PPX at all: bare children and inline reads there behave as in plain JSX (bare non-node children are compile errors).
+- A signal read hidden behind a function from another module is invisible to the PPX; it compiles to a one-time value and, in development, `View.probe` logs one warning per source location. Wrap the value in `() => …` to make it reactive.
+
+## SSR and hydration
+
+Components render to HTML with `SSR.renderToString`/`SSR.renderDocument`; the client calls `Hydration` to attach without re-creating DOM. Effects do not run on the server; resources stay `Pending` during a server render; `View.onMount` runs only on the client after hydration. See `/docs/advanced/ssr`.
+
+## Verify
+
+- Build: `npx rescript` exits 0 with no "We've found a bug for you!" blocks.
+- Behaviour: mount into jsdom (`/docs/guides/testing`), change a signal, assert only the expected text/attribute changed; the component function MUST NOT be called again.
+- Server: `SSR.renderToString(() => <App />)` returns a string without throwing (no top-level DOM access).
+
+## Related
+
+- `/docs/quick-start` — exact setup and an error→fix table.
+- `/docs/thinking-in-signals` — the execution model and PPX decomposition rules.
+- `/docs/glossary` — definitions of the terms used on every page.
+- `/llms.txt` — index of every page as Markdown.
