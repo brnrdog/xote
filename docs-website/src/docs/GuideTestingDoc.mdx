@@ -42,21 +42,19 @@ globalThis.KeyboardEvent = dom.window.KeyboardEvent
 globalThis.InputEvent = dom.window.InputEvent
 ```
 
-Then an entry file that loads the setup first and runs your suites:
+Then an entry file that runs your suites:
 
 ```rescript
 // tests/Tests.res
-%%raw(`import './setup.mjs'`)
-
 Zekr.runSuites([Counter_test.suite])
 ```
 
-And a script in `package.json`:
+And a script in `package.json` that loads the setup before anything else with Node's `--import` flag:
 
 ```json
 {
   "scripts": {
-    "test": "rescript && node tests/Tests.res.mjs"
+    "test": "rescript && node --import ./tests/setup.mjs tests/Tests.res.mjs"
   }
 }
 ```
@@ -172,20 +170,18 @@ Run async suites from their own entry file with `runAsyncSuites`, because the sy
 
 ```rescript
 // tests/AsyncTests.res
-%%raw(`import './setup.mjs'`)
-
 Zekr.runAsyncSuites([Async_test.suite])->ignore
 ```
 
 ```json
-"test": "rescript && node tests/Tests.res.mjs && node tests/AsyncTests.res.mjs"
+"test": "rescript && node --import ./tests/setup.mjs tests/Tests.res.mjs && node --import ./tests/setup.mjs tests/AsyncTests.res.mjs"
 ```
 
 To control exactly when a fetch answers, return a promise you resolve by hand from the test. Xote's own [resource tests](https://github.com/brnrdog/xote/blob/main/tests/Resource_test.res) do this to check loading, refreshing and stale responses.
 
 ## Common mistakes
 
-- **Importing modules before the setup.** Xote checks for a DOM when it loads. Keep ``%%raw(`import './setup.mjs'`)`` as the first line of each entry file.
+- **Loading the setup from inside a test file.** Xote checks for a DOM once, when it loads, and ReScript places a ``%%raw(`import …`)`` after the file's own imports, so it runs too late. Load the setup with `node --import ./tests/setup.mjs` instead.
 - **Leaving effects running.** An effect created in a test lives until it's disposed. Use `Effect.runWithDisposer` and call `dispose()`.
 - **Sharing module-level signals between tests.** Create fresh signals inside each test, or reset them, so one test can't leak into the next.
 - **Comparing full SSR strings.** Markers like `<!--#-->` are part of the output. Check for the content you care about.

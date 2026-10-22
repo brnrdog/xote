@@ -111,16 +111,18 @@ let make = () =>
   </div>
 ```
 
-To theme the whole document, including `<body>`, set the attribute on `<html>` from an [effect](/docs/learn/effects). The effect re-runs whenever the theme changes:
+To theme the whole document, including `<body>`, set the attribute on `<html>` from an [effect](/docs/learn/effects). The effect re-runs whenever the theme changes. It touches `document`, so if your app also renders on the server, only start it in the browser:
 
 ```rescript
 @val @scope("document") external documentElement: Dom.element = "documentElement"
 @send external setAttribute: (Dom.element, string, string) => unit = "setAttribute"
 
-let _ = Effect.run(() => {
-  documentElement->setAttribute("data-theme", Signal.get(theme))
-  None
-})
+if SSRContext.isClient {
+  Effect.run(() => {
+    documentElement->setAttribute("data-theme", Signal.get(theme))
+    None
+  })
+}
 ```
 
 Then define your colours as CSS custom properties per theme:
