@@ -35,7 +35,7 @@ Rendering in Xote builds DOM once and then updates individual reactive leaves (o
 
 12. Typed attribute props accept a raw value, a `Signal.t`, a thunk `unit => 'a` or a `MaybeSignal.t`. A signal or thunk makes the attribute reactive without the PPX too.
 13. Use `class` (not `className`), `type_` for `type`, `for_` for `for`. Hyphenated names are not props: `data-x={…}` or `aria-controls={…}` is a compile error ("The field data-x does not belong to type Xote.XoteJSX.Elements.props"). Use `data` or `attrs`.
-14. `style` is a string (CSS text), not an object.
+14. `style` is a string (CSS text), not an object. An object compiles (the prop is untyped) but renders `style="[object Object]"`.
 15. Presence attributes `checked`, `disabled`, `required`, `readOnly` (→ `readonly`), `multiple`, `draggable`, `hidden`, `contentEditable`, `spellcheck`, `autofocus` take a `bool`: `true` writes the attribute with an empty value, `false` removes it.
 16. `ariaHidden`, `ariaExpanded`, `ariaSelected` take a `bool` and write the literal string `"true"` or `"false"` (enumerated ARIA attributes are never removed by `false`). `ariaLabel` takes a string.
 17. `maxLength`, `minLength`, `rows`, `cols`, `tabIndex` are typed `int` and are static only: a signal read there is a compile error under the PPX ("This has type: 'a => 'b … expected to have type: int"). For a reactive value, use `attrs` with `View.computedAttr("tabindex", () => …)`.

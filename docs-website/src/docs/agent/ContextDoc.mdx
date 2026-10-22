@@ -16,7 +16,7 @@ On 7.1.0 stable there is no context: use module-level signals, or pass signals a
 2. `Context.use(ctx)` returns the value of the nearest provider above the calling component, or `default` when there is none.
 3. Call `Context.use` in a component body. The value it returns is fixed for that render. Reads inside effects created by the body, and inside reactive regions the body renders (`View.tracked`, `View.Show`, `View.For`, `if`/`switch` regions, keyed rows built on later updates), see the same provisions on every later run.
 4. Outside a render — event handlers, timers, promise callbacks, module level — there is no provider in scope and `Context.use` returns the default. Read the value in the body and close over it.
-5. `Context.provide(ctx, value)` provides `value` to everything the calling component renders (its result). It MUST be called in a component body; anywhere else (module level, event handler, inside an effect even on its first run) it throws a JavaScript `Error`: "[Xote] Context.provide was called outside a component body. Call it while the component renders, or use <Context.Provider>."
+5. `Context.provide(ctx, value)` provides `value` to everything the calling component renders (its result). It MUST be called in a component body; anywhere else (module level, event handler, inside an effect even on its first run) it throws a JavaScript `Error`: `[Xote] Context.provide was called outside a component body. Call it while the component renders, or use <Context.Provider>.`
 6. A provision is visible only to the providing component's result: siblings, the component's parent and anything rendered outside it never see it. The nearest provider wins.
 7. `<Context.Provider context=ctx value=v> children </Context.Provider>` and `Context.provider(ctx, v, children)` provide `v` to `children`; they are equivalent to calling `provide` in a component that renders `children`.
 8. `value` is a user-component prop: `value={Signal.get(x)}` is a one-shot read. Providing a value does not make it reactive. To let consumers follow changes, provide the `Signal.t` (or a `Computed`) itself, and have consumers read it with `Signal.get` in their JSX.
@@ -154,7 +154,7 @@ Effect.run(() => {
 })
 ```
 
-Symptom: throws "[Xote] Context.provide was called outside a component body…". Fix: call `Context.provide` directly in the body, or use `<Context.Provider>`.
+Symptom: throws `[Xote] Context.provide was called outside a component body…`. Fix: call `Context.provide` directly in the body, or use `<Context.Provider>`.
 
 Expecting a sibling to see a provision.
 

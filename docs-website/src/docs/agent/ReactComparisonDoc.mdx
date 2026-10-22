@@ -1,0 +1,230 @@
+## Summary
+
+Use this page when porting React (hooks) code to Xote or when reviewing Xote code written with React habits. The core difference: a React component function re-runs on every state change and the framework diffs its output; a Xote component body runs once and signal reads in JSX become reactive leaves that update the DOM directly. Most React-shaped bugs in Xote come from expecting re-runs: reading state in the body, passing snapshots as props, or writing dependency arrays by hand.
+
+## Availability
+
+| Xote feature used in the mapping | Module / entry | Stable since | Pre-release |
+| --- | --- | --- | --- |
+| `Signal`, `Computed`, `Effect`, `Signal.batch`, `Signal.untrack` | `xote` | 7.1.0 | — |
+| `@xote.component`, bare children, `View.For`/`KeyedFor`/`Show`/`Maybe`/`Value`, `View.tracked` | `xote` + PPX | 7.1.0 | — |
+| `View.onMount`, `View.onCleanup`, `View.Ref`, `View.Portal`, `View.ErrorBoundary` | `xote` | — | 7.2.0-beta.2, not in 7.1.0 stable |
+| `Context` | `xote` · `xote/context` | — | 7.2.0-beta.2, not in 7.1.0 stable |
+| `Resource`, `View.Suspense` | `xote` · `xote/resource` | — | 7.2.0-beta.2, not in 7.1.0 stable |
+| `Router` | `xote/router` | 7.1.0 | — |
+| `SSR`, `Hydration` | `xote/ssr`, `xote/hydration` | 7.1.0 | — |
+
+## Rules
+
+1. A component body runs once per instance. There is no re-render: code that should run again on change MUST be in a reactive leaf (JSX position), a computed, or an effect.
+2. Dependencies are discovered by tracking: whatever a computed, effect or reactive leaf reads with `Signal.get` is a dependency. There are no dependency arrays and no stale closures over state (read the signal when needed).
+3. `Signal.set`/`Signal.update` notify dependents synchronously; outside `Signal.batch`, each write re-runs affected effects immediately. Wrap several related writes in `Signal.batch` to run dependents once.
+4. A write of a value equal (`===`, or the signal's `~equals`) to the current one notifies nothing. Mutating an array or record in place and setting the same reference therefore updates nothing; always produce a new value.
+5. Props are plain values read once. A prop that changes MUST be a `Signal.t`, `MaybeSignal.t` or a thunk read in the child's JSX.
+6. Hook rules do not exist: signals, computeds and effects can be created anywhere. Created in a component body they are owned by the instance and disposed with it; created at module level they live forever.
+7. `Effect.run` runs its function immediately (during the body, before DOM insertion) and again after each dependency change. It is not deferred to after paint. For "after the DOM is inserted" use `View.onMount` (7.2.0-beta.2).
+8. Lists: React's `key` becomes `by` on `View.For`/`View.KeyedFor`. A row is reused only if its key and its item value (`===`) are unchanged.
+9. JSX differences: `class` not `className`; `type_` for `type`; `for_` for `htmlFor`; `style` is a string; no `dangerouslySetInnerHTML`; hyphenated attributes go through `attrs` or `data`; `onChange` is the native `change` event (use `onInput` for keystrokes).
+10. Conditional rendering: an `if`/`switch` on a signal is a reactive region; changing the condition rebuilds the selected branch (no diffing between branches, component state inside is recreated).
+11. `View.Suspense` waits only for resources created below it, only for their first load; later fetches show `Refreshing(previousValue)`. There are no transitions.
+12. `View.ErrorBoundary` is a component with a `fallback(error, reset)` prop; like React boundaries it does not catch event handler, timer or promise errors.
+
+## Mapping
+
+| React | Xote | Semantic difference |
+| --- | --- | --- |
+| `useState(x)` | `let s = Signal.make(x)` in the body | Read with `Signal.get(s)` in JSX; write with `Signal.set`/`Signal.update`; no re-render. |
+| `setState(prev => next)` | `Signal.update(s, prev => next)` | Synchronous notification; equal values notify nothing. |
+| `useReducer(reducer, init)` | `Signal.make(init)` + `let dispatch = a => Signal.update(s, st => reducer(st, a))` | No dispatch identity concerns. |
+| `useMemo(() => f(a, b), [a, b])` | `Computed.make(() => f(Signal.get(a), Signal.get(b)))` | Lazy: recomputed on read after a dependency changed; dependencies tracked. |
+| `useCallback(fn, deps)` | a plain `let fn = …` in the body | Body runs once, so `fn` is stable. |
+| `React.memo(Component)` | nothing | Components never re-render. |
+| `useEffect(fn, deps)` | `Effect.run(() => { …; None })` | Runs immediately and on tracked changes; return `Some(cleanup)` for teardown. |
+| `useEffect(fn, [])` (mount) | `View.onMount(fn)` (7.2.0-beta.2) | Runs after the DOM is inserted; never on the server. |
+| `useLayoutEffect` | `View.onMount` (7.2.0-beta.2) | Runs after insertion, parents before children. |
+| effect cleanup | `Some(() => …)` from the effect, or `View.onCleanup` (7.2.0-beta.2) | Effect cleanup runs before each re-run and on disposal. |
+| `useRef(null)` on a DOM node | `View.Ref.make()` + `ref=r` (7.2.0-beta.2) | `View.Ref.peek` (untracked) or `View.Ref.get` (tracked). |
+| `useRef(value)` mutable box | `let box = ref(value)` in the body | ReScript `ref`; not reactive. |
+| `forwardRef` | accept `~inputRef: View.Ref.t` and pass `ref=inputRef` | Refs are ordinary values. |
+| `createContext` / `useContext` / `<Ctx.Provider>` | `Context.make` / `Context.use` / `<Context.Provider context value>` (7.2.0-beta.2) | Provider value is not reactive: provide a `Signal.t`. `use` outside render returns the default. |
+| custom hook `useX()` | plain function returning signals/computeds | Can be called anywhere; ownership follows where it is called. |
+| `items.map(i => <li key=…>)` | `<View.For each={MaybeSignal.reactive(items)} by={i => i.id} render={i => <li>…</li>} />` | Keyed reconciliation by key and item identity. |
+| `cond && <X />` | `{Signal.get(cond) ? <X /> : View.null()}` | Reactive region; rebuilds the branch when `cond` changes. |
+| `<Suspense fallback>` + data library | `<View.Suspense fallback>` + `Resource.make` (7.2.0-beta.2) | Only resources created below; first load only. |
+| error boundary class | `<View.ErrorBoundary fallback={(error, reset) => …}>` (7.2.0-beta.2) | `reset` re-renders the subtree from scratch. |
+| `createPortal(node, el)` | `<View.Portal target=el>` (7.2.0-beta.2) | Default target `document.body`; events bubble through the target. |
+| `ReactDOM.createRoot(el).render(<App />)` | `View.mount(<App />, el)` / `View.mountById(<App />, "app")` | Replaces the container contents. |
+| `renderToString` / `hydrateRoot` | `SSR.renderToString` / `Hydration.hydrate` | State transfer is explicit (`SSRState`). |
+| controlled input `value` + `onChange` | `value={Signal.get(s)}` + `onInput` | Native events; read `event.target.value` through a binding. |
+| `className={cx(...)}` | `class={…}` string expression | Reactive if it reads a signal. |
+| `style={{width: 10}}` | `style="width: 10px"` | String only. |
+| `StrictMode` double render | nothing | Bodies run once. |
+
+## Patterns
+
+`useReducer` port. Use when: state transitions are expressed as actions.
+
+```rescript
+type action = Increment | Decrement | Reset
+let reducer = (state, action) =>
+  switch action {
+  | Increment => state + 1
+  | Decrement => state - 1
+  | Reset => 0
+  }
+
+module ReducerCounter = {
+  @xote.component
+  let make = () => {
+    let state = Signal.make(0)
+    let dispatch = action => Signal.update(state, s => reducer(s, action))
+    <div>
+      <span> {Signal.get(state)} </span>
+      <button onClick={_ => dispatch(Increment)}> {"+"} </button>
+      <button onClick={_ => dispatch(Reset)}> {"Reset"} </button>
+    </div>
+  }
+}
+```
+
+Custom hook port (debounce), `useMemo` port, keyed list, controlled input. Use when: porting a typical search component.
+
+```rescript
+@get external target: Dom.event => {..} = "target"
+@val external setTimeout: (unit => unit, int) => int = "setTimeout"
+@val external clearTimeout: int => unit = "clearTimeout"
+
+let useDebounced = (source: Signal.t<string>, ~delay: int) => {
+  let debounced = Signal.make(Signal.peek(source))
+  Effect.run(() => {
+    let value = Signal.get(source)
+    let id = setTimeout(() => Signal.set(debounced, value), delay)
+    Some(() => clearTimeout(id))
+  })
+  debounced
+}
+
+type item = {id: string, label: string}
+
+module Search = {
+  @xote.component
+  let make = (~items: array<item>) => {
+    let query = Signal.make("")
+    let debounced = useDebounced(query, ~delay=200)
+    let visible = Computed.make(() => {
+      let q = Signal.get(debounced)->String.toLowerCase
+      items->Array.filter(item => item.label->String.toLowerCase->String.includes(q))
+    })
+    <div>
+      <input value={Signal.get(query)} onInput={e => Signal.set(query, target(e)["value"])} />
+      {Signal.get(visible)->Array.length == 0 ? <p> {"No results"} </p> : View.null()}
+      <ul>
+        <View.For each={MaybeSignal.reactive(visible)} by={item => item.id} render={item => <li> {item.label} </li>} />
+      </ul>
+    </div>
+  }
+}
+```
+
+`forwardRef` port (7.2.0-beta.2). Use when: a parent needs a child's DOM element.
+
+```rescript
+module FancyInput = {
+  @xote.component
+  let make = (~inputRef: View.Ref.t) => <input ref=inputRef class="fancy" />
+}
+```
+
+## Anti-patterns
+
+State read in the body ("it re-renders anyway").
+
+```rescript
+@xote.component
+let make = () => {
+  let total = Signal.get(price) * Signal.get(quantity)
+  <p> {Int.toString(total)} </p>
+}
+```
+
+Symptom: the total never updates. Fix: `let total = Computed.make(() => Signal.get(price) * Signal.get(quantity))` and `{Signal.get(total)}`, or compute inline in JSX.
+
+Mutating then setting the same reference.
+
+```rescript
+let list = Signal.peek(items)
+list->Array.push(newItem)->ignore
+Signal.set(items, list)
+```
+
+Symptom: nothing updates (same reference, equality check passes). Fix: `Signal.update(items, list => Array.concat(list, [newItem]))`.
+
+Hand-written dependency logic.
+
+```rescript
+let previous = ref(Signal.peek(userId))
+Effect.run(() => {
+  if Signal.peek(userId) != previous.contents { load(Signal.peek(userId)) }
+  None
+})
+```
+
+Symptom: the effect never re-runs (`peek` subscribes nothing). Fix: read with `Signal.get(userId)` inside the effect; it re-runs exactly when `userId` changes.
+
+Expecting new props to arrive.
+
+```rescript
+<Chart data={Signal.get(series)} />
+```
+
+Symptom: the chart shows the first data forever. Fix: `~data: Signal.t<array<point>>` and `<Chart data=series />`.
+
+`useEffect` for derived state.
+
+```rescript
+Effect.run(() => {
+  Signal.set(fullName, Signal.get(first) ++ " " ++ Signal.get(last))
+  None
+})
+```
+
+Symptom: works, but adds an extra signal, an extra update pass and ordering hazards. Fix: `let fullName = Computed.make(() => Signal.get(first) ++ " " ++ Signal.get(last))`.
+
+`className`, `onChange` for text, `style` object.
+
+Symptom: `className` is a compile error ("The field className does not belong to type Xote.XoteJSX.Elements.props"); a `style` object compiles but renders `style="[object Object]"`; `onChange` on a text input updates only on commit (blur/Enter). Fix: `class`, a CSS string for `style`, `onInput`.
+
+## Edge cases
+
+- Effects created inside event handlers or promise callbacks have no owner and are never disposed automatically; create effects in component bodies, or use `Effect.runWithDisposer` and dispose manually.
+- An `if`/`switch` region recreates component instances when the condition flips, which resets their local signals (similar to React unmounting).
+- `View.Suspense` does not re-show its fallback on refetch; show `Refreshing` state yourself.
+- There is no equivalent of `useTransition`, `useDeferredValue`, `useId` or `useSyncExternalStore`. Subscribe to an external store in an effect (or `onMount`) and write a signal.
+
+## SSR and hydration
+
+- React's automatic data serialization does not exist: transfer server state with `SSRState` and hydrate with `Hydration.hydrate`.
+- Effects created in component bodies run on the server during `SSR.renderToString`; guard browser-only effects with `SSRContext.isClient` or use `View.onMount` (7.2.0-beta.2), which never runs on the server.
+
+## Verify
+
+Porting checklist:
+
+1. No `Signal.get` in a component body whose value is used for display (search the body before the returned JSX).
+2. Every prop that changes over time is typed `Signal.t`, `MaybeSignal.t` or `unit => 'a`.
+3. No manual dependency tracking (`previous` refs, `peek` in effects meant to react).
+4. Every list rendered from state uses `View.For`/`View.KeyedFor` with `by`.
+5. Derived values are `Computed`, not effects that set signals.
+6. Timers, listeners and subscriptions have a cleanup (`Some(cleanup)` or `View.onCleanup`).
+7. `class`, `type_`, `for_`, string `style`, `onInput` for text.
+8. Features marked 7.2.0-beta.2 above are only used if the project depends on the beta.
+
+Test: mount in jsdom, change the source signals, assert DOM text/attributes changed and the component body ran once.
+
+## Related
+
+- `/docs/thinking-in-signals` — the run-once model.
+- `/docs/learn/components` and `/docs/learn/rendering` — what is reactive and what is read once.
+- `/docs/learn/effects` and `/docs/learn/computeds` — effects versus derived values.
+- `/docs/learn/async-data` — `Resource` and `View.Suspense`.
+- `/docs/comparisons/solidjs` — closer model; useful if the source code is SolidJS.
