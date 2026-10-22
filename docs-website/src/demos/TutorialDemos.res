@@ -284,6 +284,13 @@ let capitals = [
 
 let pickCapital = () => capitals->Array.getUnsafe(Math.Int.random(0, Array.length(capitals)))
 
+// A random capital other than the current one, so "Try another capital"
+// always changes it.
+let otherCapital = (current: capital) => {
+  let others = capitals->Array.filter(capital => capital.name != current.name)
+  others->Array.getUnsafe(Math.Int.random(0, Array.length(others)))
+}
+
 type response
 type currentWeather = {temperature: float}
 type forecast = {current_weather: currentWeather}
@@ -302,6 +309,23 @@ let fetchTemperature = async (capital: capital) => {
 }
 
 type status = Loading | Ready | Failed
+
+// The readouts never leave the page: while loading (or after a failure) the
+// numbers are replaced by placeholders of the same size, and the status line
+// keeps its height, so nothing below moves.
+let rowClass = status =>
+  switch status {
+  | Loading => "temp-row is-loading"
+  | Failed => "temp-row is-failed"
+  | Ready => "temp-row"
+  }
+
+let statusText = status =>
+  switch status {
+  | Loading => "Fetching the current weather…"
+  | Failed => "Couldn't reach the weather service."
+  | Ready => "Live from Open-Meteo."
+  }
 
 module Step4 = {
   @xote.component
@@ -341,23 +365,99 @@ module Step4 = {
       })
     }
 
-    let shuffle = _ => Signal.set(capital, pickCapital())
+    let shuffle = _ => Signal.update(capital, otherCapital)
 
     <div class="tutorial-stage">
       <div class="tutorial-capital">
         <span class="tutorial-capital-label"> {"Now in"} </span>
         <span class="tutorial-capital-name"> {Signal.get(capital).name} </span>
       </div>
-      {switch Signal.get(status) {
-      | Loading => <p class="tutorial-status"> {"Fetching the current weather…"} </p>
-      | Failed => <p class="tutorial-status"> {"Couldn't reach the weather service."} </p>
-      | Ready =>
-        <div class="temp-row">
-          <TemperatureDisplay value=celsius unit=Celsius />
-          <TemperatureDisplay value=fahrenheit unit=Fahrenheit />
-          <TemperatureDisplay value=kelvin unit=Kelvin />
-        </div>
-      }}
+      <div class={rowClass(Signal.get(status))}>
+        <TemperatureDisplay value=celsius unit=Celsius />
+        <TemperatureDisplay value=fahrenheit unit=Fahrenheit />
+        <TemperatureDisplay value=kelvin unit=Kelvin />
+      </div>
+      <p class="tutorial-status"> {statusText(Signal.get(status))} </p>
+      <button class="btn-pill btn-soft tutorial-shuffle" onClick=shuffle>
+        {"Try another capital"}
+      </button>
+    </div>
+  }
+}
+
+// ---- Bonus: the same card with Resource, Suspense and ErrorBoundary ----
+
+// Placeholder cards, the same size as the readouts, for Suspense to show
+// while the first fetch is in flight.
+module LoadingReadouts = {
+  @xote.component
+  let make = () =>
+    <div class="temp-row is-loading" attrs=[("aria-busy", "true")]>
+      <StaticDisplay value=0.0 unit=Celsius />
+      <StaticDisplay value=0.0 unit=Fahrenheit />
+      <StaticDisplay value=0.0 unit=Kelvin />
+    </div>
+}
+
+// Creating the resource here, under the Suspense, is what makes the Suspense
+// wait for it. A failed fetch is thrown to the nearest ErrorBoundary.
+module WeatherReadouts = {
+  @xote.component
+  let make = (~capital: Signal.t<capital>) => {
+    let weather = Resource.make(() => fetchTemperature(Signal.get(capital)))
+    let celsius = Computed.make(() => Signal.get(weather)->Resource.value->Option.getOr(0.0))
+    let fahrenheit = Computed.make(() => Signal.get(celsius) *. 9.0 /. 5.0 +. 32.0)
+    let kelvin = Computed.make(() => Signal.get(celsius) +. 273.15)
+
+    <div class="tutorial-readouts">
+      <div class={Resource.isLoading(Signal.get(weather)) ? "temp-row is-refreshing" : "temp-row"}>
+        <TemperatureDisplay value=celsius unit=Celsius />
+        <TemperatureDisplay value=fahrenheit unit=Fahrenheit />
+        <TemperatureDisplay value=kelvin unit=Kelvin />
+      </div>
+      <p class="tutorial-status">
+        {switch Signal.get(weather) {
+        | Failed(error) => throw(error)
+        | Refreshing(_) | Pending => "Updating…"
+        | Ready(_) => "Live from Open-Meteo."
+        }}
+      </p>
+    </div>
+  }
+}
+
+module Step5 = {
+  @xote.component
+  let make = () => {
+    let capital = Signal.make(capitals->Array.getUnsafe(0))
+    let shuffle = _ => Signal.update(capital, otherCapital)
+
+    <div class="tutorial-stage">
+      <div class="tutorial-capital">
+        <span class="tutorial-capital-label"> {"Now in"} </span>
+        <span class="tutorial-capital-name"> {Signal.get(capital).name} </span>
+      </div>
+      <View.ErrorBoundary
+        fallback={(_error, retry) =>
+          // The hidden placeholder cards hold the readouts' space at any width.
+          <div class="tutorial-error">
+            <div class="tutorial-readouts tutorial-error-space" ariaHidden=true>
+              <LoadingReadouts />
+              <p class="tutorial-status"> {" "} </p>
+            </div>
+            <div class="tutorial-error-message">
+              <p> {"Couldn't reach the weather service."} </p>
+              <button class="btn-pill btn-soft" onClick={_ => retry()}> {"Try again"} </button>
+            </div>
+          </div>}>
+        <View.Suspense
+          fallback={<div class="tutorial-readouts">
+            <LoadingReadouts />
+            <p class="tutorial-status"> {"Fetching the current weather…"} </p>
+          </div>}>
+          <WeatherReadouts capital />
+        </View.Suspense>
+      </View.ErrorBoundary>
       <button class="btn-pill btn-soft tutorial-shuffle" onClick=shuffle>
         {"Try another capital"}
       </button>
