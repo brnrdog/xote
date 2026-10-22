@@ -173,7 +173,7 @@ Passing a snapshot as a prop.
 <Badge count={Signal.get(total)} />
 ```
 
-Symptom: compile error when `Badge` expects `Signal.t<int>` ("This has type: int … expected to have type: Xote.Signal.t<int>"). If the prop is typed `int`, it compiles and the badge never updates. Fix: `<Badge count=total />` with `~count: Signal.t<int>`. Why: user-component props are evaluated once where written (rule 6). Inside an `if`/`switch` on a signal, such a read also subscribes the enclosing branch, so the branch is rebuilt wholesale whenever `total` changes.
+Symptom: compile error when `Badge` expects `Signal.t<int>` (`This has type: int` … `expected to have type: Xote.Signal.t<int>`). If the prop is typed `int`, it compiles and the badge never updates. Fix: `<Badge count=total />` with `~count: Signal.t<int>`. Why: user-component props are evaluated once where written (rule 6). Inside an `if`/`switch` on a signal, such a read also subscribes the enclosing branch, so the branch is rebuilt wholesale whenever `total` changes.
 
 Two components in one module.
 
