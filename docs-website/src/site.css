@@ -1495,14 +1495,13 @@ blockquote {
 
 /* ---- Live example panels inside the docs ----
    One column, the width of the article: the code on top, the running demo
-   underneath, and a divider between them that resizes the two
-   (DocsExamplePanel.res sets grid-template-rows from the divider). */
+   underneath at its full height, and a divider between them that sets how
+   much of the code shows (DocsExamplePanel.res). */
 .docs-content .docs-example-panel {
   --border: transparent;
   --border-soft: transparent;
   display: flex;
   flex-direction: column;
-  gap: 8px;
   width: 100%;
   max-width: 100%;
   margin: 28px 0;
@@ -1513,24 +1512,9 @@ blockquote {
   box-shadow: var(--lift);
   overflow: hidden;
 }
-.docs-example-split {
-  display: grid;
-  grid-template-rows: 45% auto minmax(0, 1fr);
-  height: clamp(480px, 78vh, 640px);
-}
-/* Hovering a side slides the divider; dragging follows the pointer exactly. */
-.docs-example-split {
-  transition: grid-template-rows 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.docs-example-split.is-dragging {
+.docs-example-panel.is-dragging {
   cursor: row-resize;
   user-select: none;
-  transition: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .docs-example-split {
-    transition: none;
-  }
 }
 .docs-example-code {
   display: flex;
@@ -1558,7 +1542,7 @@ blockquote {
 .docs-example-code-pre {
   flex: 1 1 auto;
   min-height: 0;
-  max-height: none;
+  max-height: 404px;
   margin: 0;
   padding: 10px 0 18px;
   border: 0;
@@ -1568,18 +1552,19 @@ blockquote {
   line-height: 1.6;
   overflow: auto;
 }
-/* A code-only panel sizes to its code, up to a limit. */
-.docs-example-panel > .docs-example-code .docs-example-code-pre {
-  max-height: 460px;
+/* Once the divider has moved, the pane's height rules and the code fills it. */
+.docs-example-code.is-sized .docs-example-code-pre {
+  max-height: none;
 }
 .docs-example-code .syntax-line-number {
   background: var(--sunken);
 }
 .docs-example-divider {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
-  height: 16px;
+  height: 18px;
   cursor: row-resize;
   touch-action: none;
   outline: none;
@@ -1604,17 +1589,14 @@ blockquote {
 .docs-example-demo {
   display: flex;
   flex-direction: column;
-  min-height: 0;
   padding: 0;
   border-radius: 18px;
-  overflow: auto;
 }
 .docs-example-demo-stage {
   display: flex;
-  flex: 1 0 auto;
   align-items: center;
   justify-content: center;
-  min-height: 100%;
+  min-height: 140px;
   padding: 32px 28px;
   border: 0;
   border-radius: 18px;
@@ -1624,20 +1606,17 @@ blockquote {
 }
 .docs-example-caption {
   margin: 0;
-  padding: 0 14px 6px;
+  padding: 8px 14px 4px;
   font: 400 13px/18px var(--font-body);
   font-style: normal;
   color: var(--ink-muted);
 }
-/* Phones: a shorter panel, a tighter stage, and a todo row keeps its
-   Remove button beside the text. */
+/* Phones: a tighter stage, and a todo row keeps its Remove button beside
+   the text. */
 @media (max-width: 760px) {
   .docs-content .docs-example-header {
     flex-direction: row;
     align-items: center;
-  }
-  .docs-example-split {
-    height: clamp(460px, 80vh, 600px);
   }
   .docs-content .docs-example-demo-stage {
     padding: 24px 16px;

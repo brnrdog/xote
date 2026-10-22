@@ -1,194 +1,128 @@
-// A live example in the docs, inside the article column: the code on top, the
-// running demo underneath, and a divider between them that can be dragged (or
-// moved with the arrow keys, Home and End) to give either side more room.
-// Pointing a mouse at either side slides the divider to show more of it.
+// A live example in the docs, inside the article column: the code on top and
+// the running demo underneath, always shown in full. The divider between them
+// sets how much of the code is visible: drag it, or use the arrow keys, Home
+// and End. Code taller than its pane scrolls.
 
 @send external setPointerCapture: (Dom.element, int) => unit = "setPointerCapture"
 @get external currentTarget: Dom.event => Dom.element = "currentTarget"
 @get external pointerId: Dom.event => int = "pointerId"
 @get external clientY: Dom.event => float = "clientY"
 @get external key: Dom.event => string = "key"
-@get external pointerType: Dom.event => string = "pointerType"
 @send external preventDefault: Dom.event => unit = "preventDefault"
 @send external getBoundingClientRect: Dom.element => {"height": float} = "getBoundingClientRect"
-@get @return(nullable) external firstElementChild: Dom.element => option<Dom.element> = "firstElementChild"
 @get external scrollHeight: Dom.element => float = "scrollHeight"
-@val @scope("window") external innerHeight: float = "innerHeight"
 
-// Height the panel is designed around (see .docs-example-split in site.css);
-// used to size the code pane to its content before anything is measured.
-let designHeight = 640.0
-let lineHeight = 22.4
-let minShare = 0.15
-let maxShare = 0.85
-// Vertical padding of the demo stage, and the divider's height.
-let stagePadding = 64.0
-let dividerHeight = 16.0
-// The code pane's filename row.
-let codeHeader = 36.0
-
-let clamp = share => Math.max(minShare, Math.min(maxShare, share))
-
-// The code pane's starting share of the panel: enough for the code, but never
-// so much that the demo has no room.
-// Which side the mouse is over, if any.
-type focus = Neither | Code | Demo
-
-let initialShare = (code: string) => {
-  let lines = code->String.split("\n")->Array.length->Int.toFloat
-  Math.max(0.3, Math.min(0.5, (lines *. lineHeight +. 72.0) /. designHeight))
-}
+// The code pane's height before anyone drags: at most this, less when the
+// code is shorter (see .docs-example-code-pre in site.css).
+let defaultCodeHeight = 440.0
+// The smallest the code pane gets: the filename row and a few lines.
+let minCodeHeight = 96.0
+let keyStep = 44.0
 
 @xote.component
 let make = (~filename, ~code, ~caption=?, ~children=?) => {
-  let codePane = (~ref=?, ~onPointerEnter=?) =>
-    <div ?onPointerEnter class="docs-example-code">
-      <div class="docs-example-header">
-        <span class="docs-example-filename"> {filename} </span>
-      </div>
-      <pre ?ref class="docs-example-code-pre">
-        <code> {SyntaxHighlight.highlight(code)} </code>
-      </pre>
-    </div>
-
   switch children {
-  | None => <section class="docs-example-panel"> {codePane()} </section>
+  | None =>
+    <section class="docs-example-panel">
+      <div class="docs-example-code">
+        <div class="docs-example-header">
+          <span class="docs-example-filename"> {filename} </span>
+        </div>
+        <pre class="docs-example-code-pre">
+          <code> {SyntaxHighlight.highlight(code)} </code>
+        </pre>
+      </div>
+    </section>
   | Some(children) =>
-    let defaultShare = initialShare(code)
-    let share = Signal.make(defaultShare)
+    // The code pane's height once the divider has moved; None keeps the CSS
+    // default.
+    let codeHeight: Signal.t<option<float>> = Signal.make(None)
     let dragging = Signal.make(false)
-    let split = View.Ref.make()
-    let stage = View.Ref.make()
-    let codePre = View.Ref.make()
-    // The panel's height once measured; until then CSS gives it a default.
-    let height: Signal.t<option<float>> = Signal.make(None)
-    // Where a drag started: pointer position, share, and panel height.
-    let start = ref((0.0, defaultShare, designHeight))
-    // The mouse's side, and the shares that show all of the code or all of
-    // the demo (measured on mount; these defaults apply until then).
-    let focus = Signal.make(Neither)
-    let codeFull = ref(0.75)
-    let demoFull = ref(0.25)
+    let pane = View.Ref.make()
+    let pre = View.Ref.make()
+    // Where a drag started: pointer position and pane height.
+    let start = ref((0.0, defaultCodeHeight))
 
-    // The divider's position on screen: the chosen share, moved out of the
-    // way of whichever side the mouse is over (never moved the other way).
-    let shown = Computed.make(() =>
-      switch Signal.get(focus) {
-      | Neither => Signal.get(share)
-      | Code => Math.max(Signal.get(share), codeFull.contents)
-      | Demo => Math.min(Signal.get(share), demoFull.contents)
+    let currentHeight = () =>
+      switch View.Ref.peek(pane) {
+      | Some(el) => getBoundingClientRect(el)["height"]
+      | None => defaultCodeHeight
       }
-    )
 
-    let pointAt = (side, event) =>
-      if pointerType(event) == "mouse" && !Signal.peek(dragging) {
-        Signal.set(focus, side)
+    // Tallest useful height: the whole file and its filename row.
+    let fullHeight = () =>
+      switch (View.Ref.peek(pre), View.Ref.peek(pane)) {
+      | (Some(preEl), Some(paneEl)) =>
+        scrollHeight(preEl) +. getBoundingClientRect(paneEl)["height"] -.
+        getBoundingClientRect(preEl)["height"]
+      | _ => defaultCodeHeight
       }
+
+    let resize = height =>
+      Signal.set(codeHeight, Some(Math.max(minCodeHeight, Math.min(fullHeight(), height))))
 
     let onPointerDown = event => {
-      let handle = currentTarget(event)
-      setPointerCapture(handle, pointerId(event))
-      let height = switch View.Ref.peek(split) {
-      | Some(el) => getBoundingClientRect(el)["height"]
-      | None => designHeight
-      }
-      // Grab the divider where it is shown, and make that the chosen share.
-      let from = Signal.peek(shown)
-      Signal.batch(() => {
-        Signal.set(share, from)
-        Signal.set(focus, Neither)
-        Signal.set(dragging, true)
-      })
-      start := (clientY(event), from, height)
+      setPointerCapture(currentTarget(event), pointerId(event))
+      start := (clientY(event), currentHeight())
+      Signal.set(dragging, true)
       preventDefault(event)
     }
 
     let onPointerMove = event =>
       if Signal.peek(dragging) {
-        let (y, from, height) = start.contents
-        Signal.set(share, clamp(from +. (clientY(event) -. y) /. height))
+        let (y, from) = start.contents
+        resize(from +. clientY(event) -. y)
       }
 
     let stopDragging = _ => Signal.set(dragging, false)
 
-    // Once on the page, size the panel to fit both the code and the demo, up
-    // to most of the window. When both can't fit, the demo gets what it needs
-    // (up to 72%) and the code scrolls in the rest.
-    View.onMount(() =>
-      switch (
-        View.Ref.peek(codePre),
-        View.Ref.peek(stage)->Option.flatMap(firstElementChild),
-      ) {
-      | (Some(pre), Some(demo)) =>
-        let codeNeeded = scrollHeight(pre) +. codeHeader
-        let demoNeeded = getBoundingClientRect(demo)["height"] +. stagePadding
-        let limit = Math.min(innerHeight *. 0.88, 860.0)
-        let wanted = codeNeeded +. demoNeeded +. dividerHeight
-        let total = Math.min(wanted, limit)
-        let demoShare = Math.min((demoNeeded +. dividerHeight) /. total, 0.72)
-        Signal.set(height, Some(total))
-        Signal.set(share, wanted <= limit ? codeNeeded /. total : clamp(1.0 -. demoShare))
-        codeFull := Math.min(0.8, codeNeeded /. total)
-        demoFull := Math.max(0.2, 1.0 -. (demoNeeded +. dividerHeight) /. total)
-      | _ => ()
-      }
-    )
-
-    let onKeyDown = event => {
-      let step = 0.05
+    let onKeyDown = event =>
       switch key(event) {
       | "ArrowUp" =>
         preventDefault(event)
-        Signal.set(share, clamp(Signal.peek(shown) -. step))
+        resize(currentHeight() -. keyStep)
       | "ArrowDown" =>
         preventDefault(event)
-        Signal.set(share, clamp(Signal.peek(shown) +. step))
+        resize(currentHeight() +. keyStep)
       | "Home" =>
         preventDefault(event)
-        Signal.set(share, minShare)
+        resize(minCodeHeight)
       | "End" =>
         preventDefault(event)
-        Signal.set(share, maxShare)
+        resize(fullHeight())
       | _ => ()
       }
-    }
 
-    let percent = value => Float.toFixed(value *. 100.0, ~digits=1)
-
-    <section class="docs-example-panel">
+    <section class={Signal.get(dragging) ? "docs-example-panel is-dragging" : "docs-example-panel"}>
       <div
-        ref=split
-        class={Signal.get(dragging) ? "docs-example-split is-dragging" : "docs-example-split"}
-        onPointerLeave={_ => Signal.set(focus, Neither)}
-        style={`grid-template-rows: ${percent(Signal.get(shown))}% auto minmax(0, 1fr)` ++
-        switch Signal.get(height) {
-        | Some(px) => `; height: ${Float.toFixed(px, ~digits=0)}px`
+        ref=pane
+        class={Signal.get(codeHeight) == None ? "docs-example-code" : "docs-example-code is-sized"}
+        style={switch Signal.get(codeHeight) {
+        | Some(px) => `height: ${Float.toFixed(px, ~digits=0)}px`
         | None => ""
         }}>
-        {codePane(~ref=codePre, ~onPointerEnter=pointAt(Code, _))}
-        <div
-          class="docs-example-divider"
-          role="separator"
-          tabIndex=0
-          ariaLabel="Resize code and demo"
-          attrs=[
-            View.attr("aria-orientation", "horizontal"),
-            View.attr("aria-valuemin", "15"),
-            View.attr("aria-valuemax", "85"),
-            View.computedAttr("aria-valuenow", () =>
-              Float.toFixed(Signal.get(shown) *. 100.0, ~digits=0)
-            ),
-          ]
-          onPointerDown
-          onPointerMove
-          onPointerUp=stopDragging
-          onPointerCancel=stopDragging
-          onKeyDown>
-          <span class="docs-example-grip" />
+        <div class="docs-example-header">
+          <span class="docs-example-filename"> {filename} </span>
         </div>
-        <div class="docs-example-demo" onPointerEnter={pointAt(Demo, _)}>
-          <div ref=stage class="docs-example-demo-stage"> {children} </div>
-        </div>
+        <pre ref=pre class="docs-example-code-pre">
+          <code> {SyntaxHighlight.highlight(code)} </code>
+        </pre>
+      </div>
+      <div
+        class="docs-example-divider"
+        role="separator"
+        tabIndex=0
+        ariaLabel="Resize the code"
+        attrs=[View.attr("aria-orientation", "horizontal")]
+        onPointerDown
+        onPointerMove
+        onPointerUp=stopDragging
+        onPointerCancel=stopDragging
+        onKeyDown>
+        <span class="docs-example-grip" />
+      </div>
+      <div class="docs-example-demo">
+        <div class="docs-example-demo-stage"> {children} </div>
       </div>
       {switch caption {
       | Some(text) => <div class="docs-example-caption"> {text} </div>
