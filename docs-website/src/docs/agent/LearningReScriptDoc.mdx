@@ -1,0 +1,170 @@
+## Summary
+
+ReScript facts an agent needs to produce Xote code that compiles on the first try: the syntax that differs from JavaScript/TypeScript, the typing rules that most often cause compile errors, the JS-interop patterns the Xote docs use (`@val`, `@get`, `@send`, `@scope`, `@return(nullable)`), and ReScript 12 specifics. Everything here was checked against ReScript 12.2. The rule that matters most: ReScript has no implicit conversions and no `null`/`undefined` in normal code; absence is `option<'a>`, and every conversion is an explicit function call.
+
+## Availability
+
+| Item | Value |
+| --- | --- |
+| Compiler | ReScript 12 (`rescript` npm package); Xote's PPX is built for ReScript 12's ppx ABI |
+| Standard library | ReScript 12 built-in core modules (`Array`, `String`, `Int`, `Float`, `Option`, `Promise`, `Dict`, `Console`, `Math`, `Nullable`, `JSON`); `@rescript/core` is not needed |
+| Commands | `npx rescript` (build), `npx rescript watch` (watch), `npx rescript clean`, `npx rescript format` |
+
+## Rules
+
+1. Statements need no semicolons; the last expression of a block is its value. `let` bindings are immutable; mutable state uses `ref(x)` (read `r.contents`, write `r := v`) or `mutable` record fields.
+2. Functions are `(a, b) => body`. Labeled arguments are `~name`; callers MUST pass them as `~name=value` (an unlabeled argument in that position is a compile error: "The argument at this position should be labelled."). Optional labeled arguments are `~name: t=?` and arrive as `option<t>` inside the function; callers pass a plain `t` (`~greeting="Hi"`) or omit it.
+3. `option<'a>` (`Some(x)` / `None`) replaces `null`/`undefined`. JS values that may be `null` are typed `Nullable.t<'a>` and converted with `Nullable.toOption`. The literal `null` has type `nullable<'a>`, not `option`.
+4. Array indexing `xs[i]` returns `option<'a>`. Use `switch`, `Option.getOr`, or `Array.getUnsafe(xs, i)` when the index is known to be valid.
+5. Numbers: `int` and `float` are distinct. In ReScript 12, `+ - * /` work on both, but both operands MUST have the same type (`1 + 2.0` is an error: "You can convert float to int with Float.toInt"). Convert with `Int.toFloat`, `Float.toInt`. `int` division truncates. The float-specific operators `+. -. *. /.` still exist.
+6. Strings concatenate with `++` (or `+` in ReScript 12). Non-strings MUST be converted (`Int.toString`, `Float.toString`, `Float.toFixed(~digits=1)`); `"n=" ++ 3` is an error. Template strings use backticks: `` `Hello, ${name}` `` where `name` MUST be a string.
+7. Parsing returns options: `Int.fromString("42")`, `Float.fromString("1.5")`.
+8. Records `{id: 1, name: "Ada"}` need a declared type; copy-update is `{...r, name: "Grace"}`. JS objects are a separate type written `{"value": string}` and accessed with `obj["value"]`.
+9. Variants (`type status = Loading | Ready(string)`) are matched with `switch`. A non-exhaustive `switch` is **warning 8**, not an error by default: the build succeeds and the missing case throws at runtime. Treat warning 8 as an error.
+10. `==` is structural equality, `===` is reference equality. Signals compare with `===` by default, so a structurally equal new record still notifies.
+11. Pipe: `x->f(y)` is `f(x, y)`. Xote APIs are designed for `->` (`count->Signal.get`, `weather->Resource.value`).
+12. Async: `let f = async () => …`, `await` inside. An `async` function returns `promise<'a>`; using it as `'a` is an error with the hint "Did you mean to await this promise before using it?". Promise helpers: `Promise.resolve`, `Promise.thenResolve`, `Promise.catch`, `->ignore` to discard.
+13. Exceptions: `exception NotFound(string)`; raise with `throw(NotFound("x"))` (ReScript 12); catch with `try expr catch { | NotFound(_) => … }`. JS errors appear as `JsExn`.
+14. Reserved words cannot be field or prop names: `type` → `type_`, `for` → `for_` in Xote JSX (rendered as `type`/`for`). React's `className` is not a prop; use `class`.
+15. Every `.res` file is a module named after the file (`Counter.res` → `Counter`); a module cannot reference itself by name; submodules are `module Name = { … }`.
+16. JSX: a component is a module whose `make` is annotated `@xote.component` (or `@jsx.component`); props are `make`'s labeled arguments; one component per module.
+17. Unused values produce warnings, not errors. `let _ = expr` or `expr->ignore` discards a value.
+
+## Mapping
+
+| JavaScript / TypeScript | ReScript |
+| --- | --- |
+| `const x = 1` | `let x = 1` |
+| `let x = 1; x = 2` | `let x = ref(1)`, `x := 2`, `x.contents` |
+| `null`, `undefined`, `x ?? d` | `None`, `option`, `x->Option.getOr(d)` |
+| `x?.y` | `x->Option.map(v => v.y)` |
+| `arr[0]` | `arr[0]` (returns `option`), `arr->Array.getUnsafe(0)` |
+| `a === b` | `a === b` (reference), `a == b` (structural) |
+| `"a" + 1` | `"a" ++ Int.toString(1)` |
+| `parseInt(s)` | `Int.fromString(s)` (option) |
+| `{ ...obj, k: v }` | `{...record, k: v}` |
+| `obj.prop` on untyped JS | `obj["prop"]` with an object type `{"prop": t}` |
+| `async/await` | `async`/`await` |
+| `throw new Error(m)` | `throw(Failure(m))` or a custom `exception` |
+| `switch` with `default` | exhaustive `switch`, `| _ => …` as catch-all |
+| `enum` / tagged union | variant |
+| `console.log` | `Console.log`, `Console.log2` |
+| `setTimeout(f, 100)` | `setTimeout(f, 100)` via `@val external` |
+| `e.target.value` | `@get external target: Dom.event => {"value": string} = "target"` then `target(e)["value"]` |
+| `e.preventDefault()` | `@send external preventDefault: Dom.event => unit = "preventDefault"` |
+| `document.getElementById(id)` | `@val @scope("document") @return(nullable) external getElementById: string => option<Dom.element> = "getElementById"` |
+| `JSX className=` | `class=` |
+| `<input type="text">` | `<input type_="text" />` |
+
+## Patterns
+
+Labeled and optional arguments:
+
+```rescript
+let greet = (~name: string, ~greeting: option<string>=?) =>
+  greeting->Option.getOr("Hello") ++ ", " ++ name
+
+let a = greet(~name="Ada")
+let b = greet(~name="Ada", ~greeting="Hi")
+```
+
+DOM interop used across the Xote docs:
+
+```rescript
+@val external setTimeout: (unit => unit, int) => int = "setTimeout"
+@val @scope("window") external innerWidth: int = "innerWidth"
+@get external target: Dom.event => {"value": string} = "target"
+@send external preventDefault: Dom.event => unit = "preventDefault"
+@val @scope("document") @return(nullable)
+external getElementById: string => option<Dom.element> = "getElementById"
+@val external querySelector: string => Nullable.t<Dom.element> = "document.querySelector"
+
+let el: option<Dom.element> = querySelector(".x")->Nullable.toOption
+```
+
+Reading an input's value in a Xote handler:
+
+```rescript
+let text = Signal.make("")
+
+@xote.component
+let make = () =>
+  <input value={Signal.get(text)} onInput={event => Signal.set(text, target(event)["value"])} />
+```
+
+Async with typed JSON:
+
+```rescript
+type response
+type user = {id: int, name: string}
+@val external fetch: string => promise<response> = "fetch"
+@send external json: response => promise<user> = "json"
+
+let loadUser = async (id: int) => {
+  let response = await fetch(`/api/users/${Int.toString(id)}`)
+  await json(response)
+}
+```
+
+Variants and exhaustive matching:
+
+```rescript
+type status = Loading | Ready(string) | Failed(exn)
+
+let label = status =>
+  switch status {
+  | Loading => "…"
+  | Ready(text) => text
+  | Failed(_) => "error"
+  }
+```
+
+Exceptions:
+
+```rescript
+exception NotFound(string)
+
+let check = id => id > 0 ? id : throw(NotFound("bad id"))
+let safe = try check(-1) catch {
+| NotFound(_) => 0
+}
+```
+
+## Anti-patterns
+
+`let y = xs[0] + 1` → error "This has type: option<int> But it's expected to have type: int" → `xs[0]->Option.getOr(0) + 1` or `Array.getUnsafe`.
+
+`let n: option<int> = null` → error "This has type: nullable<'a>" → `None`.
+
+`"n=" ++ count` with `count: int` → error "string concatenation is expecting: string" with the hint "You can convert int to string with Int.toString." → `"n=" ++ Int.toString(count)`.
+
+`f("x")` for `let f = (~name) => …` → error "The argument at this position should be labelled." → `f(~name="x")`.
+
+`let z: int = load()` for an `async` function → error "This has type: promise<int>" → `await load()` inside an `async` function, or `load()->Promise.thenResolve(…)`.
+
+`switch status { | Loading => … }` missing cases → warning 8 "You forgot to handle a possible case here" and a runtime `Match_failure` → handle every case.
+
+## Edge cases
+
+- `Obj.magic` converts any type to any type with no check; use only at JS boundaries, never to silence a type error in Xote code.
+- Externals are not checked against the JS implementation; a wrong external signature compiles and fails at runtime.
+- Object types (`{"value": string}`) are structural and open to mismatch; records are nominal.
+- `Float.toFixed(~digits=1)` returns a string and rounds the binary value (`273.15` → `"273.1"`).
+- `Math.Int.random(min, max)` returns an integer in `[min, max)`.
+
+## SSR and hydration
+
+Not applicable to the language itself. Note only that module-level code runs at import time, on the server as well as in the browser: do not call DOM externals at module top level in server-rendered apps.
+
+## Verify
+
+- `npx rescript` exit code 0; read every "We've found a bug for you!" block top to bottom: the first line gives the file and position, then "This has type / But it's expected to have type", then a hint.
+- Treat warning 8 (non-exhaustive match) and warning 26/27 (unused variable, often a mistyped name) as errors.
+- `npx rescript format` normalises syntax and reveals parse errors.
+
+## Related
+
+- `/docs/quick-start` — project setup and Xote-specific compile errors.
+- `/docs/learn/components` — components, props, children.
+- `/docs/guides/forms` — event interop for inputs.
+- Official docs: https://rescript-lang.org/docs/manual/latest/introduction

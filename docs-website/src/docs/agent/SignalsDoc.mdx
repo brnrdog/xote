@@ -1,0 +1,237 @@
+## Summary
+
+A **signal** (`Signal.t<'a>`) is a writable reactive cell. `Signal.get` returns its value and, inside a tracking scope, records it as a dependency; `Signal.set` / `Signal.update` write it and, when the value changed by the signal's equality function, re-run every dependent effect **synchronously, before the write returns** (unless inside `Signal.batch` or an in-progress flush). The rule that matters most: read with `Signal.get` where the value is used (JSX, computed, effect), never cache it in a component body.
+
+## Availability
+
+| Item | Value |
+| --- | --- |
+| Module | `Xote.Signal` (re-export of `rescript-signals` 3.1.x `Signals.Signal`) |
+| Import / entry | `xote` (with `"-open Xote"`: `Signal.*`), also `xote/signal` |
+| First stable version | All functions on this page are in 7.1.0 stable (and earlier) |
+| Pre-release changes | None to this API in 7.2.0-beta |
+| Requires `@xote.component` (PPX) | No. The PPX only changes how reads inside JSX become reactive leaves |
+
+## Rules
+
+1. `Signal.make(v)` creates a signal holding `v`. It has no owner: a signal is plain data and is never disposed; it is garbage-collected when unreachable.
+2. `Signal.get(s)` returns the current value. Inside a tracking scope (computed function, effect function, reactive leaf, `View.tracked` block, resource fetch before its first `await`) it records `s` as a dependency of that scope. Outside any tracking scope it is a plain read.
+3. `Signal.peek(s)` returns the current value and never records a dependency. `Signal.untrack(fn)` runs `fn` with dependency recording disabled for every read inside it and returns `fn`'s result.
+4. `Signal.set(s, v)` compares `v` with the current value using the signal's equality function (default: JavaScript strict equality `===`; replaced by `~equals` at `make`). If they are equal, `set` does nothing: no write, no notification.
+5. If the equality function throws, the value is treated as changed.
+6. When the value changed, `set` stores it, marks dependent computeds dirty (transitively) and queues dependent effects, then flushes the queue **synchronously**: queued effects run before `set` returns.
+7. Inside `Signal.batch(fn)`, or while the scheduler is already flushing (for example a `set` inside an effect), the flush is deferred to the end of the outermost batch / the current flush. The written value is visible immediately to `get` and `peek`.
+8. `Signal.update(s, f)` is `Signal.set(s, f(current))`. It reads the current value without recording a dependency, so calling it inside an effect does not subscribe the effect to `s`.
+9. Each queued effect runs at most once per flush, even if several of its dependencies changed. Effects are run in ascending "level" order: an effect whose dependencies include computeds that depend on other computeds runs after effects with shallower dependencies. Do not rely on the relative order of sibling effects.
+10. Reads are glitch-free: a computed read during a flush is recomputed on read if any of its sources changed, so an effect never observes a computed that is out of date relative to the signals it was derived from.
+11. Equality is on the value as stored. Mutating an object/array in place and calling `set` with the same reference is a no-op under the default equality (same reference `===`). Always write a new value.
+12. `~name` is a debugging label stored on the cell (visible in a debugger as the record's `name` field). Xote 7.x does not read it; no warning or devtool output uses it.
+13. `Signal.t<'a>` is abstract. A computed is also a `Signal.t<'a>` and type-checks with `set`/`update`; see Anti-patterns for why you MUST NOT write to a computed.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `Signal.make` | `('a, ~name: string=?, ~equals: ('a, 'a) => bool=?) => Signal.t<'a>` | New signal; `~equals` decides whether `set` notifies. |
+| `Signal.get` | `Signal.t<'a> => 'a` | Read; tracked inside a tracking scope. |
+| `Signal.peek` | `Signal.t<'a> => 'a` | Read; never tracked. Recomputes a dirty computed first. |
+| `Signal.set` | `(Signal.t<'a>, 'a) => unit` | Write; no-op if equal; flushes dependents synchronously unless batching. |
+| `Signal.update` | `(Signal.t<'a>, 'a => 'a) => unit` | `set(s, f(current))`; does not subscribe the caller. |
+| `Signal.batch` | `(unit => 'a) => 'a` | Defers the flush until the outermost batch returns; returns `fn`'s result. |
+| `Signal.untrack` | `(unit => 'a) => 'a` | Runs `fn` with all reads untracked; returns its result. |
+
+## Patterns
+
+Module-level state shared by the whole app. Use when one value is shared everywhere (current user, theme).
+
+```rescript
+// Session.res
+let currentUser: Signal.t<option<string>> = Signal.make(None)
+let signIn = name => Signal.set(currentUser, Some(name))
+let signOut = () => Signal.set(currentUser, None)
+```
+
+Component-local state. Use when each instance needs its own value; create it in the component body.
+
+```rescript
+module Counter = {
+  @xote.component
+  let make = () => {
+    let count = Signal.make(0)
+    <button onClick={_ => Signal.update(count, n => n + 1)}>
+      {"Clicked "}
+      {Signal.get(count)}
+    </button>
+  }
+}
+```
+
+Derived update from the current value. Use `update` (not `set(s, get(s) + 1)`) so the caller never subscribes by accident.
+
+```rescript
+let todos = Signal.make(["write docs"])
+let add = text => Signal.update(todos, list => Array.concat(list, [text]))
+let remove = index => Signal.update(todos, list => list->Array.filterWithIndex((_, i) => i != index))
+```
+
+Structural equality for records/arrays. Use when equal-by-value writes should not notify.
+
+```rescript
+type point = {x: int, y: int}
+let position = Signal.make({x: 0, y: 0}, ~equals=(a, b) => a.x == b.x && a.y == b.y)
+Signal.set(position, {x: 0, y: 0}) // equal: no dependent runs
+```
+
+Read a value without subscribing. Use when an effect needs a value but must not re-run when it changes.
+
+```rescript
+let query = Signal.make("")
+let pageSize = Signal.make(20)
+Effect.run(() => {
+  let q = Signal.get(query) // dependency
+  let size = Signal.peek(pageSize) // not a dependency
+  Console.log2(q, size)
+  None
+})
+```
+
+## Anti-patterns
+
+1. Mutating in place.
+
+```rescript
+let items = Signal.make([1, 2])
+let add = n => {
+  let current = Signal.peek(items)
+  current->Array.push(n)->ignore
+  Signal.set(items, current) // same reference: equal under ===
+}
+```
+
+Symptom: the array changes but nothing on the page updates and no effect runs. Fix: write a new value.
+
+```rescript
+let items = Signal.make([1, 2])
+let add = n => Signal.update(items, list => Array.concat(list, [n]))
+```
+
+Why: rule 11. Equality is checked on the reference.
+
+2. Caching a read in the component body.
+
+```rescript
+let count = Signal.make(0)
+module Label = {
+  @xote.component
+  let make = () => {
+    let value = Signal.get(count) // component body: runs once, untracked
+    <span> {value} </span>
+  }
+}
+```
+
+Symptom: the label shows the initial value forever. Fix: read in the JSX.
+
+```rescript
+let count = Signal.make(0)
+module Label = {
+  @xote.component
+  let make = () => <span> {Signal.get(count)} </span>
+}
+```
+
+Why: the component body is not a tracking scope; the PPX turns reads in JSX into reactive leaves, not reads in the body.
+
+3. `set` from `get` inside an effect.
+
+```rescript
+let count = Signal.make(0)
+Effect.run(() => {
+  Signal.set(count, Signal.get(count) + 1) // subscribes to count, then changes it
+  None
+})
+```
+
+Symptom: the effect re-runs after each of its own writes; with a value that always changes it never settles (an unbounded loop that hangs the page). Fix: use `update` (untracked read) and make the write conditional, or move the logic out of the effect (event handler, computed).
+
+```rescript
+let count = Signal.make(0)
+let increment = () => Signal.update(count, n => n + 1) // call from an event handler
+```
+
+Why: rules 2, 6, 7. An effect that writes a signal it depends on is re-queued in the same flush.
+
+4. Writing to a computed.
+
+```rescript
+let base = Signal.make(1)
+let doubled = Computed.make(() => Signal.get(base) * 2)
+Signal.set(doubled, 100) // type-checks
+```
+
+Symptom: dependents briefly see `100`, then the next change to `base` silently replaces it with the computed value. Fix: write the source signal (`Signal.set(base, 50)`), or make the value a plain signal if it is user-editable.
+
+Why: a computed is a `Signal.t` for reading; its value is owned by its function.
+
+5. Passing a value where a signal is needed.
+
+```rescript
+module Badge = {
+  @xote.component
+  let make = (~count: int) => <span> {count} </span>
+}
+// <Badge count={Signal.get(total)} />  — evaluated once at the call site
+```
+
+Symptom: the badge never updates. Fix: type the prop as `Signal.t<int>` (or `MaybeSignal.t<int>`) and read it inside.
+
+```rescript
+module Badge = {
+  @xote.component
+  let make = (~count: Signal.t<int>) => <span> {Signal.get(count)} </span>
+}
+```
+
+## Edge cases
+
+- `peek` and `get` on a dirty computed both recompute it first; `peek` just does not subscribe.
+- A `set` inside an effect does not flush immediately; it joins the current flush. Code after the `set` inside the same effect runs before other effects react.
+- `Signal.batch` that throws: the exception propagates, and effects queued by writes inside it are **not** run at that point; they run on the next flush caused by any later write anywhere. Do not throw inside a batch; validate before writing, so a batch either completes or writes nothing.
+- An effect that throws during a flush (outside an error boundary) propagates out of the `set`/`update`/`batch` call that triggered the flush, and effects queued after it in that flush do not run then. They (and the throwing effect, if still queued) run on the next flush. Do not let effects throw; see the Effects page.
+- `~equals` is called with `(current, next)`. It is also used when the signal is written with `update`.
+- There is no `subscribe` API. To react to a signal outside the view, use `Effect.run` / `Effect.runWithDisposer`.
+- Signals are synchronous: there is no microtask delay between `set` and the DOM update of the reactive leaves that read it.
+
+## SSR and hydration
+
+- During `SSR.renderToString` / `SSR.renderDocument`, reactive leaves read signals once at their current value; there is no later update on the server.
+- Module-level signals in a server process are shared by every request. Request-specific state MUST be created inside the rendered component tree (or passed through `Context`), not at module level.
+- To carry a server value to the client, use `SSRState` (see `/docs/advanced/ssr`); hydration does not transfer signal values by itself.
+
+## Verify
+
+- Type errors: `This has type: int  But it's expected to have type: Signal.t<int>` means a value was passed where a signal is required (anti-pattern 5); the reverse means `Signal.get` is missing.
+- A minimal behaviour check (Node, no DOM needed):
+
+```rescript
+let count = Signal.make(0)
+let seen = []
+Effect.run(() => {
+  seen->Array.push(Signal.get(count))->ignore
+  None
+})
+Signal.set(count, 1)
+Signal.set(count, 1) // equal: no run
+// seen == [0, 1]
+```
+
+- In the browser: a leaf that reads the signal must change immediately after the write (synchronously), without any `await`.
+
+## Related
+
+- `/docs/learn/computeds` — derive values from signals instead of copying them into other signals.
+- `/docs/learn/effects` — the only way to react to a signal outside the view; owner and cleanup rules.
+- `/docs/advanced/batching` — group several writes into one flush.
+- `/docs/thinking-in-signals` — the component-runs-once model behind rule 2.
+- `/docs/api/signal` — full reference with doc comments from `src/Signal.resi`.
+- `/docs/glossary` — terms used on this page.

@@ -1,0 +1,187 @@
+## Summary
+
+`Context` makes a value available to everything a component renders without passing it through intermediate components. A provision is scoped to the providing component instance: only its rendered subtree sees it, and two instances can provide different values. Context values are not reactive by themselves; to share something that changes, provide a `Signal.t` and read it with `Signal.get` where it is displayed. `Context.use` MUST be called in a component body (during render); outside a render it returns the default.
+
+## Availability
+
+| Item | Module / entry | Stable since | Pre-release | PPX required |
+| --- | --- | --- | --- | --- |
+| `Context.make`, `Context.use`, `Context.provide`, `Context.provider`, `<Context.Provider>` | `xote` · `xote/context` | — | 7.2.0-beta.2, not in 7.1.0 stable | no |
+
+On 7.1.0 stable there is no context: use module-level signals, or pass signals as props.
+
+## Rules
+
+1. `Context.make(default)` declares a context of type `Context.t<'a>`. Each call creates a distinct context; identity is the value returned, so declare contexts once, at module level, and share that binding.
+2. `Context.use(ctx)` returns the value of the nearest provider above the calling component, or `default` when there is none.
+3. Call `Context.use` in a component body. The value it returns is fixed for that render. Reads inside effects created by the body, and inside reactive regions the body renders (`View.tracked`, `View.Show`, `View.For`, `if`/`switch` regions, keyed rows built on later updates), see the same provisions on every later run.
+4. Outside a render — event handlers, timers, promise callbacks, module level — there is no provider in scope and `Context.use` returns the default. Read the value in the body and close over it.
+5. `Context.provide(ctx, value)` provides `value` to everything the calling component renders (its result). It MUST be called in a component body; anywhere else (module level, event handler, inside an effect even on its first run) it throws a JavaScript `Error`: "[Xote] Context.provide was called outside a component body. Call it while the component renders, or use <Context.Provider>."
+6. A provision is visible only to the providing component's result: siblings, the component's parent and anything rendered outside it never see it. The nearest provider wins.
+7. `<Context.Provider context=ctx value=v> children </Context.Provider>` and `Context.provider(ctx, v, children)` provide `v` to `children`; they are equivalent to calling `provide` in a component that renders `children`.
+8. `value` is a user-component prop: `value={Signal.get(x)}` is a one-shot read. Providing a value does not make it reactive. To let consumers follow changes, provide the `Signal.t` (or a `Computed`) itself, and have consumers read it with `Signal.get` in their JSX.
+9. Each instance of a component that calls `Context.provide(ctx, Signal.make(...))` in its body provides its own signal; this is the mechanism for per-instance shared state (tabs, forms, accordions).
+10. A component body that throws leaves no provision behind.
+11. `View.onMount` callbacks, portal children (`View.Portal`) and error boundary subtrees run under the context of the place they are rendered.
+12. A region outside a provider keeps its own (outer) context even when a write inside the provider is what caused it to update.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `Context.make` | `'a => Context.t<'a>` | Declares a context with a default. |
+| `Context.use` | `Context.t<'a> => 'a` | Nearest provided value, or the default. |
+| `Context.provide` | `(Context.t<'a>, 'a) => unit` | Provides to the calling component's result; body only. |
+| `Context.provider` | `(Context.t<'a>, 'a, View.node) => View.node` | Function form of `Provider`. |
+| `Context.Provider` | props `{context: Context.t<'value>, value: 'value, children?: View.node}` | Component form. |
+
+## Patterns
+
+Static value with a default. Use when: configuration a subtree reads (theme name, locale) that does not change after render.
+
+```rescript
+let theme = Context.make("light")
+
+module Badge = {
+  @xote.component
+  let make = () => <span class={Context.use(theme)}> {"New"} </span>
+}
+
+module Page = {
+  @xote.component
+  let make = () =>
+    <div>
+      <Badge /> // "light"
+      <Context.Provider context=theme value="dark">
+        <Badge /> // "dark"
+      </Context.Provider>
+    </div>
+}
+```
+
+Per-instance shared state. Use when: a compound component's parts share state and each instance needs its own copy.
+
+```rescript
+let selection: Context.t<Signal.t<int>> = Context.make(Signal.make(0))
+
+module Tab = {
+  @xote.component
+  let make = (~index: int, ~label: string) => {
+    let selected = Context.use(selection)
+    <button
+      class={Signal.get(selected) == index ? "tab active" : "tab"}
+      onClick={_ => Signal.set(selected, index)}>
+      {label}
+    </button>
+  }
+}
+
+module Tabs = {
+  @xote.component
+  let make = (~children: View.node) => {
+    Context.provide(selection, Signal.make(0))
+    <div role="tablist"> {children} </div>
+  }
+}
+
+<Tabs> <Tab index=0 label="One" /> <Tab index=1 label="Two" /> </Tabs>
+```
+
+Value used in an event handler. Use when: a handler needs the context value.
+
+```rescript
+module Logger = {
+  @xote.component
+  let make = () => {
+    let current = Context.use(theme) // read during render
+    <button onClick={_ => Console.log(current)}> {"Log theme"} </button>
+  }
+}
+```
+
+Function form. Use when: building nodes without JSX components.
+
+```rescript
+let node = Context.provider(theme, "contrast", <Badge />)
+```
+
+### Context or module-level signal
+
+| Need | Use |
+| --- | --- |
+| One value for the whole client app | Module-level `Signal.make` (simpler, no provider). |
+| Different values for different subtrees | Context. |
+| One copy per instance of a component | Context providing a `Signal.make` created in that component's body. |
+| Per-request data during SSR | Context (module-level signals are shared by all requests in a server process). |
+
+## Anti-patterns
+
+Reading context in an event handler.
+
+```rescript
+<button onClick={_ => Console.log(Context.use(theme))}> {"Log"} </button>
+```
+
+Symptom: always logs the default (`"light"`), even under a provider. Fix: read in the body (`let current = Context.use(theme)`) and use `current` in the handler. Why: handlers run outside any render, where no provider is in scope.
+
+Providing a snapshot.
+
+```rescript
+<Context.Provider context=theme value={Signal.get(themeSignal)}> {children} </Context.Provider>
+```
+
+Symptom: consumers keep the first value after `themeSignal` changes. Fix: declare `Context.t<Signal.t<string>>`, provide `themeSignal`, and read `Signal.get(Context.use(theme))` in consumers' JSX.
+
+Declaring a context inside a component.
+
+```rescript
+@xote.component
+let make = (~children: View.node) => {
+  let local = Context.make(0) // a new context per instance
+  Context.provide(local, 1)
+  children
+}
+```
+
+Symptom: consumers that `use` a module-level context never see this value (different identity). Fix: declare the context once at module level and `provide` it in the body.
+
+Calling `provide` outside a body.
+
+```rescript
+Effect.run(() => {
+  Context.provide(theme, "dark")
+  None
+})
+```
+
+Symptom: throws "[Xote] Context.provide was called outside a component body…". Fix: call `Context.provide` directly in the body, or use `<Context.Provider>`.
+
+Expecting a sibling to see a provision.
+
+Symptom: a component next to (not inside) the provider reads the default. Fix: move the provider up so both are inside it.
+
+## Edge cases
+
+- The default given to `Context.make` is one value shared by every reader without a provider. A default `Signal.make(0)` is therefore one global signal for all unprovided readers.
+- `Context.use` in a body that is re-run (branch swap, keyed row rebuilt, boundary `reset`) reads the current provision at that time.
+- Contexts are not typed by name: two `Context.make("light")` calls are unrelated contexts of the same type.
+- Nothing is reactive about switching providers: a consumer is not moved between providers; it keeps what it read in its body.
+
+## SSR and hydration
+
+- Server rendering sees provided values like the client; context is the correct place for per-request data (current user, locale, request URL) because it does not outlive the render.
+- Hydration re-runs bodies on the client, so providers MUST provide the same values on both sides (for example, transfer request data with `SSRState` and provide it on the client).
+
+## Verify
+
+- jsdom: render `<Badge />` outside and inside a provider; assert the two class names differ.
+- Two `<Tabs>` instances: click a tab in one; assert the other's active tab is unchanged.
+- Handler reads: assert a handler that closes over a body read sees the provided value.
+- Runtime error text "Context.provide was called outside a component body" means a `provide` call outside a body (rule 5).
+
+## Related
+
+- `/docs/learn/components` — state placement table.
+- `/docs/learn/signals` — providing signals for reactive context.
+- `/docs/advanced/ssr` — per-request data and state transfer.
+- `/docs/learn/lifecycle` — `onMount`, portals and boundaries run under the render's context.

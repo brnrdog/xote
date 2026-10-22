@@ -1,0 +1,268 @@
+## Summary
+
+An **effect** is a function that runs immediately, records the signals it reads (tracked), and runs again synchronously whenever one of them changes. It returns `None` or `Some(cleanup)`; the cleanup runs before the next run and when the effect is disposed. Effects are for work outside the reactive graph (DOM APIs, timers, storage, network, logging). The most important rule: an effect created while a component renders is owned by that component and disposed with it; an effect created anywhere else (module level, event handler, inside another effect, a promise callback) has no owner and lives until you dispose it.
+
+## Availability
+
+| Item | Value |
+| --- | --- |
+| Module | `Xote.Effect` (wraps `rescript-signals` 3.1.x `Signals.Effect`) |
+| Import / entry | `xote` (with `"-open Xote"`: `Effect.*`), also `xote/effect` |
+| First stable version | `Effect.run`, `Effect.runWithDisposer`, `Effect.disposer` are in 7.1.0 stable. Ownership by the rendering component is in 7.1.0 |
+| Pre-release (7.2.0-beta, not in 7.1.0 stable) | Effects run under the `Context` and `View.ErrorBoundary` they were created under (failures go to the boundary); `View.onMount` / `View.onCleanup` |
+| Requires `@xote.component` (PPX) | No |
+
+## Rules
+
+1. `Effect.run(fn)` calls `fn` synchronously, under tracking, before returning. Every `Signal.get` during that call is a dependency.
+2. When any dependency changes (by `set`/`update` with a non-equal value, or a dependency computed recomputing and propagating), the effect is queued and runs once in the next flush, which happens synchronously inside the `set` (or at the end of the outermost `Signal.batch`).
+3. Dependencies are re-collected on every run; signals not read in the latest run are no longer dependencies.
+4. Before each re-run, the cleanup returned by the previous run (if `Some`) is called. On disposal, the pending cleanup is called exactly once. A cleanup runs while the effect is re-tracking, so a `Signal.get` inside a cleanup subscribes the effect to that signal. A cleanup MUST NOT call `Signal.get`; read with `Signal.peek` if it needs a value.
+5. `fn` must return `option<unit => unit>`: `None` or `Some(cleanup)`. Returning a value of another type is a compile error.
+6. **Ownership.** An effect created while a component renders (in the component body, or synchronously during the render) is registered with that component's owner and disposed when the component is removed (its branch switches, its list item is removed, its boundary resets). Since 7.2.0-beta, an effect created inside `View.onMount` is owned the same way.
+7. An effect created outside any render (module level, an event handler, a `setTimeout`/promise callback, or **inside another effect's function**) has no owner. It lives until its disposer is called; `Effect.run` returns no disposer, so such an effect lives for the rest of the page.
+8. `Effect.runWithDisposer(fn)` is `Effect.run` that also returns `{dispose}`. `dispose()` runs the pending cleanup, unsubscribes, and drops any queued run; calling it again is a no-op. It is still owned by the rendering component when created during a render.
+9. An effect that writes to a signal it depends on is re-queued within the same flush. If the written value keeps changing, the flush never ends (the page hangs). Writes to signals the effect does not depend on are safe and join the current flush.
+10. Ordering: effects queued in one flush run in ascending level order (effects whose dependencies are deeper computed chains run later). Among effects at the same level, order is not part of the contract; do not rely on it.
+11. Errors: if `fn` throws on its first run, `Effect.run` throws. If it throws on a re-run and the effect was created under a `View.ErrorBoundary` (7.2.0-beta), the boundary shows its fallback. Otherwise the exception propagates out of the `Signal.set` / `update` / `batch` that triggered the flush, the remaining queued effects of that flush do not run, and they run (including a still-queued throwing effect) on the next flush anywhere. Effects MUST NOT throw; catch inside the effect.
+12. `Signal.peek` and `Signal.untrack` read without subscribing; `Signal.update` reads the current value without subscribing.
+13. Effects are not for computing values. If the effect's only job is to `set` a signal from other signals, use a computed.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `Effect.run` | `(unit => option<unit => unit>, ~name: string=?) => unit` | Run now and on every dependency change; owned by the rendering component if created during a render. |
+| `Effect.runWithDisposer` | `(unit => option<unit => unit>, ~name: string=?) => Effect.disposer` | Same, and returns a handle for manual disposal. |
+| `Effect.disposer` | `{dispose: unit => unit}` | `dispose()` runs the pending cleanup and stops the effect; idempotent. |
+| `View.onMount` | `(unit => unit) => unit` | 7.2.0-beta. Runs after the component's DOM is in the document; never on the server; effects created inside are owned by the component. |
+| `View.onCleanup` | `(unit => unit) => unit` | 7.2.0-beta. Registers a callback that runs when the component is removed. |
+
+## Patterns
+
+Timer with cleanup. Use for intervals, timeouts and listeners whose lifetime follows a signal.
+
+```rescript
+@val external setInterval: (unit => unit, int) => int = "setInterval"
+@val external clearInterval: int => unit = "clearInterval"
+
+let intervalMs = Signal.make(1000)
+let ticks = Signal.make(0)
+Effect.run(() => {
+  let id = setInterval(() => Signal.update(ticks, n => n + 1), Signal.get(intervalMs))
+  Some(() => clearInterval(id))
+})
+```
+
+Effect owned by a component. Use when the work should stop when the component is removed.
+
+```rescript
+@val external setTimeout: (unit => unit, int) => int = "setTimeout"
+@val external clearTimeout: int => unit = "clearTimeout"
+
+module Autosave = {
+  @xote.component
+  let make = (~draft: Signal.t<string>) => {
+    let status = Signal.make("Saved")
+    Effect.run(() => {
+      let text = Signal.get(draft)
+      Signal.set(status, "Saving…")
+      let id = setTimeout(() => {
+        Console.log2("saved", text)
+        Signal.set(status, "Saved")
+      }, 600)
+      Some(() => clearTimeout(id))
+    })
+    <p> {Signal.get(status)} </p>
+  }
+}
+```
+
+Effect with a manual lifetime. Use for app-level effects created outside components that must be stopped on a condition.
+
+```rescript
+let online = Signal.make(true)
+let watcher = Effect.runWithDisposer(() => {
+  Console.log2("online:", Signal.get(online))
+  None
+})
+let stopWatching = () => watcher.dispose()
+```
+
+Browser-only work in a server-rendered app. Use `View.onMount` (7.2.0-beta) or, on 7.1.0, guard with `SSRContext.isClient`.
+
+```rescript
+@val external document: Dom.document = "document"
+@set external setTitle: (Dom.document, string) => unit = "title"
+
+module Title = {
+  @xote.component
+  let make = (~title: Signal.t<string>) => {
+    if SSRContext.isClient {
+      Effect.run(() => {
+        setTitle(document, Signal.get(title))
+        None
+      })
+    }
+    View.null()
+  }
+}
+```
+
+Stale-response guard for async work. Use when an effect starts a request whose result must be ignored once inputs change.
+
+```rescript
+let userId = Signal.make(1)
+let name = Signal.make("")
+let fetchName: int => promise<string> = id => Promise.resolve("user " ++ Int.toString(id))
+
+Effect.run(() => {
+  let stale = ref(false)
+  fetchName(Signal.get(userId))
+  ->Promise.thenResolve(result =>
+    if !stale.contents {
+      Signal.set(name, result)
+    }
+  )
+  ->ignore
+  Some(() => stale := true)
+})
+```
+
+For data loading prefer `Resource` (7.2.0-beta, `/docs/learn/async-data`), which implements this guard.
+
+## Anti-patterns
+
+1. Effect as a computed.
+
+```rescript
+let price = Signal.make(10)
+let quantity = Signal.make(2)
+let total = Signal.make(0)
+Effect.run(() => {
+  Signal.set(total, Signal.get(price) * Signal.get(quantity))
+  None
+})
+```
+
+Symptom: an extra signal that can drift (anyone can `set` it), stale values inside a batch. Fix:
+
+```rescript
+let price = Signal.make(10)
+let quantity = Signal.make(2)
+let total = Computed.make(() => Signal.get(price) * Signal.get(quantity))
+```
+
+2. Creating an effect inside an effect.
+
+```rescript
+let section = Signal.make("home")
+let scroll = Signal.make(0)
+Effect.run(() => {
+  let _ = Signal.get(section)
+  Effect.run(() => { // not owned by the outer effect
+    Console.log(Signal.get(scroll))
+    None
+  })
+  None
+})
+```
+
+Symptom: every change to `section` adds one more inner effect; all of them keep running (duplicate logs, leaked listeners). Fix: create the inner effect once, or use `runWithDisposer` and dispose it from the outer effect's cleanup.
+
+```rescript
+let section = Signal.make("home")
+let scroll = Signal.make(0)
+Effect.run(() => {
+  let _ = Signal.get(section)
+  let inner = Effect.runWithDisposer(() => {
+    Console.log(Signal.get(scroll))
+    None
+  })
+  Some(() => inner.dispose())
+})
+```
+
+3. Subscribing to what you write.
+
+```rescript
+let count = Signal.make(0)
+Effect.run(() => {
+  Signal.set(count, Signal.get(count) + 1)
+  None
+})
+```
+
+Symptom: the page hangs (rule 9). Fix: do the write in an event handler, or use `Signal.update` plus a condition so the value settles.
+
+4. Effect in an event handler.
+
+```rescript
+let query = Signal.make("")
+let onFocus = (_: Dom.event) =>
+  Effect.run(() => { // new, unowned effect on every focus
+    Console.log(Signal.get(query))
+    None
+  })
+```
+
+Symptom: one more effect per event, never disposed. Fix: create the effect once (component body or module level) and let the handler only write signals.
+
+5. Missing cleanup.
+
+```rescript
+@val external setInterval: (unit => unit, int) => int = "setInterval"
+let rate = Signal.make(1000)
+Effect.run(() => {
+  let _ = setInterval(() => Console.log("tick"), Signal.get(rate))
+  None
+})
+```
+
+Symptom: each change to `rate` starts another interval; old ones never stop. Fix: return `Some(() => clearInterval(id))` (see Patterns).
+
+## Edge cases
+
+- An effect body that reads no signals runs once and never again; it is still owned (and its cleanup run on disposal) when created during a render.
+- `Signal.set` inside an effect does not flush immediately; it joins the current flush.
+- Disposing an effect that is already queued drops the queued run (rescript-signals 3.1.3+); the cleanup still runs exactly once.
+- A component body runs once and untracked; an effect inside it is the only way that component reacts to signals outside its JSX.
+- `~name` is a debugging label stored on the effect; Xote does not read it.
+- Effects run synchronously inside the triggering `set`; long work in an effect blocks the write. Defer heavy work with `setTimeout` from the effect (and clear it in cleanup).
+
+## SSR and hydration
+
+- `Effect.run` has no server guard. An effect created while `SSR.renderToString` / `SSR.renderDocument` renders a component **runs once on the server**, and it is **not disposed** when the render ends: it stays subscribed to the signals it read. In a long-running server, effects that read module-level signals therefore leak and react to later writes. Guard browser-only effects with `SSRContext.isClient`, or create them in `View.onMount` (7.2.0-beta), which never runs on the server.
+- During hydration the component bodies run again on the client, so client effects are created then; nothing is transferred from the server's effects.
+- Resources (7.2.0-beta) do not fetch during a server render; prefer them over effects for data.
+
+## Verify
+
+- A compile error saying `This has type: unit` where `option<unit => unit>` is expected means the effect function did not end with `None` / `Some(cleanup)`.
+- Ownership check in jsdom: mount a component that creates an effect, remove it (toggle a condition), write the dependency, and assert the effect did not run and its cleanup ran once.
+- Minimal behaviour check:
+
+```rescript
+let n = Signal.make(0)
+let log = []
+let handle = Effect.runWithDisposer(() => {
+  let v = Signal.get(n)
+  log->Array.push("run " ++ Int.toString(v))->ignore
+  Some(() => log->Array.push("cleanup " ++ Int.toString(v))->ignore)
+})
+Signal.set(n, 1)
+handle.dispose()
+handle.dispose() // no-op
+Signal.set(n, 2) // no run
+// log == ["run 0", "cleanup 0", "run 1", "cleanup 1"]
+```
+
+## Related
+
+- `/docs/learn/computeds` — use instead of effects that only derive values.
+- `/docs/learn/lifecycle` — `View.onMount`, `View.onCleanup`, error boundaries (7.2.0-beta).
+- `/docs/learn/async-data` — `Resource` for data loading with built-in staleness handling.
+- `/docs/advanced/batching` — how several writes collapse into one effect run.
+- `/docs/advanced/ssr` — server rendering, `SSRContext.isClient`.
+- `/docs/api/effect` — full reference from `src/Effect.resi`.
+- `/docs/glossary` — terms used on this page.

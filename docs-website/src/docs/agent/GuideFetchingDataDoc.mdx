@@ -1,0 +1,310 @@
+## Summary
+
+Load remote data with `Resource.make`: it runs an async function inside an effect, exposes the outcome as a signal of `Resource.state<'a>` (`Pending | Ready('a) | Refreshing('a) | Failed(exn)`), refetches when a signal read before the first `await` changes, and lets only the latest fetch settle. Use an `Effect` only for fire-and-forget work or when you need full manual control. The one rule that matters most: read every input signal **before the first `await`** of the fetch, or changes to it will not refetch.
+
+## Availability
+
+| Item | Import / entry | First stable | Pre-release only | Needs the PPX |
+| --- | --- | --- | --- | --- |
+| `Resource` (`make`, `refetch`, `mutate`, `value`, `isLoading`) | `xote`, `xote/resource` | — | pre-release: 7.2.0-beta, not in 7.1.0 stable | No |
+| `View.Suspense` | `xote` | — | pre-release: 7.2.0-beta, not in 7.1.0 stable | No |
+| `View.ErrorBoundary` | `xote` | — | pre-release: 7.2.0-beta, not in 7.1.0 stable | No |
+| `Effect.run` with cleanup (manual fetching on 7.1.0) | `xote`, `xote/effect` | stable (all 7.x) | — | No |
+| `SSRState` (`sync`, `signal`, `generateScript`, `clear`, `Codec`) | `xote`, `xote/ssr-state` | 7.0.0 | — | No |
+
+On 7.1.0 stable, implement fetching with `Effect.run` plus a status signal and a stale flag (pattern below); `Resource` is not available.
+
+## Rules
+
+1. `Resource.make(fetch)` starts the first fetch immediately (in an effect). The returned value is a `Signal.t<Resource.state<'a>>`; read it with `Signal.get` (tracked) or `Signal.peek`.
+2. The fetch's **dependencies** are the signals it reads (tracked) synchronously, i.e. before its first `await`. A change to any of them starts a new fetch. Reads after an `await` are not tracked.
+3. Only the latest fetch can settle the state. A response from an earlier fetch that arrives late is discarded. Earlier requests are not aborted; they run to completion in the background (there is no `AbortSignal` integration).
+4. State transitions: first fetch → `Pending`; success → `Ready(v)`; a later fetch while a value exists → `Refreshing(previous)`; a fetch that throws or rejects → `Failed(exn)`; a fetch after `Failed` → `Pending`.
+5. `Resource.refetch(r)` fetches again with the same dependencies (state `Refreshing(v)`, or `Pending` after a failure). It does nothing for a resource created during a server render.
+6. `Resource.mutate(r, v)` sets `Ready(v)` immediately and drops any fetch in flight. The next dependency change or `refetch` fetches again.
+7. A resource created in a component body is owned by that component: removing the component disposes the resource and ignores its in-flight fetch. A resource created at module level has no owner and lives for the lifetime of the page (or server process).
+8. A resource created under a `View.Suspense` makes that suspense show its `fallback` until the resource's **first** fetch settles. Later refetches (`Refreshing`) never bring the fallback back.
+9. During a server render (`SSR.renderToString`/`renderDocument`) a resource created by the render does not fetch and stays `Pending`. A resource created outside a render (module level) in a server process does fetch, and its state is shared by every request that process serves.
+10. To send a failure to the nearest `View.ErrorBoundary`, throw it where the state is read in a reactive leaf: `| Failed(exn) => throw(exn)`.
+11. Debouncing is not built in. Use an effect that copies an input signal into a query signal after a timer, with the timer cleared in the effect's cleanup; the resource reads only the query signal.
+12. `SSRState.sync`/`register`/`signal` record the signal's encoded value **at the moment they are called**. Call `sync` after the data is loaded on the server; calling it again for the same id overwrites the recorded value.
+
+### Effect or resource?
+
+| Need | Use |
+| --- | --- |
+| Show data with loading/error states | `Resource.make` |
+| Refetch when inputs change, ignore stale responses | `Resource.make` (built in) |
+| Wait for several loads before showing a region | `Resource` under `View.Suspense` |
+| Optimistic update after a write | `Resource.mutate` then `Resource.refetch` |
+| Fire-and-forget request (analytics, autosave) whose result is not shown | `Effect.run` |
+| Polling, websockets, subscriptions | `Effect.run` with cleanup |
+| 7.1.0 stable (no `Resource`) | `Effect.run` + status signal + stale flag |
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `Resource.state<'a>` | `Pending \| Ready('a) \| Refreshing('a) \| Failed(exn)` | Where the resource stands. |
+| `Resource.t<'a>` | `Signal.t<state<'a>>` | A resource is a signal. |
+| `Resource.make` | `(unit => promise<'a>) => t<'a>` | Creates and starts fetching; owned by the current component, if any. |
+| `Resource.refetch` | `t<'a> => unit` | Fetches again with the same dependencies. |
+| `Resource.mutate` | `(t<'a>, 'a) => unit` | Sets `Ready(value)`, drops in-flight fetch. |
+| `Resource.value` | `state<'a> => option<'a>` | `Some` for `Ready`/`Refreshing`. |
+| `Resource.isLoading` | `state<'a> => bool` | `true` for `Pending`/`Refreshing`. |
+| `View.Suspense` | props `fallback?: View.node`, `children?: View.node` | Fallback until resources created below settle once. |
+| `View.ErrorBoundary` | props `fallback: (exn, unit => unit) => View.node`, `onError?: exn => unit`, children | Catches render/leaf/effect errors below; second fallback argument is `reset`. |
+| `SSRState.sync` | `(string, Signal.t<'a>, Codec.t<'a>) => unit` | Server: records current value. Client: restores it. |
+| `SSRState.signal` | `(string, 'a, Codec.t<'a>) => Signal.t<'a>` | `Signal.make` + `sync` at creation time. |
+| `SSRState.generateScript` | `(~nonce: string=?) => string` | `<script>` with all recorded values. |
+| `SSRState.clear` | `unit => unit` | Empties the server registry; call once per request. |
+
+## Patterns
+
+**Load in a component** — Use when: a view shows remote data with all states handled.
+
+```rescript
+module Profile = {
+  @xote.component
+  let make = (~id: string) => {
+    let user = Resource.make(() => loadUser(id))
+    <section>
+      {switch Signal.get(user) {
+      | Pending => <p> {"Loading…"} </p>
+      | Failed(_) => <p> {"Could not load this profile."} </p>
+      | Ready(user) | Refreshing(user) =>
+        <div>
+          <h2> {user.name} </h2>
+          <p> {user.email} </p>
+        </div>
+      }}
+    </section>
+  }
+}
+```
+
+`loadUser: string => promise<user>` is any function returning a promise (e.g. a `fetch` wrapper). The exhaustive `switch` makes the compiler enforce the `Failed` branch.
+
+**Refetch on input change** — Use when: pagination, filters, route params. Read inputs first in an `async` fetch:
+
+```rescript
+let page = Signal.make(1)
+
+let todos = Resource.make(async () => {
+  let page = Signal.get(page) // tracked: before the first await
+  await waitForAuth()
+  await loadTodos(~page)
+})
+```
+
+**Debounced search** — Use when: a query comes from typing.
+
+```rescript
+@xote.component
+let make = () => {
+  let text = Signal.make("")
+  let query = Signal.make("")
+
+  Effect.run(() => {
+    let next = Signal.get(text)
+    let id = setTimeout(() => Signal.set(query, next), 300)
+    Some(() => clearTimeout(id))
+  })
+
+  let results = Resource.make(() => searchFruits(Signal.get(query)))
+
+  <p> {Resource.isLoading(Signal.get(results)) ? "Searching…" : "Done"} </p>
+}
+```
+
+The effect and the resource are created in the component body, so both are disposed with the component.
+
+**Optimistic update, then reconcile** — Use when: the user adds or edits an item.
+
+```rescript
+let addTodo = async (todo: todo) => {
+  switch Signal.peek(todos)->Resource.value {
+  | Some(list) => Resource.mutate(todos, [...list, todo])
+  | None => ()
+  }
+  await saveTodo(todo)
+  Resource.refetch(todos)
+}
+```
+
+**Parallel requests** — Use when: one view needs several results. Either combine in one resource (one state for all):
+
+```rescript
+let both = Resource.make(() => Promise.all2((loadUser("ada"), loadTodos(~page=1))))
+```
+
+or create one resource per component and wrap the region in `View.Suspense`, which waits for every resource created inside it:
+
+```rescript
+<View.Suspense fallback={<p> {"Loading your dashboard…"} </p>}>
+  <Profile id="ada" />
+  <TodoPages />
+</View.Suspense>
+```
+
+**Route failures to an error boundary** — Use when: a failure should replace a whole region with a retryable panel.
+
+```rescript
+module UserName = {
+  @xote.component
+  let make = (~id: string) => {
+    let user = Resource.make(() => loadUser(id))
+    <p>
+      {switch Signal.get(user) {
+      | Failed(error) => throw(error)
+      | Pending => ""
+      | Ready(user) | Refreshing(user) => user.name
+      }}
+    </p>
+  }
+}
+```
+
+Wrap the caller in `<View.ErrorBoundary fallback={(_error, reset) => …}>`; `reset` re-creates the subtree, which creates a new resource and fetches again.
+
+**Manual fetching on 7.1.0 stable** — Use when: `Resource` is unavailable.
+
+```rescript
+type status = Loading | Ready | Failed
+
+@xote.component
+let make = () => {
+  let id = Signal.make("ada")
+  let status = Signal.make(Loading)
+  let name = Signal.make("")
+
+  Effect.run(() => {
+    let current = Signal.get(id)
+    let stale = ref(false)
+    Signal.set(status, Loading)
+    loadUser(current)
+    ->Promise.thenResolve(user =>
+      if !stale.contents {
+        Signal.batch(() => {
+          Signal.set(name, user.name)
+          Signal.set(status, Ready)
+        })
+      }
+    )
+    ->Promise.catch(_ => {
+      if !stale.contents {
+        Signal.set(status, Failed)
+      }
+      Promise.resolve()
+    })
+    ->ignore
+    Some(() => stale := true)
+  })
+
+  <p>
+    {switch Signal.get(status) {
+    | Loading => "Loading…"
+    | Failed => "Could not load."
+    | Ready => Signal.get(name)
+    }}
+  </p>
+}
+```
+
+**Data in server-rendered HTML** — Use when: crawlers or first paint need the data.
+
+```rescript
+// Shared module
+let posts: Signal.t<array<string>> = Signal.make([])
+let codec = SSRState.Codec.array(SSRState.Codec.string)
+
+// Server, per request
+let renderPage = async (app: unit => View.node) => {
+  SSRState.clear()
+  Signal.set(posts, await loadPosts())
+  SSRState.sync("posts", posts, codec) // after the value is final
+  SSR.renderDocument(~stateScript=SSRState.generateScript(), app)
+}
+
+// Client entry, before hydrating
+SSRState.sync("posts", posts, codec)
+```
+
+## Anti-patterns
+
+1. **Reading an input after `await`.**
+   Wrong: `Resource.make(async () => { await waitForAuth(); await loadTodos(~page=Signal.get(page)) })`.
+   Symptom: changing `page` does nothing; the list never refetches.
+   Right: `let page = Signal.get(page)` as the first statement, then the awaits.
+   Why: dependency tracking stops at the first `await`.
+
+2. **Creating a resource per keystroke or per event.**
+   Wrong: `onInput={e => results := Resource.make(() => search(value(e)))}`.
+   Symptom: leaked resources, no stale-response protection between them, state not wired to the view.
+   Right: one resource that reads a `query` signal; the handler only sets the signal.
+
+3. **`SSRState.signal` for data loaded later.**
+   Wrong: `let posts = SSRState.signal("posts", [], codec)` at module level, then `Signal.set(posts, await loadPosts())` on the server.
+   Symptom: the HTML contains the posts, but `window.__XOTE_STATE__` has `"posts":[]`; after hydration the client resets the list to empty.
+   Right: `Signal.make([])`, load, then `SSRState.sync("posts", posts, codec)` (or call `sync` again after loading).
+   Why: the value is encoded when `signal`/`sync` runs, not when `generateScript` runs.
+
+4. **Module-level resource on the server.**
+   Wrong: `let todos = Resource.make(() => loadTodos(~page=1))` in a module imported by the server entry.
+   Symptom: the server fetches at import time and every request shares one state; data can leak between users.
+   Right: create resources inside components (they do not fetch during server rendering), or load per request and transfer with `SSRState`.
+
+5. **Ignoring `Failed`.**
+   Wrong: `| _ => ""` swallowing every state other than `Ready`.
+   Symptom: a network error looks like an empty page forever.
+   Right: an explicit `Failed(_)` branch, or `throw` to an error boundary.
+
+## Edge cases
+
+- A non-`async` fetch such as `() => search(Signal.get(query))` evaluates `Signal.get(query)` synchronously while building the promise, so `query` is tracked.
+- Setting a dependency to an equal value (strict equality) does not notify and does not refetch.
+- `Refreshing(v)` keeps the previous value: render `Ready(v) | Refreshing(v)` together to avoid a loading flash, and use `Resource.isLoading` for a subtle indicator.
+- A rejected promise's payload arrives as `Failed(exn)`, with JavaScript errors wrapped as a ReScript exception. Model expected failures (404, validation) as values in the resolved data (for example a `result`) rather than matching on error messages.
+- `View.Suspense` only waits for resources **created** below it (by component bodies inside it), wherever they are read.
+- Debounce with `setTimeout` inside an effect requires the cleanup to call `clearTimeout`; without it, every keystroke eventually fires.
+- In tests, a resource settles after the promise microtasks run: await a `setTimeout(_, 0)` tick before asserting (see the Testing guide).
+
+## SSR and hydration
+
+- Resources created during a server render stay `Pending` and render their pending branch (or the nearest `Suspense` fallback). After hydration the browser fetches.
+- For data that must be in the HTML: load on the server, `SSRState.sync` after loading, emit `SSRState.generateScript()` (e.g. `~stateScript` of `SSR.renderDocument`), and call `SSRState.sync` with the same id and codec on the client before hydrating. `SSRState.restore` keeps the signal's current value when the id is missing or fails to decode.
+- Call `SSRState.clear()` at the start of each request in a long-lived server process; otherwise a previous request's values appear in the next response.
+
+## Verify
+
+- Compile: an incomplete `switch Signal.get(resource)` gives "this pattern-matching is not exhaustive" listing the missing constructor; add it.
+- Test (async Zekr suite, run from its own entry with `runAsyncSuites`):
+
+```rescript
+let settle = () => Promise.make((resolve, _) => setTimeout(() => resolve(), 0)->ignore)
+
+asyncTest("a later dependency change wins", async () => {
+  let id = Signal.make(1)
+  let resolvers: array<string => unit> = []
+  let user = Resource.make(() => {
+    let n = Signal.get(id)
+    Promise.make((resolve, _) => resolvers->Array.push(v => resolve(v ++ Int.toString(n)))->ignore)
+  })
+  Signal.set(id, 2)
+  (resolvers->Array.getUnsafe(1))("user")
+  await settle()
+  (resolvers->Array.getUnsafe(0))("user") // the stale response arrives last
+  await settle()
+  assertEqual(Signal.peek(user), Resource.Ready("user2"))
+}),
+```
+
+- Server state: in a Node script, call your server render and check the returned HTML contains `window.__XOTE_STATE__={"posts":[…]}` with the loaded values, not the initial ones.
+
+## Related
+
+- `/docs/learn/async-data` — `Resource` and `View.Suspense` reference.
+- `/docs/learn/lifecycle` — `View.ErrorBoundary`.
+- `/docs/learn/effects` — cleanups, ownership, manual fetching.
+- `/docs/advanced/ssr` — `SSRState`, rendering and hydration.
+- `/docs/guides/testing` — async test setup.

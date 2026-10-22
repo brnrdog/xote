@@ -1,0 +1,191 @@
+Definitions of the terms used across the Xote docs, each tied to the API that embodies it. Agent-layer pages use these terms with exactly these meanings. Terms marked **7.2.0-beta** refer to APIs that are pre-release and not in 7.1.0 stable.
+
+## Index
+
+| Term | One-line meaning | API |
+| --- | --- | --- |
+| [batch](#batch) | Defer reactions until a group of writes finishes | `Signal.batch` |
+| [component](#component) | A `make` function returning a `View.node`, run once | `@xote.component`, `@jsx.component` |
+| [component body](#component-body) | The code of `make` before the returned JSX; runs once, untracked | — |
+| [computed](#computed) | Derived, read-only reactive value | `Computed.make` |
+| [context](#context) | A value provided to a subtree (7.2.0-beta) | `Context.make`, `Context.use`, `Context.Provider` |
+| [dependency](#dependency) | A signal read (tracked) by a tracking scope | `Signal.get` |
+| [dispose](#dispose) | Stop an effect/computed/resource and release its subscriptions | `disposer.dispose`, `Computed.dispose` |
+| [effect](#effect) | Reactive side-effect function | `Effect.run`, `Effect.runWithDisposer` |
+| [error boundary](#error-boundary) | Catches failures in a subtree and renders a fallback (7.2.0-beta) | `View.ErrorBoundary` |
+| [flush](#flush) | The scheduler running queued effects after a write | — |
+| [hidden read](#hidden-read) | A signal read the PPX cannot see, compiled as a one-shot value | `View.probe` |
+| [hydrate](#hydrate) | Attach to server-rendered HTML instead of re-creating it | `Hydration.hydrate`, `Hydration.hydrateById` |
+| [hydration markers](#hydration-markers) | HTML comments that delimit reactive regions in server output | `<!--$-->`, `<!--#-->`, `<!--kl-->`, `<!--lc-->` |
+| [keyed list](#keyed-list) | A list whose items are matched by key across updates | `View.For` with `by`, `View.KeyedFor` |
+| [MaybeSignal](#maybesignal) | A value that is either static or a signal | `MaybeSignal.t`, `static`, `reactive`, `computed` |
+| [mount](#mount) | Insert a node tree into a DOM element | `View.mount`, `View.mountById` |
+| [owner](#owner) | The render scope that disposes what was created in it | — |
+| [portal](#portal) | Render children into another DOM element (7.2.0-beta) | `View.Portal` |
+| [PPX](#ppx) | The `@xote.component` compile-time transform | `"ppx-flags": ["xote/ppx/ppx"]` |
+| [reactive leaf](#reactive-leaf) | One attribute or text node whose value tracks signals | PPX output, thunks, `View.signalText` |
+| [reactive region](#reactive-region) | A child position whose node structure is rebuilt when signals change | `View.tracked`, `if`/`switch` in JSX |
+| [read (tracked)](#read-tracked) | A read that subscribes the current tracking scope | `Signal.get` |
+| [read (untracked)](#read-untracked) | A read that never subscribes | `Signal.peek`, `Signal.untrack` |
+| [ref](#ref) | A handle that receives a rendered DOM element (7.2.0-beta) | `View.Ref.make`, `ref=` prop |
+| [resource](#resource) | Async work as a signal of its loading state (7.2.0-beta) | `Resource.make` |
+| [server state transfer](#server-state-transfer) | Serialising signal values for the client | `SSRState` |
+| [signal](#signal) | Writable reactive cell | `Signal.make` |
+| [Suspense](#suspense) | Shows a fallback until resources below have loaded once (7.2.0-beta) | `View.Suspense` |
+| [tracking scope](#tracking-scope) | Code whose signal reads are recorded as dependencies | — |
+
+## Terms
+
+### batch
+
+`Signal.batch(fn)` runs `fn` and defers the [flush](#flush) to the end of the outermost batch, so each dependent effect runs at most once with the final values. Writes are visible to reads inside the batch immediately. Only synchronous code is batched.
+
+```rescript
+let firstName = Signal.make("Ada")
+let lastName = Signal.make("Lovelace")
+Signal.batch(() => {
+  Signal.set(firstName, "Grace")
+  Signal.set(lastName, "Hopper")
+})
+```
+
+### component
+
+A module whose `make` function takes labelled props and returns a `View.node`. Annotated with `@xote.component` (recommended; requires the [PPX](#ppx)) or `@jsx.component`. A component function runs once when rendered; it never re-runs. Updates happen in [reactive leaves](#reactive-leaf) and [reactive regions](#reactive-region). One component per module.
+
+### component body
+
+The statements inside a component's `make` before the returned JSX. Runs once, untracked: `Signal.get` here is a one-shot read. Use it to create local signals, computeds, effects and handlers.
+
+### computed
+
+`Computed.make(fn)` returns a read-only `Signal.t<'a>`. `fn` runs immediately, then lazily: a dependency change marks it dirty and it recomputes on the next read. Without `~equals`, every recompute propagates to dependents; with `~equals`, equal results do not.
+
+```rescript
+let price = Signal.make(10)
+let quantity = Signal.make(2)
+let total = Computed.make(() => Signal.get(price) * Signal.get(quantity))
+```
+
+### context
+
+**7.2.0-beta.** `Context.make(default)` creates a key; `Context.Provider` (or `Context.provider`, or `Context.provide` in a component body) supplies a value to a subtree; `Context.use(ctx)` reads the nearest provided value, or the default when there is none; call it in a component body, because outside a render (event handler, timer, module level) there is no provider above and it returns the default. Context values are not reactive by themselves; provide a `Signal.t` to share changing state.
+
+### dependency
+
+A signal that a [tracking scope](#tracking-scope) read with `Signal.get` during its latest run. When it changes (per its equality function), the scope is notified: an effect or leaf is queued, a computed is marked dirty. Dependencies are re-collected on every run.
+
+### dispose
+
+Stop a reactive object and release its subscriptions. Effects: `disposer.dispose()` from `Effect.runWithDisposer`, or automatically when their [owner](#owner) is removed. Computeds: automatically detach when they have no subscribers; `Computed.dispose` forces it. Resources (7.2.0-beta): disposed with the component that created them. Signals are never disposed.
+
+### effect
+
+`Effect.run(fn)` runs `fn` now and again whenever a [dependency](#dependency) changes. `fn` returns `None` or `Some(cleanup)`; the cleanup runs before the next run and on disposal. Owned by the rendering component when created during a render; otherwise unowned and permanent unless created with `Effect.runWithDisposer` and disposed.
+
+```rescript
+@val external setTimeout: (unit => unit, int) => int = "setTimeout"
+@val external clearTimeout: int => unit = "clearTimeout"
+
+let query = Signal.make("xote")
+Effect.run(() => {
+  let q = Signal.get(query)
+  let id = setTimeout(() => Console.log(q), 300)
+  Some(() => clearTimeout(id))
+})
+```
+
+### error boundary
+
+**7.2.0-beta.** `View.ErrorBoundary` with `fallback: (exn, unit => unit) => node` and optional `onError: exn => unit`. When anything in its subtree throws while rendering or updating (component bodies, reactive leaves and regions, effects created in the subtree), the subtree is disposed and `fallback(exn, retry)` renders; `retry()` renders the subtree again from scratch. Event handlers, timers and promise callbacks are not covered.
+
+### flush
+
+The scheduler running every queued effect and reactive leaf after a write. A `Signal.set` flushes synchronously before it returns, unless it happens inside a [batch](#batch) or during another flush, in which case it joins that one.
+
+### hidden read
+
+A `Signal.get` the [PPX](#ppx) cannot see because it happens inside a call into another module (for example `Store.count(store)` in JSX). The PPX compiles such a leaf as a one-shot value. Xote wraps unresolvable calls in `View.probe(site, thunk)`, which detects the read at runtime and logs a one-time development warning naming the site (disabled in production builds via `globalThis.__XOTE_DEV__` or `process.env.NODE_ENV`). Fix: inline the `Signal.get`, or wrap the value in a thunk `{() => Store.count(store)}`.
+
+### hydrate
+
+Make server-rendered HTML interactive without recreating it: `Hydration.hydrate(app, container)` / `Hydration.hydrateById(app, id)` walk the existing DOM, attach reactive leaves, regions and event handlers, and run component bodies on the client. The server output must come from the same component tree, rendered with `SSR.renderToStringWithRoot` or `SSR.renderDocument`.
+
+### hydration markers
+
+HTML comments in server output that delimit reactive parts so the client can find them: `<!--$-->…<!--/$-->` reactive text, `<!--#-->…<!--/#-->` reactive fragment/region, `<!--kl-->…<!--/kl-->` keyed list with `<!--k:KEY-->…<!--/k-->` per item, `<!--lc-->…<!--/lc-->` component boundary. Do not strip HTML comments from server output that will be hydrated.
+
+### keyed list
+
+A list rendered with a key per item: `View.For` with `by`, or `View.KeyedFor` (where `by` is required). On updates, items are matched by key: existing DOM nodes are moved, new ones created, missing ones removed (and their owners disposed). Keys MUST be stable and unique (ids, slugs), not array indexes.
+
+```rescript
+type todo = {id: string, text: string}
+let todos = Signal.make([{id: "1", text: "Write docs"}])
+
+@xote.component
+let make = () =>
+  <ul>
+    <View.For each={MaybeSignal.reactive(todos)} by={todo => todo.id} render={todo => <li> {todo.text} </li>} />
+  </ul>
+```
+
+### MaybeSignal
+
+`MaybeSignal.t<'a> = Reactive(Signal.t<'a>) | Static('a)`: a value that is either fixed or a signal, used for props and APIs that accept both. Construct with `MaybeSignal.static(v)`, `MaybeSignal.reactive(signal)` or `MaybeSignal.computed(fn)`; read with `MaybeSignal.get` (tracked) or `MaybeSignal.peek`. Props with a declared `MaybeSignal.t` type (for example `View.For`'s `each`) need the explicit wrapper; JSX attributes on HTML elements do not.
+
+### mount
+
+Insert a node tree into the document: `View.mountById(node, "app")` or `View.mount(node, element)`. For server-rendered pages use [hydrate](#hydrate) instead.
+
+### owner
+
+The render scope of a component (or region) that collects what is created while it renders: effects (`Effect.run`), resources, computeds the library builds for leaves, `View.onMount` / `View.onCleanup` callbacks. Removing the component disposes everything it owns. Code that runs later (event handlers, timers, promise callbacks, the body of an effect re-run) has no owner; effects created there are never disposed automatically.
+
+### portal
+
+**7.2.0-beta.** `View.Portal` renders its children into `target` (default `document.body`) and nothing at its own position. Children keep the portal's context and error boundary; DOM events bubble through the target. Renders nothing on the server.
+
+### PPX
+
+The native compile-time transform enabled by `"ppx-flags": ["xote/ppx/ppx"]`, activated per file by `@xote.component`. It derives props like `@jsx.component` and turns signal reads in JSX into [reactive leaves](#reactive-leaf) (attributes and bare children) and `if`/`switch` on signals into [reactive regions](#reactive-region). Props of user components are never transformed: a read there is one-shot. See `ppx/README.md`.
+
+### reactive leaf
+
+A single attribute or text node whose value is computed by a [tracking scope](#tracking-scope); when a dependency changes, only that attribute or text node is updated in place. Created by the PPX from `Signal.get` in JSX, or explicitly by passing a thunk (`class={() => …}`), a signal, `View.signalText`, `View.computedAttr`, or the value components `View.Text` / `View.Int` / `View.Float` / `View.Bool`.
+
+### reactive region
+
+A child position whose node structure can change: `View.tracked(() => node)`, or an `if`/`switch` on a signal inside JSX under the PPX. When its tracked condition changes, the region disposes its previous children and renders new ones; reactive leaves inside a PPX-decomposed branch stay fine-grained.
+
+### read (tracked)
+
+`Signal.get(s)` (also `MaybeSignal.get` of a reactive value) inside a [tracking scope](#tracking-scope): returns the value and records `s` as a [dependency](#dependency). Outside any tracking scope it is a plain read.
+
+### read (untracked)
+
+`Signal.peek(s)`, or any read inside `Signal.untrack(fn)`, or any read outside a tracking scope (for example in a [component body](#component-body) or an event handler). Returns the value without subscribing.
+
+### ref
+
+**7.2.0-beta.** `View.Ref.make()` creates a handle passed to an element's `ref` prop; it receives the element before `View.onMount` callbacks run and returns to `None` when the element is removed. Read with `View.Ref.peek` (untracked) or `View.Ref.get` (tracked). `View.Ref.fromCallback(f)` also calls `f` with each element. Always `None` on the server.
+
+### resource
+
+**7.2.0-beta.** `Resource.make(fetch)` returns `Resource.t<'a> = Signal.t<Resource.state<'a>>` with states `Pending`, `Ready(value)`, `Refreshing(previous)`, `Failed(exn)`. Signals read in `fetch` before its first `await` are its dependencies; a change fetches again and only the latest fetch can settle the state. `Resource.refetch`, `Resource.mutate`, `Resource.value`, `Resource.isLoading`. No fetch starts during a server render.
+
+### server state transfer
+
+Carrying signal values from the server render to the client: `SSRState.signal(key, initial, codec)` / `SSRState.sync(key, signal, codec)` / `SSRState.register` record values (at call time) under a key, `SSRState.generateScript()` serialises them into a script tag for `SSR.renderDocument(~stateScript=…)`, and the client restores them by key when it calls the same functions. Codecs live in `SSRState.Codec`: `int`, `float`, `string`, `bool`, `array`, `option`, `tuple2`, `tuple3`, `dict`, and `make(~encode, ~decode)` for custom types.
+
+### signal
+
+`Signal.make(v, ~equals=?, ~name=?)` creates a writable reactive cell `Signal.t<'a>`. `Signal.set` / `Signal.update` write it; a write equal to the current value (default `===`) is a no-op; otherwise dependents are flushed synchronously.
+
+### Suspense
+
+**7.2.0-beta.** `View.Suspense` with `fallback`. While any [resource](#resource) created by a component under it has not settled its first fetch, the fallback is shown instead of the children; later refetches do not bring the fallback back (the resource is `Refreshing`). On the server the fallback is rendered; hydration renders the children on the client.
+
+### tracking scope
+
+Code during which `Signal.get` records dependencies: a computed's function, an effect's function, a [reactive leaf](#reactive-leaf)'s value function, a `View.tracked` block, and a resource's fetch up to its first `await`. A [component body](#component-body), event handlers, timers and promise callbacks are not tracking scopes.

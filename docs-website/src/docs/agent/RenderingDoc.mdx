@@ -1,0 +1,272 @@
+## Summary
+
+Rendering in Xote builds DOM once and then updates individual reactive leaves (one attribute or one text node) and reactive regions (a branch of an `if`/`switch`, a list, a `View.tracked` block). Under `@xote.component`, the PPX decides at compile time which JSX positions become reactive by looking for signal reads in them. The rule that matters most: reactivity follows the expression in JSX position; a value computed outside JSX, or passed as a user-component prop, is read once.
+
+## Availability
+
+| Item | Module / entry | Stable since | Pre-release | PPX required |
+| --- | --- | --- | --- | --- |
+| Decomposition of an annotated component's returned JSX; bare `{…}` children via `View.child` | PPX + `xote` | 7.1.0 | — | yes |
+| Decomposition of JSX anywhere in an annotated file (helpers, `let`-bound JSX, render callbacks); `if`/`switch` regions track only their condition; local-helper and alias detection; `View.probe` warnings | PPX | — | 7.2.0-beta.1, not in 7.1.0 stable | yes |
+| `View.For`, `View.KeyedFor`, `View.Show`, `View.Maybe`, `View.Value`, `View.Text/Int/Float/Bool`, `View.tracked`, `View.render` | `xote` · `xote/view` | 7.1.0 | — | no |
+| `attrs` escape hatch, removable (optional) attributes | `XoteJSX` | 7.1.0 | — | no |
+| `ref` prop on elements | `XoteJSX` | — | 7.2.0-beta.2, not in 7.1.0 stable | no |
+
+## Rules
+
+### What becomes reactive under `@xote.component`
+
+1. An attribute value on an intrinsic element (`<div>`, `<input>`, …) that reads a signal is wrapped in a thunk and becomes a reactive attribute leaf (`View.computedAttr`). An attribute value that reads no signal stays static.
+2. A bare child `{expr}` is wrapped in `View.child`. If `expr` reads a signal eagerly, it is thunked first and becomes a reactive text leaf; otherwise it is coerced once.
+3. The child of `<View.Text>`, `<View.Int>`, `<View.Float>`, `<View.Bool>` that reads a signal is thunked into a reactive text leaf. These are recognised only when written qualified (`View.Text`), not after `open View` or `module V = View`.
+4. An `if`/`switch` child whose condition or scrutinee (including `when` guards) reads a signal becomes a reactive region (`View.tracked`) that tracks only the condition; leaves inside each branch stay independent reactive leaves (7.2.0-beta.1). When the condition's value changes, the selected branch is rebuilt from scratch (new DOM, new component instances); when only a leaf inside it changes, the branch DOM is kept.
+5. An `if`/`switch` whose condition reads no signal is not a reactive region; its branches are still decomposed.
+6. A user-component prop (`<Card label={…} />`) is never thunked: it is a read (untracked) at the call site. Exceptions: a prop whose value is JSX, or a function returning JSX (such as `render={item => <li>…</li>}`), is decomposed like other JSX.
+7. Event handler props (`onClick`, …), the `attrs` array and the `data` object are never thunked or probed. Entries of `attrs` and `data` carry their own reactivity: a signal or a thunk there is reactive; `Signal.get(x)` there is a one-shot value.
+8. Signal-read detection is syntactic. Detected: `Signal.get(x)`, `x->Signal.get`, `MaybeSignal.get`, `Prop.get`, `let`/`module`/`open` aliases of those, and local helpers whose body reads a signal eagerly (including helpers in a module defined in the same file). Not detected: reads behind a call into another module, or reached through a data structure. `Signal.peek` is never treated as a read.
+9. A read the PPX cannot see compiles to a one-shot value. In development builds `View.probe` reports it once at runtime: `[Xote] File.res:L:C: this value reads a signal through a call @xote.component cannot see …`. The fix is always to wrap the value in a thunk `() => …` (never double-wrapped).
+10. Binding a read to a name hoists it: `let label = Signal.get(x)` is one-shot. Bind a thunk instead (`let label = () => …`, then `{label()}` or `{label}`).
+
+### `View.child` coercions (bare children)
+
+11. A node passes through unchanged. A `Signal.t` or a thunk becomes reactive text. A string, int, float or bool becomes static text. An array becomes a fragment (nodes rendered as nodes, scalars as text). `null`/`undefined` render nothing. Any other object (record, variant, dict) renders `[object Object]` with a development warning; it is NOT a compile error under the PPX.
+
+### Attributes
+
+12. Typed attribute props accept a raw value, a `Signal.t`, a thunk `unit => 'a` or a `MaybeSignal.t`. A signal or thunk makes the attribute reactive without the PPX too.
+13. Use `class` (not `className`), `type_` for `type`, `for_` for `for`. Hyphenated names are not props: `data-x={…}` or `aria-controls={…}` is a compile error ("The field data-x does not belong to type Xote.XoteJSX.Elements.props"). Use `data` or `attrs`.
+14. `style` is a string (CSS text), not an object.
+15. Presence attributes `checked`, `disabled`, `required`, `readOnly` (→ `readonly`), `multiple`, `draggable`, `hidden`, `contentEditable`, `spellcheck`, `autofocus` take a `bool`: `true` writes the attribute with an empty value, `false` removes it.
+16. `ariaHidden`, `ariaExpanded`, `ariaSelected` take a `bool` and write the literal string `"true"` or `"false"` (enumerated ARIA attributes are never removed by `false`). `ariaLabel` takes a string.
+17. `maxLength`, `minLength`, `rows`, `cols`, `tabIndex` are typed `int` and are static only: a signal read there is a compile error under the PPX ("This has type: 'a => 'b … expected to have type: int"). For a reactive value, use `attrs` with `View.computedAttr("tabindex", () => …)`.
+18. `value` and `checked` are written as DOM properties, so setting the bound signal changes what the control shows (including clearing it).
+19. `attrs` is `array<(string, 'attrs)>`: all entries in one array MUST have the same type. Mix static and reactive entries by building every entry with `View.attr`, `View.signalAttr`, `View.computedAttr`, `View.optionalAttr`, `View.optionalSignalAttr` or `View.optionalComputedAttr` (all return `(string, View.attrValue)`). `attrs` entries are applied after typed props; for a duplicate key the last entry wins.
+20. An optional attribute value of `None` removes the attribute (`View.optionalAttr`, `View.optionalSignalAttr`, `View.optionalComputedAttr`, or `None` in `attrs`).
+21. `data` is an `Obj.t` (`data={Obj.magic({"theme": theme})}`); each key `k` is written as `data-k`. Values follow rule 12.
+
+### Events
+
+22. Event props take `Dom.event => unit` and are attached once (never reactive, never re-bound). Supported props: `onClick`, `onInput`, `onChange`, `onSubmit`, `onFocus`, `onBlur`, `onKeyDown`, `onKeyUp`, `onMouseEnter`, `onMouseLeave`, `onMouseDown`, `onMouseMove`, `onMouseUp`, `onContextMenu`, `onPointerDown`, `onPointerMove`, `onPointerUp`, `onPointerCancel`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`, `onGotPointerCapture`, `onLostPointerCapture`, `onDrag`, `onDragStart`, `onDragEnd`, `onDragOver`, `onDragEnter`, `onDragLeave`, `onDrop`. Other events: `View.element(tag, ~events=[("name", handler)], ())`.
+23. `onChange` is the native `change` event (fires on commit for text inputs); for per-keystroke updates use `onInput`. Xote has no synthetic event system and no helper to read `event.target.value`: declare a binding, for example `@get external target: Dom.event => {..} = "target"` and read `target(event)["value"]`.
+24. Handlers run outside any tracking scope; a `Signal.get` inside a handler subscribes nothing.
+
+### Lists
+
+25. Use `View.For` (key optional) or `View.KeyedFor` (key required) with `each: MaybeSignal.t<array<'item>>`: `MaybeSignal.reactive(signal)` or `MaybeSignal.static(array)`. `each` is a typed component prop, so passing a bare signal is a type error.
+26. Without `by`, every change of the array re-renders every row (no DOM reuse; focus and input state are lost). With `by`, rows are reconciled by key: a row is kept (moved if needed) only when both its key and its item are the same (`===`); an item replaced by a new value under the same key gets a newly built row.
+27. Keys MUST be stable and unique per item (ids, slugs). Array indexes as keys are wrong for insertions, removals and reordering.
+28. For per-row state that changes (for example a `done` flag), store a `Signal.t` in the item and read it in the row; replacing the whole item record rebuilds the row.
+29. `{Signal.get(items)->Array.map(item => <li>…</li>)}` compiles under the PPX but is one reactive region re-rendered wholesale on every change. Use `View.For` with `by`.
+
+### Other regions
+
+30. `View.Show` (`when_: MaybeSignal.t<bool>`, `children`, optional `fallback`), `View.Maybe` (`value: MaybeSignal.t<option<'v>>`, `render`, optional `fallback`) and `View.Value` (`value: MaybeSignal.t<'v>`, `render`) rebuild their content whenever their value changes.
+31. `View.tracked(() => node)` re-evaluates the whole body and replaces its children wholesale whenever any signal read in it changes; dependencies are re-discovered on every run. Local DOM state inside (focus, selection, input text) is lost on each update. Keep it small.
+32. `View.null()` (alias `View.empty()`) renders nothing but keeps a position (an empty text node) so a region can later replace it.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `View.child` | `'a => node` | Coerces a bare child (rule 11); emitted by the PPX. |
+| `View.tracked` | `(unit => node) => node` | Auto-tracked region, rebuilt wholesale on change. |
+| `View.For` | props `{each: MaybeSignal.t<array<'item>>, by?: 'item => string, render: 'item => node}` | List; keyed when `by` is given. |
+| `View.KeyedFor` | props `{each, by: 'item => string, render}` | List with a mandatory key. |
+| `View.Show` | props `{when_: MaybeSignal.t<bool>, children?: node, fallback?: node}` | Boolean branch. |
+| `View.Maybe` | props `{value: MaybeSignal.t<option<'v>>, render: 'v => node, fallback?: node}` | Option branch. |
+| `View.Value` | props `{value: MaybeSignal.t<'v>, render: 'v => node}` | Re-renders `render(value)` on change. |
+| `View.render` | `(MaybeSignal.t<'a>, 'a => node) => node` | Function form of `View.Value`. |
+| `View.Text` / `Int` / `Float` / `Bool` | props `{value?, children?}` (untyped) | Value text; reactive for a signal or thunk. |
+| `View.text` / `int` / `float` / `bool` | `string => node` etc. | Static text nodes. |
+| `View.signalText` / `signalInt` / `signalFloat` | `(unit => string) => node` etc. | Reactive text from a thunk. |
+| `View.null` / `View.empty` | `unit => node` | Renders nothing, keeps a position. |
+| `View.attr` / `signalAttr` / `computedAttr` | `(string, string) => (string, attrValue)`; `(string, Signal.t<string>) => …`; `(string, unit => string) => …` | Attribute entries for `attrs` and `View.element`. |
+| `View.optionalAttr` / `optionalSignalAttr` / `optionalComputedAttr` | `(string, option<string>) => …` etc. | `None` removes the attribute. |
+| `View.element` | `(string, ~attrs=?, ~events=?, ~children=?, ~ref=?, unit) => node` | Any tag, any event name. |
+
+## Patterns
+
+Reactive text and attributes. Use when: displaying signal values.
+
+```rescript
+@xote.component
+let make = () =>
+  <div>
+    {"Count: "}
+    {Signal.get(count)}
+    <p> {`Hello, ${Signal.get(name)}`} </p>
+    <button
+      class={Signal.get(isOpen) ? "btn open" : "btn"}
+      disabled={Signal.get(count) > 9}
+      ariaExpanded={Signal.get(isOpen)}
+      onClick={_ => Signal.update(isOpen, v => !v)}>
+      {"Toggle"}
+    </button>
+    <div class={theme} />
+    <div style={`width: ${Int.toString(Signal.get(progress))}%`} />
+  </div>
+```
+
+Attributes without a typed prop, mixed static and reactive. Use when: ARIA/data attributes, removable attributes.
+
+```rescript
+let error: Signal.t<option<string>> = Signal.make(None)
+
+<input
+  attrs=[
+    View.attr("aria-describedby", "hint"),
+    View.computedAttr("data-theme", () => Signal.get(theme)),
+    View.optionalSignalAttr("aria-invalid", error),
+  ]
+/>
+```
+
+Controlled text input. Use when: binding an input to a signal.
+
+```rescript
+@get external target: Dom.event => {..} = "target"
+
+@xote.component
+let make = () =>
+  <input value={Signal.get(draft)} onInput={event => Signal.set(draft, target(event)["value"])} />
+```
+
+Variant-driven branch. Use when: showing one of several states.
+
+```rescript
+type status = Loading | Ready(string) | Failed
+
+@xote.component
+let make = () =>
+  <div>
+    {switch Signal.get(status) {
+    | Loading => "Loading…"
+    | Ready(message) => <strong> {message} </strong>
+    | Failed => <p> {"Failed"} </p>
+    }}
+  </div>
+```
+
+Keyed list with per-row state. Use when: rows can be added, removed, reordered or edited.
+
+```rescript
+type todo = {id: string, text: string, done: Signal.t<bool>}
+let todos: Signal.t<array<todo>> = Signal.make([])
+
+@xote.component
+let make = () =>
+  <ul>
+    <View.KeyedFor
+      each={MaybeSignal.reactive(todos)}
+      by={todo => todo.id}
+      render={todo => <li class={Signal.get(todo.done) ? "done" : ""}> {todo.text} </li>}
+    />
+  </ul>
+```
+
+Component primitives. Use when: you prefer components to inline `if`/`switch`, or need a `MaybeSignal` input.
+
+```rescript
+<View.Show when_={MaybeSignal.reactive(isOpen)} fallback={<p> {"Closed"} </p>}>
+  <p> {"Open"} </p>
+</View.Show>
+<View.Maybe value={MaybeSignal.reactive(selected)} fallback={<p> {"None"} </p>} render={item => <p> {item} </p>} />
+<View.Value value={MaybeSignal.reactive(count)} render={n => <p> {Int.toString(n)} </p>} />
+```
+
+Without the PPX (`@jsx.component`, no `ppx-flags`). Use when: a project cannot use the PPX.
+
+```rescript
+module Counter = {
+  @jsx.component
+  let make = () =>
+    <button
+      class={() => Signal.get(count) > 0 ? "on" : "off"}
+      onClick={_ => Signal.update(count, n => n + 1)}>
+      <View.Int> {count} </View.Int>
+    </button>
+}
+```
+
+## Anti-patterns
+
+Hyphenated attribute as a prop.
+
+```rescript
+<div data-state="idle" />
+```
+
+Symptom: compile error "The field data-state does not belong to type Xote.XoteJSX.Elements.props". Fix: `attrs=[("data-state", "idle")]` or `data={Obj.magic({"state": "idle"})}`.
+
+Mixing entry types in `attrs`.
+
+```rescript
+attrs=[("aria-describedby", "hint"), ("data-theme", () => Signal.get(theme))]
+```
+
+Symptom: compile error "This has type: 'a => 'b … expected to have type: string". Fix: build every entry with `View.attr` / `View.computedAttr` / … so they share `View.attrValue`.
+
+Reactive value in an int prop.
+
+```rescript
+<textarea rows={Signal.get(lines)} />
+```
+
+Symptom: compile error under the PPX (the thunk is not an `int`). Fix: `attrs=[View.computedAttr("rows", () => Int.toString(Signal.get(lines)))]`.
+
+Unkeyed list for interactive rows.
+
+```rescript
+<View.For each={MaybeSignal.reactive(todos)} render={todo => <li> <input /> </li>} />
+```
+
+Symptom: typing in a row's input loses focus/text whenever the array changes (every row is rebuilt). Fix: add `by={todo => todo.id}` (or use `View.KeyedFor`).
+
+Editing a row by replacing its record.
+
+```rescript
+Signal.update(todos, list => list->Array.map(t => t.id == id ? {...t, done: !t.done} : t))
+```
+
+Symptom: with `done: bool`, the edited row is rebuilt (new DOM, lost focus/transition). Fix: make the changing field a signal (`done: Signal.t<bool>`) and update it directly: `Signal.update(todo.done, d => !d)`.
+
+Rendering a variant or record directly.
+
+```rescript
+{Signal.get(status)}
+```
+
+Symptom: renders `[object Object]` (development warning), no compile error under the PPX. Fix: `switch` over the variant and return strings or nodes.
+
+`onChange` for live text.
+
+Symptom: the bound signal updates only when the input loses focus. Fix: use `onInput` for text inputs; `onChange` for checkboxes, selects and file inputs.
+
+## Edge cases
+
+- An `if`/`switch` branch that contains a user component whose props read signals subscribes the branch to those signals too (props are evaluated in the branch's scope): a change to them rebuilds the branch. Pass signals instead of values to keep the branch subscribed to its condition only.
+- `View.tracked` blocks and `Show`/`Maybe`/`Value` rebuild their subtree; component instances inside are created again and lose local state.
+- A branch swap does no diffing between old and new branch DOM.
+- `View.child` coerces at runtime: an array of strings renders one text node per element.
+- `ref` (7.2.0-beta.2) is a prop of intrinsic elements only (`View.Ref.t`), see `/docs/learn/lifecycle`.
+- The PPX is per file; see `/docs/learn/components` rule 8.
+
+## SSR and hydration
+
+- Server rendering evaluates every reactive leaf and region once and serialises the result with hydration markers (comments such as `<!--lc-->`). `View.tracked` and other regions emit markers so the client can attach to them.
+- Hydration attaches leaves and regions to the existing DOM; the first client evaluation MUST match the server output.
+- Event handlers are attached on hydration; nothing runs on the server for them.
+
+## Verify
+
+- Compile errors listed under Anti-patterns map one-to-one to rules 13, 17 and 19.
+- jsdom test: mount, change a signal, check that (1) the expected attribute/text changed and (2) the surrounding element is the same object (`===`) as before. For a branch, change only an inner leaf's signal and check the branch's element is unchanged; change the condition and check it is replaced. For a keyed list, reorder the array and check row elements are the same objects.
+- In development, watch the console for `[Xote] … reads a signal through a call @xote.component cannot see` warnings; each one is a one-shot value that should be a thunk.
+
+## Related
+
+- `/docs/learn/components` — component definition, props, per-file PPX scope.
+- `/docs/learn/lifecycle` — refs, `onMount`, portals, error boundaries.
+- `/docs/guides/forms` — inputs, checkboxes, selects, submit.
+- `/docs/guides/styling` — classes, `style`, `data-*` theming.
+- `/docs/api/view` — full `View` reference.

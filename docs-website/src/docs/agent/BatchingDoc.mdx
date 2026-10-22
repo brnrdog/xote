@@ -1,0 +1,201 @@
+## Summary
+
+`Signal.batch(fn)` runs `fn` and defers the scheduler flush until `fn` returns, so effects and reactive leaves that depend on several signals written inside `fn` run **once**, with the final values, instead of once per write. Writes inside the batch take effect immediately for reads; only the reaction is deferred. Use it whenever one logical update writes more than one signal that a single effect, computed or leaf reads.
+
+## Availability
+
+| Item | Value |
+| --- | --- |
+| Function | `Signal.batch` (re-export of `rescript-signals` 3.1.x `Signal.batch`) |
+| Import / entry | `xote` (with `"-open Xote"`: `Signal.batch`) |
+| First stable version | 7.1.0 stable (and earlier; the older `Core.batch` was removed long before 7.x) |
+| Pre-release changes | None in 7.2.0-beta |
+| Requires `@xote.component` (PPX) | No |
+
+## Rules
+
+1. `Signal.batch(fn)` calls `fn` synchronously and returns its result (any type).
+2. Inside `fn`, every `Signal.set` / `Signal.update` stores the new value immediately. `Signal.get` and `Signal.peek` return the new values, and computeds read inside the batch are recomputed on read and are fresh.
+3. Effects and reactive leaves queued by writes inside `fn` do not run until the **outermost** batch returns. Then the queue is flushed once: each queued effect runs at most once, with the final values.
+4. Batches nest. An inner `Signal.batch` inside an outer one (or inside an effect, during a flush) does not flush on return; the outer batch or the running flush does.
+5. Batching does not compare start and end values. Writing a different value and then writing the original value back inside one batch still queues the dependents, and they run once.
+6. Only synchronous code is batched. If `fn` is an `async` function, the batch ends at its first `await` (the returned promise is the batch's result); writes after an `await` are not batched and each flushes on its own. Wrap each synchronous run of writes in its own `Signal.batch`.
+7. If `fn` throws, the exception propagates out of `Signal.batch`. Writes made before the throw are kept (there is no rollback), and the effects they queued are **not** run at that point; they run on the next flush triggered by any later write.
+8. Without a batch, each `set` flushes synchronously before returning, so an effect reading two signals written one after the other runs twice and observes the intermediate combination.
+9. A `Signal.batch` inside an effect is effectively a no-op for scheduling: a flush is already in progress, and writes made by an effect are already deferred to that flush.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `Signal.batch` | `(unit => 'a) => 'a` | Runs `fn`; defers the flush to the end of the outermost batch; returns `fn`'s result. |
+| `Signal.set` | `(Signal.t<'a>, 'a) => unit` | Inside a batch: stores the value, queues dependents. |
+| `Signal.update` | `(Signal.t<'a>, 'a => 'a) => unit` | Same as `set`, from the current value. |
+
+## Patterns
+
+Reset a form in one update. Use when several fields change together.
+
+```rescript
+let name = Signal.make("Ada")
+let email = Signal.make("ada@example.com")
+let submitted = Signal.make(true)
+
+let reset = () =>
+  Signal.batch(() => {
+    Signal.set(name, "")
+    Signal.set(email, "")
+    Signal.set(submitted, false)
+  })
+```
+
+Return a value from a batch. Use when the caller needs something computed during the update.
+
+```rescript
+let items = Signal.make(["a", "b"])
+let selected = Signal.make(0)
+
+let removeSelected = () =>
+  Signal.batch(() => {
+    let index = Signal.peek(selected)
+    let removed = Signal.peek(items)->Array.get(index)
+    Signal.update(items, list => list->Array.filterWithIndex((_, i) => i != index))
+    Signal.set(selected, 0)
+    removed
+  })
+```
+
+Apply a server response. Use when an async result updates several signals: batch the synchronous part after the `await`.
+
+```rescript
+type profile = {name: string, email: string}
+let name = Signal.make("")
+let email = Signal.make("")
+let loading = Signal.make(true)
+
+let load = async (fetchProfile: unit => promise<profile>) => {
+  let profile = await fetchProfile()
+  Signal.batch(() => {
+    Signal.set(name, profile.name)
+    Signal.set(email, profile.email)
+    Signal.set(loading, false)
+  })
+}
+```
+
+Make helpers composable. Helpers may batch internally; calling them from an outer batch is safe (rule 4).
+
+```rescript
+let first = Signal.make("")
+let last = Signal.make("")
+let setName = (f, l) =>
+  Signal.batch(() => {
+    Signal.set(first, f)
+    Signal.set(last, l)
+  })
+
+let importPeople = (people: array<(string, string)>) =>
+  Signal.batch(() => people->Array.forEach(((f, l)) => setName(f, l)))
+```
+
+## Anti-patterns
+
+1. Writing related signals one by one.
+
+```rescript
+let firstName = Signal.make("Ada")
+let lastName = Signal.make("Lovelace")
+Effect.run(() => {
+  Console.log(Signal.get(firstName) ++ " " ++ Signal.get(lastName))
+  None
+})
+Signal.set(firstName, "Grace")
+Signal.set(lastName, "Hopper")
+```
+
+Symptom: the effect logs "Grace Lovelace" before "Grace Hopper" (rule 8); with a network call in the effect, two requests are sent. Fix: wrap both writes in `Signal.batch`.
+
+2. Batching around `await`.
+
+```rescript
+let status = Signal.make("idle")
+let result = Signal.make("")
+let run = (work: unit => promise<string>) =>
+  Signal.batch(async () => {
+    Signal.set(status, "loading")
+    let value = await work() // the batch ended here
+    Signal.set(result, value)
+    Signal.set(status, "done")
+  })
+```
+
+Symptom: the writes after `await` are not batched; dependents run once per write. Fix: batch each synchronous segment (see "Apply a server response").
+
+3. Using a batch to hide an intermediate value from the code inside it.
+
+```rescript
+let count = Signal.make(0)
+Signal.batch(() => {
+  Signal.set(count, 5)
+  Console.log(Signal.peek(count)) // 5, not 0
+})
+```
+
+Symptom: code inside the batch sees the new value; batching is not a transaction. Fix: compute the new values first, then write them in the batch.
+
+4. Throwing inside a batch.
+
+```rescript
+let a = Signal.make(0)
+let b = Signal.make(0)
+let apply = (x, y) =>
+  Signal.batch(() => {
+    Signal.set(a, x)
+    if y < 0 {
+      JsError.throwWithMessage("negative")
+    }
+    Signal.set(b, y)
+  })
+```
+
+Symptom: `a` is written, `b` is not, and effects depending on `a` do not run until some unrelated later write (rule 7). Fix: validate before writing anything.
+
+## Edge cases
+
+- Batching is not needed for correctness of computeds: a computed is always fresh on read. It only reduces how often effects and leaves run.
+- A computed declared with `~equals` that recomputes to an equal value after the batch does not wake its dependents (see `/docs/learn/computeds`).
+- Event handlers are not batched automatically. Each `set` in a handler flushes on its own unless wrapped.
+- `Signal.update` inside a batch reads the latest value written in the same batch.
+
+## SSR and hydration
+
+Batching has no server-specific behaviour. During server rendering nothing reacts to writes, so batching only matters for effects you created on the server (which you SHOULD avoid; see `/docs/learn/effects`).
+
+## Verify
+
+- Behaviour check: an effect reading two signals written in one batch runs once more after the batch, and sees both new values.
+
+```rescript
+let x = Signal.make(1)
+let y = Signal.make(1)
+let seen = []
+Effect.run(() => {
+  seen->Array.push(Signal.get(x) + Signal.get(y))->ignore
+  None
+})
+Signal.batch(() => {
+  Signal.set(x, 2)
+  Signal.set(y, 2)
+})
+// seen == [2, 4]; without the batch it would be [2, 3, 4]
+```
+
+- Type check: `Signal.batch` returns `fn`'s type; `let removed: option<string> = Signal.batch(...)` must compile without annotations on `fn`.
+
+## Related
+
+- `/docs/learn/signals` — synchronous flushing that batching defers.
+- `/docs/learn/effects` — what runs at the end of a batch, and why effects must not throw.
+- `/docs/learn/computeds` — always fresh inside a batch; `~equals` to suppress no-op propagation.
+- `/docs/api/signal#signal-batch` — reference.
+- `/docs/glossary` — terms used on this page.
