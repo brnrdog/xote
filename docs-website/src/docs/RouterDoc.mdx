@@ -1,10 +1,8 @@
-Xote includes a client-side router built on signals. Route changes become regular reactive updates, so route matching and UI rendering fit the same model as the rest of the library.
+Xote comes with a router built on signals. The current URL is a signal, so a route change is an ordinary reactive update: the matching view swaps in and nothing else re-renders.
 
-## Getting Started
+## Set up the router
 
-### Quick Start
-
-Initialize the router once, then render routes inside your app.
+Initialize the router once, then render your routes.
 
 ```rescript
 open Xote
@@ -26,9 +24,9 @@ let app = () => {
 }
 ```
 
-### Reading the Current Location
+## Read the current location
 
-Use `Router.location()` to access the shared location signal. Read it with [`Signal.get`](/docs/api/signal#signal-get) wherever you need the current snapshot.
+`Router.location()` returns the shared location signal. Read it with [`Signal.get`](/docs/api/signal#signal-get) wherever you need the current URL.
 
 ```rescript
 Effect.run(() => {
@@ -38,11 +36,11 @@ Effect.run(() => {
 })
 ```
 
-The location record contains `pathname`, `search`, and `hash`.
+The location record has `pathname`, `search` and `hash`.
 
-### Route Patterns
+## Match routes
 
-Patterns can be static or dynamic. Dynamic segments use `:name` and are exposed through the params dictionary.
+Patterns can be static or dynamic. A dynamic segment is written `:name`, and its value arrives in the `params` dictionary.
 
 ```rescript
 {pattern: "/", render: _ => <HomePage />}
@@ -55,9 +53,9 @@ Patterns can be static or dynamic. Dynamic segments use `:name` and are exposed 
 }
 ```
 
-### Navigation Methods
+## Navigate from code
 
-Use `Router.push` to create a new history entry and `Router.replace` to replace the current one. Both support optional `~search` and `~hash`.
+`Router.push` adds a history entry; `Router.replace` replaces the current one. Both take optional `~search` and `~hash`.
 
 ```rescript
 Router.push("/users/123", ())
@@ -65,26 +63,24 @@ Router.push("/search", ~search="?q=xote", ())
 Router.replace("/login", ())
 ```
 
-### Navigation Links
+## Link between pages
 
-Use `Router.Link` for JSX navigation. It intercepts navigation without reloading the page.
+`Router.Link` renders a real `<a href>`, so middle-click, "open in new tab" and crawlers work normally. Only a plain left click is intercepted, and the page doesn't reload.
 
 ```rescript
-let nav = () => {
-  <nav>
-    <Router.Link to="/" class="nav-link">
-      <View.Text> "Home" </View.Text>
-    </Router.Link>
-    <Router.Link to="/docs" class="nav-link">
-      <View.Text> "Docs" </View.Text>
-    </Router.Link>
-  </nav>
+module Nav = {
+  @xote.component
+  let make = () =>
+    <nav>
+      <Router.Link to="/" class="nav-link"> {"Home"} </Router.Link>
+      <Router.Link to="/docs" class="nav-link"> {"Docs"} </Router.Link>
+    </nav>
 }
 ```
 
-### Server Rendering
+## Server rendering
 
-On the server, initialize router state with `Router.initSSR` instead of `Router.init`. That sets the initial location without touching browser APIs.
+On the server, use `Router.initSSR` instead of `Router.init`. It sets the starting location without touching browser APIs. See [Server rendering](/docs/advanced/ssr) for the full setup.
 
 ```rescript
 Router.initSSR(
@@ -94,25 +90,25 @@ Router.initSSR(
 )
 ```
 
-## In Practice
-
-### Complete Example
+## Example: app with navigation
 
 ```rescript
 open Xote
 
 Router.init()
 
-let nav = () => {
-  <nav>
-    <Router.Link to="/"> <View.Text> "Home" </View.Text> </Router.Link>
-    <Router.Link to="/users"> <View.Text> "Users" </View.Text> </Router.Link>
-  </nav>
+module Nav = {
+  @xote.component
+  let make = () =>
+    <nav>
+      <Router.Link to="/"> {"Home"} </Router.Link>
+      <Router.Link to="/users"> {"Users"} </Router.Link>
+    </nav>
 }
 
 let app = () => {
   <div>
-    <nav />
+    <Nav />
     {Router.routes([
       {pattern: "/", render: _ => <HomePage />},
       {pattern: "/users", render: _ => <UsersPage />},
@@ -127,16 +123,10 @@ let app = () => {
 }
 ```
 
-## Working Style
+## Tips
 
-### Best Practices
-
-- Initialize the router once at the app boundary, not from leaf components.
-- Treat `Router.location()` like shared state. Read it where needed instead of mirroring it elsewhere.
-- Prefer `Router.Link` for ordinary UI navigation so the intent stays obvious in markup.
-- Use `Router.initSSR` on the server so routing stays consistent across SSR and hydration.
-
-### Next Steps
-
-- [Pair this with View](/docs/view/overview) when you want to turn routes into real pages and layouts.
-- [Read Server-Side Rendering](/docs/advanced/ssr) if the same routes also need SSR and hydration.
+- Initialize the router once at the app's entry point, not from leaf components.
+- Treat `Router.location()` as shared state. Read it where you need it instead of copying it elsewhere.
+- Prefer `Router.Link` for ordinary navigation, so the intent stays obvious in markup.
+- Use `Router.initSSR` on the server so routing matches between server rendering and hydration.
+- Hosting under a subpath? Pass `~basePath` to `Router.init`; [Deploying](/docs/guides/deploying) covers hosting.

@@ -1,0 +1,195 @@
+## Summary
+
+The router is a single global signal of the current app-relative location (`Router.location()`), updated by `Router.push`, `Router.replace`, link clicks and the browser's back and forward buttons. `Router.routes` renders the first entry whose pattern matches; `Router.route` renders one pattern on its own; `Router.link` and `<Router.Link>` render a real `<a href>` that navigates without a page load. Call `Router.init()` once in the browser entry and `Router.initSSR(...)` once per request on the server, before rendering. The rule that matters most: a matched screen is rebuilt on **every** location change, including query-string and hash changes, so state that must survive navigation MUST live outside the screen.
+
+## Availability
+
+| Item | Value |
+| --- | --- |
+| Modules | `Router` (navigation, rendering), `Route` (pure pattern matching) |
+| Import / entry | `xote` (with `-open Xote`), or `xote/router`; `Route` via `xote/route` |
+| First stable version | 1.0.0 (signal-based router with pattern matching); `basePath` since 4.10.0; scroll restoration since 4.13.0; `Router.initSSR` since 4.16.0; scrolling to the hash target after navigation since 7.0.0 |
+| Status | stable since 7.1.0 |
+| PPX required | No. `Router.link` and `Router.routes` are plain functions; `<Router.Link>` is a JSX component |
+
+## Rules
+
+1. Router state is a global singleton stored under `Symbol.for("xote.router.state")` on `globalThis`. Every copy of Xote bundled into the page (for example an app and a component library) shares the same location signal and base path.
+2. `Router.init(~basePath=?, ())` normalizes the base path (leading `/`, no trailing `/`; `""` and `"/"` mean none), sets the location from `window.location` with the base path stripped, and installs one `popstate` listener (only on the first call). Calling it again updates the base path and re-reads the URL; it is idempotent otherwise.
+3. `Router.initSSR(~basePath=?, ~pathname=?, ~search=?, ~hash=?, ())` sets the base path and the location signal without touching browser APIs. `pathname` is app-relative (base path already removed). Call it before every server render, because the state is global (rule 1).
+4. `Router.location()` returns `Signal.t<location>` with `pathname` (app-relative), `search` (with leading `?`, or `""`) and `hash` (with leading `#`, or `""`). Read it with `Signal.get` in a tracking scope to react to navigation.
+5. `Router.push(pathname, ~search=?, ~hash=?, ())` saves the current scroll position into the current history entry, pushes a new entry for the base path plus `pathname ++ search ++ hash`, sets the location signal, then scrolls: to the element whose id matches the hash (on a microtask), or to the top when there is no hash.
+6. `Router.replace(...)` does the same as `push` without saving scroll position and without adding a history entry.
+7. Back/forward (`popstate`) re-reads the URL into the location signal and restores the scroll position saved by rule 5 for that entry, if any.
+8. Pattern syntax: `/`-separated segments; a segment starting with `:` captures that whole segment under its name; any other segment is a literal. There are no wildcards, optional segments or regex: `*` is a literal segment.
+9. Matching is exact on the number of non-empty segments: `/users/:id` matches `/users/42` but not `/users/42/edit` or `/users`. Empty segments are ignored, so a trailing slash does not matter (`/docs` matches `/docs/`). Matching is case-sensitive and ignores `search` and `hash`.
+10. Captured parameters are raw path segments (`Dict.t<string>`): they are **not** URL-decoded (`/u/a%20b` gives `"a%20b"`). Decode with `decodeURIComponent` if needed.
+11. `Router.routes(configs)` renders the first matching entry in array order, and nothing when no entry matches.
+12. `Router.route(pattern, render)` renders `render(params)` while the pattern matches, and nothing otherwise. Several `route` calls can match at once.
+13. Both `routes` and `route` are reactive regions over the whole location: every location change (pathname, search **or** hash) re-runs the match and calls `render` again, replacing the screen's DOM and disposing everything it owned, even when the same entry still matches.
+14. `Router.link(~to, ~attrs=?, ~children=?, ())` and `<Router.Link to=...>` parse `to` as `path?query#hash`, render `<a href>` with the base path added, and on **every** `click` event call `preventDefault` and `Router.push`. Modifier clicks (Ctrl/Cmd/Shift + click) and `target="_blank"` links are intercepted too; middle-click does not fire `click` and is not intercepted.
+15. `<Router.Link>`'s `onClick` handler runs **after** the navigation (`Router.push`) has happened.
+16. Using `push`, `replace`, `route`, `routes`, `link` or `Link` before `init`/`initSSR` logs a `[Xote Router] ... called before Router.init()` warning; the location is then the default `/`.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `Router.location` | `unit => Signal.t<location>` | The current app-relative location signal. |
+| `Router.init` | `(~basePath: string=?, unit) => unit` | Browser setup: read URL, listen to `popstate`. |
+| `Router.initSSR` | `(~basePath: string=?, ~pathname: string=?, ~search: string=?, ~hash: string=?, unit) => unit` | Server setup: seed the location for one render. |
+| `Router.push` | `(string, ~search: string=?, ~hash: string=?, unit) => unit` | Navigate with a new history entry, then scroll. |
+| `Router.replace` | `(string, ~search: string=?, ~hash: string=?, unit) => unit` | Navigate replacing the current entry, then scroll. |
+| `Router.routeConfig` | `{pattern: string, render: Route.params => View.node}` | One entry of a `routes` table. |
+| `Router.route` | `(string, Route.params => View.node) => View.node` | Render while one pattern matches. |
+| `Router.routes` | `array<routeConfig> => View.node` | Render the first matching entry. |
+| `Router.link` | `(~to: string, ~attrs: array<(string, View.attrValue)>=?, ~children: array<View.node>=?, unit) => View.node` | Anchor that navigates client-side. |
+| `Router.Link` | props `to`, `class?`, `id?`, `style?`, `target?`, `ariaLabel?`, `attrs?`, `onClick?`, `children?` | JSX anchor; `class` etc. accept a value, a signal or a thunk. |
+| `Route.match` | `(string, string) => matchResult` | Pure match of a pattern against a pathname: `Match(params)` or `NoMatch`. |
+| `Route.params` | `Dict.t<string>` | Captured `:name` segments. |
+
+## Patterns
+
+Use for the standard app shell: initialize in the entry, render a route table, link with `<Router.Link>`, and mark the active link with a thunk (props of `Router.Link` are not made reactive by the PPX, so the thunk is required).
+
+```rescript
+module App = {
+  @xote.component
+  let make = () =>
+    <div>
+      <nav>
+        <Router.Link
+          to="/"
+          class={() => Signal.get(Router.location()).pathname == "/" ? "nav-link active" : "nav-link"}>
+          {"Home"}
+        </Router.Link>
+        <Router.Link to="/users/42" class="nav-link"> {"User 42"} </Router.Link>
+      </nav>
+      {Router.routes([
+        {pattern: "/", render: _ => <h1> {"Home"} </h1>},
+        {
+          pattern: "/users/:id",
+          render: params => <UserPage id={params->Dict.get("id")->Option.getOr("")} />,
+        },
+      ])}
+    </div>
+}
+
+// Browser entry
+Router.init()
+View.mountById(<App />, "app")
+```
+
+Use when the app is served from a subdirectory: pass the same base path everywhere; patterns, `push`, `replace` and `to` stay root-relative.
+
+```rescript
+Router.init(~basePath="/my-app", ())
+```
+
+Use for a not-found screen. `routes` renders nothing for an unmatched path, and a `/:rest` entry only catches single-segment paths, so check the patterns yourself:
+
+```rescript
+let patterns = ["/", "/users/:id"]
+
+let isKnown = (pathname: string) =>
+  patterns->Array.some(pattern =>
+    switch Route.match(pattern, pathname) {
+    | Match(_) => true
+    | NoMatch => false
+    }
+  )
+
+// Inside the app's JSX, next to the routes table:
+{isKnown(Signal.get(Router.location()).pathname) ? View.null() : <NotFound />}
+```
+
+Use for state carried in the query string or hash: derive it with a computed over `Router.location()`, and navigate with `~search`.
+
+```rescript
+let tab = Computed.make(() => {
+  let search = Signal.get(Router.location()).search
+  search == "?tab=posts" ? "posts" : "profile"
+})
+
+let goToResults = (q: string) => Router.push("/search", ~search="?q=" ++ encodeURIComponent(q), ())
+let redirectToLogin = () => Router.replace("/login", ())
+```
+
+Use on the server, once per request, before rendering:
+
+```rescript
+let renderRequest = (~pathname, ~search) => {
+  Router.initSSR(~pathname, ~search, ())
+  SSR.renderToString(() => <App />)
+}
+```
+
+## Anti-patterns
+
+**Keeping screen state in a route's component when the query string or hash changes.**
+
+```rescript
+// Inside the screen rendered by routes: a local signal for the open panel
+let open_ = Signal.make(false)
+// ...and a link to "#comments" or "?tab=posts" on the same page
+```
+
+Symptom: clicking a same-page hash or query link resets the screen (local signals back to their initial values, inputs cleared, scroll and focus lost). Correct: keep such state at module level or in a component above `Router.routes`, or derive it from `Router.location()` (as with `tab` above). Why: rule 13; the matched screen is rebuilt on every location change.
+
+**Expecting `"*"` or `"/:rest"` to catch every unknown URL.**
+
+```rescript
+Router.routes([
+  {pattern: "/", render: _ => <Home />},
+  {pattern: "*", render: _ => <NotFound />},
+])
+```
+
+Symptom: unknown multi-segment URLs (`/a/b`) render nothing; `*` only matches the literal path `/*`. Correct: the `isKnown` pattern above. Why: rules 8 and 9.
+
+**Assuming `<Router.Link onClick>` runs before navigation.**
+
+```rescript
+<Router.Link to="/checkout" onClick={_ => Signal.set(draftSaved, saveDraft())}> {"Checkout"} </Router.Link>
+```
+
+Symptom: the handler sees the new location, and anything it does happens after the checkout screen has already been built. Correct: do the work first and navigate yourself from a `<button onClick>` with `Router.push`, or do the work in the destination screen. Why: rule 15.
+
+**Using `Router.link` for external URLs or new-tab links.**
+
+Symptom: an external `to` is pushed into history as an app path; a `target="_blank"` link opens in the same tab. Correct: use a plain `<a href target="_blank">` for anything that should leave the app. Why: rule 14.
+
+**Forgetting `Router.initSSR` per request.**
+
+Symptom: the server renders the screen for the previous request's URL (global state, rule 1), and the client then hydrates a different screen. Correct: call `Router.initSSR(~pathname, ~search, ())` immediately before each render.
+
+## Edge cases
+
+- `Router.location()` is app-relative: with `basePath="/my-app"`, the browser URL `/my-app/users/1` gives `pathname == "/users/1"`, and `/my-app` gives `"/"`. A URL outside the base path is passed through unchanged.
+- `push`/`replace` add the base path; `location` removes it; `link`/`Link` put the base path into `href`. Never include the base path yourself.
+- Pushing the current URL again still adds a history entry and still rebuilds the matched screen.
+- Hash scrolling uses `document.getElementById(decodeURIComponent(hash))` after a microtask; if the target renders later than that (for example after data loads), it is not scrolled to.
+- The `popstate` listener is never removed; `init` is meant to be called once per page.
+- `Route.match` is pure and safe on the server and in tests.
+
+## SSR and hydration
+
+- On the server there is no `window`: use `Router.initSSR` with the request's app-relative pathname, search and hash. `Router.init` would read `window.location` and fail.
+- In the browser call `Router.init()` (with the same `basePath` as the server) before `Hydration.hydrateById`, so the location matches the URL the server rendered.
+- A `routes` or `route` region is a reactive region: on hydration it is rendered again on the client rather than adopted (its DOM is replaced once), which is invisible when both sides render the same screen.
+- Mismatched base paths between server and client produce a different screen after hydration, or none.
+
+## Verify
+
+- Compile errors: `Router.push("/x")` without the final `()` is a type error (the function takes labelled optionals and `unit`). A `routes` entry with a misspelt field is a record type error.
+- Pure matching test: `Route.match("/users/:id", "/users/42")` is `Match(params)` with `params->Dict.get("id") == Some("42")`.
+- jsdom test: call `Router.init()`, mount the app, call `Router.push("/users/1", ())`, assert the rendered text; then `Router.push("/a/b", ())` and assert what renders for unknown paths.
+- Server test: `Router.initSSR(~pathname="/users/42", ())` then `SSR.renderToString(() => <App />)` contains the user screen.
+- Warning check: a `[Xote Router] ... called before Router.init()` console warning means `init`/`initSSR` did not run first.
+
+## Related
+
+- `/docs/advanced/ssr` — the server and client entries that call `initSSR` and `init`.
+- `/docs/guides/deploying` — base paths and static hosting fallbacks.
+- `/docs/learn/computeds` — deriving state from `Router.location()`.
+- `/docs/learn/rendering` — reactive regions, which `route`/`routes` are.

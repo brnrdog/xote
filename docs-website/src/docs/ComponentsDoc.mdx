@@ -1,0 +1,163 @@
+A component is a function that returns a piece of UI. You write it with JSX, give it props, and compose it with other components. It runs once; the signals it reads keep it up to date afterwards (see [Thinking in signals](/docs/thinking-in-signals)).
+
+## Write a component
+
+Put each component in a module with a `make` function, and mark it with `@xote.component`. Labeled arguments become its props.
+
+```rescript
+module Greeting = {
+  @xote.component
+  let make = (~name: string) => <h1> {"Hello, "} {name} </h1>
+}
+
+<Greeting name="Ada" />
+```
+
+A file is a module too, so `Greeting.res` with a top-level `make` is used as `<Greeting />` from other files. ReScript allows one component per module: put the next one in its own file or submodule.
+
+## Optional props and children
+
+Make a prop optional with `=?`; it arrives as an `option`. Accept nested content with a `~children` prop.
+
+```rescript
+module Card = {
+  @xote.component
+  let make = (~title: string, ~subtitle: option<string>=?, ~children: View.node) =>
+    <section class="card">
+      <h2> {title} </h2>
+      {switch subtitle {
+      | Some(text) => <p class="card-subtitle"> {text} </p>
+      | None => View.null()
+      }}
+      <div class="card-body"> {children} </div>
+    </section>
+}
+
+<Card title="Settings" subtitle="Changes save automatically">
+  <p> {"Nothing to configure yet."} </p>
+</Card>
+```
+
+`View.null()` renders nothing.
+
+## Props that change
+
+Props are read once, when the component runs. For a prop that should update, pass a signal and read it in the component's JSX:
+
+```rescript
+module Badge = {
+  @xote.component
+  let make = (~count: Signal.t<int>) => <span class="badge"> {Signal.get(count)} </span>
+}
+
+<Badge count=unreadCount />
+```
+
+When a prop can be either fixed or live, type it as `MaybeSignal.t` and read it with `MaybeSignal.get`. Callers wrap the value to say which it is:
+
+```rescript
+module Price = {
+  @xote.component
+  let make = (~amount: MaybeSignal.t<int>) => <span> {"$"} {MaybeSignal.get(amount)} </span>
+}
+
+<Price amount={MaybeSignal.static(10)} />
+<Price amount={MaybeSignal.reactive(total)} />
+```
+
+## Helpers that return markup
+
+Not every piece of UI needs to be a component. In a file that uses `@xote.component`, a plain function that returns JSX gets the same treatment, signal reads included:
+
+```rescript
+let pill = (label: string, active: bool) =>
+  <span class={active ? "pill active" : "pill"}> {label} </span>
+
+@xote.component
+let make = () => <div> {pill("All", true)} {pill("Done", false)} </div>
+```
+
+Reach for a component when the piece has its own state or is reused across files; a helper is fine for small repeated bits.
+
+## Where state lives
+
+- **Inside the component** for state only it uses: create the signal in the component body. Each instance gets its own.
+- **At module level** for state shared across the app: a signal defined at the top of a file is one value everyone reads.
+- **In [Context](/docs/learn/context)** for state shared by one part of the tree, like a form or a tab group, where each instance needs its own copy.
+
+The [Project structure](/docs/guides/project-structure) guide goes further.
+
+## Mount your app
+
+`View.mountById` renders a component into the element with that id. `View.mount` takes an element you already have.
+
+```rescript
+View.mountById(<App />, "app")
+```
+
+Keep the mount in its own entry file (say `Main.res`), since a module can't render itself by name.
+
+## Example: todo list
+
+A small app built from three components. Each todo keeps its `done` state in its own signal, so ticking one updates that row and the counter, nothing else.
+
+<DocsExamplePanel
+      filename="TodoList.res"
+      code={`type todo = {id: int, text: string, done: Signal.t<bool>}
+
+let todos = Signal.make([...])
+let draft = Signal.make("")
+
+let remaining = Computed.make(() =>
+  Signal.get(todos)->Array.filter(todo => !Signal.get(todo.done))->Array.length
+)
+
+module TodoComposer = {
+  @xote.component
+  let make = () =>
+    <div>
+      <input
+        placeholder="Add a task"
+        value={Signal.get(draft)}
+        onInput={event => Signal.set(draft, target(event)["value"])}
+      />
+      <button onClick={_ => addTodo()}> {"Add"} </button>
+    </div>
+}
+
+module TodoRow = {
+  @xote.component
+  let make = (~todo: todo) =>
+    <li class={Signal.get(todo.done) ? "done" : ""}>
+      <input
+        type_="checkbox"
+        checked={Signal.get(todo.done)}
+        onChange={_ => Signal.update(todo.done, done => !done)}
+      />
+      <span> {todo.text} </span>
+      <button onClick={_ => removeTodo(todo.id)}> {"Remove"} </button>
+    </li>
+}
+
+@xote.component
+let make = () =>
+  <div>
+    <TodoComposer />
+    <p> {Signal.get(remaining)} {" left"} </p>
+    <ul>
+      <View.For
+        each={MaybeSignal.reactive(todos)}
+        by={todo => Int.toString(todo.id)}
+        render={todo => <TodoRow todo />}
+      />
+    </ul>
+  </div>`}
+    >
+      <TodoListDemo />
+    </DocsExamplePanel>
+
+## Common mistakes
+
+- **Reading a signal into a prop.** `<Badge count={Signal.get(count)} />` passes a snapshot. Pass `count` itself.
+- **Reading a signal in the component body to show it.** The body runs once, so the value never updates. Read it in the JSX.
+- **Two components in one module.** Use a submodule or a separate file for each.

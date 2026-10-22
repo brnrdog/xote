@@ -1,12 +1,10 @@
-Effects connect the reactive graph to the outside world. They run immediately, track the signals they read, and re-run when those dependencies change.
+An effect connects signals to the outside world. It runs right away, remembers the signals it read, and runs again when any of them change.
 
-Use them for DOM APIs, timers, network coordination, logging, or any other work that should happen because state changed. Do not use them to compute values that could stay inside the reactive graph.
+Use effects for browser APIs, timers, network work, logging, or anything else that should happen because state changed. Don't use them to compute values: that's what [computeds](/docs/learn/computeds) are for.
 
-## Working with Effects
+## Create an effect
 
-### Creating Effects
-
-Use [`Effect.run`](/docs/api/effect#effect-run) for fire-and-forget effects and [`Effect.runWithDisposer`](/docs/api/effect#effect-runwithdisposer) when you need to stop the effect manually.
+Use [`Effect.run`](/docs/api/effect#effect-run). The function returns `None`, or `Some(cleanup)` as shown below. If you need to stop the effect yourself, use [`Effect.runWithDisposer`](/docs/api/effect#effect-runwithdisposer).
 
 ```rescript
 open Xote
@@ -19,9 +17,9 @@ Effect.run(() => {
 })
 ```
 
-### Dependency Tracking
+## What an effect reacts to
 
-Effects track dependencies automatically. Every [`Signal.get`](/docs/api/signal#signal-get) call inside the effect subscribes the effect to that signal. On each run, dependencies are cleared and tracked again.
+Every [`Signal.get`](/docs/api/signal#signal-get) inside the effect subscribes it to that signal. Dependencies are collected again on every run, so below, `name` and `age` only matter while `showDetails` is `true`.
 
 ```rescript
 let showDetails = Signal.make(false)
@@ -37,26 +35,25 @@ Effect.run(() => {
 })
 ```
 
-### Cleanup Callbacks
+## Clean up after yourself
 
-An effect can return `Some(cleanupFn)` or `None`. Cleanup runs before the next execution and when the effect is disposed.
+Return `Some(cleanup)` to undo what the effect set up. Cleanup runs before the next run and when the effect is disposed. Here, changing `intervalMs` clears the old interval before starting a new one.
 
 ```rescript
-let url = Signal.make("/api/users")
+@val external setInterval: (unit => unit, int) => int = "setInterval"
+@val external clearInterval: int => unit = "clearInterval"
+
+let intervalMs = Signal.make(1000)
 
 Effect.run(() => {
-  let currentUrl = Signal.get(url)
-  let controller = AbortController.make()
-
-  fetch(currentUrl, {"signal": controller##signal})->ignore
-
-  Some(() => controller##abort())
+  let id = setInterval(() => Console.log("tick"), Signal.get(intervalMs))
+  Some(() => clearInterval(id))
 })
 ```
 
-### Disposing Effects
+## Stop an effect
 
-When you need explicit teardown, use [`Effect.runWithDisposer`](/docs/api/effect#effect-runwithdisposer). It returns an object with a `dispose()` method.
+An effect created inside a component stops when the component goes away. To stop one yourself, use [`Effect.runWithDisposer`](/docs/api/effect#effect-runwithdisposer). It returns a record with a `dispose` function, which runs any pending cleanup and unsubscribes the effect.
 
 ```rescript
 let disposer = Effect.runWithDisposer(() => {
@@ -67,9 +64,9 @@ let disposer = Effect.runWithDisposer(() => {
 disposer.dispose()
 ```
 
-### Avoiding Dependencies
+## Read without subscribing
 
-If you need a value inside an effect without subscribing to it, use [`Signal.peek`](/docs/api/signal#signal-peek) for one read or [`Signal.untrack`](/docs/api/signal#signal-untrack) for a larger block.
+To use a value inside an effect without re-running when it changes, use [`Signal.peek`](/docs/api/signal#signal-peek) for one read, or [`Signal.untrack`](/docs/api/signal#signal-untrack) for a whole block.
 
 ```rescript
 let debug = Signal.make(true)
@@ -85,22 +82,23 @@ Effect.run(() => {
 })
 ```
 
-## Common Patterns
+## What effects are for
 
-### Common Use Cases
+- **Browser APIs:** document title, localStorage, media queries, history and scroll state
+- **Timers and subscriptions:** intervals, event listeners, sockets and observers
+- **Synchronization:** pushing state into another system
+- **Diagnostics:** logging, instrumentation and dev-only inspection
 
-- **Browser APIs:** document title, localStorage, media queries, history, and scroll state
-- **Timers and subscriptions:** intervals, event listeners, sockets, and observers
-- **Synchronization:** push reactive state into another system
-- **Diagnostics:** logging, instrumentation, and dev-only inspection
+## Example: auto-save
 
-### Example: Auto-save
-
-This pattern is common: track a draft, debounce the work, and clean up old timers when the draft changes again.
+Track a draft, wait for a pause in typing, and cancel the pending save whenever the draft changes again.
 
 <DocsExamplePanel
       filename="DraftAutoSave.res"
       code={`open Xote
+
+@val external setTimeout: (unit => unit, int) => int = "setTimeout"
+@val external clearTimeout: int => unit = "clearTimeout"
 
 let draft = Signal.make("")
 let saveStatus = Signal.make("Start typing to queue a save")
@@ -119,9 +117,10 @@ Effect.run(() => {
   } else {
     Signal.set(saveStatus, "Saving in 600ms")
 
-  let timeoutId = setTimeout(() => {
+    let timeoutId = setTimeout(() => {
       Console.log2("Saving draft:", currentDraft)
-  }, 500)
+      Signal.set(saveStatus, "Saved")
+    }, 600)
 
     Some(() => clearTimeout(timeoutId))
   }
@@ -130,23 +129,17 @@ Effect.run(() => {
       <EffectAutosaveDemo />
     </DocsExamplePanel>
 
-### Effects vs Computed
+## Effect or computed?
 
-Ask one question: is the result another value inside the reactive graph, or is it work outside the graph?
+Ask one question: is the result another value, or is it work outside the signal graph?
 
-- **Use a computed** when you are deriving a value from other values
-- **Use an effect** when you need to talk to something external
+- **A value derived from other values:** use a [computed](/docs/learn/computeds).
+- **Talking to something external:** use an effect.
 
-## Working Style
+## Tips
 
-### Best Practices
-
-- Keep one effect focused on one kind of external work so cleanup stays obvious.
-- Return cleanup whenever you allocate timers, listeners, requests, or subscriptions.
-- Do not use effects to keep derived state in sync. If the output is another value, use a computed.
-- Use [`Signal.peek`](/docs/api/signal#signal-peek) and [`Signal.untrack`](/docs/api/signal#signal-untrack) deliberately, because they opt out of tracking.
-
-### Next Steps
-
-- [Move to View](/docs/view/overview) to see how effects fit into real UI code.
-- [Read Batching](/docs/advanced/batching) when several writes should flush as one coordinated update.
+- Keep each effect focused on one kind of external work, so its cleanup stays obvious.
+- Return cleanup whenever you allocate timers, listeners, requests or subscriptions.
+- Don't use effects to keep derived state in sync. If the output is another value, use a computed.
+- Use [`Signal.peek`](/docs/api/signal#signal-peek) and [`Signal.untrack`](/docs/api/signal#signal-untrack) on purpose: they opt out of tracking.
+- When several writes should trigger one run instead of many, wrap them in a [batch](/docs/advanced/batching). For effects tied to a component's DOM, see [Refs and lifecycle](/docs/learn/lifecycle).

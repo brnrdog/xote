@@ -1,0 +1,144 @@
+This page covers what goes inside a component's JSX: text, attributes, events, conditions and lists. Examples use `@xote.component`; the [last section](#without-the-jsx-transform) shows the same things without it.
+
+## Show values
+
+Put a value in braces to show it. Strings and numbers are shown as text. A `Signal.get` stays live: that text updates when the signal changes, and nothing around it does.
+
+```rescript
+@xote.component
+let make = () =>
+  <div>
+    {"Count: "}
+    {Signal.get(count)}
+    <p> {`Hello, ${Signal.get(name)}!`} </p>
+  </div>
+```
+
+Any expression that reads a signal works, including template strings and function calls. Computeds read the same way: `{Signal.get(total)}`.
+
+## Set attributes
+
+Attributes take plain values or expressions. If the expression reads a signal, the attribute updates on its own.
+
+```rescript
+<button
+  class={Signal.get(isActive) ? "btn active" : "btn"}
+  disabled={Signal.get(count) > 9}
+  onClick={_ => Signal.update(isActive, active => !active)}>
+  {"Toggle"}
+</button>
+```
+
+A few things to know:
+
+- Use `class`, not `className`.
+- `type` is a ReScript keyword, so write `type_`: `<input type_="text" />`.
+- You can pass a signal straight in when no formatting is needed: `<div class={theme}>`.
+- `style` takes a string: `` style={`width: ${Int.toString(Signal.get(progress))}%`} ``.
+- For an attribute without a typed prop, use `attrs`: `attrs=[("aria-live", "polite"), ("data-state", "idle")]`.
+
+The [Styling](/docs/guides/styling) guide has more on classes and styles.
+
+## Handle events
+
+Event props like `onClick`, `onInput`, `onChange` and `onSubmit` take a function that receives the DOM event. Handlers usually update a signal:
+
+```rescript
+<button onClick={_ => Signal.update(count, n => n + 1)}> {"Add one"} </button>
+```
+
+To read what someone typed, read the event's target. The [Forms and inputs](/docs/guides/forms) guide shows the small binding for that, plus checkboxes, selects and submits.
+
+## Show content conditionally
+
+Use `if` or `switch` right in the JSX. When the signal in the condition changes, Xote swaps that branch and leaves the rest of the component alone.
+
+```rescript
+type status = Loading | Ready(string) | Failed
+
+@xote.component
+let make = () =>
+  <div>
+    {switch Signal.get(status) {
+    | Loading => "Loading…"
+    | Ready(message) => <strong> {message} </strong>
+    | Failed => <p class="error"> {"Something went wrong."} </p>
+    }}
+  </div>
+```
+
+To render nothing in a branch, use `View.null()`.
+
+There are also components for this. [`View.Show`](/docs/api/view#view-show) renders its children when a condition holds and `fallback` otherwise; [`View.Maybe`](/docs/api/view#view-maybe) renders an `option` value or a fallback:
+
+```rescript
+<View.Show when_={MaybeSignal.reactive(isReady)} fallback={<p> {"Loading…"} </p>}>
+  <p> {"Ready"} </p>
+</View.Show>
+
+<View.Maybe
+  value={MaybeSignal.reactive(selected)}
+  fallback={<p> {"Nothing selected"} </p>}
+  render={item => <p> {"Selected: "} {item} </p>}
+/>
+```
+
+## Render lists
+
+Use [`View.For`](/docs/api/view#view-for) with an array signal. Wrap the signal in `MaybeSignal.reactive` (or a fixed array in `MaybeSignal.static`).
+
+```rescript
+let fruits = Signal.make(["Apple", "Banana", "Cherry"])
+
+<ul>
+  <View.For each={MaybeSignal.reactive(fruits)} render={fruit => <li> {fruit} </li>} />
+</ul>
+```
+
+When items can be added, removed or reordered, give each one a stable key with `by`. Xote then moves existing rows instead of rebuilding them, so their DOM and local state survive:
+
+```rescript
+<ul>
+  <View.For
+    each={MaybeSignal.reactive(todos)}
+    by={todo => todo.id}
+    render={todo => <li> {todo.text} </li>}
+  />
+</ul>
+```
+
+Use IDs or slugs as keys, never array positions. If a row has values that change on their own, like a todo's `done` flag, give that value its own signal so only that row updates. The [todo example](/docs/learn/components#example-todo-list) does this.
+
+## Group a reactive region
+
+Sometimes a block depends on several signals in a way that doesn't map to one attribute or one condition. [`View.tracked`](/docs/api/view#view-tracked) rebuilds a block whenever any signal it reads changes:
+
+```rescript
+{View.tracked(() =>
+  Signal.get(isReady) ? <p> {"Hello, "} {Signal.get(name)} </p> : <p> {"Please log in"} </p>
+)}
+```
+
+It replaces the whole block on each change, so focus or text selection inside it is lost. Keep it small, and prefer the plain `if`/`switch` above, which only rebuilds when the condition changes.
+
+## Without the JSX transform
+
+If you leave out `ppx-flags` and use `@jsx.component`, reads in JSX are not made live for you. Wrap reactive attributes in a function, and use the value components for text:
+
+```rescript
+@jsx.component
+let make = () =>
+  <div class={() => Signal.get(isActive) ? "on" : "off"}>
+    <View.Text> "Count: " </View.Text>
+    <View.Int> {count} </View.Int>
+    <View.Text> {() => `Doubled: ${Int.toString(Signal.get(count) * 2)}`} </View.Text>
+  </div>
+```
+
+`View.Text`, `View.Int`, `View.Float` and `View.Bool` take a value, a signal, or a function. These work under `@xote.component` too, if you want the stricter `int` or `float` typing.
+
+## Common mistakes
+
+- **Computing a value in the component body to show it.** The body runs once. Read signals in the JSX, or make a [computed](/docs/learn/computeds).
+- **Keying list rows by index.** Keys must follow the item, not its position.
+- **Using `View.tracked` for a whole page.** Every change rebuilds all of it. Use it for small blocks only.

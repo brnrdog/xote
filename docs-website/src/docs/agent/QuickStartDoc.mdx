@@ -1,0 +1,161 @@
+## Summary
+
+This page is an executable setup checklist for a new or existing ReScript 12 project, followed by an error→cause→fix table. A correct setup needs four `rescript.json` fields (`dependencies`, `jsx`, `ppx-flags`, `compiler-flags`), the `xote` npm package with its install script run (it installs the PPX binary), an entry file that calls `View.mountById`, and an HTML element with the matching id. The most common failure is a missing PPX binary because the package manager skipped install scripts.
+
+## Availability
+
+| Item | Value |
+| --- | --- |
+| Package | `xote` (npm), stable 7.2.0 |
+| Compiler | ReScript 12 (the PPX is validated against ReScript 12's ppx ABI) |
+| PPX | `xote/ppx/ppx`, prebuilt for linux-x64, linux-arm64 (glibc), darwin-x64, darwin-arm64, win32-x64 (`ppx/ppx.exe`) |
+| Bundler | any ES-module bundler; examples use Vite |
+| Required runtime dependency | `rescript-signals` (installed automatically as a dependency of `xote`) |
+
+## Rules
+
+1. `rescript.json` MUST list `"xote"` in `"dependencies"`. Without it, `Xote.*` modules cannot be resolved.
+2. `rescript.json` MUST set `"jsx": {"version": 4, "module": "XoteJSX"}`. Without it, JSX compiles against React's JSX module and fails.
+3. To use `@xote.component`, `rescript.json` MUST set `"ppx-flags": ["xote/ppx/ppx"]`. The flag belongs in the application's `rescript.json`, not in any dependency.
+4. `"compiler-flags": ["-open Xote"]` SHOULD be set; otherwise every file that uses `Signal`, `View`, … MUST start with `open Xote`.
+5. The npm install script of `xote` (`postinstall`: `node ppx/postinstall.js`) MUST have run once; it copies the platform binary to `node_modules/xote/ppx/ppx`. pnpm skips dependency install scripts by default; run `pnpm approve-builds` or `node node_modules/xote/ppx/postinstall.js`.
+6. If no prebuilt binary matches the platform, or it does not execute (e.g. musl/Alpine, because the Linux binaries are glibc-linked), the install script compiles the PPX from source when `ocamlopt` is on `PATH`; otherwise it prints instructions and exits 0. It never fails the install.
+7. When no binary could be installed (and not on Windows), the install script writes an executable stub at `ppx/ppx` that fails the build with a message naming the fix.
+8. A module MUST NOT render itself by its own file name. Put `View.mountById(<App />, "app")` in a separate entry file (e.g. `Main.res`).
+9. The HTML page MUST contain the element whose id is passed to `View.mountById`, and MUST load the compiled entry (`Main.res.mjs` with the usual `"suffix": ".res.mjs"`, `"in-source": true`) as `type="module"`.
+10. The ReScript compiler and the bundler run as two processes in development (`npx rescript watch` and `npx vite`); the bundler consumes the compiled `.res.mjs` files.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `View.mountById` | `(View.node, string) => unit` | renders the node into the element with that id; logs `Container element not found: <id>` to the console if missing |
+| `View.mount` | `(View.node, Dom.element) => unit` | renders into a given element |
+
+## Patterns
+
+### Checklist (execute in order)
+
+1. Create a project if none exists: `npm create rescript-app@latest`, choose the Vite template.
+2. Install: `npm install xote` (pnpm: `pnpm add xote` then `pnpm approve-builds`; yarn: `yarn add xote`).
+3. Confirm the PPX binary: `node_modules/xote/ppx/ppx --help` exits 0 (Windows: `ppx.exe`). If not, run `node node_modules/xote/ppx/postinstall.js` and read its output.
+4. Merge into `rescript.json` (keep existing `sources`, `package-specs`, `suffix`):
+
+```json
+{
+  "dependencies": ["xote"],
+  "jsx": { "version": 4, "module": "XoteJSX" },
+  "ppx-flags": ["xote/ppx/ppx"],
+  "compiler-flags": ["-open Xote"]
+}
+```
+
+5. Create `src/Counter.res`:
+
+```rescript
+let count = Signal.make(0)
+
+@xote.component
+let make = () =>
+  <div>
+    <h1> {"Counter"} </h1>
+    <p> {"Count: "} {Signal.get(count)} </p>
+    <button onClick={_ => Signal.update(count, n => n + 1)}> {"Increment"} </button>
+  </div>
+```
+
+6. Create `src/Main.res`:
+
+```rescript
+View.mountById(<Counter />, "app")
+```
+
+7. In `index.html`:
+
+```html
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/Main.res.mjs"></script>
+</body>
+```
+
+8. Build once: `npx rescript` (exit code 0). Develop: `npx rescript watch` and `npx vite` in two terminals.
+
+### File layout
+
+```
+rescript.json
+index.html
+src/
+  Main.res          entry: mounts the root component
+  App.res           root component (optional)
+  Counter.res       one component per file (or per submodule)
+```
+
+### Without the PPX
+
+Use when the PPX cannot be installed. Omit `ppx-flags`; write `@jsx.component`; reactive attributes take thunks; text uses value components:
+
+```rescript
+let count = Signal.make(0)
+
+@jsx.component
+let make = () =>
+  <p class={() => Signal.get(count) > 0 ? "on" : "off"}>
+    <View.Text> "Count: " </View.Text>
+    <View.Int> {count} </View.Int>
+  </p>
+```
+
+## Anti-patterns
+
+`ppx-flags` added to a dependency's config or omitted from the app: `@xote.component` is then an unknown attribute and bare children fail to type-check (error below). Fix: add `"ppx-flags": ["xote/ppx/ppx"]` to the app's `rescript.json`.
+
+Mount call inside the component file:
+
+```rescript
+// Counter.res
+@xote.component
+let make = () => <p> {"hi"} </p>
+View.mountById(<Counter />, "app")
+```
+
+Symptom: compile error `The module or file Counter can't be found.` (a module cannot reference itself). Fix: move the call to `Main.res`.
+
+Running only the bundler: Vite serves stale or missing `.res.mjs` files. Fix: run `npx rescript watch` alongside it.
+
+## Edge cases
+
+- The PPX opt-in is per file: in a file containing at least one `@xote.component`, all JSX (including helper functions returning JSX) is decomposed. A file without the annotation is untouched.
+- Removing the last `@xote.component` from a file silently makes its helpers static, or breaks the build if they use bare children.
+- A ReScript release that changes the ppx AST version makes the PPX fail the build immediately with an error naming the mismatched magic number; pin ReScript 12.
+
+### Error → cause → fix
+
+| Error text (as printed by ReScript or the stub) | Cause | Fix |
+| --- | --- | --- |
+| `The module or file Signal can't be found.` | no `-open Xote` and no `open Xote` in the file, or `xote` missing from `dependencies` | add `"compiler-flags": ["-open Xote"]` or `open Xote`; add `"xote"` to `dependencies` |
+| `This has type: string` / `But this function argument is expecting: XoteJSX.element` on a `{"…"}` child | bare child without the PPX (no `ppx-flags`, or the file has no `@xote.component`) | enable the PPX and annotate, or wrap in `<View.Text>` / `View.text(…)` |
+| `xote: @xote.component ppx binary missing (the install script did not run).` | stub at `ppx/ppx`: install script ran but no binary could be installed | run `node node_modules/xote/ppx/postinstall.js` (pnpm: `pnpm approve-builds` first); on unsupported platforms install `ocamlopt` or run `sh node_modules/xote/ppx/build.sh` |
+| `try_package_path: upward traversal did not find 'xote/ppx/ppx'` | install script never ran (pnpm default, `--ignore-scripts`), or Windows without a binary | same as above |
+| `` `type` is a reserved keyword. Keywords need to be escaped `` | `type="text"` on an element | write `type_="text"` |
+| `The field className does not belong to type Xote.XoteJSX.Elements.props` | React-style prop | write `class` |
+| `Only one component definition is allowed for each module.` | two annotated `make`s in one module | move one into a submodule or file |
+| `This has type: Xote.Signal.t<int>` / `But the component prop count is expected to have type: int` | passing a signal to a prop declared as a value | declare the prop as `Signal.t<int>` (to stay reactive) or pass `Signal.get(x)` (one-time value) |
+| `Container element not found: app` (browser console) | no element with that id when `mountById` ran | add the element, or load the script after it / with `type="module"` |
+
+## SSR and hydration
+
+Not part of a minimal setup. For server rendering, the server calls `SSR.renderToString`/`SSR.renderDocument` and the client calls `Hydration.hydrateById` instead of `View.mountById`; see `/docs/advanced/ssr` and `/docs/guides/deploying`.
+
+## Verify
+
+- `node_modules/xote/ppx/ppx --help` exits 0.
+- `npx rescript` exits 0; `src/Counter.res.mjs` exists and contains no `View.text("hello")` where a reactive read was intended (reactive leaves compile to thunks such as `View.child(() => …)`).
+- In the browser, clicking the button changes only the number; no console errors.
+
+## Related
+
+- `/docs/thinking-in-signals` — what the PPX turns into reactive leaves.
+- `/docs/guides/project-structure` — larger layouts and where state lives.
+- `/docs/learn/rendering` — both component styles (with and without the PPX).

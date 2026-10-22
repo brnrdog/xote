@@ -1,159 +1,82 @@
 type todo = {
-  id: string,
+  id: int,
   text: string,
-  done: bool,
+  done: Signal.t<bool>,
 }
 
+let makeTodo = (id, text, done) => {id, text, done: Signal.make(done)}
+
 let todos = Signal.make([
-  {id: "1", text: "Learn ReScript", done: true},
-  {id: "2", text: "Learn signals", done: false},
-  {id: "3", text: "Write my first Xote component", done: false},
+  makeTodo(1, "Learn ReScript", true),
+  makeTodo(2, "Learn signals", false),
+  makeTodo(3, "Write my first Xote component", false),
 ])
 
 let draft = Signal.make("")
 let nextId = ref(4)
 
-@get external target: Dom.event => Dom.element = "target"
-@get external value: Dom.element => string = "value"
+@get external target: Dom.event => {..} = "target"
 
-let remainingCount = Computed.make(() =>
-  Signal.get(todos)->Array.filter(todo => !todo.done)->Array.length
+let remaining = Computed.make(() =>
+  Signal.get(todos)->Array.filter(todo => !Signal.get(todo.done))->Array.length
 )
 
-let totalCount = Computed.make(() => Signal.get(todos)->Array.length)
-
-let handleInput = (evt: Dom.event) => {
-  Signal.set(draft, evt->target->value)
-}
-
-let addTodo = (_evt: Dom.event) => {
+let addTodo = () => {
   let text = Signal.peek(draft)->String.trim
-
   if text != "" {
-    Signal.update(todos, current =>
-      Array.concat(current, [{id: nextId.contents->Int.toString, text, done: false}])
-    )
+    Signal.update(todos, list => Array.concat(list, [makeTodo(nextId.contents, text, false)]))
     nextId := nextId.contents + 1
     Signal.set(draft, "")
   }
 }
 
-let toggleTodo = id => {
-  Signal.update(todos, current =>
-    current->Array.map(todo =>
-      if todo.id == id {
-        {...todo, done: !todo.done}
-      } else {
-        todo
-      }
-    )
-  )
-}
-
-let removeTodo = id => {
-  Signal.update(todos, current => current->Array.filter(todo => todo.id != id))
-}
+let removeTodo = id => Signal.update(todos, list => list->Array.filter(todo => todo.id != id))
 
 module TodoComposer = {
   @xote.component
-  let make = () => {
+  let make = () =>
     <div class="todo-demo-form">
       <input
-        type_="text"
-        placeholder="Add a task"
         class="todo-demo-input demo-input"
-        value={() => Signal.get(draft)}
-        onInput={handleInput}
+        placeholder="Add a task"
+        value={Signal.get(draft)}
+        onInput={event => Signal.set(draft, target(event)["value"])}
       />
-      <button class="demo-btn demo-btn-primary" onClick={addTodo}>
-        {View.text("Add")}
-      </button>
+      <button class="demo-btn demo-btn-primary" onClick={_ => addTodo()}> {"Add"} </button>
     </div>
-  }
-}
-
-module TodoSummary = {
-  @xote.component
-  let make = () => {
-    <div class="todo-list-demo-toolbar">
-      <div class="todo-demo-summary">
-        {View.signalText(() => {
-          let remaining = Signal.get(remainingCount)
-          if remaining == 1 {
-            "1 task left"
-          } else {
-            Int.toString(remaining) ++ " tasks left"
-          }
-        })}
-      </div>
-      <div class="todo-list-demo-count">
-        <View.Int> {totalCount} </View.Int>
-        {View.text(" total")}
-      </div>
-    </div>
-  }
 }
 
 module TodoRow = {
   @xote.component
-  let make = (~todo: todo) => {
-    let itemClass =
-      "todo-demo-item" ++
-      if todo.done {
-        " todo-demo-item-completed"
-      } else {
-        ""
-      }
-
-    <li class={itemClass}>
+  let make = (~todo: todo) =>
+    <li class={Signal.get(todo.done) ? "todo-demo-item todo-demo-item-completed" : "todo-demo-item"}>
       <input
         type_="checkbox"
-        checked={todo.done}
         class="todo-demo-checkbox"
-        onChange={_ => toggleTodo(todo.id)}
+        checked={Signal.get(todo.done)}
+        onChange={_ => Signal.update(todo.done, done => !done)}
       />
-      <span class="todo-demo-item-text"> {View.text(todo.text)} </span>
-      <button class="todo-demo-delete-btn" onClick={_ => removeTodo(todo.id)}>
-        {View.text("Remove")}
-      </button>
+      <span class="todo-demo-item-text"> {todo.text} </span>
+      <button class="todo-demo-delete-btn" onClick={_ => removeTodo(todo.id)}> {"Remove"} </button>
     </li>
-  }
-}
-
-module TodoList = {
-  @xote.component
-  let make = () => {
-    <ul class="todo-demo-list">
-      <View.For
-        each={MaybeSignal.reactive(todos)}
-        by={todo => todo.id}
-        render={todo => <TodoRow todo />}
-      />
-    </ul>
-  }
 }
 
 @xote.component
-let make = () => {
+let make = () =>
   <div class="todo-list-demo">
-    <div class="todo-list-demo-hero">
-      <div class="counter-demo-kicker"> {View.text("View composition")} </div>
-      <h3 class="todo-list-demo-title"> {View.text("Todo list")} </h3>
-      <p class="todo-list-demo-copy">
-        {View.text("One signal drives a small set of focused components.")}
-      </p>
-    </div>
-
     <div class="todo-list-demo-section">
       <TodoComposer />
     </div>
-
     <div class="todo-list-demo-section">
-      <TodoSummary />
+      <div class="todo-demo-summary"> {Signal.get(remaining)} {" left"} </div>
     </div>
-
     <div class="todo-list-demo-section">
-      <TodoList />
+      <ul class="todo-demo-list">
+        <View.For
+          each={MaybeSignal.reactive(todos)}
+          by={todo => Int.toString(todo.id)}
+          render={todo => <TodoRow todo />}
+        />
+      </ul>
     </div>
   </div>
-}

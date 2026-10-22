@@ -1,0 +1,189 @@
+This guide sets up a small test suite for a Xote app: plain tests for your state, DOM tests for components, string tests for server rendering, and async tests for resources. It uses the same tools Xote uses for its own tests.
+
+## Set up the tools
+
+Xote's own suite runs on [Zekr](https://www.npmjs.com/package/zekr), a ReScript test library with DOM queries and events, and [jsdom](https://www.npmjs.com/package/jsdom), which gives Node a browser-like `document`. Tests are plain ReScript files you run with `node`, no extra runner needed.
+
+```bash
+npm install --save-dev zekr jsdom
+```
+
+Add Zekr as a dev dependency and a `tests` folder as a dev source in `rescript.json`:
+
+```json
+{
+  "sources": [
+    { "dir": "src", "subdirs": true },
+    { "dir": "tests", "subdirs": true, "type": "dev" }
+  ],
+  "dependencies": ["xote"],
+  "dev-dependencies": ["zekr"]
+}
+```
+
+Keep your existing `jsx`, `ppx-flags` and `compiler-flags` settings as they are.
+
+Create `tests/setup.mjs`. It puts jsdom's window on the global object, so Xote finds a DOM:
+
+```js
+import { JSDOM } from 'jsdom'
+
+const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+  url: 'http://localhost/',
+})
+
+globalThis.window = dom.window
+globalThis.document = dom.window.document
+globalThis.Node = dom.window.Node
+globalThis.HTMLElement = dom.window.HTMLElement
+globalThis.Event = dom.window.Event
+globalThis.MouseEvent = dom.window.MouseEvent
+globalThis.KeyboardEvent = dom.window.KeyboardEvent
+globalThis.InputEvent = dom.window.InputEvent
+```
+
+Then an entry file that runs your suites:
+
+```rescript
+// tests/Tests.res
+Zekr.runSuites([Counter_test.suite])
+```
+
+And a script in `package.json` that loads the setup before anything else with Node's `--import` flag:
+
+```json
+{
+  "scripts": {
+    "test": "rescript && node --import ./tests/setup.mjs tests/Tests.res.mjs"
+  }
+}
+```
+
+## Test state without a DOM
+
+Signals, computeds and effects are ordinary values. Create them, change them, and check the result:
+
+```rescript
+// tests/Counter_test.res
+open! Zekr
+
+let suite = suite(
+  "Counter",
+  [
+    test("a computed follows its signal", () => {
+      let count = Signal.make(2)
+      let doubled = Computed.make(() => Signal.get(count) * 2)
+      Signal.set(count, 5)
+      assertEqual(Signal.peek(doubled), 10)
+    }),
+  ],
+)
+```
+
+Use `Signal.peek` in assertions. It reads the value without subscribing anything.
+
+For an effect, record what it sees, and dispose it at the end so it stops reacting to later tests:
+
+```rescript
+test("an effect re-runs when its signal changes", () => {
+  let name = Signal.make("Ada")
+  let seen = []
+  let effect = Effect.runWithDisposer(() => {
+    seen->Array.push(Signal.get(name))
+    None
+  })
+  Signal.set(name, "Grace")
+  effect.dispose()
+  assertEqual(seen, ["Ada", "Grace"])
+}),
+```
+
+The same pattern checks [batching](/docs/advanced/batching): two writes inside `Signal.batch` should make the effect run once more, not twice.
+
+## Render a component and interact with it
+
+`Dom.render("")` gives you an empty container in the document. Mount your component into it, find elements the way a user would, fire events, and assert on the DOM:
+
+```rescript
+// src/Counter.res
+@xote.component
+let make = (~start=0) => {
+  let count = Signal.make(start)
+  <button onClick={_ => Signal.update(count, n => n + 1)}> {"Clicked "} {Signal.get(count)} </button>
+}
+```
+
+```rescript
+test("clicking the button counts up", () => {
+  let {container} = Dom.render("")
+  View.mount(<Counter start=1 />, container)
+  let button = Dom.Query.getByRole(container, "button")
+  Dom.Event.click(button)
+  Dom.Assert.toHaveTextContent(button, "Clicked 2")
+}),
+```
+
+Updates are synchronous, so the DOM is current as soon as the click returns. There is no need to wait.
+
+`Dom.Query` also has `getByText`, `getByLabelText`, `getByPlaceholder` and `getByTestId`. `Dom.Event` has `typeText`, `clear`, `check` and `selectOptions` for forms. Pass `~afterEach=Dom.cleanup` to `suite` to remove each test's container when it ends.
+
+> **Info:** After `open! Zekr`, `Dom` means Zekr's DOM helpers. If you need the standard `Dom.element` type in a test file, alias it before the `open`: `type domElement = Dom.element`.
+
+## Check server-rendered HTML
+
+`SSR.renderToString` returns the HTML a component produces on the server. Assert on the parts you care about rather than the whole string, because the output includes hydration markers:
+
+```rescript
+test("renders on the server", () => {
+  let html = SSR.renderToString(() => <Counter start=3 />)
+  assertContains(html, "Clicked ")
+}),
+```
+
+## Test resources and other async code
+
+<New />
+
+Async tests use `asyncTest` and `asyncSuite`. To let a promise settle, wait one tick:
+
+```rescript
+// tests/Async_test.res
+open! Zekr
+
+let settle = () => Promise.make((resolve, _) => setTimeout(() => resolve(), 0)->ignore)
+
+let suite = asyncSuite(
+  "Resources",
+  [
+    asyncTest("a resource settles as Ready", async () => {
+      let user = Resource.make(() => Promise.resolve("Ada"))
+      let before = Signal.peek(user)
+      await settle()
+      combineResults([
+        assertEqual(before, Resource.Pending),
+        assertEqual(Signal.peek(user), Resource.Ready("Ada")),
+      ])
+    }),
+  ],
+)
+```
+
+Run async suites from their own entry file with `runAsyncSuites`, because the synchronous runner ends the process once it reports:
+
+```rescript
+// tests/AsyncTests.res
+Zekr.runAsyncSuites([Async_test.suite])->ignore
+```
+
+```json
+"test": "rescript && node --import ./tests/setup.mjs tests/Tests.res.mjs && node --import ./tests/setup.mjs tests/AsyncTests.res.mjs"
+```
+
+To control exactly when a fetch answers, return a promise you resolve by hand from the test. Xote's own [resource tests](https://github.com/brnrdog/xote/blob/main/tests/Resource_test.res) do this to check loading, refreshing and stale responses.
+
+## Common mistakes
+
+- **Loading the setup from inside a test file.** Xote checks for a DOM once, when it loads, and ReScript places a ``%%raw(`import …`)`` after the file's own imports, so it runs too late. Load the setup with `node --import ./tests/setup.mjs` instead.
+- **Leaving effects running.** An effect created in a test lives until it's disposed. Use `Effect.runWithDisposer` and call `dispose()`.
+- **Sharing module-level signals between tests.** Create fresh signals inside each test, or reset them, so one test can't leak into the next.
+- **Comparing full SSR strings.** Markers like `<!--#-->` are part of the output. Check for the content you care about.

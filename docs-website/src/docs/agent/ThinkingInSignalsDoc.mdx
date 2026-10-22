@@ -1,0 +1,178 @@
+## Summary
+
+This page specifies Xote's execution model: which code runs once, which code re-runs, and exactly which signal reads subscribe. A component's `make` runs once per instance; its returned node tree is built once; afterwards only **tracking scopes** re-run when one of their **dependencies** changes. Under `@xote.component`, the PPX turns each attribute or bare child that reads a signal into its own tracking scope (a **reactive leaf**). The one rule that decides most bugs: a read is reactive only if it is evaluated inside a tracking scope; everything else is a one-time value.
+
+## Availability
+
+| Item | Value |
+| --- | --- |
+| Model | all versions |
+| PPX decomposition (`@xote.component`, `View.child`, `View.probe`, condition-only tracking of control flow, helper functions decomposed) | stable since 7.1.0 (`ppx-flags: ["xote/ppx/ppx"]`) |
+| `View.tracked` | stable since 7.1.0 |
+| `View.onMount`, `View.onCleanup` | 7.2.0 (new) |
+
+## Rules
+
+### What runs, and when
+
+1. A component's `make` (the **component body**) runs once per instance, untracked: signal reads in it do not subscribe anything.
+2. The node tree returned by `make` is built once. Elements keep their DOM identity for the life of the instance.
+3. A **tracking scope** re-runs when any of its dependencies changes. Tracking scopes are: a computed's function, an effect's function, a reactive leaf, a `View.tracked` block, the condition of a reactive `if`/`switch` in JSX, and a resource's fetch up to its first `await`.
+4. Dependencies are re-collected on every run of a scope: a read that a run did not perform (e.g. in an untaken branch) is not a dependency for that run.
+5. A signal notifies only when the new value is not equal to the old one (`===` by default, `~equals` to override).
+6. Computeds are lazy: they compute when read and cache until a dependency changes.
+7. Effects run once immediately when created, then after each change of a dependency; the previous run's cleanup runs first.
+8. Signals, computeds, effects and resources created during a component body are owned by that component and disposed with it (since 7.1.0 for effects).
+
+### What the PPX makes reactive (`@xote.component`)
+
+9. **Attribute on an intrinsic element** (`<div class={…}>`) whose expression reads a signal → thunked into a reactive attribute (`View.computedAttr`). Without a read → static attribute.
+10. **Bare child** `{…}` → wrapped in `View.child`. An expression that reads a signal is thunked first and becomes reactive text; a scalar (`"x"`, `42`) becomes static text; an existing node passes through; a bare `Signal.t` value becomes reactive text; an array becomes a fragment.
+11. **`if`/`switch` in child position whose condition reads a signal** → the branches are decomposed, then wrapped in `View.tracked`, which tracks **only the condition** (and `when` guards). Changing the condition rebuilds the selected branch; reads inside the branch remain separate leaves.
+12. **`if`/`switch` whose condition reads nothing** → not wrapped; branches still decomposed.
+13. **User-component props** (`<Card label={…} />`) are never thunked: each is a one-time read evaluated where the JSX is written. Exception: props whose value is JSX or a function returning JSX are decomposed as node position.
+14. **`attrs`, `data`, event handlers** are left exactly as written. Reactivity in `attrs` comes from passing a thunk or a signal as the value: `attrs=[("data-theme", () => Signal.get(theme))]`.
+15. **Scope of the transform**: in a file containing at least one `@xote.component`, all JSX is decomposed, including plain helper functions that return JSX. A file with no annotation is not transformed.
+16. **Read detection** recognises `Signal.get`, `MaybeSignal.get`, `Prop.get`, pipes, `let`/`module`/`open` aliases, local helper functions whose body reads, and helpers in same-file modules. `Signal.peek` is never a read.
+17. **Hidden reads**: a read behind a call the PPX cannot resolve (a function in another module) compiles to a one-time value. In development the leaf is wrapped in `View.probe`, which logs once per source location: `[Xote] File.res:line:col: this value reads a signal through a call @xote.component cannot see …`. Development mode is `globalThis.__XOTE_DEV__` if set, else `process.env.NODE_ENV !== "production"`.
+18. A value already written as a thunk (`{() => …}`, `class={() => …}`) is never double-wrapped; wrapping in a thunk is always a valid way to force reactivity.
+19. Binding a read to a `let` makes it a one-time read. To extract a reactive expression, bind a thunk (`let label = () => …`) and use `{label()}` or `{label}`.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `Signal.get` | `Signal.t<'a> => 'a` | tracked read inside a tracking scope; plain read elsewhere |
+| `Signal.peek` | `Signal.t<'a> => 'a` | untracked read, never subscribes |
+| `Signal.untrack` | `(unit => 'a) => 'a` | runs the function with tracking disabled |
+| `View.tracked` | `(unit => View.node) => View.node` | a region that re-renders wholesale when any read inside it changes |
+| `View.child` | `'a => View.node` | runtime coercion used for bare children under the PPX |
+| `View.probe` | `(string, unit => 'a) => 'a` | emitted by the PPX around unresolvable calls; reports hidden reads in development |
+
+## Patterns
+
+Reactive leaf (use for any value shown in markup):
+
+```rescript
+@xote.component
+let make = () => <p class={Signal.get(active) ? "on" : "off"}> {Signal.get(count)} </p>
+```
+
+Pass a signal to a child component (use when the child shows a changing value):
+
+```rescript
+module Badge = {
+  @xote.component
+  let make = (~count: Signal.t<int>) => <span> {Signal.get(count)} </span>
+}
+
+@xote.component
+let make = () => <Badge count />
+```
+
+Reusable reactive expression bound as a thunk (use to name a computation used in markup):
+
+```rescript
+@xote.component
+let make = () => {
+  let label = () => "n=" ++ Int.toString(Signal.get(count))
+  <p> {label()} </p>
+}
+```
+
+Derived value shared by several leaves (use when more than one place needs it, or it is expensive):
+
+```rescript
+let total = Computed.make(() => Signal.get(price) * Signal.get(quantity))
+```
+
+Cross-module helper made reactive at the call site:
+
+```rescript
+<p> {() => Store.label()} </p>
+```
+
+### Mapping from React
+
+| React | Xote | Notes |
+| --- | --- | --- |
+| `useState` | `Signal.make` in the component body or at module level | body runs once, so no hook rules; module level = shared state |
+| `useMemo` | `Computed.make` | no dependency array; reads are tracked |
+| `useEffect` | `Effect.run` | runs immediately, re-runs on change, cleanup via `Some(fn)` |
+| `useEffect(…, [])` for DOM work | `View.onMount` (7.2.0) | runs once after insertion, client only |
+| `useRef` (DOM) | `View.Ref.make` + `ref=` (7.2.0) | |
+| `useContext` | `Context.use` (7.2.0) | |
+| `React.memo`, `useCallback` | not needed | components never re-run |
+| `key` on list items | `View.For` with `by` | `Array.map` in a tracked region rebuilds every item |
+| `Suspense`, error boundary | `View.Suspense`, `View.ErrorBoundary` (7.2.0) | |
+| `className`, `htmlFor`, `type` | `class`, `for_`, `type_` | `for_` and `type_` render as `for` and `type`; `className` is a compile error |
+| re-render on prop change | not applicable | pass signals; leaves update |
+
+Non-equivalents: there is no render function to re-run; there is no stale-closure problem (handlers read current values via `Signal.get`/`Signal.peek`); and there is no automatic batching: each `Signal.set` outside `Signal.batch` notifies its dependents synchronously, so two consecutive writes run a dependent effect twice. Wrap related writes in `Signal.batch`.
+
+## Anti-patterns
+
+Hoisted read:
+
+```rescript
+@xote.component
+let make = () => {
+  let label = Int.toString(Signal.get(count))
+  <p> {label} </p>
+}
+```
+
+Symptom: text never updates. Fix: `<p> {Signal.get(count)} </p>` or bind a thunk (rule 19).
+
+Value passed to a component prop:
+
+```rescript
+<Badge count={Signal.get(count)} />
+```
+
+Symptom: compile error if `~count` is `Signal.t<int>`; if `~count` is `int`, the badge is frozen. Inside a reactive branch, the read also subscribes the branch, which then rebuilds wholesale whenever `count` changes. Fix: pass the signal.
+
+Cross-module helper in a leaf:
+
+```rescript
+<p> {Store.label()} </p>
+```
+
+Symptom: static text plus one `[Xote] … reads a signal through a call @xote.component cannot see` warning in development. Fix: `{() => Store.label()}`, or move the read inline.
+
+List built with `Array.map` over a signal:
+
+```rescript
+<ul> {Signal.get(items)->Array.map(item => <li> {item} </li>)} </ul>
+```
+
+Symptom: every change rebuilds all items; focus and input state inside rows are lost. Fix: `<View.For each={MaybeSignal.reactive(items)} by={item => item} render={item => <li> {item} </li>} />` (use a real id as the key).
+
+Large `View.tracked` block:
+
+Symptom: any dependency change replaces the whole block's DOM. Fix: plain JSX under the PPX (leaves are separate), `if`/`switch` for structure, `View.For` for lists.
+
+## Edge cases
+
+- `View.child` accepts any type: a record or variant in child position compiles under the PPX and renders `[object Object]` with a development warning.
+- A probed site warns only on its first evaluation and only for a scalar result; a hidden read in a branch never rendered during development is not reported.
+- A branch swap builds the new branch from scratch (no diff between branches); state inside the old branch is discarded.
+- Reads inside event handlers are not tracked (handlers are not tracking scopes); use `Signal.peek` there to make the intent explicit.
+- Writing a signal inside an effect is allowed but SHOULD be avoided for derived data (use a computed).
+
+## SSR and hydration
+
+During `SSR.renderToString`, component bodies run once and leaves are evaluated once to produce HTML; effects do not run. Hydration re-runs component bodies on the client to rebuild the reactive graph and attaches to the existing DOM instead of creating it. Code in a component body therefore runs on both server and client.
+
+## Verify
+
+- Inspect compiled output: a reactive leaf appears as `View.child(() => …)` or a thunked attribute; a static value appears without a thunk.
+- Runtime test: mount in jsdom, record the element (`document.querySelector`), change a signal, assert the same element is still in the document and only its text/attribute changed.
+- In development, any `[Xote] … reads a signal through a call @xote.component cannot see` warning marks a stale leaf to fix.
+
+## Related
+
+- `/docs/learn/rendering` — leaves, attributes, conditionals and lists in practice.
+- `/docs/learn/signals` — equality, peek, untrack.
+- `/docs/learn/computeds`, `/docs/learn/effects` — the other tracking scopes.
+- `/docs/learn/components` — props and children.

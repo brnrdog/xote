@@ -1,0 +1,145 @@
+This guide takes a Xote app from your machine to a host. It covers a plain client-side build, hosting under a subpath, and prerendering pages to static HTML so they load fast and can be indexed.
+
+## Build for production
+
+Xote apps build with [Vite](https://vite.dev). ReScript compiles each `.res` file to a `.res.mjs` file next to it, and Vite bundles those like any JavaScript.
+
+Your `index.html` loads the compiled entry file:
+
+```html
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/Main.res.mjs"></script>
+</body>
+```
+
+The entry starts the router and mounts the app:
+
+```rescript
+// src/Main.res
+Router.init()
+View.mountById(<App />, "app")
+```
+
+Compile, then build:
+
+```bash
+npx rescript && npx vite build
+```
+
+Vite writes the site to `dist/`. Everything in it is static, so any static host can serve it.
+
+## Host a client-only app
+
+A client-only app has one HTML file, and the [router](/docs/learn/routing) picks the page in the browser. That works when a visitor starts at `/`. When they open `/about` directly or reload it, the host looks for an `/about` file, finds none, and returns a 404.
+
+Tell the host to answer unknown paths with `index.html`. The setting depends on the host:
+
+- **Netlify:** add a `public/_redirects` file containing `/*  /index.html  200`.
+- **Vercel:** add a rewrite from `/(.*)` to `/index.html` in `vercel.json`.
+- **GitHub Pages:** there is no rewrite setting. Copy `dist/index.html` to `dist/404.html` after the build, so unknown paths load the app (with a 404 status), or prerender every page as shown below.
+
+## Serve from a subpath
+
+When the app lives under a path, such as `https://example.com/my-app/`, tell both Vite and the router.
+
+In `vite.config.mjs`, set `base` so asset URLs include the path:
+
+```js
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  base: '/my-app/',
+})
+```
+
+In your entry, pass the same path to the router:
+
+```rescript
+Router.init(~basePath="/my-app", ())
+View.mountById(<App />, "app")
+```
+
+Your route patterns stay root-relative: `/about` still matches `/my-app/about`. `Router.link` and `Router.push` add the base path for you, so don't write it into your links.
+
+## Prerender pages to static HTML
+
+Prerendering runs your app once per route at build time and saves the HTML. Visitors get a full page immediately, the browser then [hydrates](/docs/advanced/ssr) it to make it interactive, and every route exists as a real file, so no rewrite rules are needed. This docs site is deployed this way.
+
+You need two entries. The server entry renders one URL to a string:
+
+```rescript
+// src/EntryServer.res
+let render = (url: string) => {
+  Router.initSSR(~pathname=url, ())
+  SSR.renderToString(() => <App />)
+}
+```
+
+The client entry hydrates the HTML that is already on the page instead of mounting from scratch:
+
+```rescript
+// src/EntryClient.res
+Router.init()
+Hydration.hydrateById(() => <App />, "app")
+```
+
+Point `index.html` at the client entry and leave a marker where the HTML goes:
+
+```html
+<div id="app"><!--ssr-outlet--></div>
+<script type="module" src="/src/EntryClient.res.mjs"></script>
+```
+
+Build the client, build the server entry, then run a short script that renders each route into the template:
+
+```json
+{
+  "scripts": {
+    "build": "rescript && vite build && vite build --ssr src/EntryServer.res.mjs --outDir dist-server && node scripts/prerender.mjs"
+  }
+}
+```
+
+```js
+// scripts/prerender.mjs
+import fs from 'node:fs'
+import path from 'node:path'
+
+const routes = ['/', '/about']
+const template = fs.readFileSync('dist/index.html', 'utf-8')
+const { render } = await import(path.resolve('dist-server/EntryServer.res.js'))
+
+for (const route of routes) {
+  const html = template.replace('<!--ssr-outlet-->', render(route))
+  const file = route === '/' ? 'dist/index.html' : path.join('dist', route, 'index.html')
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(file, html)
+}
+```
+
+Upload `dist/` as before. This site's [own script](https://github.com/brnrdog/xote/blob/main/docs-website/scripts/prerender.mjs) builds on the same idea and also writes page titles, a sitemap and Markdown copies.
+
+With a subpath, pass it to the server router too: `Router.initSSR(~basePath="/my-app", ~pathname=url, ())`, where `url` is the app-relative path such as `/about`.
+
+## Render on a server instead
+
+If pages depend on the request, such as the signed-in user, render them on each request instead of at build time. The pieces are the same: `Router.initSSR` with the request's path, then `SSR.renderToString` or `SSR.renderDocument`. [Server rendering](/docs/advanced/ssr) walks through a full server, including how to send signal values to the client with `SSRState`.
+
+## Keep browser-only code out of the server
+
+Prerendering and server rendering run your components in Node, where there is no `window` or `document`. Two tools keep shared code safe:
+
+- **`View.onMount`** <New /> runs after the component is in the page, and never on the server. Put DOM work there, like focusing an input or measuring an element.
+- **`SSRContext`** tells you where code runs. `SSRContext.isClient` and `SSRContext.isServer` are constants you can branch on, and `SSRContext.onClient(() => ...)` runs a function only in the browser, returning `Some` of its result there and `None` on the server.
+
+```rescript
+let savedTheme = SSRContext.onClient(() => readThemeFromLocalStorage())
+```
+
+## Common mistakes
+
+- **No fallback on a client-only host.** Links work, but reloading any page except `/` shows a 404. Add the rewrite, or prerender.
+- **A base path in only one place.** Set it in Vite's `base` and in `Router.init`, and leave it out of your links.
+- **Mounting instead of hydrating prerendered pages.** `View.mountById` renders from scratch. Use `Hydration.hydrateById`, which adopts the HTML that is already there.
+- **Touching `window` at the top of a module.** It runs during prerendering and crashes the build. Move it into `View.onMount` or `SSRContext.onClient`.

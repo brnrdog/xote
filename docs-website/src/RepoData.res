@@ -1,15 +1,25 @@
 // ****************************************************
 // * THIS FILE IS GENERATED - DO NOT EDIT MANUALLY! *
 // * Generated from: ../../docs/CHANGELOG.md
+// * Pre-releases (versions with a "-") are left out.
 // * To update: modify docs/CHANGELOG.md and run:
 // *   npm run generate-repo-data
 // ****************************************************
 
 type inlineNodes = array<View.node>
 
+// A link to an issue or a commit.
+type reference = {label: string, url: string}
+
+type change = {
+  scope: option<string>,
+  text: inlineNodes,
+  refs: array<reference>,
+}
+
 type releaseSection = {
   title: string,
-  items: array<inlineNodes>,
+  changes: array<change>,
 }
 
 type release = {
@@ -22,11 +32,348 @@ type release = {
 }
 
 let sourceUrl = "https://github.com/brnrdog/xote/blob/main/docs/CHANGELOG.md"
-let latestVersion = "6.4.0"
-let latestReleaseDate = "2026-05-20"
-let latestReleaseFormattedDate = "May 20, 2026"
+let latestVersion = "7.1.0"
+let latestReleaseDate = "2026-08-23"
+let latestReleaseFormattedDate = "Aug 23, 2026"
 
 let releases: array<release> = [
+  {
+    version: "7.1.0",
+    url: "https://github.com/brnrdog/xote/compare/v7.0.0...v7.1.0",
+    date: "2026-08-23",
+    formattedDate: "Aug 23, 2026",
+    id: "release-7-1-0-2026-08-23",
+    sections: [
+      {
+        title: "Bug Fixes",
+        changes: [
+          {
+            scope: Some("effect"),
+            text: [
+              View.text("keep a disposed effect dead when its queued run fires")
+            ],
+            refs: [{label: "547e86c", url: "https://github.com/brnrdog/xote/commit/547e86cf490a4221175745928e2447e018407d25"}],
+          },
+          {
+            scope: Some("effect"),
+            text: [
+              View.text("own effects created while a component renders")
+            ],
+            refs: [{label: "ef49150", url: "https://github.com/brnrdog/xote/commit/ef4915008b0dee33dacbdbc252f874f08545f159"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("enforce the public API boundary with interface files")
+            ],
+            refs: [{label: "b1d6ded", url: "https://github.com/brnrdog/xote/commit/b1d6ded889d74f711dfabc2db9386a717954dfc2"}],
+          },
+          {
+            scope: Some("hydration"),
+            text: [
+              View.text("a hydrated keyed list never subscribed to its signal")
+            ],
+            refs: [{label: "7240c9d", url: "https://github.com/brnrdog/xote/commit/7240c9dcbfae53dab189f1050beff72b58e7ebcc"}],
+          },
+          {
+            scope: Some("owner"),
+            text: [
+              View.text("restore the active scope when a component body throws")
+            ],
+            refs: [{label: "291d8e9", url: "https://github.com/brnrdog/xote/commit/291d8e9d41ae21b62b7543b82cccf26c9dcbb9aa"}],
+          },
+          {
+            scope: Some("ppx"),
+            text: [
+              View.text("leave attrs and event handlers exactly as written")
+            ],
+            refs: [{label: "7946943", url: "https://github.com/brnrdog/xote/commit/79469433f8bc1aa53b0fe1348a5edd294d9a7bfa"}],
+          },
+          {
+            scope: Some("ppx"),
+            text: [
+              View.text("leave the data object exactly as written")
+            ],
+            refs: [{label: "d9c88b2", url: "https://github.com/brnrdog/xote/commit/d9c88b2bc6285f8b4fe0cc0189f82acaf939926d"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("remove @rescript/core dependency")
+            ],
+            refs: [{label: "fa11c35", url: "https://github.com/brnrdog/xote/commit/fa11c35ae69d3dfb41f4c90ec6095f1c9126c9e6"}],
+          },
+          {
+            scope: Some("render"),
+            text: [
+              View.text("make a component body its own reactive scope ("),
+              <a href="https://github.com/brnrdog/xote/commit/3bab9b71c09345f0296758fbd6c89b5c4676a2e4" target="_blank"> {View.text("3bab9b7")} </a>,
+              View.text("), closes "),
+              <a href="https://github.com/brnrdog/xote/issues/17" target="_blank"> {View.text("#17")} </a>
+            ],
+            refs: [],
+          },
+          {
+            scope: Some("render"),
+            text: [
+              View.text("release the computeds the library builds for a node")
+            ],
+            refs: [{label: "71ec379", url: "https://github.com/brnrdog/xote/commit/71ec379aa447680accfd7edc45076f54e3bd64ff"}],
+          },
+          {
+            scope: Some("render"),
+            text: [
+              View.text("retire a replaced keyed row where it lives")
+            ],
+            refs: [{label: "0807262", url: "https://github.com/brnrdog/xote/commit/0807262780bd0e546129452bead566f14c2c501b"}],
+          },
+          {
+            scope: Some("render"),
+            text: [
+              View.text("retire non-keyed children replaced by a keyed list")
+            ],
+            refs: [{label: "b56f802", url: "https://github.com/brnrdog/xote/commit/b56f80299153acb6cb21b09d25c3e43d7c085265"}],
+          },
+          {
+            scope: Some("router"),
+            text: [
+              View.text("release a route region's computed with its node")
+            ],
+            refs: [{label: "f0cf2dc", url: "https://github.com/brnrdog/xote/commit/f0cf2dc7a976ebf573ac8cb56e718536171bbb81"}],
+          }
+        ],
+      },
+      {
+        title: "Features",
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("include instructions for agents in the package")
+            ],
+            refs: [{label: "450e210", url: "https://github.com/brnrdog/xote/commit/450e210f3a9df0b2fa649efb73bb7d123784c98d"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("introduce MaybeSignal, deprecate Prop")
+            ],
+            refs: [{label: "f5da1e3", url: "https://github.com/brnrdog/xote/commit/f5da1e39496022d0b79f9d7064e134b38052ae60"}],
+          },
+          {
+            scope: Some("jsx"),
+            text: [
+              View.text("add attrs escape hatch and removable attributes")
+            ],
+            refs: [{label: "d405274", url: "https://github.com/brnrdog/xote/commit/d4052741612e6771ad144dc04f529898bfef9558"}],
+          },
+          {
+            scope: Some("maybe-signal"),
+            text: [
+              View.text("add fold and View.render, fix toSignal")
+            ],
+            refs: [{label: "#161", url: "https://github.com/brnrdog/xote/issues/161"}, {label: "4222f4d", url: "https://github.com/brnrdog/xote/commit/4222f4d3634c1598882efd78f550a976ebaafb42"}],
+          },
+          {
+            scope: Some("ppx"),
+            text: [
+              View.text("add @xote.component for fine-grained components")
+            ],
+            refs: [{label: "1515c2c", url: "https://github.com/brnrdog/xote/commit/1515c2c499f438d4145b93dff7ea86d4d3ab82ca"}],
+          },
+          {
+            scope: Some("ppx"),
+            text: [
+              View.text("ship prebuilt binaries so @xote.component needs no toolchain")
+            ],
+            refs: [{label: "0a55a1f", url: "https://github.com/brnrdog/xote/commit/0a55a1f4b536e387ed459861b838fc1e9637b987"}],
+          },
+          {
+            scope: Some("view"),
+            text: [
+              View.text("add tracked() blocks and coerce bare JSX children")
+            ],
+            refs: [{label: "c602626", url: "https://github.com/brnrdog/xote/commit/c6026265ce1e06fcc5d0a98f4193ca7329410619"}],
+          }
+        ],
+      },
+      {
+        title: "Performance Improvements",
+        changes: [
+          {
+            scope: Some("render"),
+            text: [
+              View.text("allocate an owner only when something registers")
+            ],
+            refs: [{label: "89a120b", url: "https://github.com/brnrdog/xote/commit/89a120bbd49a34a63c9ce604592c776af5f57a77"}],
+          },
+          {
+            scope: Some("render"),
+            text: [
+              View.text("move only the rows a reorder actually displaces")
+            ],
+            refs: [{label: "0992cc4", url: "https://github.com/brnrdog/xote/commit/0992cc4b2ccf3cfeb37609135d4d6a6b43f14cdd"}],
+          },
+          {
+            scope: Some("render"),
+            text: [
+              View.text("walk the disposal tree without snapshotting each node")
+            ],
+            refs: [{label: "046e51f", url: "https://github.com/brnrdog/xote/commit/046e51f8fe16282e391e1d6dc4db0e687be6f1ab"}],
+          }
+        ],
+      }
+    ],
+  },
+  {
+    version: "7.0.0",
+    url: "https://github.com/brnrdog/xote/compare/v6.4.0...v7.0.0",
+    date: "2026-07-13",
+    formattedDate: "Jul 13, 2026",
+    id: "release-7-0-0-2026-07-13",
+    sections: [
+      {
+        title: "",
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("refactor!: remove deprecated modules and redundant API aliases")
+            ],
+            refs: [{label: "6745b54", url: "https://github.com/brnrdog/xote/commit/6745b54967f553014b753c35b03e8f3e3e7da82c"}],
+          }
+        ],
+      },
+      {
+        title: "Bug Fixes",
+        changes: [
+          {
+            scope: Some("docs"),
+            text: [
+              View.text("resolve accessibility issues")
+            ],
+            refs: [{label: "c8f2b45", url: "https://github.com/brnrdog/xote/commit/c8f2b4591476fc2e0a7caccf9d5dc9f6e6cfb9dc"}],
+          },
+          {
+            scope: Some("router"),
+            text: [
+              View.text("scroll hash targets after navigation")
+            ],
+            refs: [{label: "8652f27", url: "https://github.com/brnrdog/xote/commit/8652f27e877cc3cecfc8cd7d506cf89f5bcb6654"}],
+          },
+          {
+            scope: Some("view"),
+            text: [
+              View.text("handle empty value primitive props")
+            ],
+            refs: [{label: "e9ccdb1", url: "https://github.com/brnrdog/xote/commit/e9ccdb160ea322ce0bbdd67611864267762d1042"}],
+          }
+        ],
+      },
+      {
+        title: "Features",
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("add focused package entries")
+            ],
+            refs: [{label: "e2ee407", url: "https://github.com/brnrdog/xote/commit/e2ee407ee6ff109f7b99a17380df14bf8244b8b4"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("add mdx support to xote jsx runtime")
+            ],
+            refs: [{label: "e09d13f", url: "https://github.com/brnrdog/xote/commit/e09d13fa236b7a9652924bc3373b368efb2e1ba8"}],
+          },
+          {
+            scope: Some("jsx"),
+            text: [
+              View.text("add conditional rendering primitives")
+            ],
+            refs: [{label: "ad7558f", url: "https://github.com/brnrdog/xote/commit/ad7558f4bef4ebf65ef9572ccef6ba46dce96c50"}],
+          },
+          {
+            scope: Some("jsx"),
+            text: [
+              View.text("add list rendering primitives")
+            ],
+            refs: [{label: "d6958ec", url: "https://github.com/brnrdog/xote/commit/d6958ec867c65acf3af6d4ef65ee45652b525b58"}],
+          },
+          {
+            scope: Some("view"),
+            text: [
+              View.text("add JSX value primitives")
+            ],
+            refs: [{label: "bc704c4", url: "https://github.com/brnrdog/xote/commit/bc704c49c725b580647b458111196f4841a23c80"}],
+          },
+          {
+            scope: Some("view"),
+            text: [
+              View.text("render primitive children")
+            ],
+            refs: [{label: "04305a3", url: "https://github.com/brnrdog/xote/commit/04305a39f16b9a4feff4fcd510bcf0e951c6c6f9"}],
+          },
+          {
+            scope: Some("view"),
+            text: [
+              View.text("support keyed rendering in For")
+            ],
+            refs: [{label: "46be19f", url: "https://github.com/brnrdog/xote/commit/46be19fc7f1af89397708029d7892ffff4f59ad4"}],
+          }
+        ],
+      },
+      {
+        title: "BREAKING CHANGES",
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("- Remove the deprecated "),
+              <code> {View.text("Node")} </code>,
+              View.text(" module (use "),
+              <code> {View.text("View")} </code>,
+              View.text(") - Remove the deprecated "),
+              <code> {View.text("ReactiveProp")} </code>,
+              View.text(" module (use "),
+              <code> {View.text("Prop")} </code>,
+              View.text(") - Remove "),
+              <code> {View.text("View.list")} </code>,
+              View.text(" / "),
+              <code> {View.text("View.keyedList")} </code>,
+              View.text(" aliases (use "),
+              <code> {View.text("View.each")} </code>,
+              View.text(" / "),
+              <code> {View.text("View.eachWithKey")} </code>,
+              View.text(") - Remove "),
+              <code> {View.text("SSRState.make")} </code>,
+              View.text(" (use "),
+              <code> {View.text("SSRState.signal")} </code>,
+              View.text(") and "),
+              <code> {View.text("SSRState.syncSignal")} </code>,
+              View.text(" (use "),
+              <code> {View.text("SSRState.sync")} </code>,
+              View.text(") Also drops the "),
+              <code> {View.text("Node")} </code>,
+              View.text("/"),
+              <code> {View.text("ReactiveProp")} </code>,
+              View.text(" entries from "),
+              <code> {View.text("rescript.json")} </code>,
+              View.text(" "),
+              <code> {View.text("sources.public")} </code>,
+              View.text(" and the "),
+              <code> {View.text("./node")} </code>,
+              View.text(" / "),
+              <code> {View.text("./reactive-prop")} </code>,
+              View.text(" package exports, migrates in-repo examples/tests to the canonical names, and refreshes the README (favouring the Router/Route/Link component APIs in the Router section), CLAUDE.md, AGENTS.md, and the technical overview.")
+            ],
+            refs: [],
+          }
+        ],
+      }
+    ],
+  },
   {
     version: "6.4.0",
     url: "https://github.com/brnrdog/xote/compare/v6.3.0...v6.4.0",
@@ -36,22 +383,26 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("empty view keyed children ("),
-            <a href="https://github.com/brnrdog/xote/commit/5fbe71bfa2dd15818c5f1c58c7bc76759adbcd0e" target="_blank"> {View.text("5fbe71b")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("empty view keyed children")
+            ],
+            refs: [{label: "5fbe71b", url: "https://github.com/brnrdog/xote/commit/5fbe71bfa2dd15818c5f1c58c7bc76759adbcd0e"}],
+          }
         ],
       },
       {
         title: "Features",
-        items: [
-          [
-            View.text("add SVG attribute props to JSX Elements ("),
-            <a href="https://github.com/brnrdog/xote/commit/63592e5d58bc581515b0bb707033f8d3246e1665" target="_blank"> {View.text("63592e5")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("add SVG attribute props to JSX Elements")
+            ],
+            refs: [{label: "63592e5", url: "https://github.com/brnrdog/xote/commit/63592e5d58bc581515b0bb707033f8d3246e1665"}],
+          }
         ],
       }
     ],
@@ -65,12 +416,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            View.text("add missing pointer event props ("),
-            <a href="https://github.com/brnrdog/xote/commit/3a8f596c2a516b0258e007e7080f07ac1d06ba47" target="_blank"> {View.text("3a8f596")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("add missing pointer event props")
+            ],
+            refs: [{label: "3a8f596", url: "https://github.com/brnrdog/xote/commit/3a8f596c2a516b0258e007e7080f07ac1d06ba47"}],
+          }
         ],
       }
     ],
@@ -84,27 +437,33 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("connect keyed JSX to reconciliation ("),
-            <a href="https://github.com/brnrdog/xote/commit/6839f90c8ff0838ce65427715ba65af57a76cce3" target="_blank"> {View.text("6839f90")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("connect keyed JSX to reconciliation")
+            ],
+            refs: [{label: "6839f90", url: "https://github.com/brnrdog/xote/commit/6839f90c8ff0838ce65427715ba65af57a76cce3"}],
+          }
         ],
       },
       {
         title: "Features",
-        items: [
-          [
-            View.text("add clearer api aliases ("),
-            <a href="https://github.com/brnrdog/xote/commit/1bc01da9f3a871b38fae7f243fa2b99a2ce37690" target="_blank"> {View.text("1bc01da")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("promote View and Prop as primary modules ("),
-            <a href="https://github.com/brnrdog/xote/commit/5a1566fd13d1bd4af09dbce0b8e40bdf2a4cc948" target="_blank"> {View.text("5a1566f")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("add clearer api aliases")
+            ],
+            refs: [{label: "1bc01da", url: "https://github.com/brnrdog/xote/commit/1bc01da9f3a871b38fae7f243fa2b99a2ce37690"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("promote View and Prop as primary modules")
+            ],
+            refs: [{label: "5a1566f", url: "https://github.com/brnrdog/xote/commit/5a1566fd13d1bd4af09dbce0b8e40bdf2a4cc948"}],
+          }
         ],
       }
     ],
@@ -118,12 +477,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("defer initial select value until options mount ("),
-            <a href="https://github.com/brnrdog/xote/commit/7dd1c7ff45100edd1f7f56e1db3acf517e7fed6e" target="_blank"> {View.text("7dd1c7f")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("defer initial select value until options mount")
+            ],
+            refs: [{label: "7dd1c7f", url: "https://github.com/brnrdog/xote/commit/7dd1c7ff45100edd1f7f56e1db3acf517e7fed6e"}],
+          }
         ],
       }
     ],
@@ -137,12 +498,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("defer initial select value until options mount ("),
-            <a href="https://github.com/brnrdog/xote/commit/7dd1c7ff45100edd1f7f56e1db3acf517e7fed6e" target="_blank"> {View.text("7dd1c7f")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("defer initial select value until options mount")
+            ],
+            refs: [{label: "7dd1c7f", url: "https://github.com/brnrdog/xote/commit/7dd1c7ff45100edd1f7f56e1db3acf517e7fed6e"}],
+          }
         ],
       }
     ],
@@ -156,12 +519,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Performance Improvements",
-        items: [
-          [
-            View.text("bump rescript-signals to ^3.1.0 ("),
-            <a href="https://github.com/brnrdog/xote/commit/f9d3ef9a37acdc917dba35016e351fb82079fc17" target="_blank"> {View.text("f9d3ef9")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("bump rescript-signals to ^3.1.0")
+            ],
+            refs: [{label: "f9d3ef9", url: "https://github.com/brnrdog/xote/commit/f9d3ef9a37acdc917dba35016e351fb82079fc17"}],
+          }
         ],
       }
     ],
@@ -175,12 +540,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            View.text("add draggable, hidden, title, and other missing JSX props ("),
-            <a href="https://github.com/brnrdog/xote/commit/e6de2bae6c586fa863a1b40bfe2132f52469e8ee" target="_blank"> {View.text("e6de2ba")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("add draggable, hidden, title, and other missing JSX props")
+            ],
+            refs: [{label: "e6de2ba", url: "https://github.com/brnrdog/xote/commit/e6de2bae6c586fa863a1b40bfe2132f52469e8ee"}],
+          }
         ],
       }
     ],
@@ -194,12 +561,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("add exports field to package.json ("),
-            <a href="https://github.com/brnrdog/xote/commit/c57ed3271263fa759c743990a104a56833ecc343" target="_blank"> {View.text("c57ed32")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("add exports field to package.json")
+            ],
+            refs: [{label: "c57ed32", url: "https://github.com/brnrdog/xote/commit/c57ed3271263fa759c743990a104a56833ecc343"}],
+          }
         ],
       }
     ],
@@ -213,137 +582,167 @@ let releases: array<release> = [
     sections: [
       {
         title: "",
-        items: [
-          [
-            View.text("refactor!: drop Xote__ prefix and use ReScript namespacing ("),
-            <a href="https://github.com/brnrdog/xote/commit/08991c4499951e53054b491940d1908bb8d744cb" target="_blank"> {View.text("08991c4")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("refactor!: drop Xote__ prefix and use ReScript namespacing")
+            ],
+            refs: [{label: "08991c4", url: "https://github.com/brnrdog/xote/commit/08991c4499951e53054b491940d1908bb8d744cb"}],
+          }
         ],
       },
       {
         title: "",
-        items: [
-          [
-            View.text("refactor!: rename Component module to Node ("),
-            <a href="https://github.com/brnrdog/xote/commit/0bb235bfa2a0e81b23710304cf0c93e9286a8cbd" target="_blank"> {View.text("0bb235b")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("refactor!: rename Component module to Node")
+            ],
+            refs: [{label: "0bb235b", url: "https://github.com/brnrdog/xote/commit/0bb235bfa2a0e81b23710304cf0c93e9286a8cbd"}],
+          }
         ],
       },
       {
         title: "",
-        items: [
-          [
-            View.text("refactor!: rename JSX module to XoteJSX ("),
-            <a href="https://github.com/brnrdog/xote/commit/ee870d47abfa40e0c0eb5dbabd9aabeb82eedbb8" target="_blank"> {View.text("ee870d4")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("refactor!: rename JSX module to XoteJSX")
+            ],
+            refs: [{label: "ee870d4", url: "https://github.com/brnrdog/xote/commit/ee870d47abfa40e0c0eb5dbabd9aabeb82eedbb8"}],
+          }
         ],
       },
       {
         title: "",
-        items: [
-          [
-            View.text("refactor!: split HTML element builders into Html module ("),
-            <a href="https://github.com/brnrdog/xote/commit/8ffd83f97ece1ef71640c3ab8cb9067140ab6542" target="_blank"> {View.text("8ffd83f")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("refactor!: split HTML element builders into Html module")
+            ],
+            refs: [{label: "8ffd83f", url: "https://github.com/brnrdog/xote/commit/8ffd83f97ece1ef71640c3ab8cb9067140ab6542"}],
+          }
         ],
       },
       {
         title: "",
-        items: [
-          [
-            View.text("refactor!: unify reactive node helpers under "),
-            <code> {View.text("signal")} </code>,
-            View.text(" prefix ("),
-            <a href="https://github.com/brnrdog/xote/commit/b1a3ca7837f3e7e599cfc745518c526f10080bca" target="_blank"> {View.text("b1a3ca7")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("refactor!: unify reactive node helpers under "),
+              <code> {View.text("signal")} </code>,
+              View.text(" prefix")
+            ],
+            refs: [{label: "b1a3ca7", url: "https://github.com/brnrdog/xote/commit/b1a3ca7837f3e7e599cfc745518c526f10080bca"}],
+          }
         ],
       },
       {
         title: "BREAKING CHANGES",
-        items: [
-          [
-            <code> {View.text("Xote.Component")} </code>,
-            View.text(" is renamed to "),
-            <code> {View.text("Xote.Node")} </code>,
-            View.text(". Replace all "),
-            <code> {View.text("Component.text")} </code>,
-            View.text(", "),
-            <code> {View.text("Component.signalText")} </code>,
-            View.text(", "),
-            <code> {View.text("Component.element")} </code>,
-            View.text(", "),
-            <code> {View.text("Component.mount")} </code>,
-            View.text(", etc. with the equivalent "),
-            <code> {View.text("Node.*")} </code>,
-            View.text(" calls.")
-          ],
-          [
-            View.text("The JSX module is now "),
-            <code> {View.text("Xote.XoteJSX")} </code>,
-            View.text(". Consumers must update "),
-            <code> {View.text("rescript.json")} </code>,
-            View.text(": \"jsx\": { \"version\": 4, \"module\": \"XoteJSX\" }")
-          ],
-          [
-            View.text("Element builders moved from "),
-            <code> {View.text("Component")} </code>,
-            View.text(" to "),
-            <code> {View.text("Html")} </code>,
-            View.text(". Replace "),
-            <code> {View.text("Xote.Component.div(...)")} </code>,
-            View.text(" with "),
-            <code> {View.text("Xote.Html.div(...)")} </code>,
-            View.text(" (and the same for "),
-            <code> {View.text("span")} </code>,
-            View.text(", "),
-            <code> {View.text("button")} </code>,
-            View.text(", "),
-            <code> {View.text("input")} </code>,
-            View.text(", "),
-            <code> {View.text("h1")} </code>,
-            View.text("-"),
-            <code> {View.text("h3")} </code>,
-            View.text(", "),
-            <code> {View.text("p")} </code>,
-            View.text(", "),
-            <code> {View.text("ul")} </code>,
-            View.text(", "),
-            <code> {View.text("li")} </code>,
-            View.text(", "),
-            <code> {View.text("a")} </code>,
-            View.text(").")
-          ],
-          [
-            View.text("The JSX module path changes from "),
-            <code> {View.text("Xote__JSX")} </code>,
-            View.text(" to "),
-            <code> {View.text("Xote.JSX")} </code>,
-            View.text(". Consumers must update their "),
-            <code> {View.text("rescript.json")} </code>,
-            View.text(": \"jsx\": { \"version\": 4, \"module\": \"JSX\" }, \"compiler-flags\": "),
-            View.text("[\"-open Xote\"]")
-          ],
-          [
-            <code> {View.text("Xote.Component.textSignal")} </code>,
-            View.text(", "),
-            <code> {View.text("reactiveString")} </code>,
-            View.text(", "),
-            <code> {View.text("reactiveInt")} </code>,
-            View.text(", and "),
-            <code> {View.text("reactiveFloat")} </code>,
-            View.text(" are removed. Replace call sites with "),
-            <code> {View.text("signalText")} </code>,
-            View.text(", "),
-            <code> {View.text("signalInt")} </code>,
-            View.text(", and "),
-            <code> {View.text("signalFloat")} </code>,
-            View.text(" respectively.")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              <code> {View.text("Xote.Component")} </code>,
+              View.text(" is renamed to "),
+              <code> {View.text("Xote.Node")} </code>,
+              View.text(". Replace all "),
+              <code> {View.text("Component.text")} </code>,
+              View.text(", "),
+              <code> {View.text("Component.signalText")} </code>,
+              View.text(", "),
+              <code> {View.text("Component.element")} </code>,
+              View.text(", "),
+              <code> {View.text("Component.mount")} </code>,
+              View.text(", etc. with the equivalent "),
+              <code> {View.text("Node.*")} </code>,
+              View.text(" calls.")
+            ],
+            refs: [],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("The JSX module is now "),
+              <code> {View.text("Xote.XoteJSX")} </code>,
+              View.text(". Consumers must update "),
+              <code> {View.text("rescript.json")} </code>,
+              View.text(": \"jsx\": { \"version\": 4, \"module\": \"XoteJSX\" }")
+            ],
+            refs: [],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("Element builders moved from "),
+              <code> {View.text("Component")} </code>,
+              View.text(" to "),
+              <code> {View.text("Html")} </code>,
+              View.text(". Replace "),
+              <code> {View.text("Xote.Component.div(...)")} </code>,
+              View.text(" with "),
+              <code> {View.text("Xote.Html.div(...)")} </code>,
+              View.text(" (and the same for "),
+              <code> {View.text("span")} </code>,
+              View.text(", "),
+              <code> {View.text("button")} </code>,
+              View.text(", "),
+              <code> {View.text("input")} </code>,
+              View.text(", "),
+              <code> {View.text("h1")} </code>,
+              View.text("-"),
+              <code> {View.text("h3")} </code>,
+              View.text(", "),
+              <code> {View.text("p")} </code>,
+              View.text(", "),
+              <code> {View.text("ul")} </code>,
+              View.text(", "),
+              <code> {View.text("li")} </code>,
+              View.text(", "),
+              <code> {View.text("a")} </code>,
+              View.text(").")
+            ],
+            refs: [],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("The JSX module path changes from "),
+              <code> {View.text("Xote__JSX")} </code>,
+              View.text(" to "),
+              <code> {View.text("Xote.JSX")} </code>,
+              View.text(". Consumers must update their "),
+              <code> {View.text("rescript.json")} </code>,
+              View.text(": \"jsx\": { \"version\": 4, \"module\": \"JSX\" }, \"compiler-flags\": "),
+              View.text("[\"-open Xote\"]")
+            ],
+            refs: [],
+          },
+          {
+            scope: None,
+            text: [
+              <code> {View.text("Xote.Component.textSignal")} </code>,
+              View.text(", "),
+              <code> {View.text("reactiveString")} </code>,
+              View.text(", "),
+              <code> {View.text("reactiveInt")} </code>,
+              View.text(", and "),
+              <code> {View.text("reactiveFloat")} </code>,
+              View.text(" are removed. Replace call sites with "),
+              <code> {View.text("signalText")} </code>,
+              View.text(", "),
+              <code> {View.text("signalInt")} </code>,
+              View.text(", and "),
+              <code> {View.text("signalFloat")} </code>,
+              View.text(" respectively.")
+            ],
+            refs: [],
+          }
         ],
       }
     ],
@@ -357,20 +756,26 @@ let releases: array<release> = [
     sections: [
       {
         title: "",
-        items: [
-          [
-            View.text("feat!: update to rescript-signals 2.0.0 ("),
-            <a href="https://github.com/brnrdog/xote/commit/fb2c89785ea2323a05e33240f602bab66613a84e" target="_blank"> {View.text("fb2c897")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("feat!: update to rescript-signals 2.0.0")
+            ],
+            refs: [{label: "fb2c897", url: "https://github.com/brnrdog/xote/commit/fb2c89785ea2323a05e33240f602bab66613a84e"}],
+          }
         ],
       },
       {
         title: "BREAKING CHANGES",
-        items: [
-          [
-            View.text("Effect.run now returns unit instead of a disposer. Use Effect.runWithDisposer when you need to manually dispose an effect.")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("Effect.run now returns unit instead of a disposer. Use Effect.runWithDisposer when you need to manually dispose an effect.")
+            ],
+            refs: [],
+          }
         ],
       }
     ],
@@ -384,14 +789,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("use createElementNS for SVG elements to fix logo rendering ("),
-            <a href="https://github.com/brnrdog/xote/issues/61" target="_blank"> {View.text("#61")} </a>,
-            View.text(") ("),
-            <a href="https://github.com/brnrdog/xote/commit/7ffefe1953dfbc8524c4b83fc208e4d3767ba3df" target="_blank"> {View.text("7ffefe1")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("use createElementNS for SVG elements to fix logo rendering")
+            ],
+            refs: [{label: "#61", url: "https://github.com/brnrdog/xote/issues/61"}, {label: "7ffefe1", url: "https://github.com/brnrdog/xote/commit/7ffefe1953dfbc8524c4b83fc208e4d3767ba3df"}],
+          }
         ],
       }
     ],
@@ -405,12 +810,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            View.text("expose Router.initSSR for server-side route initialization ("),
-            <a href="https://github.com/brnrdog/xote/commit/f232d0b1dba81725f6d23e2beaecca9e2905eb11" target="_blank"> {View.text("f232d0b")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("expose Router.initSSR for server-side route initialization")
+            ],
+            refs: [{label: "f232d0b", url: "https://github.com/brnrdog/xote/commit/f232d0b1dba81725f6d23e2beaecca9e2905eb11"}],
+          }
         ],
       }
     ],
@@ -424,12 +831,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("defer JSX component evaluation to render time via LazyComponent ("),
-            <a href="https://github.com/brnrdog/xote/commit/e685fc149ad324f2846ef9ea62f6670d36519cde" target="_blank"> {View.text("e685fc1")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("defer JSX component evaluation to render time via LazyComponent")
+            ],
+            refs: [{label: "e685fc1", url: "https://github.com/brnrdog/xote/commit/e685fc149ad324f2846ef9ea62f6670d36519cde"}],
+          }
         ],
       }
     ],
@@ -443,14 +852,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("ensure computed attributes are only updated within the effect context ("),
-            <a href="https://github.com/brnrdog/xote/issues/49" target="_blank"> {View.text("#49")} </a>,
-            View.text(") ("),
-            <a href="https://github.com/brnrdog/xote/commit/ccf9905b4ab38e63317ad068c1a276febf0644c2" target="_blank"> {View.text("ccf9905")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("ensure computed attributes are only updated within the effect context")
+            ],
+            refs: [{label: "#49", url: "https://github.com/brnrdog/xote/issues/49"}, {label: "ccf9905", url: "https://github.com/brnrdog/xote/commit/ccf9905b4ab38e63317ad068c1a276febf0644c2"}],
+          }
         ],
       }
     ],
@@ -464,12 +873,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("remove @rescript/core dependency and code formatting ("),
-            <a href="https://github.com/brnrdog/xote/commit/774b81f37e816b98bc676384b0dab03b1f094dcc" target="_blank"> {View.text("774b81f")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("remove @rescript/core dependency and code formatting")
+            ],
+            refs: [{label: "774b81f", url: "https://github.com/brnrdog/xote/commit/774b81f37e816b98bc676384b0dab03b1f094dcc"}],
+          }
         ],
       }
     ],
@@ -483,12 +894,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            View.text("add support to common mouse events ("),
-            <a href="https://github.com/brnrdog/xote/commit/3811d107b8c2afa911d94b51242205f1cc5d973d" target="_blank"> {View.text("3811d10")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("add support to common mouse events")
+            ],
+            refs: [{label: "3811d10", url: "https://github.com/brnrdog/xote/commit/3811d107b8c2afa911d94b51242205f1cc5d973d"}],
+          }
         ],
       }
     ],
@@ -502,12 +915,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            View.text("add server-side rendering with hydration ("),
-            <a href="https://github.com/brnrdog/xote/commit/8a30af3421cbae9c33cfe19e6e8b42b7e2e0be6f" target="_blank"> {View.text("8a30af3")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("add server-side rendering with hydration")
+            ],
+            refs: [{label: "8a30af3", url: "https://github.com/brnrdog/xote/commit/8a30af3421cbae9c33cfe19e6e8b42b7e2e0be6f"}],
+          }
         ],
       }
     ],
@@ -521,13 +936,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            <strong> {View.text("router:")} </strong>,
-            View.text(" add scroll restoration for navigation ("),
-            <a href="https://github.com/brnrdog/xote/commit/a5b84344369a3cb8be713c5a60d050b9908173bc" target="_blank"> {View.text("a5b8434")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("router"),
+            text: [
+              View.text("add scroll restoration for navigation")
+            ],
+            refs: [{label: "a5b8434", url: "https://github.com/brnrdog/xote/commit/a5b84344369a3cb8be713c5a60d050b9908173bc"}],
+          }
         ],
       }
     ],
@@ -541,15 +957,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            <strong> {View.text("jsx:")} </strong>,
-            View.text(" add support to contextmenu event ("),
-            <a href="https://github.com/brnrdog/xote/issues/36" target="_blank"> {View.text("#36")} </a>,
-            View.text(") ("),
-            <a href="https://github.com/brnrdog/xote/commit/68c7ba28f73384b6f7f6d059eaeea4d8e94f6491" target="_blank"> {View.text("68c7ba2")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("jsx"),
+            text: [
+              View.text("add support to contextmenu event")
+            ],
+            refs: [{label: "#36", url: "https://github.com/brnrdog/xote/issues/36"}, {label: "68c7ba2", url: "https://github.com/brnrdog/xote/commit/68c7ba28f73384b6f7f6d059eaeea4d8e94f6491"}],
+          }
         ],
       }
     ],
@@ -563,12 +978,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            View.text("update rescript from 1.3.0 to 1.3.3 ("),
-            <a href="https://github.com/brnrdog/xote/commit/35c9a4e2e9f9cc631edf0847389a47a5887420ec" target="_blank"> {View.text("35c9a4e")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("update rescript from 1.3.0 to 1.3.3")
+            ],
+            refs: [{label: "35c9a4e", url: "https://github.com/brnrdog/xote/commit/35c9a4e2e9f9cc631edf0847389a47a5887420ec"}],
+          }
         ],
       }
     ],
@@ -582,12 +999,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("ensures all router instances share same state ("),
-            <a href="https://github.com/brnrdog/xote/commit/a754f96123f36add51e1a7c9893c4f5aa1462130" target="_blank"> {View.text("a754f96")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("ensures all router instances share same state")
+            ],
+            refs: [{label: "a754f96", url: "https://github.com/brnrdog/xote/commit/a754f96123f36add51e1a7c9893c4f5aa1462130"}],
+          }
         ],
       }
     ],
@@ -601,13 +1020,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            <strong> {View.text("router:")} </strong>,
-            View.text(" add base path option to router initialization ("),
-            <a href="https://github.com/brnrdog/xote/commit/b54c6e99acd62a180a4166183f9d5ddb3cd37093" target="_blank"> {View.text("b54c6e9")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("router"),
+            text: [
+              View.text("add base path option to router initialization")
+            ],
+            refs: [{label: "b54c6e9", url: "https://github.com/brnrdog/xote/commit/b54c6e99acd62a180a4166183f9d5ddb3cd37093"}],
+          }
         ],
       }
     ],
@@ -621,13 +1041,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            <strong> {View.text("component:")} </strong>,
-            View.text(" add helpers for rendering reactive and static values ("),
-            <a href="https://github.com/brnrdog/xote/commit/c4b7526d9c41945817453b523af133da8c105d7b" target="_blank"> {View.text("c4b7526")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("component"),
+            text: [
+              View.text("add helpers for rendering reactive and static values")
+            ],
+            refs: [{label: "c4b7526", url: "https://github.com/brnrdog/xote/commit/c4b7526d9c41945817453b523af133da8c105d7b"}],
+          }
         ],
       }
     ],
@@ -641,13 +1062,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            <strong> {View.text("router:")} </strong>,
-            View.text(" add Link component ("),
-            <a href="https://github.com/brnrdog/xote/commit/0e8d2152f478d30025c3886ca6047836628b9868" target="_blank"> {View.text("0e8d215")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("router"),
+            text: [
+              View.text("add Link component")
+            ],
+            refs: [{label: "0e8d215", url: "https://github.com/brnrdog/xote/commit/0e8d2152f478d30025c3886ca6047836628b9868"}],
+          }
         ],
       }
     ],
@@ -661,19 +1083,21 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            <strong> {View.text("jsx:")} </strong>,
-            View.text(" allow ReactiveProp.t besides raw values ("),
-            <a href="https://github.com/brnrdog/xote/commit/0e082f575199d97433d27a3aa58199ac3cd5cfee" target="_blank"> {View.text("0e082f5")} </a>,
-            View.text(")")
-          ],
-          [
-            <strong> {View.text("reactive-prop:")} </strong>,
-            View.text(" add helper functions for static and reactive ("),
-            <a href="https://github.com/brnrdog/xote/commit/2e82b1a396b5e29ad11c7f76062f53130c1113aa" target="_blank"> {View.text("2e82b1a")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("jsx"),
+            text: [
+              View.text("allow ReactiveProp.t besides raw values")
+            ],
+            refs: [{label: "0e082f5", url: "https://github.com/brnrdog/xote/commit/0e082f575199d97433d27a3aa58199ac3cd5cfee"}],
+          },
+          {
+            scope: Some("reactive-prop"),
+            text: [
+              View.text("add helper functions for static and reactive")
+            ],
+            refs: [{label: "2e82b1a", url: "https://github.com/brnrdog/xote/commit/2e82b1a396b5e29ad11c7f76062f53130c1113aa"}],
+          }
         ],
       }
     ],
@@ -687,12 +1111,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            View.text("expose ReactiveProp from Xote module ("),
-            <a href="https://github.com/brnrdog/xote/commit/3704a6218cabe7a5e89b1c00bda17db989aa1a5c" target="_blank"> {View.text("3704a62")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("expose ReactiveProp from Xote module")
+            ],
+            refs: [{label: "3704a62", url: "https://github.com/brnrdog/xote/commit/3704a6218cabe7a5e89b1c00bda17db989aa1a5c"}],
+          }
         ],
       }
     ],
@@ -706,12 +1132,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            View.text("introduce ReactiveProp module ("),
-            <a href="https://github.com/brnrdog/xote/commit/0dde3b81c3d2872455e20f110a2793e845179bcf" target="_blank"> {View.text("0dde3b8")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("introduce ReactiveProp module")
+            ],
+            refs: [{label: "0dde3b8", url: "https://github.com/brnrdog/xote/commit/0dde3b81c3d2872455e20f110a2793e845179bcf"}],
+          }
         ],
       }
     ],
@@ -725,13 +1153,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            <strong> {View.text("component:")} </strong>,
-            View.text(" boolean attributes ("),
-            <a href="https://github.com/brnrdog/xote/commit/60e11557f1d2b38560da593f153f4f5ea0267471" target="_blank"> {View.text("60e1155")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("component"),
+            text: [
+              View.text("boolean attributes")
+            ],
+            refs: [{label: "60e1155", url: "https://github.com/brnrdog/xote/commit/60e11557f1d2b38560da593f153f4f5ea0267471"}],
+          }
         ],
       }
     ],
@@ -745,13 +1174,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            <strong> {View.text("jsx:")} </strong>,
-            View.text(" reactive support for boolean attributes ("),
-            <a href="https://github.com/brnrdog/xote/commit/c54ed60f174bd2049f27809f21f354546ba65912" target="_blank"> {View.text("c54ed60")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("jsx"),
+            text: [
+              View.text("reactive support for boolean attributes")
+            ],
+            refs: [{label: "c54ed60", url: "https://github.com/brnrdog/xote/commit/c54ed60f174bd2049f27809f21f354546ba65912"}],
+          }
         ],
       }
     ],
@@ -765,13 +1195,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            <strong> {View.text("component:")} </strong>,
-            View.text(" attribute and property handling ("),
-            <a href="https://github.com/brnrdog/xote/commit/c49cbc0d3b486c7a68b59a65671b139ae8b1eac5" target="_blank"> {View.text("c49cbc0")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("component"),
+            text: [
+              View.text("attribute and property handling")
+            ],
+            refs: [{label: "c49cbc0", url: "https://github.com/brnrdog/xote/commit/c49cbc0d3b486c7a68b59a65671b139ae8b1eac5"}],
+          }
         ],
       }
     ],
@@ -785,19 +1216,21 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            <strong> {View.text("jsx:")} </strong>,
-            View.text(" add support to many other common attributes ("),
-            <a href="https://github.com/brnrdog/xote/commit/d3460d84012964c5dc6a5659f42ada62465a8e18" target="_blank"> {View.text("d3460d8")} </a>,
-            View.text(")")
-          ],
-          [
-            <strong> {View.text("jsx:")} </strong>,
-            View.text(" add support to name attributes ("),
-            <a href="https://github.com/brnrdog/xote/commit/07de33d9ac86c955efd1f04bc088217689288f08" target="_blank"> {View.text("07de33d")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("jsx"),
+            text: [
+              View.text("add support to many other common attributes")
+            ],
+            refs: [{label: "d3460d8", url: "https://github.com/brnrdog/xote/commit/d3460d84012964c5dc6a5659f42ada62465a8e18"}],
+          },
+          {
+            scope: Some("jsx"),
+            text: [
+              View.text("add support to name attributes")
+            ],
+            refs: [{label: "07de33d", url: "https://github.com/brnrdog/xote/commit/07de33d9ac86c955efd1f04bc088217689288f08"}],
+          }
         ],
       }
     ],
@@ -811,12 +1244,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("expose missing source files for rescript projects ("),
-            <a href="https://github.com/brnrdog/xote/commit/4d93ebbe77260381ca7058562626697c42da1aa1" target="_blank"> {View.text("4d93ebb")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("expose missing source files for rescript projects")
+            ],
+            refs: [{label: "4d93ebb", url: "https://github.com/brnrdog/xote/commit/4d93ebbe77260381ca7058562626697c42da1aa1"}],
+          }
         ],
       }
     ],
@@ -830,12 +1265,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            View.text("update rescript-signals from 1.2.0 to 1.3.0 ("),
-            <a href="https://github.com/brnrdog/xote/commit/f5f5c1bfd78dd2fedb89aa0bc6cfe26221b70f20" target="_blank"> {View.text("f5f5c1b")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("update rescript-signals from 1.2.0 to 1.3.0")
+            ],
+            refs: [{label: "f5f5c1b", url: "https://github.com/brnrdog/xote/commit/f5f5c1bfd78dd2fedb89aa0bc6cfe26221b70f20"}],
+          }
         ],
       }
     ],
@@ -849,15 +1286,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            <strong> {View.text("component:")} </strong>,
-            View.text(" introduce keyedList for list reconciliation ("),
-            <a href="https://github.com/brnrdog/xote/issues/24" target="_blank"> {View.text("#24")} </a>,
-            View.text(") ("),
-            <a href="https://github.com/brnrdog/xote/commit/96800dec3c9bbd32305643c0b36c74b993055650" target="_blank"> {View.text("96800de")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("component"),
+            text: [
+              View.text("introduce keyedList for list reconciliation")
+            ],
+            refs: [{label: "#24", url: "https://github.com/brnrdog/xote/issues/24"}, {label: "96800de", url: "https://github.com/brnrdog/xote/commit/96800dec3c9bbd32305643c0b36c74b993055650"}],
+          }
         ],
       }
     ],
@@ -871,13 +1307,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            <strong> {View.text("components:")} </strong>,
-            View.text(" fix component disposal ("),
-            <a href="https://github.com/brnrdog/xote/commit/adbfccefa088d87f0c00a38fd2b20792c911f4a0" target="_blank"> {View.text("adbfcce")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("components"),
+            text: [
+              View.text("fix component disposal")
+            ],
+            refs: [{label: "adbfcce", url: "https://github.com/brnrdog/xote/commit/adbfccefa088d87f0c00a38fd2b20792c911f4a0"}],
+          }
         ],
       }
     ],
@@ -891,12 +1328,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            View.text("update rescript-signals from v1.0.1 to v1.2.0 ("),
-            <a href="https://github.com/brnrdog/xote/commit/d1f76d809d70cb95f5757aa0f4483f6f6768876c" target="_blank"> {View.text("d1f76d8")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("update rescript-signals from v1.0.1 to v1.2.0")
+            ],
+            refs: [{label: "d1f76d8", url: "https://github.com/brnrdog/xote/commit/d1f76d809d70cb95f5757aa0f4483f6f6768876c"}],
+          }
         ],
       }
     ],
@@ -910,20 +1349,26 @@ let releases: array<release> = [
     sections: [
       {
         title: "Code Refactoring",
-        items: [
-          [
-            View.text("move signals to rescript-signals ("),
-            <a href="https://github.com/brnrdog/xote/commit/848b3b825e620c72cfb309ca7a170c7d16833043" target="_blank"> {View.text("848b3b8")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("move signals to rescript-signals")
+            ],
+            refs: [{label: "848b3b8", url: "https://github.com/brnrdog/xote/commit/848b3b825e620c72cfb309ca7a170c7d16833043"}],
+          }
         ],
       },
       {
         title: "BREAKING CHANGES",
-        items: [
-          [
-            View.text("- Xote.Core.t -> Xote.Signal.t - Core.batch removed from API")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("- Xote.Core.t -> Xote.Signal.t - Core.batch removed from API")
+            ],
+            refs: [],
+          }
         ],
       }
     ],
@@ -937,73 +1382,97 @@ let releases: array<release> = [
     sections: [
       {
         title: "",
-        items: [
-          [
-            View.text("fix!: add cleanup callback support to effects ("),
-            <a href="https://github.com/brnrdog/xote/commit/7aade4f3cb95a284169c42fa6771e31d33613b7c" target="_blank"> {View.text("7aade4f")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("fix!: add cleanup callback support to effects")
+            ],
+            refs: [{label: "7aade4f", url: "https://github.com/brnrdog/xote/commit/7aade4f3cb95a284169c42fa6771e31d33613b7c"}],
+          }
         ],
       },
       {
         title: "",
-        items: [
-          [
-            View.text("refactor!: simplify Computed API with internal tracking ("),
-            <a href="https://github.com/brnrdog/xote/commit/5d9bc0130208b8ebdde90f1207ae101695a6b6af" target="_blank"> {View.text("5d9bc01")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("refactor!: simplify Computed API with internal tracking")
+            ],
+            refs: [{label: "5d9bc01", url: "https://github.com/brnrdog/xote/commit/5d9bc0130208b8ebdde90f1207ae101695a6b6af"}],
+          }
         ],
       },
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("add disposal support for computed observers ("),
-            <a href="https://github.com/brnrdog/xote/commit/f2e8a177a37d87abc2477805a39e0eb896946664" target="_blank"> {View.text("f2e8a17")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("add equality check to Signal.set to prevent unnecessary notifications ("),
-            <a href="https://github.com/brnrdog/xote/commit/2680a195e8adfa9cf2ed3d3c5bb236044bf04027" target="_blank"> {View.text("2680a19")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("convert recursive scheduler to iterative loop ("),
-            <a href="https://github.com/brnrdog/xote/commit/0b69c76d40130fb436b9df4feae8e4785deccc88" target="_blank"> {View.text("0b69c76")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("restore global tracking state on exceptions ("),
-            <a href="https://github.com/brnrdog/xote/commit/a6e5b7030e59fb7e8323896ba1b02c44668a81f9" target="_blank"> {View.text("a6e5b70")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("signal set structural equality check on objects with functions ("),
-            <a href="https://github.com/brnrdog/xote/commit/803aaba12f75b7df660de1f11257b4eb1a3b4aa5" target="_blank"> {View.text("803aaba")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("add disposal support for computed observers")
+            ],
+            refs: [{label: "f2e8a17", url: "https://github.com/brnrdog/xote/commit/f2e8a177a37d87abc2477805a39e0eb896946664"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("add equality check to Signal.set to prevent unnecessary notifications")
+            ],
+            refs: [{label: "2680a19", url: "https://github.com/brnrdog/xote/commit/2680a195e8adfa9cf2ed3d3c5bb236044bf04027"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("convert recursive scheduler to iterative loop")
+            ],
+            refs: [{label: "0b69c76", url: "https://github.com/brnrdog/xote/commit/0b69c76d40130fb436b9df4feae8e4785deccc88"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("restore global tracking state on exceptions")
+            ],
+            refs: [{label: "a6e5b70", url: "https://github.com/brnrdog/xote/commit/a6e5b7030e59fb7e8323896ba1b02c44668a81f9"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("signal set structural equality check on objects with functions")
+            ],
+            refs: [{label: "803aaba", url: "https://github.com/brnrdog/xote/commit/803aaba12f75b7df660de1f11257b4eb1a3b4aa5"}],
+          }
         ],
       },
       {
         title: "Features",
-        items: [
-          [
-            View.text("add automatic disposal for computed values ("),
-            <a href="https://github.com/brnrdog/xote/commit/d2f04dbe630388aa75a369c3785c4aa4ff2050b3" target="_blank"> {View.text("d2f04db")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("add automatic disposal for computed values")
+            ],
+            refs: [{label: "d2f04db", url: "https://github.com/brnrdog/xote/commit/d2f04dbe630388aa75a369c3785c4aa4ff2050b3"}],
+          }
         ],
       },
       {
         title: "BREAKING CHANGES",
-        items: [
-          [
-            View.text("Computed.make now returns Core.t<'a> instead of (Core.t<'a>, unit => unit). Use Computed.dispose(signal) for manual disposal instead of calling the dispose function from the tuple. Before: let (signal, dispose) = Computed.make(() => ...) dispose() After: let signal = Computed.make(() => ...) Computed.dispose(signal) This aligns better with common patterns in other reactive libraries like Solid and Preact, providing a cleaner and more intuitive API.")
-          ],
-          [
-            View.text("Effect.run now expects functions to return option<unit => unit> instead of unit. All existing effects must be updated to return None or Some(cleanupFn).")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("Computed.make now returns Core.t<'a> instead of (Core.t<'a>, unit => unit). Use Computed.dispose(signal) for manual disposal instead of calling the dispose function from the tuple. Before: let (signal, dispose) = Computed.make(() => ...) dispose() After: let signal = Computed.make(() => ...) Computed.dispose(signal) This aligns better with common patterns in other reactive libraries like Solid and Preact, providing a cleaner and more intuitive API.")
+            ],
+            refs: [],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("Effect.run now expects functions to return option<unit => unit> instead of unit. All existing effects must be updated to return None or Some(cleanupFn).")
+            ],
+            refs: [],
+          }
         ],
       }
     ],
@@ -1017,25 +1486,33 @@ let releases: array<release> = [
     sections: [
       {
         title: "",
-        items: [
-          [
-            View.text("chore!: upgrade to ReScript v12.0.0 ("),
-            <a href="https://github.com/brnrdog/xote/commit/b20b9e032cd62d6d2e1eea83adbe53ab412cea94" target="_blank"> {View.text("b20b9e0")} </a>,
-            View.text("), closes "),
-            <a href="https://github.com/brnrdog/xote/issues/function" target="_blank"> {View.text("#function")} </a>,
-            View.text(" "),
-            <a href="https://github.com/brnrdog/xote/issues/object" target="_blank"> {View.text("#object")} </a>,
-            View.text(" "),
-            <a href="https://github.com/brnrdog/xote/issues/function" target="_blank"> {View.text("#function")} </a>
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("chore!: upgrade to ReScript v12.0.0 ("),
+              <a href="https://github.com/brnrdog/xote/commit/b20b9e032cd62d6d2e1eea83adbe53ab412cea94" target="_blank"> {View.text("b20b9e0")} </a>,
+              View.text("), closes "),
+              <a href="https://github.com/brnrdog/xote/issues/function" target="_blank"> {View.text("#function")} </a>,
+              View.text(" "),
+              <a href="https://github.com/brnrdog/xote/issues/object" target="_blank"> {View.text("#object")} </a>,
+              View.text(" "),
+              <a href="https://github.com/brnrdog/xote/issues/function" target="_blank"> {View.text("#function")} </a>
+            ],
+            refs: [],
+          }
         ],
       },
       {
         title: "BREAKING CHANGES",
-        items: [
-          [
-            View.text("ReScript v12 introduces API changes that affect the typeof operator and configuration fields. Projects upgrading will need to: - Update rescript.json to use 'dependencies' and 'compiler-flags' instead of 'bs-dependencies' and 'bsc-flags'")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("ReScript v12 introduces API changes that affect the typeof operator and configuration fields. Projects upgrading will need to: - Update rescript.json to use 'dependencies' and 'compiler-flags' instead of 'bs-dependencies' and 'bsc-flags'")
+            ],
+            refs: [],
+          }
         ],
       }
     ],
@@ -1049,12 +1526,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("implement topological ordering to prevent scheduling glitches ("),
-            <a href="https://github.com/brnrdog/xote/commit/51f1a8ca592c8e722e0a05d37017604e40547062" target="_blank"> {View.text("51f1a8c")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("implement topological ordering to prevent scheduling glitches")
+            ],
+            refs: [{label: "51f1a8c", url: "https://github.com/brnrdog/xote/commit/51f1a8ca592c8e722e0a05d37017604e40547062"}],
+          }
         ],
       }
     ],
@@ -1068,18 +1547,24 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("automatic disposal of reactive observers to prevent memory leaks ("),
-            <a href="https://github.com/brnrdog/xote/commit/befae8116f47347179f8d5bdfe6355b40942c79a" target="_blank"> {View.text("befae81")} </a>,
-            View.text("), closes "),
-            <a href="https://github.com/brnrdog/xote/issues/7" target="_blank"> {View.text("#7")} </a>
-          ],
-          [
-            View.text("preserve signal fragment effect when disposing children ("),
-            <a href="https://github.com/brnrdog/xote/commit/c3d530ccc344d58cc73aa209bbe02f0b87e7cd9a" target="_blank"> {View.text("c3d530c")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("automatic disposal of reactive observers to prevent memory leaks ("),
+              <a href="https://github.com/brnrdog/xote/commit/befae8116f47347179f8d5bdfe6355b40942c79a" target="_blank"> {View.text("befae81")} </a>,
+              View.text("), closes "),
+              <a href="https://github.com/brnrdog/xote/issues/7" target="_blank"> {View.text("#7")} </a>
+            ],
+            refs: [],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("preserve signal fragment effect when disposing children")
+            ],
+            refs: [{label: "c3d530c", url: "https://github.com/brnrdog/xote/commit/c3d530ccc344d58cc73aa209bbe02f0b87e7cd9a"}],
+          }
         ],
       }
     ],
@@ -1093,12 +1578,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("preserve observer tracking context during nested execution ("),
-            <a href="https://github.com/brnrdog/xote/commit/afb945059ca026072f777859e781fd086e88189b" target="_blank"> {View.text("afb9450")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("preserve observer tracking context during nested execution")
+            ],
+            refs: [{label: "afb9450", url: "https://github.com/brnrdog/xote/commit/afb945059ca026072f777859e781fd086e88189b"}],
+          }
         ],
       }
     ],
@@ -1112,12 +1599,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            View.text("add support to data attributes in Xote.JSX ("),
-            <a href="https://github.com/brnrdog/xote/commit/903c265352d5344118dd8a66d65b2ec20ab57042" target="_blank"> {View.text("903c265")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("add support to data attributes in Xote.JSX")
+            ],
+            refs: [{label: "903c265", url: "https://github.com/brnrdog/xote/commit/903c265352d5344118dd8a66d65b2ec20ab57042"}],
+          }
         ],
       }
     ],
@@ -1131,12 +1620,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("enable reactivity for JSX element attributes ("),
-            <a href="https://github.com/brnrdog/xote/commit/0ea72353a6a6d26b38e1f7c1058d95f843d3e898" target="_blank"> {View.text("0ea7235")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("enable reactivity for JSX element attributes")
+            ],
+            refs: [{label: "0ea7235", url: "https://github.com/brnrdog/xote/commit/0ea72353a6a6d26b38e1f7c1058d95f843d3e898"}],
+          }
         ],
       }
     ],
@@ -1150,12 +1641,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            View.text("bump version to 1.2.0 ("),
-            <a href="https://github.com/brnrdog/xote/commit/19425d976e540381ac85736b46b8a994c57f4fa8" target="_blank"> {View.text("19425d9")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("bump version to 1.2.0")
+            ],
+            refs: [{label: "19425d9", url: "https://github.com/brnrdog/xote/commit/19425d976e540381ac85736b46b8a994c57f4fa8"}],
+          }
         ],
       }
     ],
@@ -1169,37 +1662,47 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("revert keyed list reconciliation ("),
-            <a href="https://github.com/brnrdog/xote/commit/60aa2a093fdae4d26558c4d4aec4e2e9f9384964" target="_blank"> {View.text("60aa2a0")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("revert keyed list reconciliation")
+            ],
+            refs: [{label: "60aa2a0", url: "https://github.com/brnrdog/xote/commit/60aa2a093fdae4d26558c4d4aec4e2e9f9384964"}],
+          }
         ],
       },
       {
         title: "Features",
-        items: [
-          [
-            View.text("add JSX support with generic transform ("),
-            <a href="https://github.com/brnrdog/xote/commit/d71175dc0a2680996b7725ba3c781cdd8c706b49" target="_blank"> {View.text("d71175d")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("change className to class in JSX props ("),
-            <a href="https://github.com/brnrdog/xote/commit/251524249328cf06f78dfdfbcf348f1552e88e9f" target="_blank"> {View.text("2515242")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("implement keyed list reconciliation for efficient updates ("),
-            <a href="https://github.com/brnrdog/xote/commit/dd9c0b8c5d5473b1bdfc0aa8acc1dec8cec21999" target="_blank"> {View.text("dd9c0b8")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("standardize JSX component naming convention ("),
-            <a href="https://github.com/brnrdog/xote/commit/f68331613466a94004d34299b21b26c43bf43c0b" target="_blank"> {View.text("f683316")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("add JSX support with generic transform")
+            ],
+            refs: [{label: "d71175d", url: "https://github.com/brnrdog/xote/commit/d71175dc0a2680996b7725ba3c781cdd8c706b49"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("change className to class in JSX props")
+            ],
+            refs: [{label: "2515242", url: "https://github.com/brnrdog/xote/commit/251524249328cf06f78dfdfbcf348f1552e88e9f"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("implement keyed list reconciliation for efficient updates")
+            ],
+            refs: [{label: "dd9c0b8", url: "https://github.com/brnrdog/xote/commit/dd9c0b8c5d5473b1bdfc0aa8acc1dec8cec21999"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("standardize JSX component naming convention")
+            ],
+            refs: [{label: "f683316", url: "https://github.com/brnrdog/xote/commit/f68331613466a94004d34299b21b26c43bf43c0b"}],
+          }
         ],
       }
     ],
@@ -1213,91 +1716,117 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("optimize build configuration and reduce bundle size ("),
-            <a href="https://github.com/brnrdog/xote/commit/f9e50dc9ac713135de5cba589e49c4ff03fbaeb0" target="_blank"> {View.text("f9e50dc")} </a>,
-            View.text(") # 1.0.0 (2025-11-02)")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("optimize build configuration and reduce bundle size ("),
+              <a href="https://github.com/brnrdog/xote/commit/f9e50dc9ac713135de5cba589e49c4ff03fbaeb0" target="_blank"> {View.text("f9e50dc")} </a>,
+              View.text(") # 1.0.0 (2025-11-02)")
+            ],
+            refs: [],
+          }
         ],
       },
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("adjust build configuration and dist output ("),
-            <a href="https://github.com/brnrdog/xote/commit/5dcca3beb89e25aa55c6fba7a4b67c59661d75bd" target="_blank"> {View.text("5dcca3b")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("improve signal reactivity and add todo styling ("),
-            <a href="https://github.com/brnrdog/xote/commit/495f0bb52eaa8de89214f957f30b078f07029569" target="_blank"> {View.text("495f0bb")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("rescript build in release workflow ("),
-            <a href="https://github.com/brnrdog/xote/commit/9b2fb1948b4f168de66da5fd96282ddcf82d8dca" target="_blank"> {View.text("9b2fb19")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("version bump ("),
-            <a href="https://github.com/brnrdog/xote/commit/2794ae697f5c3448d946b9fc5c7d1c0defa8be1a" target="_blank"> {View.text("2794ae6")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("version bump for release ("),
-            <a href="https://github.com/brnrdog/xote/commit/72fb74f2cf3d4a2389daf5363457d5d7ad4eaed1" target="_blank"> {View.text("72fb74f")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("adjust build configuration and dist output")
+            ],
+            refs: [{label: "5dcca3b", url: "https://github.com/brnrdog/xote/commit/5dcca3beb89e25aa55c6fba7a4b67c59661d75bd"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("improve signal reactivity and add todo styling")
+            ],
+            refs: [{label: "495f0bb", url: "https://github.com/brnrdog/xote/commit/495f0bb52eaa8de89214f957f30b078f07029569"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("rescript build in release workflow")
+            ],
+            refs: [{label: "9b2fb19", url: "https://github.com/brnrdog/xote/commit/9b2fb1948b4f168de66da5fd96282ddcf82d8dca"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("version bump")
+            ],
+            refs: [{label: "2794ae6", url: "https://github.com/brnrdog/xote/commit/2794ae697f5c3448d946b9fc5c7d1c0defa8be1a"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("version bump for release")
+            ],
+            refs: [{label: "72fb74f", url: "https://github.com/brnrdog/xote/commit/72fb74f2cf3d4a2389daf5363457d5d7ad4eaed1"}],
+          }
         ],
       },
       {
         title: "Features",
-        items: [
-          [
-            View.text("add Component system with automatic reactivity ("),
-            <a href="https://github.com/brnrdog/xote/commit/38815ed3d1400c5511b790011d60081b317a69ac" target="_blank"> {View.text("38815ed")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("add demo ("),
-            <a href="https://github.com/brnrdog/xote/commit/cf3faf34c07d85a60d78d5f9539d2e2132f3b85a" target="_blank"> {View.text("cf3faf3")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("bump version ("),
-            <a href="https://github.com/brnrdog/xote/commit/5ac8b19a954d3fa10ce0f0d866f86fb74e3ad456" target="_blank"> {View.text("5ac8b19")} </a>,
-            View.text(")")
-          ],
-          [
-            <strong> {View.text("component:")} </strong>,
-            View.text(" set reactivity to component element attributes ("),
-            <a href="https://github.com/brnrdog/xote/commit/57217e3951303033f4e29801bb24c85bc3313ad1" target="_blank"> {View.text("57217e3")} </a>,
-            View.text(")")
-          ],
-          [
-            <strong> {View.text("component:")} </strong>,
-            View.text(" simplify signalText to accept function directly ("),
-            <a href="https://github.com/brnrdog/xote/commit/9a9d551b0f080ed2321597f9aeb85b41153890d3" target="_blank"> {View.text("9a9d551")} </a>,
-            View.text(")")
-          ],
-          [
-            <strong> {View.text("component:")} </strong>,
-            View.text(" unify attrs and signalAttrs into single attrs parameter ("),
-            <a href="https://github.com/brnrdog/xote/commit/d8942d9b4522a2f232d37970b8f55a8883999ecc" target="_blank"> {View.text("d8942d9")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("minimal signal implementation based on the TC39 proposal ("),
-            <a href="https://github.com/brnrdog/xote/commit/9b78d0b62ba21c953d909459036246f334b6613e" target="_blank"> {View.text("9b78d0b")} </a>,
-            View.text(")")
-          ],
-          [
-            <strong> {View.text("router:")} </strong>,
-            View.text(" add signal-based routing with pattern matching ("),
-            <a href="https://github.com/brnrdog/xote/commit/7bab79eb46fc35c9f90d09391bb71209485aa1d5" target="_blank"> {View.text("7bab79e")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("add Component system with automatic reactivity")
+            ],
+            refs: [{label: "38815ed", url: "https://github.com/brnrdog/xote/commit/38815ed3d1400c5511b790011d60081b317a69ac"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("add demo")
+            ],
+            refs: [{label: "cf3faf3", url: "https://github.com/brnrdog/xote/commit/cf3faf34c07d85a60d78d5f9539d2e2132f3b85a"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("bump version")
+            ],
+            refs: [{label: "5ac8b19", url: "https://github.com/brnrdog/xote/commit/5ac8b19a954d3fa10ce0f0d866f86fb74e3ad456"}],
+          },
+          {
+            scope: Some("component"),
+            text: [
+              View.text("set reactivity to component element attributes")
+            ],
+            refs: [{label: "57217e3", url: "https://github.com/brnrdog/xote/commit/57217e3951303033f4e29801bb24c85bc3313ad1"}],
+          },
+          {
+            scope: Some("component"),
+            text: [
+              View.text("simplify signalText to accept function directly")
+            ],
+            refs: [{label: "9a9d551", url: "https://github.com/brnrdog/xote/commit/9a9d551b0f080ed2321597f9aeb85b41153890d3"}],
+          },
+          {
+            scope: Some("component"),
+            text: [
+              View.text("unify attrs and signalAttrs into single attrs parameter")
+            ],
+            refs: [{label: "d8942d9", url: "https://github.com/brnrdog/xote/commit/d8942d9b4522a2f232d37970b8f55a8883999ecc"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("minimal signal implementation based on the TC39 proposal")
+            ],
+            refs: [{label: "9b78d0b", url: "https://github.com/brnrdog/xote/commit/9b78d0b62ba21c953d909459036246f334b6613e"}],
+          },
+          {
+            scope: Some("router"),
+            text: [
+              View.text("add signal-based routing with pattern matching")
+            ],
+            refs: [{label: "7bab79e", url: "https://github.com/brnrdog/xote/commit/7bab79eb46fc35c9f90d09391bb71209485aa1d5"}],
+          }
         ],
       }
     ],
@@ -1311,31 +1840,35 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            <strong> {View.text("component:")} </strong>,
-            View.text(" set reactivity to component element attributes ("),
-            <a href="https://github.com/brnrdog/xote/commit/57217e3951303033f4e29801bb24c85bc3313ad1" target="_blank"> {View.text("57217e3")} </a>,
-            View.text(")")
-          ],
-          [
-            <strong> {View.text("component:")} </strong>,
-            View.text(" simplify signalText to accept function directly ("),
-            <a href="https://github.com/brnrdog/xote/commit/9a9d551b0f080ed2321597f9aeb85b41153890d3" target="_blank"> {View.text("9a9d551")} </a>,
-            View.text(")")
-          ],
-          [
-            <strong> {View.text("component:")} </strong>,
-            View.text(" unify attrs and signalAttrs into single attrs parameter ("),
-            <a href="https://github.com/brnrdog/xote/commit/d8942d9b4522a2f232d37970b8f55a8883999ecc" target="_blank"> {View.text("d8942d9")} </a>,
-            View.text(")")
-          ],
-          [
-            <strong> {View.text("router:")} </strong>,
-            View.text(" add signal-based routing with pattern matching ("),
-            <a href="https://github.com/brnrdog/xote/commit/7bab79eb46fc35c9f90d09391bb71209485aa1d5" target="_blank"> {View.text("7bab79e")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("component"),
+            text: [
+              View.text("set reactivity to component element attributes")
+            ],
+            refs: [{label: "57217e3", url: "https://github.com/brnrdog/xote/commit/57217e3951303033f4e29801bb24c85bc3313ad1"}],
+          },
+          {
+            scope: Some("component"),
+            text: [
+              View.text("simplify signalText to accept function directly")
+            ],
+            refs: [{label: "9a9d551", url: "https://github.com/brnrdog/xote/commit/9a9d551b0f080ed2321597f9aeb85b41153890d3"}],
+          },
+          {
+            scope: Some("component"),
+            text: [
+              View.text("unify attrs and signalAttrs into single attrs parameter")
+            ],
+            refs: [{label: "d8942d9", url: "https://github.com/brnrdog/xote/commit/d8942d9b4522a2f232d37970b8f55a8883999ecc"}],
+          },
+          {
+            scope: Some("router"),
+            text: [
+              View.text("add signal-based routing with pattern matching")
+            ],
+            refs: [{label: "7bab79e", url: "https://github.com/brnrdog/xote/commit/7bab79eb46fc35c9f90d09391bb71209485aa1d5"}],
+          }
         ],
       }
     ],
@@ -1349,25 +1882,28 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            <strong> {View.text("component:")} </strong>,
-            View.text(" set reactivity to component element attributes ("),
-            <a href="https://github.com/brnrdog/xote/commit/57217e3951303033f4e29801bb24c85bc3313ad1" target="_blank"> {View.text("57217e3")} </a>,
-            View.text(")")
-          ],
-          [
-            <strong> {View.text("component:")} </strong>,
-            View.text(" simplify signalText to accept function directly ("),
-            <a href="https://github.com/brnrdog/xote/commit/9a9d551b0f080ed2321597f9aeb85b41153890d3" target="_blank"> {View.text("9a9d551")} </a>,
-            View.text(")")
-          ],
-          [
-            <strong> {View.text("component:")} </strong>,
-            View.text(" unify attrs and signalAttrs into single attrs parameter ("),
-            <a href="https://github.com/brnrdog/xote/commit/d8942d9b4522a2f232d37970b8f55a8883999ecc" target="_blank"> {View.text("d8942d9")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("component"),
+            text: [
+              View.text("set reactivity to component element attributes")
+            ],
+            refs: [{label: "57217e3", url: "https://github.com/brnrdog/xote/commit/57217e3951303033f4e29801bb24c85bc3313ad1"}],
+          },
+          {
+            scope: Some("component"),
+            text: [
+              View.text("simplify signalText to accept function directly")
+            ],
+            refs: [{label: "9a9d551", url: "https://github.com/brnrdog/xote/commit/9a9d551b0f080ed2321597f9aeb85b41153890d3"}],
+          },
+          {
+            scope: Some("component"),
+            text: [
+              View.text("unify attrs and signalAttrs into single attrs parameter")
+            ],
+            refs: [{label: "d8942d9", url: "https://github.com/brnrdog/xote/commit/d8942d9b4522a2f232d37970b8f55a8883999ecc"}],
+          }
         ],
       }
     ],
@@ -1381,13 +1917,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Features",
-        items: [
-          [
-            <strong> {View.text("component:")} </strong>,
-            View.text(" add support to a tags ("),
-            <a href="https://github.com/brnrdog/xote/commit/8ea09c19aaed9383b80d6cd15e61ae75113c6d73" target="_blank"> {View.text("8ea09c1")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: Some("component"),
+            text: [
+              View.text("add support to a tags")
+            ],
+            refs: [{label: "8ea09c1", url: "https://github.com/brnrdog/xote/commit/8ea09c19aaed9383b80d6cd15e61ae75113c6d73"}],
+          }
         ],
       }
     ],
@@ -1401,17 +1938,21 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("adjust build configuration and dist output ("),
-            <a href="https://github.com/brnrdog/xote/commit/5dcca3beb89e25aa55c6fba7a4b67c59661d75bd" target="_blank"> {View.text("5dcca3b")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("rescript build in release workflow ("),
-            <a href="https://github.com/brnrdog/xote/commit/9b2fb1948b4f168de66da5fd96282ddcf82d8dca" target="_blank"> {View.text("9b2fb19")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("adjust build configuration and dist output")
+            ],
+            refs: [{label: "5dcca3b", url: "https://github.com/brnrdog/xote/commit/5dcca3beb89e25aa55c6fba7a4b67c59661d75bd"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("rescript build in release workflow")
+            ],
+            refs: [{label: "9b2fb19", url: "https://github.com/brnrdog/xote/commit/9b2fb1948b4f168de66da5fd96282ddcf82d8dca"}],
+          }
         ],
       }
     ],
@@ -1425,12 +1966,14 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("version bump ("),
-            <a href="https://github.com/brnrdog/xote/commit/2794ae697f5c3448d946b9fc5c7d1c0defa8be1a" target="_blank"> {View.text("2794ae6")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("version bump")
+            ],
+            refs: [{label: "2794ae6", url: "https://github.com/brnrdog/xote/commit/2794ae697f5c3448d946b9fc5c7d1c0defa8be1a"}],
+          }
         ],
       }
     ],
@@ -1444,42 +1987,54 @@ let releases: array<release> = [
     sections: [
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("version bump for release ("),
-            <a href="https://github.com/brnrdog/xote/commit/72fb74f2cf3d4a2389daf5363457d5d7ad4eaed1" target="_blank"> {View.text("72fb74f")} </a>,
-            View.text(") # 1.0.0 (2025-10-30)")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("version bump for release ("),
+              <a href="https://github.com/brnrdog/xote/commit/72fb74f2cf3d4a2389daf5363457d5d7ad4eaed1" target="_blank"> {View.text("72fb74f")} </a>,
+              View.text(") # 1.0.0 (2025-10-30)")
+            ],
+            refs: [],
+          }
         ],
       },
       {
         title: "Bug Fixes",
-        items: [
-          [
-            View.text("improve signal reactivity and add todo styling ("),
-            <a href="https://github.com/brnrdog/xote/commit/495f0bb52eaa8de89214f957f30b078f07029569" target="_blank"> {View.text("495f0bb")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("improve signal reactivity and add todo styling")
+            ],
+            refs: [{label: "495f0bb", url: "https://github.com/brnrdog/xote/commit/495f0bb52eaa8de89214f957f30b078f07029569"}],
+          }
         ],
       },
       {
         title: "Features",
-        items: [
-          [
-            View.text("add Component system with automatic reactivity ("),
-            <a href="https://github.com/brnrdog/xote/commit/38815ed3d1400c5511b790011d60081b317a69ac" target="_blank"> {View.text("38815ed")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("add demo ("),
-            <a href="https://github.com/brnrdog/xote/commit/cf3faf34c07d85a60d78d5f9539d2e2132f3b85a" target="_blank"> {View.text("cf3faf3")} </a>,
-            View.text(")")
-          ],
-          [
-            View.text("minimal signal implementation based on the TC39 proposal ("),
-            <a href="https://github.com/brnrdog/xote/commit/9b78d0b62ba21c953d909459036246f334b6613e" target="_blank"> {View.text("9b78d0b")} </a>,
-            View.text(")")
-          ]
+        changes: [
+          {
+            scope: None,
+            text: [
+              View.text("add Component system with automatic reactivity")
+            ],
+            refs: [{label: "38815ed", url: "https://github.com/brnrdog/xote/commit/38815ed3d1400c5511b790011d60081b317a69ac"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("add demo")
+            ],
+            refs: [{label: "cf3faf3", url: "https://github.com/brnrdog/xote/commit/cf3faf34c07d85a60d78d5f9539d2e2132f3b85a"}],
+          },
+          {
+            scope: None,
+            text: [
+              View.text("minimal signal implementation based on the TC39 proposal")
+            ],
+            refs: [{label: "9b78d0b", url: "https://github.com/brnrdog/xote/commit/9b78d0b62ba21c953d909459036246f334b6613e"}],
+          }
         ],
       }
     ],

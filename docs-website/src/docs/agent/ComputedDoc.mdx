@@ -1,0 +1,190 @@
+## Summary
+
+A **computed** is a read-only `Signal.t<'a>` whose value is produced by a function of other signals. `Computed.make(fn)` runs `fn` **once immediately** to get the initial value and record its dependencies; afterwards it is **lazy**: a change to a dependency only marks it dirty, and `fn` re-runs on the next read (or when an effect that depends on it is about to run). Use a computed whenever a value can be derived; never keep a second signal in sync by hand.
+
+## Availability
+
+| Item | Value |
+| --- | --- |
+| Module | `Xote.Computed` (re-export of `rescript-signals` 3.1.x `Signals.Computed`) |
+| Import / entry | `xote` (with `"-open Xote"`: `Computed.*`), also `xote/computed` |
+| First stable version | `Computed.make` and `Computed.dispose` are in 7.1.0 stable (and earlier) |
+| Changes in 7.2.0 | None |
+| Requires `@xote.component` (PPX) | No |
+
+## Rules
+
+1. `Computed.make(fn)` calls `fn` synchronously during `make`, under tracking. Every `Signal.get` in that call becomes a dependency. If `fn` throws, `make` throws and no computed is created.
+2. The result is a `Signal.t<'a>`. Read it with `Signal.get` (tracked) or `Signal.peek` (untracked), anywhere a signal is accepted, including as a dependency of another computed.
+3. When a dependency changes, the computed is marked dirty; `fn` is not called yet. It is recomputed when read (`get` or `peek`) while dirty. Several writes before a read cause one recompute.
+4. Dependencies are re-collected on every run. A signal read only in a branch that did not execute this time is dropped as a dependency (dynamic dependencies).
+5. **Without `~equals`**, every recompute counts as a change: dependents (effects, reactive leaves, downstream computeds) re-run even if the new value equals the old one.
+6. **With `~equals`**, a recompute whose result is equal (per `~equals(previous, next)`) to the previous value does not propagate: dependent effects and leaves do not re-run. Use `~equals=(a, b) => a == b` (structural) or `(a, b) => a === b` (reference) to suppress no-op updates.
+7. If `fn` throws during a recompute, the read that triggered it throws the same exception; the computed stays dirty and recomputes on the next read after a dependency changes. Inside a component subtree wrapped in `View.ErrorBoundary` (7.2.0), a throw from a reactive leaf reading the computed goes to that boundary.
+8. A computed with no subscribers detaches from its sources: it stops receiving notifications and does no work until read again; a read checks whether any source changed and recomputes only then. This is how computeds created inside a component are released when the component's leaves and effects are disposed.
+9. `Computed.dispose(c)` detaches `c` immediately (unlinks its dependencies). The computed remains readable: the next read recomputes and re-collects dependencies. It is only needed for a long-lived computed that still has subscribers you want to cut off.
+10. A computed has no setter. `Signal.set` type-checks on it (it is a `Signal.t`) but MUST NOT be used: the written value is overwritten by the next recompute.
+11. `fn` MUST be pure: no writes to signals, no DOM access, no network. Side effects belong in effects.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `Computed.make` | `(unit => 'a, ~name: string=?, ~equals: ('a, 'a) => bool=?) => Signal.t<'a>` | Runs `fn` now; recomputes lazily when a dependency changes. `~equals` suppresses propagation of equal results. |
+| `Computed.dispose` | `Signal.t<'a> => unit` | Detaches the computed from its sources; next read recomputes. |
+| `Signal.get` / `Signal.peek` | `Signal.t<'a> => 'a` | Read a computed (tracked / untracked); recomputes first if dirty. |
+| `MaybeSignal.computed` | `(unit => 'a) => MaybeSignal.t<'a>` | `MaybeSignal.reactive(Computed.make(fn))`; for APIs that take `MaybeSignal.t`. |
+
+## Patterns
+
+Derived value used in JSX. Use when a displayed value depends on one or more signals.
+
+```rescript
+type item = {name: string, price: float, quantity: int}
+let cart: Signal.t<array<item>> = Signal.make([])
+let total = Computed.make(() =>
+  Signal.get(cart)->Array.reduce(0.0, (sum, item) => sum +. item.price *. Int.toFloat(item.quantity))
+)
+
+module Total = {
+  @xote.component
+  let make = () => <p> {"Total: "} {Signal.get(total)->Float.toFixed(~digits=2)} </p>
+}
+```
+
+Suppress no-op updates with `~equals`. Use when a computed often recomputes to the same value (booleans, counts, filtered lists compared by value).
+
+```rescript
+let items = Signal.make([1, 2, 3])
+let hasItems = Computed.make(() => Array.length(Signal.get(items)) > 0, ~equals=(a, b) => a == b)
+```
+
+Chained computeds. Use to split a derivation into named steps; each step is cached separately.
+
+```rescript
+let query = Signal.make("")
+let names = Signal.make(["Ada", "Grace", "Alan"])
+let normalized = Computed.make(() => Signal.get(query)->String.trim->String.toLowerCase)
+let matches = Computed.make(() => {
+  let q = Signal.get(normalized)
+  Signal.get(names)->Array.filter(name => String.toLowerCase(name)->String.includes(q))
+}, ~equals=(a, b) => a == b)
+```
+
+Conditional dependencies. Use when part of the input matters only in some states; unused signals stop being dependencies.
+
+```rescript
+let showDetails = Signal.make(false)
+let name = Signal.make("Ada")
+let details = Signal.make("Mathematician")
+let label = Computed.make(() =>
+  Signal.get(showDetails) ? Signal.get(name) ++ ": " ++ Signal.get(details) : Signal.get(name)
+)
+```
+
+## Anti-patterns
+
+1. Syncing a second signal with an effect.
+
+```rescript
+let first = Signal.make("Ada")
+let last = Signal.make("Lovelace")
+let full = Signal.make("")
+Effect.run(() => {
+  Signal.set(full, Signal.get(first) ++ " " ++ Signal.get(last))
+  None
+})
+```
+
+Symptom: works, but there is a window where `full` is stale during a batch, an extra effect and an extra signal to keep consistent, and readers can still `set` `full` by mistake. Fix:
+
+```rescript
+let first = Signal.make("Ada")
+let last = Signal.make("Lovelace")
+let full = Computed.make(() => Signal.get(first) ++ " " ++ Signal.get(last))
+```
+
+Why: a computed is always consistent with its sources on read (rule 3) and cannot be written.
+
+2. Expecting equal results to be free without `~equals`.
+
+```rescript
+let count = Signal.make(1)
+let isOdd = Computed.make(() => mod(Signal.get(count), 2) == 1)
+// Signal.set(count, 3): isOdd is still true, but every effect/leaf reading it runs again
+```
+
+Symptom: effects that depend on `isOdd` run on every change to `count`. Fix: add `~equals=(a, b) => a == b`.
+
+Why: rule 5. Without `~equals` a recompute always propagates.
+
+3. Side effects inside the function.
+
+```rescript
+let count = Signal.make(0)
+let logged = Computed.make(() => {
+  Console.log(Signal.get(count)) // runs only when someone reads it, possibly never
+  Signal.get(count)
+})
+```
+
+Symptom: logs appear irregularly (only on reads after a change) or never, and duplicate when read from several places after a change. Fix: put the side effect in `Effect.run`.
+
+Why: rule 3. A computed runs on demand, not on change.
+
+4. Creating a computed inside a reactive leaf or a frequently re-running effect.
+
+```rescript
+let count = Signal.make(0)
+Effect.run(() => {
+  let doubled = Computed.make(() => Signal.get(count) * 2) // a new computed each run
+  Console.log(Signal.get(doubled))
+  None
+})
+```
+
+Symptom: extra allocation and recomputation on every run; the old computeds are only released when they lose their subscriber. Fix: create the computed once (module level or component body) and read it in the effect.
+
+## Edge cases
+
+- The initial value is computed eagerly at `make` (rule 1), even if nothing ever reads it. `MaybeSignal.computed` has the same behaviour.
+- `Signal.peek` on a dirty computed recomputes it.
+- Reading a computed inside `Signal.batch` returns the up-to-date value; the batch only delays effects.
+- Inside a flush, an effect that depends on a computed declared with `~equals` is not queued until the computed has been recomputed; if the result is equal, the effect does not run at all.
+- Recursion: a computed that reads itself (directly or through another computed) is not supported.
+- A computed created at module level lives for the process. It costs nothing while it has no subscribers (rule 8).
+- `~name` is stored as a debugging label only; Xote does not read it.
+
+## SSR and hydration
+
+- During server rendering, computeds read by the rendered tree are evaluated with the current signal values. There is no later update on the server.
+- A module-level computed in a server process is shared across requests, like any module-level value; derive request state inside the tree.
+- Nothing about a computed is serialised for hydration; on the client it is re-created by the same code and recomputed from the (hydrated) signals.
+
+## Verify
+
+- `Computed.make` returns `Signal.t<'a>`; a type error mentioning `Signal.t` where a plain value is expected means a missing `Signal.get`.
+- Behaviour check:
+
+```rescript
+let count = Signal.make(1)
+let runs = ref(0)
+let isOdd = Computed.make(() => mod(Signal.get(count), 2) == 1, ~equals=(a, b) => a == b)
+Effect.run(() => {
+  let _ = Signal.get(isOdd)
+  runs := runs.contents + 1
+  None
+})
+Signal.set(count, 3) // isOdd recomputes to true: equal, effect does not run
+// runs.contents == 1; without ~equals it would be 2
+```
+
+- Laziness check: put a counter in `fn`, write the source twice without reading, then read once; the counter increases by exactly one.
+
+## Related
+
+- `/docs/learn/signals` — writes, equality and synchronous flushing that drive recomputation.
+- `/docs/learn/effects` — where side effects that depend on a computed go.
+- `/docs/advanced/batching` — computeds stay readable and fresh inside a batch.
+- `/docs/api/computed` — full reference from `src/Computed.resi`.
+- `/docs/glossary` — terms used on this page.

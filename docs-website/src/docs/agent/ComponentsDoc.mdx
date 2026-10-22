@@ -1,0 +1,244 @@
+## Summary
+
+A Xote component is a module whose `make` function returns a `View.node`; JSX `<Name prop=... />` calls it. The component body runs exactly once per instance, untracked, and its result is mounted; afterwards only reactive leaves and reactive regions update. Props are ordinary function arguments read once: a prop that must change over time MUST be passed as a `Signal.t`, a `MaybeSignal.t` or a thunk, and read inside the child's JSX.
+
+## Availability
+
+| Item | Module / entry | Stable since | Changed in 7.2.0 | PPX required |
+| --- | --- | --- | --- | --- |
+| `@xote.component` annotation | compile-time PPX, `"ppx-flags": ["xote/ppx/ppx"]` | 7.1.0 | Reach into plain helper functions in the same file, condition-only tracking of `if`/`switch`, render-callback decomposition | yes (it is the PPX) |
+| `@jsx.component` with `XoteJSX` | `xote` (`"jsx": {"version": 4, "module": "XoteJSX"}`) | 7.1.0 | — | no |
+| `View.mount`, `View.mountById` | `xote` · `xote/view` | 7.1.0 | — | no |
+| `MaybeSignal` (`static`, `reactive`, `get`, `map`, …) | `xote` · `xote/maybe-signal` | 7.1.0 (replaces deprecated `Prop`) | — | no |
+| `Context` for per-instance state | `xote` · `xote/context` | 7.2.0 (new) | — | no |
+
+Configuration required in `rescript.json` for everything on this page: `"jsx": {"version": 4, "module": "XoteJSX"}`, `"compiler-flags": ["-open Xote"]` (or `open Xote` per file), and `"ppx-flags": ["xote/ppx/ppx"]` for `@xote.component`.
+
+## Rules
+
+1. A component MUST be a `make` function inside a module (a file is a module). Exactly one `@xote.component` or `@jsx.component` binding is allowed per module; a second one is a compile error: "Only one component definition is allowed for each module. Move to a submodule or other file if necessary."
+2. Labeled arguments of `make` become the props record. `~name: t` is required; `~name: t=default` is optional with a default; `~name: option<t>=?` is optional and arrives as `option<t>` (the caller writes `name=value`, not `name=Some(value)`).
+3. `~children` is an ordinary prop. Type it `View.node` when the component renders its children once. JSX with several children passes them as one fragment node.
+4. The component body (code before the returned JSX) runs once per instance, untracked: a `Signal.get` there is a read (untracked) and its value never updates. Since 7.1.0 the body is its own reactive scope (owner): signals, computeds, effects and resources created in it are owned by the instance and disposed when the instance is removed.
+5. The returned JSX is where reactivity is created. Under `@xote.component`, each attribute or bare child that reads a signal becomes a reactive leaf (see `/docs/learn/rendering`).
+6. Props of user components are NEVER made reactive by the PPX. `<Child value={Signal.get(x)} />` evaluates `Signal.get(x)` once, where the element is written. To pass something that changes, pass `x` itself (typed `Signal.t<'a>`), a `MaybeSignal.t<'a>`, or a thunk `unit => 'a`, and read it in the child's JSX.
+7. Exception to rule 6: a prop whose value is JSX, or a function returning JSX (a render callback such as `View.For`'s `render`), is decomposed like any other JSX in the file.
+8. The PPX opt-in is per file: in a file that contains at least one `@xote.component`, all JSX in the file is decomposed (7.2.0+ also reaches plain helper functions and JSX bound with `let`). A file with no `@xote.component` is left untouched, and bare `{…}` children of non-node type are then compile errors.
+9. Moving a helper that returns JSX between an annotated and a non-annotated file changes its behaviour (reactive vs one-shot) without a type change. Keep markup helpers in annotated files.
+10. `View.mount(node, element)` replaces the contents of `element`. `View.mountById(node, id)` does nothing when no element has that id. Neither hydrates; use `Hydration.hydrate` for server-rendered HTML.
+11. A module cannot refer to itself by name, so `View.mountById(<App />, "app")` MUST live in a different module than `App` (conventionally `Main.res`).
+12. A component instance has no identity across "re-renders" because components do not re-render. A component is created again only when the region that contains it is rebuilt (a branch swap, a keyed row replaced, `View.tracked` re-evaluated, an error boundary `reset`); then its body runs again and it gets fresh local state.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `@xote.component` | attribute on `let make` | Derives props like `@jsx.component` and decomposes the file's JSX into reactive leaves. |
+| `@jsx.component` | attribute on `let make` | Derives props; no decomposition (reactivity only via thunks, signals, `View.*` primitives). |
+| `View.mount` | `(node, Dom.element) => unit` | Renders `node` into the element, replacing its contents. |
+| `View.mountById` | `(node, string) => unit` | `mount` by element id; no-op when the id is absent. |
+| `View.null` / `View.empty` | `unit => node` | Renders nothing (an empty text node that keeps the position). |
+| `View.fragment` | `array<node> => node` | Groups nodes without a wrapper element. |
+| `MaybeSignal.static` | `'a => MaybeSignal.t<'a>` | Wraps a constant; reading it subscribes nothing. |
+| `MaybeSignal.reactive` | `Signal.t<'a> => MaybeSignal.t<'a>` | Wraps a signal; `MaybeSignal.get` is a tracked read. |
+| `MaybeSignal.get` | `MaybeSignal.t<'a> => 'a` | Reads the value (tracked for `Reactive`). The PPX treats it as a signal read. |
+| `MaybeSignal.map` | `(MaybeSignal.t<'a>, 'a => 'b) => MaybeSignal.t<'b>` | Maps a static or reactive value. |
+
+## Patterns
+
+Required, defaulted and optional props, typed children. Use when: any component with inputs.
+
+```rescript
+module Card = {
+  @xote.component
+  let make = (~title: string, ~subtitle: option<string>=?, ~children: View.node) =>
+    <section class="card">
+      <h2> {title} </h2>
+      {switch subtitle {
+      | Some(text) => <p> {text} </p>
+      | None => View.null()
+      }}
+      {children}
+    </section>
+}
+
+module Greeting = {
+  @xote.component
+  let make = (~name: string, ~greeting: string="Hello") => <h1> {greeting} {", "} {name} </h1>
+}
+
+<Card title="Totals" subtitle="Live"> <Greeting name="Ada" /> </Card>
+```
+
+A prop that changes: pass the signal. Use when: the child must follow a value owned elsewhere.
+
+```rescript
+module Badge = {
+  @xote.component
+  let make = (~count: Signal.t<int>) => <span class="badge"> {Signal.get(count)} </span>
+}
+
+let total = Signal.make(3)
+<Badge count=total />
+```
+
+A prop that may be fixed or live: `MaybeSignal.t`. Use when: one component serves both static and reactive callers.
+
+```rescript
+module Price = {
+  @xote.component
+  let make = (~amount: MaybeSignal.t<int>) => <span> {"$"} {MaybeSignal.get(amount)} </span>
+}
+
+<Price amount={MaybeSignal.static(10)} />
+<Price amount={MaybeSignal.reactive(total)} />
+```
+
+A derived prop: pass a thunk. Use when: the child needs a value computed from several signals and you do not want a named `Computed`.
+
+```rescript
+module Label = {
+  @xote.component
+  let make = (~text: unit => string) => <span> {text()} </span>
+}
+
+<Label text={() => Signal.get(name)} />
+```
+
+Local state per instance. Use when: state belongs to one instance (each `Counter` has its own count).
+
+```rescript
+module Counter = {
+  @xote.component
+  let make = (~initial: int) => {
+    let count = Signal.make(initial)
+    <button onClick={_ => Signal.update(count, n => n + 1)}> {Signal.get(count)} </button>
+  }
+}
+```
+
+A markup helper (no annotation of its own) in an annotated file. Use when: small repeated markup without its own state.
+
+```rescript
+let pill = (label: string, active: bool) =>
+  <span class={active ? "pill active" : "pill"}> {label} </span>
+
+module Filters = {
+  @xote.component
+  let make = () => <div> {pill("All", true)} {pill("Done", Signal.get(total) > 0)} </div>
+}
+```
+
+Entry file. Use when: mounting the app (separate module from `App`).
+
+```rescript
+// Main.res
+View.mountById(<App />, "app")
+```
+
+### State placement
+
+| State is… | Put it in | Why |
+| --- | --- | --- |
+| Used by one instance only | `Signal.make` in the component body | Owned by the instance; disposed with it; each instance independent. |
+| One value for the whole app (client-only) | `let x = Signal.make(...)` at module level | Simplest; shared by every reader; never disposed. |
+| Shared by one subtree, one copy per instance of an ancestor (tabs, form fields) | `Context` providing a `Signal.t` (7.2.0) | Scoped to the providing instance; see `/docs/learn/context`. |
+| Per-request during SSR | `Context` (7.2.0) | Module-level signals are shared across requests in a server process. |
+| Derived from other state | `Computed.make` next to its inputs | Never store a copy that must be kept in sync. |
+
+## Anti-patterns
+
+Reading a signal in the body to display it.
+
+```rescript
+@xote.component
+let make = () => {
+  let label = Int.toString(Signal.get(count)) // read (untracked), once
+  <p> {label} </p>
+}
+```
+
+Symptom: the text shows the initial value and never changes. Fix: read in JSX, or bind a thunk.
+
+```rescript
+@xote.component
+let make = () => <p> {Signal.get(count)} </p>
+```
+
+Why: the body runs once, untracked; only expressions in JSX positions become reactive leaves.
+
+Passing a snapshot as a prop.
+
+```rescript
+<Badge count={Signal.get(total)} />
+```
+
+Symptom: compile error when `Badge` expects `Signal.t<int>` (`This has type: int` … `expected to have type: Xote.Signal.t<int>`). If the prop is typed `int`, it compiles and the badge never updates. Fix: `<Badge count=total />` with `~count: Signal.t<int>`. Why: user-component props are evaluated once where written (rule 6). Inside an `if`/`switch` on a signal, such a read also subscribes the enclosing branch, so the branch is rebuilt wholesale whenever `total` changes.
+
+Two components in one module.
+
+```rescript
+@xote.component
+let make = () => <div />
+@xote.component
+let make2 = () => <span />
+```
+
+Symptom: compile error "Only one component definition is allowed for each module." Fix: one component per module; use submodules (`module Header = { @xote.component let make = ... }`).
+
+Mounting from the component's own module.
+
+Symptom: `View.mountById(<App />, "app")` inside `App.res` fails to compile (a module cannot reference itself by name). Fix: put the mount in `Main.res` and point `index.html` at `Main.res.mjs`.
+
+Helper with signal reads behind a cross-module call.
+
+```rescript
+<p class={Store.tone(store)}> {Store.count(store)} </p>
+```
+
+Symptom: renders once and never updates; in development, a one-time `[Xote] … reads a signal through a call @xote.component cannot see` warning. Fix: make the read visible or deferred: `class={() => Store.tone(store)}` and `{() => Store.count(store)}`. Why: signal detection is syntactic and does not follow other modules.
+
+## Edge cases
+
+- A component called as a function (`View.mount(app(), container)`) instead of through JSX runs its body before anything renders; its `View.onMount` (7.2.0) still waits for the mount. Prefer JSX (`<App />`).
+- `~children` left untyped compiles (`'children` is inferred); type it `View.node` for clearer errors.
+- `View.child` (inserted by the PPX for bare children) accepts any value: a record or a variant compiles and renders `[object Object]` with a development warning. Convert to a string or node explicitly.
+- `<View.Text>`, `<View.Int>`, `<View.Float>`, `<View.Bool>` are detected by the PPX only when written qualified as `View.X`. `open View` + `<Text>` is not recognised; its child then fails to compile (`string` where `View.node` is expected).
+- The PPX's semantics are documented as "not settled yet" (ppx/README.md): the per-file opt-in may become an explicit file-level marker, `View.child`'s accepted type may narrow, and one-shot prop reads may become explicitly untracked.
+
+## SSR and hydration
+
+- `SSR.renderToString(() => <App />)` runs every component body once on the server and serialises the result. Effects created in bodies run on the server too unless guarded with `SSRContext.isClient`; `View.onMount` (7.2.0) never runs on the server.
+- `Hydration.hydrate(() => <App />, container)` runs the bodies again on the client and attaches to the existing DOM instead of creating it. Bodies MUST produce the same structure on both sides (no random or time-based initial values in the first render).
+- Module-level signals in a server process are shared by all requests. Per-request state MUST be created in a body or provided through `Context`.
+
+## Verify
+
+- Compile: the errors quoted above identify rule violations (one component per module; prop type mismatch; bare non-node child in a non-annotated file).
+- Runtime (jsdom): mount, change a signal, assert the text changed and the component body ran once.
+
+```rescript
+let count = Signal.make(0)
+let bodyRuns = ref(0)
+
+module Probe = {
+  @xote.component
+  let make = () => {
+    bodyRuns := bodyRuns.contents + 1
+    <p id="out"> {Signal.get(count)} </p>
+  }
+}
+
+// In a test (jsdom): View.mountById(<Probe />, "app"); Signal.set(count, 2)
+// Expect: #out text == "2" and bodyRuns.contents == 1.
+```
+
+- Observable: setting a signal updates only the bound text/attributes; DOM element identity of the component's root is unchanged.
+
+## Related
+
+- `/docs/learn/rendering` — what in JSX becomes a reactive leaf, attributes, events, lists, conditionals.
+- `/docs/learn/lifecycle` — `onMount`, `onCleanup`, refs, portals, error boundaries (7.2.0).
+- `/docs/learn/context` — per-instance shared state.
+- `/docs/thinking-in-signals` — the run-once model.
+- `/docs/api/view` — full `View` reference.

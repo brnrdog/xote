@@ -1,0 +1,213 @@
+## Summary
+
+Use this page when porting SolidJS code to Xote or when reviewing Xote code written with SolidJS habits. The models are close: both run component functions once and update the DOM through fine-grained subscriptions. The differences that cause bugs are in the details: Xote props are plain values (not reactive proxies), Xote's JSX reactivity comes from a PPX that detects signal reads syntactically and only in annotated files, `Computed` is lazy, `Effect.run` runs immediately, and keyed lists use an explicit key.
+
+## Availability
+
+| Xote feature used in the mapping | Module / entry | Stable since | Changed in 7.2.0 |
+| --- | --- | --- | --- |
+| `Signal`, `Computed`, `Effect` (`run`, `runWithDisposer`), `Signal.batch`, `Signal.untrack` | `xote` | 7.1.0 | — |
+| `@xote.component`, `View.For`/`KeyedFor`/`Show`/`Maybe`/`Value`, `View.tracked`, `MaybeSignal` | `xote` + PPX | 7.1.0 | — |
+| `View.onMount`, `View.onCleanup`, `View.Ref`, `View.Portal`, `View.ErrorBoundary` | `xote` | 7.2.0 (new) | — |
+| `Context` | `xote` · `xote/context` | 7.2.0 (new) | — |
+| `Resource`, `View.Suspense` | `xote` · `xote/resource` | 7.2.0 (new) | — |
+| `Router`, `SSR`, `Hydration` | `xote/router`, `xote/ssr`, `xote/hydration` | 7.1.0 | — |
+
+## Rules
+
+1. A signal is one handle (`Signal.t<'a>`), not a getter/setter pair: read with `Signal.get(s)` (tracked) or `Signal.peek(s)` (untracked), write with `Signal.set`/`Signal.update`.
+2. Props are plain values evaluated once at the call site. There is no props proxy: destructuring is fine, but a prop that must change MUST be passed as a `Signal.t`, `MaybeSignal.t` or thunk and read inside the child's JSX.
+3. JSX reactivity is decided at compile time by the `@xote.component` PPX, per file. Only expressions that visibly read a signal (`Signal.get`, `MaybeSignal.get`, aliases, same-file helpers) become reactive leaves. A read behind a function from another module is one-shot (a development warning is logged); wrap it in `() => …`. Files without `@xote.component` get no automatic reactivity.
+4. `Computed.make` is lazy: it recomputes on read after a dependency changed, not eagerly like `createMemo`. A computed nobody reads does not recompute.
+5. `Effect.run` runs immediately and synchronously when created, and synchronously after each dependency write (outside `Signal.batch`). It is not deferred until after rendering like `createEffect`; use `View.onMount` (7.2.0) for post-insertion work.
+6. Default equality is strict (`===`); `~equals` on `Signal.make` and `Computed.make` overrides it (like Solid's `equals` option).
+7. Lists are keyed by an explicit `by` function, not by item reference. A row is reused only when both key and item (`===`) are unchanged. There is no `Index` equivalent: `View.For` without `by` rebuilds every row on each change.
+8. `View.Suspense` waits for resources created by components below it (the creator's position counts, not where the resource is read), and only for their first load; refetches show `Refreshing(previous)` without the fallback.
+9. Ownership: signals, computeds, effects and resources created in a component body are owned by the instance and disposed with it. `Effect.runWithDisposer` is the manual equivalent of a `createRoot` with a disposer for one effect.
+10. There is no store module: model nested reactive state with records whose changing fields are `Signal.t`, or update immutable values with `Signal.update`.
+
+## Mapping
+
+| SolidJS | Xote | Semantic difference |
+| --- | --- | --- |
+| `const [v, setV] = createSignal(x)` | `let v = Signal.make(x)` | One handle; `Signal.get(v)` / `Signal.set(v, …)`. |
+| `v()` in JSX | `{Signal.get(v)}` in an annotated file | Reactive only where the PPX sees the read. |
+| `setV(prev => …)` | `Signal.update(v, prev => …)` | Synchronous notification. |
+| `createMemo(fn)` | `Computed.make(fn)` | Lazy (recompute on read). |
+| `createEffect(fn)` | `Effect.run(() => { …; None })` | Runs immediately, synchronously; cleanup via returned `Some(fn)`. |
+| `createRenderEffect` | `Effect.run` | Already immediate. |
+| `on(deps, fn)` | read deps with `Signal.get`, others inside `Signal.untrack` | No helper; explicit tracked/untracked reads. |
+| `onMount(fn)` | `View.onMount(fn)` (7.2.0) | Parents before children; never on the server. |
+| `onCleanup(fn)` | `View.onCleanup(fn)` (7.2.0) or effect cleanup | Effect cleanup runs before each re-run. |
+| `batch(fn)` | `Signal.batch(fn)` | Nested batches flush once at the outermost. |
+| `untrack(fn)` | `Signal.untrack(fn)` / `Signal.peek(s)` | Same. |
+| `createRoot(dispose => …)` | `Effect.runWithDisposer(fn)` returns `{dispose}` | Per effect; components own what their bodies create. |
+| `createStore` / `produce` | records with `Signal.t` fields, or `Signal.update` with new values | No proxy, no path setters. |
+| `<For each={list()}>{item => …}</For>` | `<View.For each={MaybeSignal.reactive(list)} by={item => item.id} render={item => …} />` | Explicit key; without `by` every row rebuilds. |
+| `<Index>` | no equivalent | Use keyed `View.For` with per-row signals. |
+| `<Show when={c()} fallback={…}>` | `<View.Show when_={MaybeSignal.reactive(c)} fallback={…}>` or `{Signal.get(c) ? … : …}` | `when_` takes a `MaybeSignal.t<bool>`. |
+| `<Show when={opt()} keyed>{v => …}</Show>` | `<View.Maybe value={MaybeSignal.reactive(opt)} render={v => …} />` | Option-typed value. |
+| `<Switch>/<Match>` | `{switch Signal.get(s) { … }}` | Exhaustive pattern matching. |
+| `<Dynamic component={…}>` | `switch` returning different components | No dynamic component primitive. |
+| `<Portal mount={el}>` | `<View.Portal target=el>` (7.2.0) | No wrapper element (comment anchors); default `document.body`. |
+| `<ErrorBoundary fallback={(err, reset) => …}>` | `<View.ErrorBoundary fallback={(err, reset) => …}>` (7.2.0) | Same shape; `onError` prop for logging. |
+| `createResource(source, fetcher)` | `Resource.make(() => fetcher(Signal.get(source)))` (7.2.0) | Dependencies are signals read before the fetch's first `await`; state is a variant (`Pending`, `Ready`, `Refreshing`, `Failed`). |
+| `<Suspense fallback>` | `<View.Suspense fallback>` (7.2.0) | Waits for resources created below; first load only. |
+| `createContext` / `useContext` / `<Ctx.Provider value>` | `Context.make` / `Context.use` / `<Context.Provider context value>` (7.2.0) | `use` must run during render; outside it returns the default. |
+| `mergeProps({kind: "primary"}, props)` | `~kind: string="primary"` | Labeled defaults. |
+| `splitProps` | not needed | Props are a typed record of plain values. |
+| `children(() => props.children)` | `~children: View.node` | Rendered as given. |
+| `ref={el}` | `ref=r` with `View.Ref.make()` (7.2.0) | Read with `View.Ref.peek` / `View.Ref.get`. |
+| `classList={{active: a()}}` | `class={Signal.get(a) ? "item active" : "item"}` | String expression. |
+| `style={{width: "10px"}}` | `style="width: 10px"` | String only; an object renders `[object Object]`. |
+| `render(() => <App />, el)` | `View.mount(<App />, el)` | Replaces the container contents. |
+| `renderToString` / `hydrate` | `SSR.renderToString` / `Hydration.hydrate` | State transfer explicit (`SSRState`). |
+
+## Patterns
+
+Resource with Suspense and an error boundary. Use when: porting `createResource` + `Suspense` (7.2.0).
+
+```rescript
+type user = {id: string, name: string}
+
+module Profile = {
+  @xote.component
+  let make = (~id: Signal.t<string>) => {
+    let user = Resource.make(() => fetchUser(Signal.get(id)))
+    <h2>
+      {switch Signal.get(user) {
+      | Ready(user) | Refreshing(user) => user.name
+      | Failed(_) => "Could not load"
+      | Pending => ""
+      }}
+    </h2>
+  }
+}
+
+module Page = {
+  @xote.component
+  let make = (~id: Signal.t<string>) =>
+    <View.ErrorBoundary fallback={(_e, reset) => <button onClick={_ => reset()}> {"Retry"} </button>}>
+      <View.Suspense fallback={<p> {"Loading…"} </p>}>
+        <Profile id />
+      </View.Suspense>
+    </View.ErrorBoundary>
+}
+```
+
+`on(a, …)` with an untracked second input. Use when: an effect should re-run for one signal but also read another.
+
+```rescript
+Effect.run(() => {
+  let current = Signal.get(a)
+  let other = Signal.untrack(() => Signal.get(b))
+  Console.log2(current, other)
+  None
+})
+```
+
+Store-like nested state. Use when: porting `createStore` lists whose rows change in place.
+
+```rescript
+type todo = {id: int, title: string, done: Signal.t<bool>}
+let todos: Signal.t<array<todo>> = Signal.make([])
+
+let toggle = (todo: todo) => Signal.update(todo.done, done => !done)
+```
+
+`<Show keyed>` with a value. Use when: rendering an optional value.
+
+```rescript
+<View.Maybe
+  value={MaybeSignal.reactive(selected)}
+  fallback={<p> {"Nothing selected"} </p>}
+  render={u => <p> {u.name} </p>}
+/>
+```
+
+## Anti-patterns
+
+Treating props as reactive.
+
+```rescript
+module Title = {
+  @xote.component
+  let make = (~text: string) => <h1> {text} </h1>
+}
+<Title text={Signal.get(title)} />
+```
+
+Symptom: the heading never updates (in Solid, `props.text` would track). Fix: `~text: Signal.t<string>` with `{Signal.get(text)}` in the child, and `<Title text=title />`.
+
+Hidden read through another module.
+
+```rescript
+<span class={Theme.current()}> {"x"} </span> // Theme.current reads a signal in Theme.res
+```
+
+Symptom: the class never changes; a development warning names the site. Fix: `class={() => Theme.current()}`. Why: Solid's compiler wraps every call; Xote's PPX only wraps reads it can see.
+
+Expecting a memo to run eagerly.
+
+```rescript
+let logged = Computed.make(() => {
+  Console.log("recomputed")
+  Signal.get(count) * 2
+})
+```
+
+Symptom: nothing is logged when `count` changes unless `logged` is read. Fix: side effects belong in `Effect.run`; computeds are pure and lazy.
+
+Effect that touches the DOM at creation.
+
+```rescript
+Effect.run(() => {
+  View.Ref.peek(field)->Option.forEach(focus)
+  None
+})
+```
+
+Symptom: the ref is `None` (the effect ran before insertion) and the effect never re-runs (`peek` is untracked). Fix: `View.onMount(() => View.Ref.peek(field)->Option.forEach(focus))`, or read `View.Ref.get(field)` (tracked) in the effect.
+
+Unkeyed `View.For` as `Index`.
+
+Symptom: every row is rebuilt on each change (focus and input state lost). Fix: add `by`, and keep per-row changing fields in signals.
+
+Expecting Suspense to re-show the fallback on refetch.
+
+Symptom: old data stays visible while the new request runs. Fix: render a loading indicator from `Refreshing(_)` (or `Resource.isLoading`) explicitly.
+
+## Edge cases
+
+- `View.Suspense` is suspended by the component that creates a resource, wherever the resource is read; create resources inside the subtree that should show the fallback.
+- An `if`/`switch` region rebuilds its branch on condition change, like Solid's `Show` without `keyed`: component state inside the branch is recreated.
+- There is no `createSelector`; for "is this row selected" across many rows, each row reads the selection signal (each row's leaf re-evaluates on change).
+- No streaming SSR and no `<NoHydration>`; `SSR.renderToString` / `SSR.renderDocument` produce a complete string.
+
+## SSR and hydration
+
+- Effects created in component bodies run during `SSR.renderToString`; guard browser-only work with `SSRContext.isClient` or use `View.onMount` (7.2.0).
+- Resources created during a server render do not fetch and stay `Pending`; a `View.Suspense` renders its fallback on the server and its children after hydration.
+- Transfer data from server to client with `SSRState` and hydrate with `Hydration.hydrate`.
+
+## Verify
+
+Porting checklist:
+
+1. Every `createSignal` tuple is replaced by one `Signal.t`; no getter/setter wrappers.
+2. Every prop that changes is a `Signal.t`, `MaybeSignal.t` or thunk.
+3. Reactive reads through imported helpers are wrapped in `() => …`; no `[Xote] … reads a signal through a call` warnings in development.
+4. Each `<For>` has a `by` key; `<Index>` uses were redesigned with per-row signals.
+5. Effects that need the DOM are `View.onMount` (7.2.0) or read refs with `View.Ref.get`.
+6. Memos with side effects were split into a computed plus an effect.
+7. Features marked 7.2.0 need xote 7.2.0 or later.
+
+Test in jsdom: mount, change signals, assert DOM updates and element identity; for resources, assert the fallback first, then the value, and that a refetch keeps the old value visible until the new one arrives.
+
+## Related
+
+- `/docs/comparisons/react` — mapping from React hooks.
+- `/docs/learn/rendering` — exact rules for what the PPX makes reactive.
+- `/docs/learn/computeds` and `/docs/learn/effects` — lazy computeds, immediate effects.
+- `/docs/learn/async-data` — `Resource` and `View.Suspense` in detail.
+- `/docs/learn/lifecycle` — `onMount`, refs, portals, error boundaries.

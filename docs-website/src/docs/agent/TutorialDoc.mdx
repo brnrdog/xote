@@ -1,0 +1,343 @@
+## Summary
+
+Reference implementation of the tutorial app: a temperature converter (one signal, two computeds, a slider) and a live weather card in two versions, one built on `Effect.run` with manual loading state, one built on `Resource`, `View.Suspense` and `View.ErrorBoundary`. Each part is annotated with the rule it relies on. Use this page as a template for "a component that derives values and loads remote data without layout shift". The human page teaches the same app step by step; this page gives the final code.
+
+## Availability
+
+| Part | Requires | Version |
+| --- | --- | --- |
+| Converter (`Signal`, `Computed`, PPX) | `xote`, `ppx-flags` | stable 7.1.0 |
+| Weather card with `Effect.run` | `xote` | stable 7.1.0 |
+| Weather card with `Resource`, `View.Suspense`, `View.ErrorBoundary` | `xote` | 7.2.0 (new) |
+| Network | `fetch` (browser or Node 18+), Open-Meteo API (no key) | |
+
+## Rules
+
+1. `TemperatureDisplay` takes `~value: Signal.t<float>`, not `float`: user-component props are read once, so a `float` prop would freeze (see `/docs/thinking-in-signals`, rule 13).
+2. `fahrenheit` and `kelvin` are computeds of `celsius`; they MUST NOT be separate signals kept in sync. A computed is itself a `Signal.t`, so it can be passed where a signal is expected.
+3. The slider's `value` reads `celsius` in attribute position, so it is a reactive leaf; `onInput` writes `celsius`. Only the three number texts and the slider's `value` update on input.
+4. In the effect version, the effect reads `capital` before starting the request, so `capital` is its only dependency; it writes `status` and `celsius`, which it does not read.
+5. The effect returns `Some(() => stale := true)`. Xote runs it before the next run (capital changed) and when the owner is disposed, so a late response for an old capital is ignored.
+6. The effect is guarded by `SSRContext.isClient` because the docs site server-renders this page; a client-only app does not need the guard. In the resource version no guard is needed: a resource created during a server render does not fetch.
+7. No-layout-shift technique (both versions): the readout row is always rendered; loading and failure are expressed by CSS classes on the row (`is-loading`, `is-failed`, `is-refreshing`) and by the text of a status line that always occupies one line. Placeholders MUST have the same box size as the real content.
+8. In the resource version, the resource is created inside `Readouts`, which is rendered under `View.Suspense`: a resource suspends the nearest Suspense above the component that created it. Suspense shows its fallback until the first fetch settles, never again afterwards.
+9. On a refetch the resource state is `Refreshing(previous)`: the previous numbers stay and are dimmed via `Resource.isLoading`.
+10. A failure is routed to the error boundary by throwing in a reactive leaf: `| Failed(error) => throw(error)`. The boundary replaces its subtree with `fallback`; `retry` rebuilds the subtree, which creates a new resource and fetches again.
+11. The boundary's fallback renders the placeholder row underneath its message (stacked with CSS grid), so the fallback has exactly the readouts' size at any width.
+12. "Try another capital" uses `Signal.update(capital, otherCapital)`, which never returns the current capital; setting an equal value would not notify and nothing would reload.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `Computed.make` | `(unit => 'a, ~name: string=?, ~equals: ('a, 'a) => bool=?) => Signal.t<'a>` | derived value |
+| `Effect.run` | `(unit => option<unit => unit>, ~name: string=?) => unit` | runs now and on change; cleanup before next run |
+| `Resource.make` | `(unit => promise<'a>) => Resource.t<'a>` | async value as a signal of `Pending` / `Ready` / `Refreshing` / `Failed` |
+| `Resource.value` | `Resource.state<'a> => option<'a>` | value of `Ready`/`Refreshing` |
+| `Resource.isLoading` | `Resource.state<'a> => bool` | true for `Pending` and `Refreshing` |
+| `View.Suspense` | JSX: `<View.Suspense fallback> children </View.Suspense>` | fallback until resources below have settled once |
+| `View.ErrorBoundary` | JSX: `fallback: (exn, unit => unit) => View.node`, `onError?` | catches errors thrown while rendering/updating its subtree |
+| `SSRContext.isClient` | `bool` | true in the browser |
+
+## Patterns
+
+### Shared helpers
+
+```rescript
+// Units.res
+type tempUnit = Celsius | Fahrenheit | Kelvin
+
+let symbolFor = unit =>
+  switch unit {
+  | Celsius => "°C"
+  | Fahrenheit => "°F"
+  | Kelvin => "K"
+  }
+
+let labelFor = unit =>
+  switch unit {
+  | Celsius => "Celsius"
+  | Fahrenheit => "Fahrenheit"
+  | Kelvin => "Kelvin"
+  }
+
+let toFahrenheit = celsius => celsius *. 9.0 /. 5.0 +. 32.0
+let toKelvin = celsius => celsius +. 273.15
+```
+
+```rescript
+// TemperatureDisplay.res — rule 1
+open Units
+
+@xote.component
+let make = (~value: Signal.t<float>, ~unit: tempUnit) =>
+  <div class="temp-display">
+    <span class="temp-value"> {Signal.get(value)->Float.toFixed(~digits=1)} </span>
+    <span class="temp-unit"> {symbolFor(unit)} </span>
+    <span class="temp-label"> {labelFor(unit)} </span>
+  </div>
+```
+
+### Converter (rules 2–3)
+
+```rescript
+// Converter.res
+open Units
+
+@get external target: Dom.event => {"value": string} = "target"
+
+let celsius = Signal.make(22.0)
+let fahrenheit = Computed.make(() => Signal.get(celsius)->toFahrenheit)
+let kelvin = Computed.make(() => Signal.get(celsius)->toKelvin)
+
+let onSlide = (event: Dom.event) =>
+  switch Float.fromString(target(event)["value"]) {
+  | Some(value) => Signal.set(celsius, value)
+  | None => ()
+  }
+
+@xote.component
+let make = () =>
+  <div>
+    <div class="temp-row">
+      <TemperatureDisplay value=celsius unit=Celsius />
+      <TemperatureDisplay value=fahrenheit unit=Fahrenheit />
+      <TemperatureDisplay value=kelvin unit=Kelvin />
+    </div>
+    <input
+      type_="range"
+      min="-20"
+      max="40"
+      step="0.5"
+      value={Signal.get(celsius)->Float.toString}
+      onInput=onSlide
+    />
+  </div>
+```
+
+### Weather data
+
+```rescript
+// Weather.res
+type capital = {name: string, lat: float, lng: float}
+
+let capitals = [
+  {name: "Paris", lat: 48.8566, lng: 2.3522},
+  {name: "Tokyo", lat: 35.6762, lng: 139.6503},
+  {name: "Nairobi", lat: -1.2921, lng: 36.8219},
+]
+
+// Rule 12: never returns `current`.
+let otherCapital = (current: capital) => {
+  let others = capitals->Array.filter(capital => capital.name != current.name)
+  others->Array.getUnsafe(Math.Int.random(0, Array.length(others)))
+}
+
+type response
+type currentWeather = {temperature: float}
+type forecast = {current_weather: currentWeather}
+
+@val external fetch: string => promise<response> = "fetch"
+@send external json: response => promise<forecast> = "json"
+
+let fetchTemperature = async (capital: capital) => {
+  let url =
+    "https://api.open-meteo.com/v1/forecast" ++
+    `?latitude=${capital.lat->Float.toString}` ++
+    `&longitude=${capital.lng->Float.toString}` ++ "&current_weather=true"
+  let response = await fetch(url)
+  let forecast = await json(response)
+  forecast.current_weather.temperature
+}
+```
+
+### Weather card, effect version (rules 4–7)
+
+```rescript
+// WeatherCardEffect.res
+open Units
+open Weather
+
+type status = Loading | Ready | Failed
+
+let rowClass = status =>
+  switch status {
+  | Loading => "temp-row is-loading"
+  | Failed => "temp-row is-failed"
+  | Ready => "temp-row"
+  }
+
+let statusText = status =>
+  switch status {
+  | Loading => "Fetching the current weather…"
+  | Failed => "Couldn't reach the weather service."
+  | Ready => "Live from Open-Meteo."
+  }
+
+@xote.component
+let make = () => {
+  let capital = Signal.make(capitals->Array.getUnsafe(0))
+  let status = Signal.make(Loading)
+  let celsius = Signal.make(0.0)
+  let fahrenheit = Computed.make(() => Signal.get(celsius)->toFahrenheit)
+  let kelvin = Computed.make(() => Signal.get(celsius)->toKelvin)
+
+  if SSRContext.isClient {
+    Effect.run(() => {
+      let current = Signal.get(capital)
+      let stale = ref(false)
+      Signal.set(status, Loading)
+      fetchTemperature(current)
+      ->Promise.thenResolve(temperature =>
+        if !stale.contents {
+          Signal.set(celsius, temperature)
+          Signal.set(status, Ready)
+        }
+      )
+      ->Promise.catch(_ => {
+        if !stale.contents {
+          Signal.set(status, Failed)
+        }
+        Promise.resolve()
+      })
+      ->ignore
+      Some(() => stale := true)
+    })
+  }
+
+  <div>
+    <p> {"Now in "} {Signal.get(capital).name} </p>
+    <div class={rowClass(Signal.get(status))}>
+      <TemperatureDisplay value=celsius unit=Celsius />
+      <TemperatureDisplay value=fahrenheit unit=Fahrenheit />
+      <TemperatureDisplay value=kelvin unit=Kelvin />
+    </div>
+    <p class="status"> {statusText(Signal.get(status))} </p>
+    <button onClick={_ => Signal.update(capital, otherCapital)}> {"Try another capital"} </button>
+  </div>
+}
+```
+
+### Weather card, resource version (rules 8–11; 7.2.0)
+
+```rescript
+// WeatherCardResource.res
+open Units
+open Weather
+
+module LoadingReadouts = {
+  @xote.component
+  let make = () =>
+    <div class="temp-row is-loading" attrs=[("aria-busy", "true")]>
+      <TemperatureDisplay value={Signal.make(0.0)} unit=Celsius />
+      <TemperatureDisplay value={Signal.make(0.0)} unit=Fahrenheit />
+      <TemperatureDisplay value={Signal.make(0.0)} unit=Kelvin />
+    </div>
+}
+
+module Readouts = {
+  @xote.component
+  let make = (~capital: Signal.t<capital>) => {
+    let weather = Resource.make(() => fetchTemperature(Signal.get(capital)))
+    let celsius = Computed.make(() => Signal.get(weather)->Resource.value->Option.getOr(0.0))
+    let fahrenheit = Computed.make(() => Signal.get(celsius)->toFahrenheit)
+    let kelvin = Computed.make(() => Signal.get(celsius)->toKelvin)
+    <div>
+      <div class={Resource.isLoading(Signal.get(weather)) ? "temp-row is-refreshing" : "temp-row"}>
+        <TemperatureDisplay value=celsius unit=Celsius />
+        <TemperatureDisplay value=fahrenheit unit=Fahrenheit />
+        <TemperatureDisplay value=kelvin unit=Kelvin />
+      </div>
+      <p class="status">
+        {switch Signal.get(weather) {
+        | Failed(error) => throw(error)
+        | Refreshing(_) | Pending => "Updating…"
+        | Ready(_) => "Live from Open-Meteo."
+        }}
+      </p>
+    </div>
+  }
+}
+
+@xote.component
+let make = () => {
+  let capital = Signal.make(capitals->Array.getUnsafe(0))
+  <div>
+    <p> {"Now in "} {Signal.get(capital).name} </p>
+    <View.ErrorBoundary
+      fallback={(_error, retry) =>
+        <div class="error">
+          <LoadingReadouts />
+          <div class="error-message">
+            <p> {"Couldn't reach the weather service."} </p>
+            <button onClick={_ => retry()}> {"Try again"} </button>
+          </div>
+        </div>}>
+      <View.Suspense fallback={<LoadingReadouts />}>
+        <Readouts capital />
+      </View.Suspense>
+    </View.ErrorBoundary>
+    <button onClick={_ => Signal.update(capital, otherCapital)}> {"Try another capital"} </button>
+  </div>
+}
+```
+
+### Placeholder CSS (rule 7, 11)
+
+```css
+.temp-row.is-loading .temp-value,
+.temp-row.is-failed .temp-value { color: transparent; background: #8883; border-radius: 10px; }
+.temp-row.is-refreshing .temp-value { opacity: 0.4; }
+.status { min-height: 20px; margin: 0; }
+.error { display: grid; }
+.error > * { grid-area: 1 / 1; }
+.error > .temp-row { visibility: hidden; }
+```
+
+## Anti-patterns
+
+`~value: float` on `TemperatureDisplay` with `value={Signal.get(celsius)}` → numbers never change after the first render → declare `Signal.t<float>` and pass the signal.
+
+Swapping the readouts for a loading message with `switch status` → the card height changes on every load and every capital switch (layout shift) → keep the row, change classes and status text (rule 7).
+
+Reading `capital` after the `await` inside a resource fetch:
+
+```rescript
+let weather = Resource.make(async () => {
+  let _ = await Promise.resolve()
+  await fetchTemperature(Signal.get(capital))
+})
+```
+
+→ `capital` is not a dependency, so changing it does not refetch → read every dependency before the first `await` (as in `fetchTemperature(Signal.get(capital))`, where the argument is evaluated synchronously).
+
+Creating the resource in the parent of `View.Suspense` → the Suspense does not wait for it, the readouts appear with `0.0` → create it in a component rendered inside the Suspense (rule 8).
+
+`Signal.set(capital, pickRandom())` that can pick the current capital → equal value, no notification, nothing reloads → use `otherCapital` (rule 12).
+
+## Edge cases
+
+- While Suspense waits, its children are already rendered (hidden) behind the fallback; their component bodies, effects and resources run.
+- After the first settle, Suspense never shows its fallback again; refetches surface as `Refreshing`.
+- `retry` rebuilds the boundary's subtree from scratch; state owned inside it (the resource) is recreated. State owned outside it (`capital`) is preserved.
+- Errors thrown in event handlers, timers or promise callbacks are not caught by the boundary; only render/update errors are.
+- `Float.toFixed(~digits=1)` renders `273.1` for `273.15` (rounding of the binary value); use it only for display.
+
+## SSR and hydration
+
+Converter: renders fully on the server. Effect card: server HTML shows the loading state (status `Loading`, placeholders); the effect runs only after hydration. Resource card: during a server render no fetch starts and the resource stays `Pending`, so the Suspense fallback (placeholders) is what is rendered; hydration renders the children on the client and fetches.
+
+## Verify
+
+Stub `fetch` and run in jsdom (verified sequence for the resource card): initial render contains `is-loading` placeholders → after the stubbed response, numbers and "Live from Open-Meteo." → after "Try another capital", `is-refreshing` with the old numbers and "Updating…" → after a rejecting `fetch`, the boundary message and "Try again" → after `retry`, placeholders, then new numbers. The card's height MUST be identical in every state (measure `getBoundingClientRect().height`).
+
+```js
+globalThis.fetch = async () => ({ json: async () => ({ current_weather: { temperature: 12 } }) })
+```
+
+## Related
+
+- `/docs/learn/computeds`, `/docs/learn/effects` — rules 2–6.
+- `/docs/learn/async-data` — `Resource` and `View.Suspense` in full.
+- `/docs/learn/lifecycle` — `View.ErrorBoundary`.
+- `/docs/guides/fetching-data` — more loading patterns.

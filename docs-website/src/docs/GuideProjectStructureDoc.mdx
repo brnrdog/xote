@@ -1,0 +1,173 @@
+A Xote app is a ReScript project that Vite serves. This guide shows the files you need, how to lay them out, and where each kind of state should live.
+
+## Configure ReScript
+
+`rescript.json` tells the compiler to output ES modules next to your sources (which Vite can serve directly), to use Xote's JSX transform, and to enable the `@xote.component` annotation:
+
+```json
+{
+  "name": "my-app",
+  "sources": [{ "dir": "src", "subdirs": true }],
+  "package-specs": [{ "module": "esmodule", "in-source": true }],
+  "suffix": ".res.mjs",
+  "dependencies": ["xote"],
+  "jsx": { "version": 4, "module": "XoteJSX" },
+  "ppx-flags": ["xote/ppx/ppx"],
+  "compiler-flags": ["-open Xote"]
+}
+```
+
+- `"ppx-flags"` enables `@xote.component`. Leave it out and you need explicit `() => …` thunks for reactive values.
+- `"-open Xote"` lets you write `Signal`, `View` and `Router` instead of `Xote.Signal`.
+- `"subdirs": true` compiles every folder under `src`, so you can organise files freely.
+
+If you use pnpm, allow Xote's install script (`pnpm approve-builds`) so the PPX binary is set up. The [Quick start](/docs/quick-start) covers installation in full.
+
+## Add the page and the entry file
+
+Vite starts from `index.html` at the project root. Give it an element to mount into, and load the compiled entry module:
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My app</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/Main.res.mjs"></script>
+  </body>
+</html>
+```
+
+The entry file only mounts the root component:
+
+```rescript
+// src/Main.res
+View.mountById(<App />, "app")
+```
+
+Keep it that small. The entry is the one place that touches the page, and everything else stays testable on its own.
+
+## Run it
+
+Run the ReScript compiler in watch mode next to Vite. A typical `package.json`:
+
+```json
+{
+  "scripts": {
+    "res:dev": "rescript watch",
+    "dev": "vite",
+    "build": "rescript && vite build"
+  }
+}
+```
+
+Start `npm run res:dev` and `npm run dev` in two terminals. ReScript rewrites the `.res.mjs` files and Vite reloads the page.
+
+## Lay out your files
+
+There is no required layout. This one scales well from a single page to a larger app:
+
+```bash
+src/
+  Main.res             # mounts <App />
+  App.res              # root component, routes
+  styles.css
+  components/          # reusable UI: Header.res, Disclosure.res, Tabs.res
+  pages/               # one file per route: HomePage.res, SettingsPage.res
+  state/               # app-wide signals and the functions that change them
+```
+
+Two ReScript rules shape this:
+
+- **One component per module.** `@xote.component` defines the module's `make`, so a file like `Header.res` is the `<Header />` component. Small helpers can live as submodules (`module Tab = { … }` inside `Tabs.res`, used as `<Tabs.Tab />`).
+- **Module names are global.** Folders do not namespace modules, so every file name must be unique across `src`. Prefer `SettingsPage.res` over `pages/Settings.res` next to `state/Settings.res`.
+
+## Decide where state lives
+
+Pick the narrowest home that works.
+
+**Inside a component** when only that component cares. Each instance gets its own signal, created when the component renders:
+
+```rescript
+// src/components/Disclosure.res
+@xote.component
+let make = (~label: string, ~children: View.node) => {
+  let isOpen = Signal.make(false)
+
+  <section class="disclosure">
+    <button onClick={_ => Signal.update(isOpen, v => !v)}> {label} </button>
+    {Signal.get(isOpen) ? children : View.null()}
+  </section>
+}
+```
+
+**In a module** when many parts of the app share it: the signed-in user, a cart, settings. Put the signals and the functions that change them together:
+
+```rescript
+// src/state/Session.res
+let user: Signal.t<option<string>> = Signal.make(None)
+
+let signIn = name => Signal.set(user, Some(name))
+let signOut = () => Signal.set(user, None)
+```
+
+Any component can read `Signal.get(Session.user)` and update when it changes. There is no provider to set up.
+
+**In [context](/docs/learn/context)** <New /> when the value belongs to one part of the tree, and each copy of that part needs its own. Tabs are the classic case: each `<Tabs>` provides its own selection to the `<Tabs.Tab>` buttons inside it:
+
+```rescript
+// src/components/Tabs.res
+let selected = Context.make(Signal.make(0))
+
+module Tab = {
+  @xote.component
+  let make = (~index: int, ~label: string) => {
+    let current = Context.use(selected)
+    <button
+      class={Signal.get(current) == index ? "tab active" : "tab"}
+      onClick={_ => Signal.set(current, index)}>
+      {label}
+    </button>
+  }
+}
+
+@xote.component
+let make = (~children: View.node) => {
+  Context.provide(selected, Signal.make(0))
+  <div class="tabs" role="tablist"> {children} </div>
+}
+```
+
+Then the root component puts the pieces together:
+
+```rescript
+// src/App.res
+@xote.component
+let make = () =>
+  <main>
+    <Header title="My app" />
+    <Tabs>
+      <Tabs.Tab index={0} label="Overview" />
+      <Tabs.Tab index={1} label="Settings" />
+    </Tabs>
+    <Disclosure label="Details">
+      <p> {"Hidden until opened."} </p>
+    </Disclosure>
+  </main>
+```
+
+## Add routing and server rendering later
+
+Nothing here needs to change when you add pages: give `App.res` a [router](/docs/learn/routing) and move each page into `pages/`. If you later render on the server, the same components run there; you add a server entry and a client entry that hydrates. See [Server rendering](/docs/advanced/ssr).
+
+## Common mistakes
+
+- **Two files with the same name in different folders.** ReScript reports a duplicate module. Rename one.
+- **Two components in one module.** Only one `make` per module; move the second into its own file or a submodule.
+- **Pointing `index.html` at `Main.res`.** Vite serves the compiled `Main.res.mjs`, so ReScript must be running (or have run) first.
+- **Module-level state that should be per instance.** A signal at the top of `Disclosure.res` would be shared by every disclosure. Create it inside `make` instead.

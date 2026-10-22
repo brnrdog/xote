@@ -1,0 +1,208 @@
+## Summary
+
+Xote has no styling system: elements get CSS through `class`, `style` (a CSS declaration **string**) and attributes (`attrs`, or the `data` object). Each of these can be static or reactive. Reactive styling is attribute-level: when a signal changes, only that attribute is rewritten; elements are not rebuilt. The one rule that matters most: reactive values in `class`/`style` come from a signal read in the attribute expression (PPX) or a signal/thunk value, while `attrs` and `data` entries are never rewritten by the PPX and MUST be given a signal or a thunk to stay live.
+
+## Availability
+
+| Item | Import / entry | First stable | Changed in 7.2.0 | Needs the PPX |
+| --- | --- | --- | --- | --- |
+| `class`, `style`, `id`, `title`, `hidden` props | `xote` (JSX) | 7.0.0 | — | No |
+| Inline `Signal.get` in `class`/`style` | `xote` | 7.1.0 | — | Yes (`@xote.component`) |
+| `attrs` escape hatch; removing an attribute with `None` | `xote` | 7.1.0 | — | No |
+| `data` object prop (left as written by the PPX) | `xote` | 7.1.0 | — | No |
+| `View.onMount` (DOM work after mount) | `xote` | 7.2.0 (new) | — | No |
+| `SSRContext.isClient` / `onClient` | `xote`, `xote/ssr-context` | stable (all 7.x) | — | No |
+
+## Rules
+
+1. `class` takes one space-separated string. Accepted shapes: `string`, `Signal.t<string>`, `unit => string`, `MaybeSignal.t<string>`. `className` is not a prop (compile error).
+2. Under `@xote.component`, a `class` or `style` expression on an intrinsic element that reads a signal becomes a reactive leaf: only that attribute updates when the signal changes.
+3. `style` takes a CSS declaration string (`"width: 40%; color: red"`), with the same accepted shapes as `class`. The prop's type is generic, so a ReScript object or record compiles but renders `style="[object Object]"`.
+4. `attrs` is `array<(string, 'a)>`: **every entry has the same value type**. Values may be `string`, `Signal.t<string>`, `unit => string`, `MaybeSignal.t<string>`, `option<string>` (`None` removes the attribute), or a `View.attrValue` built with `View.attr`/`View.signalAttr`/`View.computedAttr`. To mix static and reactive entries in one array, build every entry with `View.attr`/`View.signalAttr`/`View.computedAttr`.
+5. The PPX leaves `attrs`, `data` and event handlers exactly as written. `attrs=[("data-state", Signal.get(state))]` is read once and never updates; use `("data-state", state)` or `("data-state", () => Signal.get(state))`.
+6. An `attrs` entry is applied after the typed props; for the same attribute name the `attrs` entry wins, and the last entry for a key wins.
+7. A thunk or signal whose value is `None` (or `null`/`undefined`) removes the attribute; returning `Some("")` sets it present and empty. Use this for presence-based selectors such as `[data-open]`.
+8. The `data` prop is typed `Obj.t`: an object whose keys become `data-<key>` attributes, each value static, a signal, or a thunk. Building it requires `Obj.magic`; prefer `attrs` with explicit `data-*` names.
+9. Boolean attributes (`hidden`, `disabled`, …) are present when `true` and removed when `false`.
+10. CSS files are bundler inputs. Link them from `index.html`, or import them from a ReScript module with `%%raw(`import "./File.css"`)`; the path is resolved relative to the compiled `.res.mjs` (next to the `.res` when `"in-source": true`).
+11. Code that touches `document` or `window` (for example setting `data-theme` on `<html>`) MUST NOT run during server rendering or prerendering. Guard it with `SSRContext.isClient`/`SSRContext.onClient`, or run it in `View.onMount`.
+12. Restyling SHOULD toggle classes or data attributes, not swap elements: swapping rebuilds DOM and loses focus, selection and transitions.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `class` prop | `string \| Signal.t<string> \| unit => string \| MaybeSignal.t<string>` | Sets `class`. |
+| `style` prop | same as `class` (string content) | Sets the `style` attribute. |
+| `hidden` prop | `bool \| Signal.t<bool> \| unit => bool` | Presence attribute. |
+| `attrs` prop | `array<(string, 'a)>` | Any attribute; one value type per array. |
+| `data` prop | `Obj.t` | Object of `data-*` values. |
+| `View.attr` | `(string, string) => (string, attrValue)` | Static entry for `attrs`. |
+| `View.signalAttr` | `(string, Signal.t<string>) => (string, attrValue)` | Signal entry. |
+| `View.computedAttr` | `(string, unit => string) => (string, attrValue)` | Derived entry. |
+| `SSRContext.isClient` | `bool` | `true` when `document` existed when Xote loaded. |
+| `SSRContext.onClient` | `(unit => 'a) => option<'a>` | Runs only in the browser. |
+
+## Patterns
+
+**Toggle a class** — Use when: a component has visual states.
+
+```rescript
+let isOpen = Signal.make(false)
+
+@xote.component
+let make = () =>
+  <div class={Signal.get(isOpen) ? "panel panel-open" : "panel"}>
+    <button onClick={_ => Signal.update(isOpen, v => !v)}> {"Toggle"} </button>
+  </div>
+```
+
+**Several independent classes** — Use when: more than one flag affects the class list. The helper call sits in the attribute, so its signal reads are tracked.
+
+```rescript
+let classNames = (pairs: array<(string, bool)>) =>
+  pairs->Array.filterMap(((name, on)) => on ? Some(name) : None)->Array.join(" ")
+
+@xote.component
+let make = () =>
+  <li
+    class={classNames([
+      ("option", true),
+      ("option-selected", Signal.get(selected)),
+      ("option-disabled", Signal.get(disabled)),
+    ])}>
+    {"Item"}
+  </li>
+```
+
+**Dynamic inline style** — Use when: a value is continuous (width, position, progress).
+
+```rescript
+let progress = Signal.make(40)
+
+@xote.component
+let make = () =>
+  <div class="bar">
+    <div class="bar-fill" style={`width: ${Int.toString(Signal.get(progress))}%`} />
+  </div>
+```
+
+**Data attributes for CSS state** — Use when: CSS should branch on an enumerated state.
+
+```rescript
+let status = Signal.make("idle")
+
+@xote.component
+let make = () =>
+  <span class="badge" attrs=[("data-status", status)]> {Signal.get(status)} </span>
+```
+
+```css
+.badge[data-status="saving"] { opacity: 0.6; }
+.badge[data-status="error"] { color: crimson; }
+```
+
+**Presence attribute** — Use when: a selector tests for presence (`[data-open]`).
+
+```rescript
+@xote.component
+let make = () =>
+  <div attrs=[("data-open", () => Signal.get(isOpen) ? Some("") : None)] />
+```
+
+**Mixed static and reactive attributes** — Use when: one `attrs` array needs both.
+
+```rescript
+@xote.component
+let make = () =>
+  <div attrs=[View.attr("role", "status"), View.signalAttr("data-theme", theme)] />
+```
+
+**App-wide theme** — Use when: the theme applies to `<html>`/`<body>`. Guard for the server.
+
+```rescript
+let theme = Signal.make("dark")
+
+@val @scope("document") external documentElement: Dom.element = "documentElement"
+@send external setAttribute: (Dom.element, string, string) => unit = "setAttribute"
+
+if SSRContext.isClient {
+  Effect.run(() => {
+    documentElement->setAttribute("data-theme", Signal.get(theme))
+    None
+  })
+}
+```
+
+```css
+:root { --bg: #0b0d0c; --text: #f2f4ee; }
+[data-theme="light"] { --bg: #ffffff; --text: #0b0d0c; }
+body { background: var(--bg); color: var(--text); }
+```
+
+**Component-scoped stylesheet** — Use when: styles live next to a component.
+
+```rescript
+// Card.res
+%%raw(`import "./Card.css"`)
+
+@xote.component
+let make = (~children: View.node) => <section class="card"> {children} </section>
+```
+
+## Anti-patterns
+
+1. **Reading a signal in `attrs` directly.**
+   Wrong: `attrs=[("data-status", Signal.get(status))]`.
+   Symptom: the attribute keeps its first value forever.
+   Right: `attrs=[("data-status", status)]` or `("data-status", () => Signal.get(status))`.
+   Why: the PPX does not rewrite `attrs`; the expression is evaluated once.
+
+2. **Object `style`.**
+   Wrong: `style={{"color": "red"}}`.
+   Symptom: compiles; the DOM gets `style="[object Object]"`; no styling applies.
+   Right: `style="color: red"` or a template string.
+
+3. **Mixing value types in `attrs`.**
+   Wrong: `attrs=[("data-a", "x"), ("data-theme", theme)]`.
+   Symptom: compile error `This has type: Signal.t<string> But it's expected to have type: string`.
+   Right: `attrs=[View.attr("data-a", "x"), View.signalAttr("data-theme", theme)]`.
+
+4. **Computing the class in the component body.**
+   Wrong: `let cls = Signal.get(isOpen) ? "a" : "b"` then `<div class=cls />`.
+   Symptom: the class never changes.
+   Right: put the expression in the attribute.
+   Why: the component body runs once, untracked.
+
+5. **Touching `document` at module level.**
+   Wrong: an unguarded module-level `Effect.run` that calls `documentElement->setAttribute(…)`.
+   Symptom: prerendering or server rendering crashes with "document is not defined".
+   Right: guard with `if SSRContext.isClient { … }`, or do it in `View.onMount`.
+
+## Edge cases
+
+- `class` given an array compiles (the prop is generic) and renders the array joined with commas. Always join to a space-separated string.
+- `SSRContext.isClient` is evaluated once, when Xote's modules load (`typeof document !== 'undefined'`). In a test runner that installs jsdom after importing modules, it is `false`; see the Testing guide.
+- A signal passed directly (`class={theme}`) and a thunk (`class={() => …}`) both create a reactive leaf without the PPX.
+- SVG presentation attributes (`fill`, `stroke`, `strokeWidth`, `opacity`, `transform`, …) are typed props with the same accepted shapes as `class`.
+- Prefer CSS custom properties for theme values; a single attribute change restyles every consumer without touching many elements.
+
+## SSR and hydration
+
+- `class`, `style`, `attrs` and `data` render into the HTML with their values at render time; hydration attaches the reactive leaves to the existing elements, so later signal changes update those attributes in place.
+- A theme stored only in the browser (e.g. `localStorage`) cannot be known on the server: the first paint uses the server default. Set the `data-theme` attribute with an inline script in the HTML `<head>` before the stylesheet loads to avoid a flash.
+- `%%raw` CSS imports are handled by Vite in both client and SSR builds.
+
+## Verify
+
+- Mount in jsdom and read `element.className`, `element.getAttribute("style")`, `element.getAttribute("data-…")` after `Signal.set`; Zekr has `Dom.Assert.toHaveClass` and `Dom.Assert.toHaveAttribute`.
+- `SSR.renderToString(() => <Comp />)` shows the initial attributes as HTML.
+- Compile error "The field className does not belong to type XoteJSX.Elements.props": use `class`.
+
+## Related
+
+- `/docs/learn/rendering` — attribute rules in general.
+- `/docs/guides/forms` — `value`/`checked`/`disabled` properties.
+- `/docs/learn/lifecycle` — `View.onMount` for DOM work.
+- `/docs/guides/deploying` — keeping browser-only code out of the server.
+- `/docs/api/view` — `View.attr`, `View.signalAttr`, `View.computedAttr`.

@@ -1,0 +1,127 @@
+Xote has one idea that shapes everything else: **a component runs once, and only the parts that read a signal update afterwards.** Once that clicks, the rest of the docs read like details.
+
+## A component runs once
+
+In many UI libraries a component is a function that runs again on every change. In Xote it runs one time, builds its piece of the page, and is done. Try it:
+
+<DocsExamplePanel
+      filename="RunsOnce.res"
+      code={`let bodyRuns = ref(0)
+let clicks = Signal.make(0)
+
+@xote.component
+let make = () => {
+  bodyRuns := bodyRuns.contents + 1
+  let ranAtRender = bodyRuns.contents
+
+  <div>
+    <button onClick={_ => Signal.update(clicks, n => n + 1)}>
+      {"Click me"}
+    </button>
+    <p> {"Clicks: "} {Signal.get(clicks)} </p>
+    <p> {"Times the component ran: "} {ranAtRender} </p>
+  </div>
+}`}
+    >
+      <RunsOnceDemo />
+    </DocsExamplePanel>
+
+The click count climbs. The run count stays at 1. Clicking never calls the component again; it only updates the one text node that reads `clicks`.
+
+## Reads in JSX stay live
+
+When you write `Signal.get(clicks)` inside JSX, `@xote.component` turns that spot into a live binding: a text node, or an attribute, that updates itself when the signal changes. Each binding is independent, so a change touches only the bindings that read it.
+
+The same call **outside** JSX, in the component body, is a plain one-time read:
+
+```rescript
+@xote.component
+let make = () => {
+  let label = Int.toString(Signal.get(count)) // read once, when the component runs
+  <p> {label} </p> // so this never changes
+}
+```
+
+Read the signal where you show it instead:
+
+```rescript
+@xote.component
+let make = () => <p> {Signal.get(count)} </p>
+```
+
+The component body is for setup: creating local signals, defining handlers, starting effects. The JSX is where values are shown.
+
+## Derive, don't copy
+
+When a value depends on other signals, make it a computed. It stays in sync on its own and recalculates only when one of its inputs changes.
+
+```rescript
+let price = Signal.make(20)
+let quantity = Signal.make(2)
+let total = Computed.make(() => Signal.get(price) * Signal.get(quantity))
+```
+
+There's no dependency list to maintain: whatever the function reads is what it depends on. Read `total` like any signal, with `Signal.get(total)`. More in [Computeds](/docs/learn/computeds).
+
+## Effects talk to the outside world
+
+Use an effect when a change should cause something outside the page's markup: saving to storage, logging, starting a timer, calling an API.
+
+```rescript
+Effect.run(() => {
+  Console.log2("Total is now", Signal.get(total))
+  None
+})
+```
+
+It runs once right away, then again whenever a signal it read changes. If you find yourself setting a signal from an effect just to keep two values in sync, you want a computed instead. More in [Effects](/docs/learn/effects).
+
+## Pass signals to components, not values
+
+Props are read once, when the child component runs. To give a child something that changes, pass the signal itself and let the child read it in its JSX:
+
+```rescript
+module Badge = {
+  @xote.component
+  let make = (~count: Signal.t<int>) => <span class="badge"> {Signal.get(count)} </span>
+}
+
+<Badge count />
+```
+
+Writing `<Badge count={Signal.get(count)} />` instead would hand over a snapshot that never updates. The type checker helps here: `count` is a `Signal.t<int>`, not an `int`.
+
+## Conditions rebuild only their branch
+
+An `if` or `switch` on a signal inside JSX swaps its branch when the condition changes. The rest of the component stays as it is, and inside the branch, reads stay fine-grained.
+
+```rescript
+@xote.component
+let make = () =>
+  <div>
+    {if Signal.get(loggedIn) {
+      <p> {"Welcome back, "} {Signal.get(name)} </p>
+    } else {
+      <button onClick={_ => Signal.set(loggedIn, true)}> {"Log in"} </button>
+    }}
+  </div>
+```
+
+Changing `name` updates just the name. Changing `loggedIn` swaps the branch. Lists work the same way with [`View.For`](/docs/learn/rendering#render-lists), which adds, moves and removes items instead of rebuilding the list.
+
+## If you know React
+
+| In React | In Xote |
+| --- | --- |
+| `useState` | `Signal.make`, at module level or in the component body |
+| `useMemo` | `Computed.make` |
+| `useEffect` | `Effect.run`, or `View.onMount` <New /> for DOM setup |
+| Dependency arrays | None: reads are tracked automatically |
+| Re-rendering a component | Doesn't happen; bindings update in place |
+| `React.memo`, `useCallback` | Not needed |
+
+The [React comparison](/docs/comparisons/react) goes deeper.
+
+## Next
+
+Build something with these ideas in the [tutorial](/docs/tutorial), or start the Learn section with [Signals](/docs/learn/signals).
