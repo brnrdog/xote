@@ -236,7 +236,10 @@ module Footer = {
   ]
 
   let make = (_props: props) => {
-    <footer class="site-footer">
+    // On docs pages the footer spans the window like the docs header.
+    <footer
+      class={() =>
+        isDocsPath(Signal.get(Router.location()).pathname) ? "site-footer site-footer-docs" : "site-footer"}>
       <div class="footer-inner">
         <div class="footer-top">
           <div class="footer-brand">

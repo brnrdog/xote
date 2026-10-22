@@ -2747,3 +2747,25 @@ td .new-badge {
   background: color-mix(in srgb, var(--on-hue) 14%, transparent);
   color: var(--on-hue);
 }
+
+/* ---- Footer on docs pages ----
+   Full width with the docs header's 24px edges; the brand column is as wide
+   as the sidebar's content, so the sitemap lines up with the article. */
+.site-footer-docs .footer-inner {
+  max-width: none;
+  padding: 64px 24px 32px;
+}
+.site-footer-docs .footer-top {
+  flex-wrap: nowrap;
+}
+.site-footer-docs .footer-brand {
+  flex: 0 0 240px; /* the docs sidebar is 264px wide */
+}
+@media (max-width: 860px) {
+  .site-footer-docs .footer-top {
+    flex-wrap: wrap;
+  }
+  .site-footer-docs .footer-brand {
+    flex: 1 1 100%;
+  }
+}
