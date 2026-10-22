@@ -2000,15 +2000,6 @@ blockquote > :last-child {
   text-transform: uppercase;
   color: var(--signal-text);
 }
-.docs-content blockquote a {
-  color: var(--ink);
-  text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--signal-text) 60%, transparent);
-  text-underline-offset: 3px;
-}
-.docs-content blockquote a:hover {
-  text-decoration-color: var(--signal-text);
-}
 .docs-content blockquote code {
   background: var(--soft-2);
 }
@@ -2589,4 +2580,29 @@ blockquote > :last-child {
   .docs-content .cl-changes {
     padding-left: 0;
   }
+}
+
+/* ---- Links in docs content ----
+   Ink text with a lime underline that firms up on hover. :where() keeps this
+   at the lowest specificity, so buttons, pills and other classed links keep
+   their own look. */
+:where(.docs-content) a {
+  color: var(--ink);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: color-mix(in srgb, var(--signal-text) 55%, transparent);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s ease, color 0.15s ease;
+}
+:where(.docs-content) a:hover {
+  text-decoration-color: var(--signal-text);
+}
+:where(.docs-content) a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* A link around inline code: the code chip carries the link colour. */
+:where(.docs-content) a code {
+  color: inherit;
 }
