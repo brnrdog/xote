@@ -583,24 +583,16 @@ module GetStarted = {
           <p>
             {View.text("Install the package, add the JSX transform, and render your first component in a few minutes.")}
           </p>
-          <div class="home-cta-actions">
-            {Router.link(
-              ~to="/docs",
-              ~attrs=[View.attr("class", "btn-pill btn-ink btn-lg")],
-              ~children=[View.text("Read the quick start \u2192")],
-              (),
-            )}
-            <InstallCopy />
-          </div>
         </div>
-        <img
-          class="home-cta-art"
-          src="/images/xote-trio.webp"
-          alt="Three marmosets in straw hats playing a forr\u00F3 trio on a log: zabumba drum, accordion and triangle"
-          width="1115"
-          height="640"
-          attrs=[View.attr("loading", "lazy"), View.attr("decoding", "async")]
-        />
+        <div class="home-cta-actions">
+          {Router.link(
+            ~to="/docs/quick-start",
+            ~attrs=[View.attr("class", "btn-pill btn-ink btn-lg")],
+            ~children=[View.text("Read the quick start →")],
+            (),
+          )}
+          <InstallCopy />
+        </div>
       </div>
     </section>
   }
