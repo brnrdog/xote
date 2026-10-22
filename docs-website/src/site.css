@@ -2614,3 +2614,78 @@ blockquote > :last-child {
 :where(.docs-content) a:hover > code {
   background: color-mix(in srgb, var(--signal-text) 30%, transparent);
 }
+
+/* Tutorial weather card: placeholders instead of layout changes. While the
+   temperature loads (or after a failure) each number becomes a placeholder
+   of the same size; while it refreshes the old numbers dim; the status line
+   always keeps its height, and the error panel takes the readouts' space. */
+.tutorial-readouts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+.docs-content .tutorial-status {
+  min-height: 20px;
+  margin: 0;
+  text-align: center;
+}
+.temp-row.is-loading .temp-value,
+.temp-row.is-failed .temp-value {
+  color: transparent;
+  border-radius: 10px;
+  background: var(--soft-2);
+}
+.temp-row.is-loading .temp-value {
+  background: linear-gradient(90deg, var(--soft-2) 0%, var(--soft-3) 50%, var(--soft-2) 100%) 0 0 / 200% 100%;
+  animation: temp-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes temp-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .temp-row.is-loading .temp-value {
+    animation: none;
+  }
+}
+.temp-row .temp-value {
+  transition: opacity 0.2s ease;
+}
+.temp-row.is-refreshing .temp-value {
+  opacity: 0.4;
+}
+/* The error panel stacks its message over hidden placeholder cards, so it is
+   exactly as big as the readouts it replaces. */
+.tutorial-error {
+  display: grid;
+  width: 100%;
+}
+.tutorial-error > * {
+  grid-area: 1 / 1;
+}
+.tutorial-error-space {
+  visibility: hidden;
+}
+.tutorial-error-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--lift);
+  text-align: center;
+}
+.docs-content .tutorial-error p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink-muted);
+}

@@ -152,7 +152,7 @@ Drag the slider and watch the panel next to the demo. It records every change th
 
 Finally, show the real temperature in a world capital. Talking to the network is work outside the page, which is what an **effect** is for: a function that runs once, then runs again whenever a signal it read changes.
 
-First, a few helpers: a list of capitals, and a function that asks the free [Open-Meteo](https://open-meteo.com) API for the current temperature. The two `type` declarations describe the part of the JSON response we use.
+First, a few helpers: a list of capitals, ways to pick one, and a function that asks the free [Open-Meteo](https://open-meteo.com) API for the current temperature. The two `type` declarations describe the part of the JSON response we use.
 
 ```rescript
 // Weather.res
@@ -165,6 +165,11 @@ let capitals = [
 ]
 
 let pickCapital = () => capitals->Array.getUnsafe(Math.Int.random(0, Array.length(capitals)))
+
+let otherCapital = (current: capital) => {
+  let others = capitals->Array.filter(capital => capital.name != current.name)
+  others->Array.getUnsafe(Math.Int.random(0, Array.length(others)))
+}
 
 type response
 type currentWeather = {temperature: float}
@@ -192,6 +197,20 @@ The card keeps the selected capital in a signal. Its effect reads that signal, s
       code={`open Weather
 
 type status = Loading | Ready | Failed
+
+let rowClass = status =>
+  switch status {
+  | Loading => "temp-row is-loading"
+  | Failed => "temp-row is-failed"
+  | Ready => "temp-row"
+  }
+
+let statusText = status =>
+  switch status {
+  | Loading => "Fetching the current weather…"
+  | Failed => "Couldn't reach the weather service."
+  | Ready => "Live from Open-Meteo."
+  }
 
 @xote.component
 let make = () => {
@@ -224,20 +243,16 @@ let make = () => {
     Some(() => stale := true)
   })
 
-  let shuffle = _ => Signal.set(capital, pickCapital())
+  let shuffle = _ => Signal.update(capital, otherCapital)
 
   <div>
     <h3> {"Now in "} {Signal.get(capital).name} </h3>
-    {switch Signal.get(status) {
-    | Loading => <p> {"Fetching the current weather…"} </p>
-    | Failed => <p> {"Couldn't reach the weather service."} </p>
-    | Ready =>
-      <div>
-        <TemperatureDisplay value=celsius unit=Celsius />
-        <TemperatureDisplay value=fahrenheit unit=Fahrenheit />
-        <TemperatureDisplay value=kelvin unit=Kelvin />
-      </div>
-    }}
+    <div class={rowClass(Signal.get(status))}>
+      <TemperatureDisplay value=celsius unit=Celsius />
+      <TemperatureDisplay value=fahrenheit unit=Fahrenheit />
+      <TemperatureDisplay value=kelvin unit=Kelvin />
+    </div>
+    <p class="status"> {statusText(Signal.get(status))} </p>
     <button onClick=shuffle> {"Try another capital"} </button>
   </div>
 }`}
@@ -248,10 +263,84 @@ let make = () => {
 Three details are worth a closer look:
 
 - **The cleanup.** The effect returns `Some(() => stale := true)`. Xote runs that function before the effect runs again. If you switch capitals before a slow response arrives, the old request is marked stale and its result is ignored, so it can't overwrite the newer one.
-- **The `switch` in the markup.** It shows a loading message, an error, or the readouts, and it only re-renders when `status` changes. While it shows the readouts, slider-style updates to `celsius` still change just the numbers.
+- **No layout shift.** The readouts never leave the page. While a request is in flight, `rowClass` adds `is-loading`, and the stylesheet swaps each number for a placeholder of the same size; the status line below always holds one line of text. Switching capitals, or a failed request, changes classes and text, never the layout. Only the `class` attribute and the status text depend on `status`, so those are the only things that update when it changes.
 - **The signals live inside the component.** Each card has its own state, and its effect stops when the card is removed from the page.
 
-**Takeaway:** use effects for work outside the page, like requests, timers and storage, and return a cleanup whenever there's something to undo. Read more in [Effects](/docs/learn/effects). For real data loading, [Async data](/docs/learn/async-data) covers resources, which handle loading and error states for you.
+**Takeaway:** use effects for work outside the page, like requests, timers and storage, and return a cleanup whenever there's something to undo. Read more in [Effects](/docs/learn/effects).
+
+## Bonus: let a resource do the work
+
+Step 4 tracks the loading state by hand: a `status` signal, a stale flag, and a `switch` over the outcome. Xote has built-ins for exactly this, and the card gets shorter with them:
+
+- A **resource** runs an async function and keeps its result in a signal: `Pending`, then `Ready(value)`, `Refreshing(value)` while it fetches again, or `Failed(error)`. Signals it reads before its first `await` are its inputs, so changing `capital` fetches again, and a late answer for an old capital is ignored for you.
+- **`View.Suspense`** shows a fallback until the resources created inside it have loaded once. Here the fallback is the same placeholder cards as before, so there's still no layout shift.
+- **`View.ErrorBoundary`** catches an error thrown while rendering and shows a fallback with a `retry` function. The readouts throw when the resource fails, and the boundary shows a panel the same size as the readouts.
+
+<DocsExamplePanel
+      filename="WeatherCard.res"
+      caption="The same card on Resource, Suspense and ErrorBoundary."
+      code={`open Weather
+
+module WeatherReadouts = {
+  @xote.component
+  let make = (~capital: Signal.t<capital>) => {
+    let weather = Resource.make(() => fetchTemperature(Signal.get(capital)))
+    let celsius = Computed.make(() => Signal.get(weather)->Resource.value->Option.getOr(0.0))
+    let fahrenheit = Computed.make(() => Signal.get(celsius) *. 9.0 /. 5.0 +. 32.0)
+    let kelvin = Computed.make(() => Signal.get(celsius) +. 273.15)
+
+    <div>
+      <div class={Resource.isLoading(Signal.get(weather)) ? "temp-row is-refreshing" : "temp-row"}>
+        <TemperatureDisplay value=celsius unit=Celsius />
+        <TemperatureDisplay value=fahrenheit unit=Fahrenheit />
+        <TemperatureDisplay value=kelvin unit=Kelvin />
+      </div>
+      <p class="status">
+        {switch Signal.get(weather) {
+        | Failed(error) => throw(error)
+        | Refreshing(_) | Pending => "Updating…"
+        | Ready(_) => "Live from Open-Meteo."
+        }}
+      </p>
+    </div>
+  }
+}
+
+@xote.component
+let make = () => {
+  let capital = Signal.make(pickCapital())
+  let shuffle = _ => Signal.update(capital, otherCapital)
+
+  <div>
+    <h3> {"Now in "} {Signal.get(capital).name} </h3>
+    <View.ErrorBoundary
+      fallback={(_error, retry) =>
+        <div class="error">
+          <LoadingReadouts />
+          <div class="error-message">
+            <p> {"Couldn't reach the weather service."} </p>
+            <button onClick={_ => retry()}> {"Try again"} </button>
+          </div>
+        </div>}>
+      <View.Suspense fallback={<LoadingReadouts />}>
+        <WeatherReadouts capital />
+      </View.Suspense>
+    </View.ErrorBoundary>
+    <button onClick=shuffle> {"Try another capital"} </button>
+  </div>
+}`}
+    >
+      <TutorialStep5 />
+    </DocsExamplePanel>
+
+What changed from step 4:
+
+- **The resource replaces the effect, the `status` signal and the stale flag.** `Resource.make` takes the fetch; `Resource.value` reads its result, with `0.0` until there is one.
+- **The component that creates the resource sits inside the `Suspense`.** That's what makes the Suspense wait for it. `LoadingReadouts` is the step 1 display three times, with the placeholder class on its row.
+- **After the first load, the Suspense stays out of the way.** Picking another capital moves the resource to `Refreshing`: the old numbers stay on screen, dimmed, until the new ones arrive.
+- **A failure goes to the boundary.** `throw(error)` in the status line hands the failure to the nearest `View.ErrorBoundary`. Its `retry` renders the readouts again, which creates a fresh resource and fetches again. The fallback lays its message over hidden placeholder cards, so it takes exactly the readouts' space at any width.
+
+**Takeaway:** for data that loads, reach for a resource. Suspense and error boundaries keep the loading and failure states out of your component's logic. Read more in [Async data](/docs/learn/async-data) and [Refs and lifecycle](/docs/learn/lifecycle#contain-errors-with-a-boundary), and see the [Fetching data](/docs/guides/fetching-data) guide for more recipes.
 
 ## Where to go next
 

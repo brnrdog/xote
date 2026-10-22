@@ -109,6 +109,7 @@ let components = Mdx.components([
   ("TutorialStep2", Mdx.component(TutorialDemos.Step2.make)),
   ("TutorialStep3", Mdx.component(TutorialDemos.Step3.make)),
   ("TutorialStep4", Mdx.component(TutorialDemos.Step4.make)),
+  ("TutorialStep5", Mdx.component(TutorialDemos.Step5.make)),
 ])
 
 // MDX documents are imported in the generated DocsIndex module.

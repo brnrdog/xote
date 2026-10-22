@@ -133,6 +133,7 @@ let sections: array<section> = [
           {text: "Step 2: Make it react to a slider", id: "step-2-make-it-react-to-a-slider", level: 2},
           {text: "Step 3: Derive Fahrenheit and Kelvin", id: "step-3-derive-fahrenheit-and-kelvin", level: 2},
           {text: "Step 4: Fetch the weather with an effect", id: "step-4-fetch-the-weather-with-an-effect", level: 2},
+          {text: "Bonus: let a resource do the work", id: "bonus-let-a-resource-do-the-work", level: 2},
           {text: "Where to go next", id: "where-to-go-next", level: 2},
         ],
         agentOnly: false,
