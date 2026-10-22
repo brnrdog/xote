@@ -53,18 +53,12 @@ module Redirect = {
 module App = {
   type props = {}
 
-  let visibleChangelogReleases =
-    RepoData.releases->Array.slice(
-      ~start=0,
-      ~end=min(10, Array.length(RepoData.releases)),
-    )
-
-  // The changelog's headings come from release data, not from its MDX.
+  // The changelog's "On this page" lists its major versions.
   let changelogTocItems: array<DocsPage.TableOfContents.tocItem> =
-    visibleChangelogReleases->Array.map(release => {
+    ChangelogContent.majors->Array.map(group => {
       let item: DocsPage.TableOfContents.tocItem = {
-        text: "v" ++ release.version ++ " (" ++ release.date ++ ")",
-        id: release.id,
+        text: `Xote ${Int.toString(group.number)}`,
+        id: group.id,
         level: 2,
       }
       item
