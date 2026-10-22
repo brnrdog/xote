@@ -51,6 +51,9 @@ type page = {
   lead: string,
   document: option<Mdx.document>,
   headings: array<heading>,
+  // The agent layer's own content and headings, when the page has one.
+  agentDocument: option<Mdx.document>,
+  agentHeadings: array<heading>,
   agentOnly: bool,
   customToc: bool,
   agent: option<agentFacts>,
@@ -75,6 +78,10 @@ let sections: array<section> = [
           {text: "What's in the box", id: "whats-in-the-box", level: 2},
           {text: "Where to start", id: "where-to-start", level: 2},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: None,
@@ -95,6 +102,10 @@ let sections: array<section> = [
           {text: "Run it", id: "run-it", level: 2},
           {text: "Troubleshooting", id: "troubleshooting", level: 2},
           {text: "Next", id: "next", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -117,6 +128,10 @@ let sections: array<section> = [
           {text: "If you know React", id: "if-you-know-react", level: 2},
           {text: "Next", id: "next", level: 2},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: None,
@@ -135,6 +150,10 @@ let sections: array<section> = [
           {text: "Step 4: Fetch the weather with an effect", id: "step-4-fetch-the-weather-with-an-effect", level: 2},
           {text: "Bonus: let a resource do the work", id: "bonus-let-a-resource-do-the-work", level: 2},
           {text: "Where to go next", id: "where-to-go-next", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -158,6 +177,10 @@ let sections: array<section> = [
           {text: "Adding ReScript incrementally", id: "adding-rescript-incrementally", level: 2},
           {text: "Keep learning", id: "keep-learning", level: 2},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: None,
@@ -174,6 +197,10 @@ let sections: array<section> = [
           {text: "Use the client entry", id: "use-the-client-entry", level: 2},
           {text: "Example: counter", id: "example-counter", level: 2},
           {text: "Add Xote to an existing app", id: "add-xote-to-an-existing-app", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -206,6 +233,10 @@ let sections: array<section> = [
           {text: "Example: counter", id: "example-counter", level: 2},
           {text: "Tips", id: "tips", level: 2},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: Some({moduleName: "Xote.Signal", boundary: "src/Signal.resi", entry: "xote · xote/signal", api: Some(apiSignalDoc), apiPath: Some("/docs/api/signal")}),
@@ -226,6 +257,10 @@ let sections: array<section> = [
           {text: "Cleaning up", id: "cleaning-up", level: 2},
           {text: "Derive, don't copy", id: "derive-dont-copy", level: 2},
           {text: "Tips", id: "tips", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -249,6 +284,10 @@ let sections: array<section> = [
           {text: "Effect or computed?", id: "effect-or-computed", level: 2},
           {text: "Tips", id: "tips", level: 2},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: Some({moduleName: "Xote.Effect", boundary: "src/Effect.resi", entry: "xote · xote/effect", api: Some(apiEffectDoc), apiPath: Some("/docs/api/effect")}),
@@ -269,6 +308,10 @@ let sections: array<section> = [
           {text: "Mount your app", id: "mount-your-app", level: 2},
           {text: "Example: todo list", id: "example-todo-list", level: 2},
           {text: "Common mistakes", id: "common-mistakes", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -291,6 +334,10 @@ let sections: array<section> = [
           {text: "Without the JSX transform", id: "without-the-jsx-transform", level: 2},
           {text: "Common mistakes", id: "common-mistakes", level: 2},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: Some({moduleName: "Xote.View", boundary: "src/View.resi", entry: "xote · xote/view", api: Some(apiViewDoc), apiPath: Some("/docs/api/view")}),
@@ -308,6 +355,10 @@ let sections: array<section> = [
           {text: "Render somewhere else with a portal", id: "render-somewhere-else-with-a-portal", level: 2},
           {text: "Contain errors with a boundary", id: "contain-errors-with-a-boundary", level: 2},
           {text: "Common mistakes", id: "common-mistakes", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -329,6 +380,10 @@ let sections: array<section> = [
           {text: "Where Context.use works", id: "where-contextuse-works", level: 2},
           {text: "Server rendering", id: "server-rendering", level: 2},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: Some({moduleName: "Xote.Context", boundary: "src/Context.resi", entry: "xote · xote/context", api: None, apiPath: None}),
@@ -348,6 +403,10 @@ let sections: array<section> = [
           {text: "Suspense", id: "suspense", level: 2},
           {text: "Suspense rules", id: "suspense-rules", level: 3},
           {text: "Server rendering", id: "server-rendering", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -369,6 +428,10 @@ let sections: array<section> = [
           {text: "Server rendering", id: "server-rendering", level: 2},
           {text: "Example: app with navigation", id: "example-app-with-navigation", level: 2},
           {text: "Tips", id: "tips", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -396,6 +459,10 @@ let sections: array<section> = [
           {text: "Reset the form", id: "reset-the-form", level: 2},
           {text: "Common mistakes", id: "common-mistakes", level: 2},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: None,
@@ -418,6 +485,10 @@ let sections: array<section> = [
           {text: "Data in server-rendered pages", id: "data-in-server-rendered-pages", level: 2},
           {text: "Common mistakes", id: "common-mistakes", level: 2},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: None,
@@ -437,6 +508,10 @@ let sections: array<section> = [
           {text: "Style with data attributes", id: "style-with-data-attributes", level: 2},
           {text: "Theme with a signal", id: "theme-with-a-signal", level: 2},
           {text: "Common mistakes", id: "common-mistakes", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -458,6 +533,10 @@ let sections: array<section> = [
           {text: "Add routing and server rendering later", id: "add-routing-and-server-rendering-later", level: 2},
           {text: "Common mistakes", id: "common-mistakes", level: 2},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: None,
@@ -476,6 +555,10 @@ let sections: array<section> = [
           {text: "Check server-rendered HTML", id: "check-server-rendered-html", level: 2},
           {text: "Test resources and other async code", id: "test-resources-and-other-async-code", level: 2},
           {text: "Common mistakes", id: "common-mistakes", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -496,6 +579,10 @@ let sections: array<section> = [
           {text: "Render on a server instead", id: "render-on-a-server-instead", level: 2},
           {text: "Keep browser-only code out of the server", id: "keep-browser-only-code-out-of-the-server", level: 2},
           {text: "Common mistakes", id: "common-mistakes", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -527,6 +614,10 @@ let sections: array<section> = [
           {text: "Hydration markers", id: "hydration-markers", level: 2},
           {text: "Tips", id: "tips", level: 2},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: Some({moduleName: "Xote.SSR, Xote.Hydration", boundary: "src/SSR.resi", entry: "xote/ssr · xote/hydration", api: None, apiPath: None}),
@@ -547,6 +638,10 @@ let sections: array<section> = [
           {text: "Return a value from a batch", id: "return-a-value-from-a-batch", level: 2},
           {text: "When not to batch", id: "when-not-to-batch", level: 2},
           {text: "Tips", id: "tips", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -569,6 +664,10 @@ let sections: array<section> = [
           {text: "Tables and other GitHub Markdown", id: "tables-and-other-github-markdown", level: 2},
           {text: "What the runtime handles", id: "what-the-runtime-handles", level: 2},
           {text: "Tips", id: "tips", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -600,6 +699,10 @@ let sections: array<section> = [
           {text: "Best Practices", id: "best-practices", level: 3},
           {text: "Next Steps", id: "next-steps", level: 3},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: true,
         customToc: false,
         agent: None,
@@ -629,6 +732,10 @@ let sections: array<section> = [
           {text: "Example", id: "example", level: 2},
           {text: "See Also", id: "see-also", level: 2},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: Some({moduleName: "Xote.Signal", boundary: "src/Signal.resi", entry: "xote · xote/signal", api: None, apiPath: None}),
@@ -646,6 +753,10 @@ let sections: array<section> = [
           {text: "Computed.dispose", id: "computeddispose", level: 3},
           {text: "Example", id: "example", level: 2},
           {text: "See Also", id: "see-also", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -665,6 +776,10 @@ let sections: array<section> = [
           {text: "Effect.runWithDisposer", id: "effectrunwithdisposer", level: 3},
           {text: "Example", id: "example", level: 2},
           {text: "See Also", id: "see-also", level: 2},
+        ],
+        agentDocument: None,
+        agentHeadings: [
+
         ],
         agentOnly: false,
         customToc: false,
@@ -721,6 +836,10 @@ let sections: array<section> = [
           {text: "Example", id: "example", level: 2},
           {text: "See Also", id: "see-also", level: 2},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: Some({moduleName: "Xote.View", boundary: "src/View.resi", entry: "xote · xote/view", api: None, apiPath: None}),
@@ -758,6 +877,10 @@ let sections: array<section> = [
           {text: "Migration Considerations", id: "migration-considerations", level: 3},
           {text: "Further Reading", id: "further-reading", level: 3},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: None,
@@ -791,6 +914,10 @@ let sections: array<section> = [
           {text: "Migration Considerations", id: "migration-considerations", level: 3},
           {text: "Further Reading", id: "further-reading", level: 3},
         ],
+        agentDocument: None,
+        agentHeadings: [
+
+        ],
         agentOnly: false,
         customToc: false,
         agent: None,
@@ -808,6 +935,10 @@ let sections: array<section> = [
         lead: "What changed in each Xote release.",
         document: Some(changelogDoc),
         headings: [
+
+        ],
+        agentDocument: None,
+        agentHeadings: [
 
         ],
         agentOnly: false,

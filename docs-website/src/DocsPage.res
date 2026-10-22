@@ -280,6 +280,7 @@ module LayerNote = {
 module TocSpy = {
   @val external getById: string => Nullable.t<Dom.element> = "document.getElementById"
   @send external getBoundingClientRect: Dom.element => {"top": float} = "getBoundingClientRect"
+  @get external offsetParent: Dom.element => Nullable.t<Dom.element> = "offsetParent"
   @val @scope("window") external scrollY: float = "scrollY"
   @val @scope("window") external innerHeight: float = "innerHeight"
   @val @scope(("document", "documentElement")) external scrollHeight: float = "scrollHeight"
@@ -298,20 +299,21 @@ module TocSpy = {
 
   let sync = () => {
     scheduled := false
-    let headings = ids.contents->Array.filterMap(id => getById(id)->Nullable.toOption)
+    // Both layers' headings are tracked; only the visible layer's count.
+    let visible =
+      ids.contents->Array.filterMap(id =>
+        getById(id)
+        ->Nullable.toOption
+        ->Option.flatMap(el => offsetParent(el)->Nullable.toOption->Option.map(_ => (id, el)))
+      )
     let atBottom = scrollY +. innerHeight >= scrollHeight -. 2.0
     let current = if atBottom {
-      ids.contents->Array.at(-1)
+      visible->Array.at(-1)->Option.map(((id, _)) => id)
     } else {
-      let passed = ids.contents->Array.filterWithIndex((_, i) =>
-        switch headings[i] {
-        | Some(el) => getBoundingClientRect(el)["top"] <= activationLine
-        | None => false
-        }
-      )
+      let passed = visible->Array.filter(((_, el)) => getBoundingClientRect(el)["top"] <= activationLine)
       switch passed->Array.at(-1) {
-      | Some(id) => Some(id)
-      | None => ids.contents[0]
+      | Some((id, _)) => Some(id)
+      | None => visible[0]->Option.map(((id, _)) => id)
       }
     }
     Signal.set(activeId, current->Option.getOr(""))
@@ -345,18 +347,18 @@ module TableOfContents = {
     level: int,
   }
 
-  type props = {items: array<tocItem>, currentPath: string}
+  // `agentItems` is the agent layer's own list, when the page has one; each
+  // list then shows only in its layer.
+  type props = {items: array<tocItem>, agentItems?: array<tocItem>, currentPath: string}
 
-  let make = (props: props) => {
-    TocSpy.track(props.items->Array.map(item => item.id))
-    <aside class="docs-toc">
-      {if Array.length(props.items) == 0 {
-        View.fragment([])
-      } else {
-        <nav class="toc-list" ariaLabel="On this page">
-          <div class="toc-title"> {View.text("On this page")} </div>
-          {View.fragment(
-            props.items->Array.map(item => {
+  let list = (items: array<tocItem>, ~layerClass) =>
+    if Array.length(items) == 0 {
+      View.fragment([])
+    } else {
+      <nav class={"toc-list" ++ layerClass} ariaLabel="On this page">
+        <div class="toc-title"> {View.text("On this page")} </div>
+        {View.fragment(
+          items->Array.map(item => {
               let className = "toc-link" ++ (item.level >= 3 ? " toc-link-h3" : "")
               <a
                 href={"#" ++ item.id}
@@ -372,6 +374,19 @@ module TableOfContents = {
             }),
           )}
         </nav>
+    }
+
+  let make = (props: props) => {
+    let agentItems = props.agentItems->Option.getOr([])
+    TocSpy.track(Array.concat(props.items, agentItems)->Array.map(item => item.id))
+    <aside class="docs-toc">
+      {if Array.length(agentItems) == 0 {
+        list(props.items, ~layerClass="")
+      } else {
+        View.fragment([
+          list(props.items, ~layerClass=" human-only"),
+          list(agentItems, ~layerClass=" agent-only"),
+        ])
       }}
       <LayerNote currentPath={props.currentPath} />
     </aside>
@@ -385,8 +400,8 @@ type props = {
 }
 
 // h2 and h3 headings make the "On this page" list; h4s stay in search only.
-let tocFor = (page: DocsIndex.page): array<TableOfContents.tocItem> =>
-  page.headings
+let tocFor = (headings: array<DocsIndex.heading>): array<TableOfContents.tocItem> =>
+  headings
   ->Array.filter(heading => heading.level <= 3)
   ->Array.map(heading => {
     let item: TableOfContents.tocItem = {text: heading.text, id: heading.id, level: heading.level}
@@ -399,12 +414,23 @@ let make = (props: props) => {
 
   let tocItems = switch props.tocItems {
   | Some(items) => items
-  | None => tocFor(page)
+  | None => tocFor(page.headings)
   }
 
-  let content = switch page.document {
+  let humanContent = switch page.document {
   | Some(document) => MdxDocs.render(document)
   | None => View.fragment([])
+  }
+
+  // A page with an agent layer shows each layer's own content; otherwise both
+  // layers share the human content.
+  let content = switch page.agentDocument {
+  | Some(agentDocument) =>
+    View.fragment([
+      <div class="human-only"> {humanContent} </div>,
+      <div class="agent-only"> {MdxDocs.render(agentDocument)} </div>,
+    ])
+  | None => humanContent
   }
 
   let apiAppendix = page.agent->Option.flatMap(f => f.api)
@@ -434,7 +460,7 @@ let make = (props: props) => {
           }}
           <div class="human-only"> <PrevNextNav currentPath /> </div>
         </div>
-        <TableOfContents items={tocItems} currentPath />
+        <TableOfContents items={tocItems} agentItems={tocFor(page.agentHeadings)} currentPath />
       </div>
     }
   />

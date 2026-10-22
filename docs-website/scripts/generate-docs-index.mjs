@@ -18,6 +18,11 @@ const docsDir = path.join(__dirname, '..', 'src', 'docs')
 const outputPath = path.join(__dirname, '..', 'src', 'DocsIndex.res')
 
 const mdxPath = file => path.join(docsDir, `${file}.mdx`)
+// A page's agent layer, when written: src/docs/agent/<File>.mdx. Its heading
+// ids carry an "agent-" prefix (added by a rehype plugin in vite.config.js)
+// so they never collide with the human layer's ids on the same page.
+const agentPath = file => path.join(docsDir, 'agent', `${file}.mdx`)
+const hasAgent = file => Boolean(file) && fs.existsSync(agentPath(file))
 
 // Plain text of a Markdown heading, the way rehype-slug sees it.
 function headingText(markdown) {
@@ -28,8 +33,8 @@ function headingText(markdown) {
     .trim()
 }
 
-function headingsOf(file) {
-  const source = fs.readFileSync(mdxPath(file), 'utf-8')
+function headingsOf(file, { agent = false } = {}) {
+  const source = fs.readFileSync(agent ? agentPath(file) : mdxPath(file), 'utf-8')
   const slugger = new GithubSlugger()
   const headings = []
   let inFence = false
@@ -44,7 +49,7 @@ function headingsOf(file) {
     const match = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line)
     if (!match) continue
     const text = headingText(match[2])
-    const id = slugger.slug(text)
+    const id = (agent ? 'agent-' : '') + slugger.slug(text)
     const level = match[1].length
     if (level >= 2 && level <= 4) headings.push({ text, id, level })
   }
@@ -75,10 +80,16 @@ for (const section of present)
     if (page.agent?.api) files.add(page.agent.api)
   }
 
-const imports = [...files]
-  .sort()
-  .map(file => `@module("./docs/${file}.mdx") external ${docName(file)}: Mdx.document = "default"`)
-  .join('\n')
+const agentFiles = [...files].filter(hasAgent).sort()
+
+const imports = [
+  ...[...files]
+    .sort()
+    .map(file => `@module("./docs/${file}.mdx") external ${docName(file)}: Mdx.document = "default"`),
+  ...agentFiles.map(
+    file => `@module("./docs/agent/${file}.mdx") external ${docName(file)}Agent: Mdx.document = "default"`,
+  ),
+].join('\n')
 
 // The page that renders a given MDX file, for links to API reference pages.
 const pathOfFile = Object.fromEntries(
@@ -88,6 +99,11 @@ const pathOfFile = Object.fromEntries(
 const pageEntry = (page, label) => {
   const headings = page.file
     ? headingsOf(page.file)
+        .map(h => `          {text: ${str(h.text)}, id: ${str(h.id)}, level: ${h.level}},`)
+        .join('\n')
+    : ''
+  const agentHeadings = hasAgent(page.file)
+    ? headingsOf(page.file, { agent: true })
         .map(h => `          {text: ${str(h.text)}, id: ${str(h.id)}, level: ${h.level}},`)
         .join('\n')
     : ''
@@ -103,6 +119,10 @@ const pageEntry = (page, label) => {
         document: ${option(page.file && docName(page.file))},
         headings: [
 ${headings}
+        ],
+        agentDocument: ${option(hasAgent(page.file) ? `${docName(page.file)}Agent` : null)},
+        agentHeadings: [
+${agentHeadings}
         ],
         agentOnly: ${page.agentOnly ? 'true' : 'false'},
         customToc: ${page.customToc ? 'true' : 'false'},
@@ -147,6 +167,9 @@ type page = {
   lead: string,
   document: option<Mdx.document>,
   headings: array<heading>,
+  // The agent layer's own content and headings, when the page has one.
+  agentDocument: option<Mdx.document>,
+  agentHeadings: array<heading>,
   agentOnly: bool,
   customToc: bool,
   agent: option<agentFacts>,

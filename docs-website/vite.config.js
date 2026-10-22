@@ -18,6 +18,20 @@ const keepExampleCodeIndentation = () => ({
   },
 })
 
+// Agent-layer pages (src/docs/agent/*.mdx) render on the same page as the
+// human layer, so their heading ids get an "agent-" prefix to stay unique.
+// generate-docs-index.mjs applies the same prefix to their tables of contents.
+const prefixAgentIds = () => (tree, file) => {
+  if (!file.path || !file.path.includes('/src/docs/agent/')) return
+  const visit = node => {
+    if (node.type === 'element' && node.properties && node.properties.id) {
+      node.properties.id = `agent-${node.properties.id}`
+    }
+    if (node.children) node.children.forEach(visit)
+  }
+  visit(tree)
+}
+
 export default defineConfig({
   base: '/',
   plugins: [
@@ -26,7 +40,7 @@ export default defineConfig({
       jsxImportSource: 'xote',
       jsxRuntime: 'automatic',
       remarkPlugins: [remarkGfm],
-      rehypePlugins: [rehypeSlug],
+      rehypePlugins: [rehypeSlug, prefixAgentIds],
     }),
   ],
   server: {

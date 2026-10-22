@@ -253,6 +253,13 @@ export const sections = [
         lead: 'Reference for UI nodes, JSX primitives, lists, attributes, and mounting.',
         agent: viewFacts,
       },
+      {
+        title: 'Glossary',
+        path: '/docs/glossary',
+        file: 'GlossaryDoc',
+        lead: 'The terms the docs use for reactivity, ownership and rendering, defined precisely.',
+        agentOnly: true,
+      },
     ],
   },
   {

@@ -235,12 +235,15 @@ Sitemap: ${siteUrl}/sitemap.xml
 
 const docsDir = path.join(__dirname, '..', 'src', 'docs')
 
-// The MDX sources that make up a page's agent layer: the page, then its API
-// reference where one exists.
+// The MDX sources that make up a page's agent layer: the page's agent version
+// (src/docs/agent/<File>.mdx) when it has one, else the page itself, then its
+// API reference where one exists. Paths are relative to src/docs.
 function markdownSources(route) {
   const page = route.page
   if (!page?.file || page.customToc) return undefined
-  return page.agent?.api ? [page.file, page.agent.api] : [page.file]
+  const agentVersion = path.join('agent', page.file)
+  const main = fs.existsSync(path.join(docsDir, `${agentVersion}.mdx`)) ? agentVersion : page.file
+  return page.agent?.api ? [main, page.agent.api] : [main]
 }
 
 function markdownPath(routePath) {
@@ -325,7 +328,9 @@ function writeMarkdown() {
 
 > Xote is a small UI library for ReScript with fine-grained reactivity: signals, computeds and effects, declarative views with JSX, a router, server-side rendering and hydration.
 
-Every docs page is available as plain Markdown at the same path with a \`.md\` suffix (\`/docs\` is \`/docs/index.md\`). Pages about a module include its API reference.
+Every docs page is available as plain Markdown at the same path with a \`.md\` suffix (\`/docs\` is \`/docs/index.md\`). These are the agent versions of the pages, written for coding agents rather than copied from the human pages: most follow the same outline (Summary, Availability, Rules, API, Patterns, Anti-patterns, Edge cases, SSR and hydration, Verify, Related), and pages about a module end with its full API reference. Terms such as "tracking scope", "reactive leaf" and "owner" are defined in the [Glossary](${siteUrl}/docs/glossary.md).
+
+Current stable release: ${latestVersion()}. Features marked "pre-release: 7.2.0-beta" in a page's Availability section are not in the stable release.
 
 ${[...sections].map(([name, items]) => `## ${name}\n\n${items.join('\n')}`).join('\n\n')}
 `
