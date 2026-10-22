@@ -1983,43 +1983,6 @@ blockquote > :last-child {
   font: 400 14px/23px var(--font-mono);
 }
 
-/* Closing section with the forró trio: copy left, the band sitting on the
-   section's bottom edge at right (the log posts run off the bottom). */
-.home-cta {
-  overflow: hidden;
-}
-.home-cta-inner {
-  align-items: flex-end;
-  padding: 0 32px;
-  gap: 24px 48px;
-}
-.home-cta-copy {
-  flex: 1 1 420px;
-  gap: 18px;
-  padding: 88px 0;
-}
-.home-cta-actions {
-  padding-top: 8px;
-}
-.home-cta-art {
-  display: block;
-  flex: 0 1 600px;
-  width: 600px;
-  max-width: 52%;
-  height: auto;
-  margin-right: -16px;
-}
-@media (max-width: 860px) {
-  .home-cta-copy {
-    padding: 64px 0 0;
-  }
-  .home-cta-art {
-    max-width: 100%;
-    width: 100%;
-    margin: 0 auto;
-  }
-}
-
 /* ---- Docs demos added with the docs restructure ---- */
 .intro-demo,
 .forms-demo,
