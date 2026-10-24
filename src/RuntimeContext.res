@@ -181,6 +181,12 @@ let fail = (frame: Nullable.t<frame>, exn: exn): unit =>
       | Some(_) => Signal.untrack(() => boundary.notify(exn))
       }
     } else {
+      /* A failure caught while rendering is reported by `renderBoundary`,
+         once it renders the fallback; this one is the boundary's to report
+         from here. */
+      if RuntimeDevtools.enabled.contents {
+        RuntimeDevtools.emit(Caught({error: thrownValue(exn)}))
+      }
       /* The failing effect is still the running observer: nothing the
          boundary's callbacks read may subscribe it. */
       Signal.untrack(() => boundary.report(exn))
@@ -247,6 +253,9 @@ let renderBoundary = (
   ~outer: Nullable.t<frame>,
 ): 'a => {
   let owner = RuntimeOwner.createOwner()
+  if RuntimeDevtools.enabled.contents {
+    RuntimeDevtools.scopeCreated(owner, #Boundary, ~parent=RuntimeOwner.currentOwner.contents)
+  }
   RuntimeOwner.track(RuntimeOwner.addDisposer, () => RuntimeOwner.disposeOwner(owner))
   let wasRendering = boundary.rendering
   boundary.rendering = true
@@ -278,6 +287,9 @@ let renderBoundary = (
       RuntimeOwner.disposeOwner(owner)
       boundary.rendering = wasRendering
       boundary.caught = None
+      if RuntimeDevtools.enabled.contents {
+        RuntimeDevtools.emit(Caught({error: thrownValue(exn)}))
+      }
       /* The fallback renders outside the boundary, so a fallback that fails in
          turn goes to the boundary above. Like a component body, building it
          subscribes nothing. */

@@ -34,6 +34,7 @@ const PUBLIC_MODULES = [
   "Effect",
   "Context",
   "Resource",
+  "Devtools",
 ];
 
 function exportedNames(module) {

@@ -45,6 +45,11 @@
       "require": "./dist/mdx.cjs",
       "default": "./dist/mdx.mjs"
     },
+    "./devtools": {
+      "import": "./dist/devtools.mjs",
+      "require": "./dist/devtools.cjs",
+      "default": "./dist/devtools.mjs"
+    },
     "./signal": "./src/Signal.res.mjs",
     "./computed": "./src/Computed.res.mjs",
     "./effect": "./src/Effect.res.mjs",
@@ -69,6 +74,7 @@
     "./src/Effect.res.mjs": "./src/Effect.res.mjs",
     "./src/Context.res.mjs": "./src/Context.res.mjs",
     "./src/Resource.res.mjs": "./src/Resource.res.mjs",
+    "./src/Devtools.res.mjs": "./src/Devtools.res.mjs",
     "./src/jsx-runtime.mjs": "./src/jsx-runtime.mjs",
     "./src/jsx-dev-runtime.mjs": "./src/jsx-dev-runtime.mjs",
     "./package.json": "./package.json",

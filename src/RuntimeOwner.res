@@ -53,6 +53,9 @@ let ownedComputed = (compute: unit => 'a): Signal.t<'a> => markOwned(Computed.ma
    the same pass rather than left behind. Disposal is idempotent on both kinds
    of entry, so an owner released twice does no harm. */
 let disposeOwner = (owner: owner): unit => {
+  if RuntimeDevtools.enabled.contents {
+    RuntimeDevtools.scopeDisposed(owner)
+  }
   let owned = owner.owned
   let index = ref(0)
   while index.contents < Array.length(owned) {

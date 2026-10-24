@@ -23,6 +23,7 @@ export default defineConfig(() => ({
         ssr: "entries/ssr.mjs",
         hydration: "entries/hydration.mjs",
         mdx: "entries/mdx.mjs",
+        devtools: "entries/devtools.mjs",
       },
       formats: ["es", "cjs"],
       fileName: (format, entryName) =>

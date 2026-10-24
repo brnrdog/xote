@@ -170,5 +170,26 @@
     "mutate",
     "refetch",
     "value"
+  ],
+  "Devtools": [
+    "Budget",
+    "clearHistory",
+    "history",
+    "inspect",
+    "install",
+    "installed",
+    "leaks",
+    "mute",
+    "pathOf",
+    "preview",
+    "record",
+    "scopes",
+    "snapshot",
+    "status",
+    "subscribe",
+    "uninstall",
+    "value",
+    "why",
+    "writerOf"
   ]
 }
