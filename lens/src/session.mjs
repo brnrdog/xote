@@ -10,7 +10,7 @@ import { JSDOM } from "jsdom";
 import { relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { findCompiled, importXote, parseTarget, toPosix } from "./project.mjs";
-import { compareMarkup, markerOutline, parseStateScript } from "./markup.mjs";
+import { compareMarkup, markerOutline, parseStateScript, reflectProperties } from "./markup.mjs";
 import { renderOnServer, resolveExport, toNode as nodeOf } from "./server.mjs";
 
 const GLOBALS = [
@@ -159,7 +159,7 @@ export async function createSession({ root, captureStacks = true, url = "http://
          the markup the server produced. */
       const fresh = document.createElement("div");
       Devtools.mute(() => xote.View.mount(toNode(value), fresh));
-      result.mismatches = compareMarkup(server.html, fresh.innerHTML);
+      result.mismatches = compareMarkup(server.html, reflectProperties(fresh).innerHTML);
       result.state = stateReport(dom.window.__XOTE_STATE__ ?? {}, history().slice(since));
     }
     rendered = { target, mode };

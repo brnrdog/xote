@@ -33,10 +33,17 @@ function contentChildren(node) {
   return out;
 }
 
-function label(node) {
+const firstClass = (node) => (node.getAttribute("class") ?? "").trim().split(/\s+/)[0];
+
+/* A step of a mismatch path: the id, or the first class when both sides
+   agree on it (a differing class is itself the mismatch being reported). */
+function label(node, other) {
   if (node.nodeType === 3) return "#text";
   const id = node.getAttribute("id");
-  return node.tagName.toLowerCase() + (id ? `#${id}` : "");
+  if (id) return `${node.tagName.toLowerCase()}#${id}`;
+  const cls = firstClass(node);
+  const agreed = cls && (!other || (other.nodeType === 1 && firstClass(other) === cls));
+  return node.tagName.toLowerCase() + (agreed ? `.${cls}` : "");
 }
 
 function attributes(node) {
@@ -56,7 +63,7 @@ function compare(server, client, path, out) {
   for (let i = 0; i < n && out.length < 10; i++) {
     const s = a[i];
     const c = b[i];
-    const here = [...path, s ? label(s) : label(c)];
+    const here = [...path, s ? label(s, c) : label(c)];
     if (!s || !c) {
       out.push({ path: here.join(" > "), server: s ? describe(s) : "(nothing)", client: c ? describe(c) : "(nothing)" });
       continue;
@@ -88,6 +95,25 @@ function describe(node) {
   if (node.nodeType === 3) return JSON.stringify(node.data.length > 40 ? node.data.slice(0, 37) + "..." : node.data);
   const html = node.outerHTML;
   return html.length > 80 ? html.slice(0, 77) + "..." : html;
+}
+
+/* The client renderer writes `value`, `checked`, `selected` and `disabled` as
+   DOM properties, which serialised markup does not show. Copy them back onto
+   attributes, the way the server writes them, before the client's markup is
+   compared with the server's. */
+export function reflectProperties(root) {
+  for (const el of root.querySelectorAll("input, textarea, select, option, button, fieldset")) {
+    if ("value" in el && el.tagName !== "BUTTON" && el.tagName !== "FIELDSET" && el.type !== "checkbox" && el.type !== "radio") {
+      el.setAttribute("value", el.value);
+    }
+    for (const flag of ["checked", "selected", "disabled"]) {
+      if (flag in el) {
+        if (el[flag]) el.setAttribute(flag, "");
+        else el.removeAttribute(flag);
+      }
+    }
+  }
+  return root;
 }
 
 /* Up to ten places where `serverHtml` and `clientHtml` differ in content. */

@@ -218,29 +218,45 @@ let preview: 'a => string = %raw(`function (value) {
 }`)
 
 /* A CSS-like path to a DOM node, for messages and JSON output. */
+/* A CSS-like path to a DOM node, for messages and JSON output: up to the
+   nearest id, at most four steps, preferring a class over a position, and
+   skipping the `display: contents` wrappers fragments render into. */
 let pathOf: Dom.element => string = %raw(`function (node) {
+  function isWrapper(n) {
+    return n.nodeType === 1 && n.tagName === "DIV" && !n.id && !n.className &&
+      n.getAttribute("style") === "display: contents"
+  }
   function step(n) {
     if (n.nodeType === 3) return "#text"
     if (n.nodeType === 8) return "<!--" + String(n.data).trim() + "-->"
     if (n.nodeType !== 1) return "#node"
     var tag = n.tagName.toLowerCase()
     if (n.id) return tag + "#" + n.id
+    var cls = typeof n.className === "string" ? n.className.trim().split(/\s+/)[0] : ""
+    var label = cls ? tag + "." + cls : tag
     var parent = n.parentNode
     if (parent && parent.children) {
-      var same = Array.prototype.filter.call(parent.children, function (c) { return c.tagName === n.tagName })
-      if (same.length > 1) return tag + ":nth-of-type(" + (same.indexOf(n) + 1) + ")"
+      var same = Array.prototype.filter.call(parent.children, function (c) {
+        return c.tagName === n.tagName && (!cls || (typeof c.className === "string" && c.className.trim().split(/\s+/)[0] === cls))
+      })
+      if (same.length > 1) label += ":nth-child(" + (Array.prototype.indexOf.call(parent.children, n) + 1) + ")"
     }
-    return tag
+    return label
   }
   try {
     var parts = []
     var n = node
-    while (n && n.nodeType !== 9 && parts.length < 12) {
-      parts.unshift(step(n))
-      if (n.nodeType === 1 && (n.id || n.tagName === "BODY")) break
+    var truncated = false
+    while (n && n.nodeType !== 9) {
+      if (!isWrapper(n)) {
+        if (parts.length === 4) { truncated = true; break }
+        parts.unshift(step(n))
+        if (n.nodeType === 1 && (n.id || n.tagName === "BODY")) break
+      }
       n = n.parentNode
     }
     if (n === null && parts.length > 0) parts.unshift("(detached)")
+    else if (truncated) parts.unshift("…")
     return parts.join(" > ")
   } catch (_) { return "#node" }
 }`)

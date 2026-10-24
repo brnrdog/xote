@@ -10,7 +10,8 @@ import { fileURLToPath } from "node:url";
 import { digest, loadApi, query } from "../src/api.mjs";
 import { check, parseCompilerOutput, rawDiagnostics } from "../src/check.mjs";
 import { expand } from "../src/expand.mjs";
-import { compareMarkup } from "../src/markup.mjs";
+import { JSDOM } from "jsdom";
+import { compareMarkup, reflectProperties } from "../src/markup.mjs";
 import { build } from "../src/project.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -269,6 +270,21 @@ await test("the server markup outline names each hydration marker", async () => 
   for (const expected of ["<!--lc-->  component", "<!--$-->  reactive text", "<!--kl-->  keyed list", '<!--k:a-->  keyed row "a"']) {
     assert(outline.includes(expected), `missing ${expected} in\n${outline}`);
   }
+});
+await test("form state the client sets as properties is compared as attributes", () => {
+  const { document } = new JSDOM("").window;
+  const client = document.createElement("div");
+  client.innerHTML = '<input type="checkbox"><input class="draft">';
+  client.firstChild.checked = true;
+  client.lastChild.value = "Ship";
+  const server = '<input type="checkbox" checked=""><input class="draft" value="Ship">';
+  equal(compareMarkup(server, reflectProperties(client).innerHTML), [], "no differences");
+  client.lastChild.value = "Other";
+  equal(
+    compareMarkup(server, reflectProperties(client).innerHTML).map((m) => m.path),
+    ["input.draft [value]"],
+    "a real difference, with the class in its path",
+  );
 });
 await test("markup comparison ignores hydration markers and fragment wrappers", () => {
   equal(compareMarkup('<!--$--><p>a</p><!--kl--><!--k:x--><li>x</li><!--/kl-->', '<div style="display: contents"><p>a</p></div><li>x</li>'), [], "no differences");
