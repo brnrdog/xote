@@ -1,0 +1,74 @@
+`DevtoolsPanel` is an in-page panel built with Xote on top of [`Devtools`](/docs/devtools/overview). It shows the reactive graph, a timeline of what each update did, the scope tree, and issues, and it can explain why any element on the page last updated.
+
+## Setup
+
+### Mounting the Panel
+
+Install devtools first, in the entry module, then mount the panel once the app is up:
+
+```rescript
+let _ = Devtools.install()
+
+/* ...your signals and View.mount... */
+
+let unmount = DevtoolsPanel.mount()
+```
+
+A **◎ xote** launcher appears in the bottom-right corner. **Ctrl+Shift+X** toggles the panel. `mount` takes `~target` (default `document.body`) and `~expanded` (default `false`), and returns the function that removes the panel and releases everything it created.
+
+### Development Only
+
+Mount the panel only in development builds. One way is to guard it with your bundler's environment flag:
+
+```rescript
+let dev: bool = %raw(`import.meta.env.DEV`)
+
+if dev {
+  let _ = DevtoolsPanel.mount()
+}
+```
+
+Devtools must be installed before the app creates anything reactive. Keep `Devtools.install()` at the top of the entry module, under the same guard.
+
+## Using the Panel
+
+### Graph
+
+Every signal, computed and effect, with its current value. Filter by name, kind or id. Select a node to see its creation site, its scope, what it reads and what reads it, and a tree explaining why it last ran. The tree starts at the node and goes down to the signal writes that caused the run, with the code location of each write.
+
+### Timeline
+
+The app's events as they happen: writes with their values and sites, computeds and effects that ran, DOM writes, keyed-list passes, scopes created and released, and batches. Each interaction reads as a short story of what it caused.
+
+### Scopes
+
+The tree of keyed rows, fragment passes, boundaries and regions. Released scopes are struck through.
+
+### Issues
+
+Effects or computeds that outlived their scope, effects created with no scope to own them, hidden signal reads found by `View.probe`, failures an error boundary caught, hydration warnings, and server state the client could not restore.
+
+### Picking an Element
+
+Press **⌖**, then click any element on the page. The panel lists the bindings that write it and explains each one's last update. An element with no binding never updates in place. If it should follow a signal, look for a one-shot prop or a hidden read; [xote-lens check](/docs/devtools/xote-lens#check) finds both.
+
+## How It Works
+
+### Staying Out of Its Own Data
+
+The panel is a Xote app watching a Xote app. Everything it creates is made under `Devtools.mute`, including the per-frame update that applies new events, so its signals, effects, scopes and DOM writes never appear in what it shows. An idle panel emits no events at all.
+
+### Updating Once per Frame
+
+Events from the app are buffered as they arrive and applied once per animation frame. The panel never writes a signal from inside the app's own update, and a burst of updates costs one panel refresh.
+
+### Isolation
+
+The panel renders in a shadow root, so neither its styles nor the page's leak across. It follows the page's light or dark color scheme.
+
+## Working Style
+
+### Next Steps
+
+- [Read Devtools](/docs/devtools/overview) for the data model behind the panel.
+- [Use xote-lens](/docs/devtools/xote-lens) for the same information in a terminal, in CI, or for an AI agent.

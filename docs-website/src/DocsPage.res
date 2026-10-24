@@ -65,6 +65,14 @@ let docsNav: array<docCategory> = [
     ],
   },
   {
+    label: "Devtools",
+    items: [
+      {title: "Overview", path: "/docs/devtools/overview"},
+      {title: "In-Page Panel", path: "/docs/devtools/panel"},
+      {title: "xote-lens CLI and MCP", path: "/docs/devtools/xote-lens"},
+    ],
+  },
+  {
     label: "Project",
     items: [{title: "Changelog", path: "/docs/changelog"}],
   },

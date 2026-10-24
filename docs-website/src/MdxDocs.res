@@ -20,6 +20,9 @@
 @module("./docs/SSRDoc.mdx") external ssrDoc: Mdx.document = "default"
 @module("./docs/MdxDoc.mdx") external mdxDoc: Mdx.document = "default"
 @module("./docs/ChangelogDoc.mdx") external changelogDoc: Mdx.document = "default"
+@module("./docs/DevtoolsDoc.mdx") external devtoolsDoc: Mdx.document = "default"
+@module("./docs/DevtoolsPanelDoc.mdx") external devtoolsPanelDoc: Mdx.document = "default"
+@module("./docs/DevtoolsLensDoc.mdx") external devtoolsLensDoc: Mdx.document = "default"
 
 type mdxProps = {
   children?: Mdx.children,
@@ -148,3 +151,6 @@ let technicalOverview = () => render(technicalOverviewDoc)
 let ssr = () => render(ssrDoc)
 let mdx = () => render(mdxDoc)
 let changelog = () => render(changelogDoc)
+let devtools = () => render(devtoolsDoc)
+let devtoolsPanel = () => render(devtoolsPanelDoc)
+let devtoolsLens = () => render(devtoolsLensDoc)
