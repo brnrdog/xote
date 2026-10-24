@@ -170,5 +170,30 @@
     "mutate",
     "refetch",
     "value"
+  ],
+  "Devtools": [
+    "Budget",
+    "clearHistory",
+    "history",
+    "inspect",
+    "install",
+    "installed",
+    "leaks",
+    "mute",
+    "pathOf",
+    "preview",
+    "record",
+    "scopes",
+    "snapshot",
+    "status",
+    "subscribe",
+    "targetOf",
+    "uninstall",
+    "value",
+    "why",
+    "writersOf"
+  ],
+  "DevtoolsPanel": [
+    "mount"
   ]
 }

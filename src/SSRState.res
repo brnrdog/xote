@@ -215,13 +215,20 @@ let getClientState = (): Dict.t<JSON.t> => {
 let restore = (id: string, signal: Signal.t<'a>, codec: Codec.t<'a>): unit => {
   if SSRContext.isClient {
     let state = getClientState()
+    let report = (~found, ~decoded) =>
+      if RuntimeDevtools.enabled.contents {
+        RuntimeDevtools.emit(StateRestored({key: id, signal: Obj.magic(signal), found, decoded}))
+      }
     switch state->Dict.get(id) {
     | Some(json) =>
       switch codec.decode(json) {
-      | Some(value) => Signal.set(signal, value)
-      | None => () /* Silent fallback to default */
+      | Some(value) => {
+          Signal.set(signal, value)
+          report(~found=true, ~decoded=true)
+        }
+      | None => report(~found=true, ~decoded=false) /* Silent fallback to default */
       }
-    | None => () /* Silent fallback to default */
+    | None => report(~found=false, ~decoded=false) /* Silent fallback to default */
     }
   }
 }

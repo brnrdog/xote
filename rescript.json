@@ -22,7 +22,9 @@
         "Computed",
         "Effect",
         "Context",
-        "Resource"
+        "Resource",
+        "Devtools",
+        "DevtoolsPanel"
       ]
     },
     {

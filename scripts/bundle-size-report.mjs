@@ -55,6 +55,14 @@ const artifactMetadata = {
     format: "CommonJS",
     consumer: "`xote/mdx` require",
   },
+  "devtools.mjs": {
+    format: "ESM",
+    consumer: "`xote/devtools` import",
+  },
+  "devtools.cjs": {
+    format: "CommonJS",
+    consumer: "`xote/devtools` require",
+  },
 };
 
 const reportGroups = [
@@ -87,6 +95,11 @@ const reportGroups = [
     entry: "MDX",
     importPath: "`xote/mdx`",
     files: { esm: "mdx.mjs", cjs: "mdx.cjs" },
+  },
+  {
+    entry: "Devtools",
+    importPath: "`xote/devtools`",
+    files: { esm: "devtools.mjs", cjs: "devtools.cjs" },
   },
 ];
 
@@ -197,6 +210,8 @@ function compareArtifacts(left, right) {
     "hydration.cjs",
     "mdx.mjs",
     "mdx.cjs",
+    "devtools.mjs",
+    "devtools.cjs",
   ];
   const leftIndex = order.indexOf(left.name);
   const rightIndex = order.indexOf(right.name);

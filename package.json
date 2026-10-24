@@ -45,6 +45,11 @@
       "require": "./dist/mdx.cjs",
       "default": "./dist/mdx.mjs"
     },
+    "./devtools": {
+      "import": "./dist/devtools.mjs",
+      "require": "./dist/devtools.cjs",
+      "default": "./dist/devtools.mjs"
+    },
     "./signal": "./src/Signal.res.mjs",
     "./computed": "./src/Computed.res.mjs",
     "./effect": "./src/Effect.res.mjs",
@@ -69,6 +74,8 @@
     "./src/Effect.res.mjs": "./src/Effect.res.mjs",
     "./src/Context.res.mjs": "./src/Context.res.mjs",
     "./src/Resource.res.mjs": "./src/Resource.res.mjs",
+    "./src/Devtools.res.mjs": "./src/Devtools.res.mjs",
+    "./src/DevtoolsPanel.res.mjs": "./src/DevtoolsPanel.res.mjs",
     "./src/jsx-runtime.mjs": "./src/jsx-runtime.mjs",
     "./src/jsx-dev-runtime.mjs": "./src/jsx-dev-runtime.mjs",
     "./package.json": "./package.json",
@@ -110,7 +117,8 @@
     "test:exports": "node tests/PublicExports_test.mjs",
     "test:boundary": "node scripts/consumer-boundary-test.mjs",
     "ppx:build": "sh ppx/build.sh",
-    "ppx:test": "sh ppx/example/setup.sh && sh ppx/build.sh && cd ppx/example && npx rescript clean && npm run build && npm run verify && npm run golden"
+    "lens:test": "cd lens && npm test",
+    "ppx:test": "sh ppx/example/setup.sh && sh ppx/build.sh && cd ppx/example && npx rescript clean && npm run build && npm run verify && npm run golden && npm run sitemap"
   },
   "keywords": [
     "rescript",
@@ -170,6 +178,6 @@
     "zekr": "^1.7.0"
   },
   "dependencies": {
-    "rescript-signals": "^3.1.3"
+    "rescript-signals": "^3.2.0"
   }
 }
