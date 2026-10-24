@@ -274,7 +274,7 @@ let siteOf: string => option<string> = %raw(`function (stack) {
     var match = line.match(/\(?((?:file:\/\/)?[^\s()]+):(\d+):(\d+)\)?\s*$/)
     if (match) {
       /* A page's origin says nothing; keep the path. */
-      var file = match[1].replace(/^file:\/\//, "").replace(/^https?:\/\/[^\/]+\//, "")
+      var file = match[1].replace(/^file:\/\//, "").replace(/^https?:\/\/[^\/]+\//, "").replace(/\?.*$/, "")
       try {
         var cwd = typeof process !== "undefined" && process.cwd ? process.cwd() + "/" : ""
         if (cwd && file.indexOf(cwd) === 0) file = file.slice(cwd.length)
@@ -759,6 +759,12 @@ let snapshot = (): snapshot => {
     ->Array.filterMap(inspect)
   {nodes, scopes: scopes()}
 }
+
+let targetOf = (id: int): option<Dom.element> =>
+  state.nodes
+  ->Map.get(id)
+  ->Option.flatMap(info => info.bindingTarget)
+  ->Option.flatMap(target => target->deref->Nullable.toOption)
 
 let writersOf = (element: Dom.element): array<int> =>
   state.writers->weakGetAll(Obj.magic(element))->Nullable.toOption->Option.getOr([])->Array.copy

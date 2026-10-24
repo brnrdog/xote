@@ -187,6 +187,7 @@
     "snapshot",
     "status",
     "subscribe",
+    "targetOf",
     "uninstall",
     "value",
     "why",

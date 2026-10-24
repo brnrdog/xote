@@ -112,6 +112,8 @@ let snapshot: unit => snapshot
 /* The effects that write to a DOM node: one per binding (its text, each
  reactive attribute), oldest first. */
 let writersOf: Dom.element => array<int>
+/* The DOM node a binding writes, while it is alive. */
+let targetOf: int => option<Dom.element>
 
 type counts = {
   /* Writes that changed a value. */

@@ -29,7 +29,10 @@ let shadowTexts: string => array<string> = %raw(`function (selector) {
 
 let textOf: element => string = %raw(`function (el) { return el.textContent }`)
 
-let click: element => unit = %raw(`function (el) { el.click() }`)
+/* SVG elements have no `click()` in jsdom, so dispatch the event. */
+let click: element => unit = %raw(`function (el) {
+  el.dispatchEvent(new (el.ownerDocument.defaultView.MouseEvent)("click", { bubbles: true, cancelable: true }))
+}`)
 
 let clickTab: string => unit = %raw(`function (name) {
   var host = document.getElementById("xote-devtools")
@@ -122,6 +125,35 @@ let suite = Zekr.asyncSuite(
         )
       })
     ),
+    graphTest("the graph lays signals left of what reads them, down to the bindings", async () =>
+      await withPanel(async _ => {
+        let {container} = Zekr.Dom.render("")
+        let count = Signal.make(1, ~name="count")
+        let doubled = Computed.make(() => Signal.get(count) * 2, ~name="doubled")
+        View.mount(
+          Html.p(~children=[View.signalText(() => Int.toString(Signal.get(doubled)))], ()),
+          container,
+        )
+        await frame()
+        let nodes: array<
+          element,
+        > = %raw(`Array.from(document.getElementById("xote-devtools").shadowRoot.querySelectorAll(".gnode"))`)
+        let xOf: element => int = %raw(`function (g) { return Number(g.getAttribute("transform").match(/translate\((\d+)/)[1]) }`)
+        let kindOf: element => string = %raw(`function (g) { return g.getAttribute("data-kind") }`)
+        let find = text => nodes->Array.find(n => textOf(n)->String.includes(text))
+        let x = text => find(text)->Option.map(xOf)->Option.getOr(-1)
+        let binding = nodes->Array.find(n => kindOf(n) == "binding")
+        combineResults([
+          assertTrue(x("count") < x("doubled"), ~message="the signal is left of the computed"),
+          assertTrue(binding->Option.isSome, ~message="the text binding is drawn"),
+          assertTrue(
+            x("doubled") < binding->Option.map(xOf)->Option.getOr(-1),
+            ~message="the binding is right of what it reads",
+          ),
+          assertEqual(find("count")->Option.map(kindOf), Some("signal")),
+        ])
+      })
+    ),
     graphTest("selecting a node explains why it last ran", async () =>
       await withPanel(async _ => {
         let count = Signal.make(1, ~name="base")
@@ -137,8 +169,8 @@ let suite = Zekr.asyncSuite(
         await frame()
         let rows: array<
           element,
-        > = %raw(`Array.from(document.getElementById("xote-devtools").shadowRoot.querySelectorAll(".row"))`)
-        let reader = rows->Array.find(row => textOf(row)->String.includes(`"reader"`))
+        > = %raw(`Array.from(document.getElementById("xote-devtools").shadowRoot.querySelectorAll(".gnode"))`)
+        let reader = rows->Array.find(row => textOf(row)->String.includes("reader"))
         reader->Option.forEach(click)
         await frame()
         let causes = shadowTexts(".why .cause")
