@@ -5,6 +5,7 @@
   "scripts": {
     "build": "rescript build",
     "verify": "node verify.mjs",
-    "golden": "node golden.mjs"
+    "golden": "node golden.mjs",
+    "sitemap": "node sitemap.mjs"
   }
 }
