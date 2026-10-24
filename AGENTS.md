@@ -625,6 +625,7 @@ Hydration.hydrateById(app, "root")
 - **Technical deep-dive**: See `docs/TECHNICAL_OVERVIEW.md` for detailed architecture
 - **Changelog**: See `docs/CHANGELOG.md` for version history
 - **SSR example**: `examples/ssr/` - Full SSR + hydration setup
+- **Fullstack example**: `examples/fullstack/` - Remix-style prototype on top of `SSR`/`Hydration`: per-route loaders and actions, a web-standard `Request => Response` handler, client-side navigation over JSON (`npm run fullstack:build && npm run fullstack:start`)
 - **rescript-signals**: https://brnrdog.github.io/rescript-signals - The reactive primitives library
 - **TC39 Signals proposal**: https://github.com/tc39/proposal-signals
 - **ReScript JSX**: https://rescript-lang.org/docs/manual/latest/jsx

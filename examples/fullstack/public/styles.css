@@ -1,0 +1,19 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; color: #1d1d1f; background: #fafafa; }
+.app { max-width: 640px; margin: 0 auto; padding: 0 1rem 3rem; }
+header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 0; border-bottom: 1px solid #e5e5e5; margin-bottom: 1.5rem; }
+header nav { display: flex; gap: 1rem; }
+a { color: #3b5bdb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.brand { font-weight: 700; font-size: 1.25rem; color: inherit; }
+.progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: #3b5bdb; opacity: 0; transition: width .4s ease, opacity .2s; }
+.progress.active { width: 80%; opacity: 1; }
+input, textarea { display: block; width: 100%; font: inherit; padding: .5rem; margin-bottom: .5rem; border: 1px solid #ccc; border-radius: 4px; }
+button { font: inherit; padding: .4rem .9rem; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer; }
+button.danger { color: #c92a2a; border-color: #ffa8a8; }
+.notes { padding-left: 1.25rem; }
+.notes li { margin: .35rem 0; }
+.new-note { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; }
+.error { color: #c92a2a; }
+.actions { display: flex; gap: .5rem; align-items: center; }
+.actions form { margin: 0; }

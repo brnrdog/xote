@@ -103,6 +103,8 @@
     "bundle:size": "node scripts/bundle-size-report.mjs",
     "preview": "vite preview",
     "mdx:poc": "npm run res:build && vite build --config examples/mdx/vite.config.mjs",
+    "fullstack:build": "npm run res:build && vite build --config examples/fullstack/vite.config.mjs",
+    "fullstack:start": "node examples/fullstack/serve.mjs",
     "docs:start": "cd docs-website && npm run dev",
     "docs:build": "cd docs-website && npm run build",
     "docs:serve": "cd docs-website && npm run preview",
