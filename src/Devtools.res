@@ -73,6 +73,7 @@ type event =
   | Caught({message: string})
   | HydrationWarning({message: string})
   | Probe({site: string, hidden: bool})
+  | StateRestored({key: string, node: option<int>, found: bool, decoded: bool})
 
 type status = {signals: bool, copies: int}
 
@@ -156,6 +157,8 @@ module Upstream = {
     uninstall: unit => unit,
     nodes: unit => array<int>,
     inspect: int => option<node>,
+    /* Added after the first release of the hooks, so it may be missing. */
+    idOfSignal?: Obj.t => option<int>,
   }
 
   let copies: unit => array<api> = %raw(`function () {
@@ -396,7 +399,8 @@ let isMuted = (event: event): bool =>
   | DomWrite(_) => state.muteDepth > 0
   /* A batch names no node, so it is muted by when it happens. */
   | BatchStart | BatchEnd => state.muteDepth > 0
-  | Caught(_) | HydrationWarning(_) | Probe(_) => false
+  | StateRestored({node: Some(id)}) => isMutedNode(id)
+  | Caught(_) | HydrationWarning(_) | Probe(_) | StateRestored(_) => false
   }
 
 let deliver = (event: event): unit =>
@@ -568,6 +572,18 @@ let onRenderer = (event: RuntimeDevtools.event): unit =>
   | Caught({error}) => deliver(Caught({message: messageOf(error)}))
   | HydrationWarning({message}) => deliver(HydrationWarning({message: message}))
   | Probe({site, hidden}) => deliver(Probe({site, hidden}))
+  | StateRestored({key, signal, found, decoded}) =>
+    let node =
+      state.copies
+      ->Array.mapWithIndex((copy, index) =>
+        switch copy.idOfSignal {
+        | Some(idOfSignal) => idOfSignal(signal)->Option.flatMap(local => globalOf(index, local))
+        | None => None
+        }
+      )
+      ->Array.find(Option.isSome)
+      ->Option.flatMap(id => id)
+    deliver(StateRestored({key, node, found, decoded}))
   }
 
 /* ---- installing ------------------------------------------------------------------ */

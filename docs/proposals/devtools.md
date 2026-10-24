@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft. Nothing here is built yet. Phase 1 (hooks) and Phase 2 (agent CLI/MCP) are the committed direction; Phases 3–4 are sketched so the data model is designed for them. |
+| **Status** | All four phases built. Phase 1a lives in rescript-signals (branch `brnrdog/nice-pascal-9c7ixn`, unreleased); everything else is in this repository. The reactive graph needs a rescript-signals release with `Signals.Debug`, and tests that depend on it report as skipped until then. Current behaviour is documented in [`AGENTS.md`](../../AGENTS.md) and [`lens/README.md`](../../lens/README.md), which are the sources of truth; [As built](#as-built) records where the implementation departs from the design below. |
 | **Decisions so far** | Debug hooks live **in rescript-signals** (not a Xote-side wrapper). The **PPX emits a sidecar map** of what it rewrote. The **agent surface ships first**; the browser panel comes later and renders the same data. |
 | **Related** | [`tracked-blocks.md`](./tracked-blocks.md) — the PPX and `View.probe`, whose diagnostics this generalises |
 
@@ -32,6 +32,46 @@ cannot print.**
            `xote` CLI              MCP server                Browser panel
          (terminals, CI)    (agents, structured JSON)     (humans; Phase 3)
 ```
+
+## As built
+
+The design below is kept as written. Where the implementation differs:
+
+- **No `Notified` event.** Emitting one per dirtied edge would sit on the
+  hottest propagation path. Instead `RunEnd` reports whether a computed's value
+  changed, and `Devtools.why` derives the causal chain from the dependency
+  edges and the history: a source caused a run if it changed after the node's
+  previous run. Computeds are lazy, so a computed often recomputes *inside*
+  the effect that pulls it, and `why` accounts for that.
+- **Also added upstream:** `Collected` (from a `FinalizationRegistry`, so leak
+  analysis sees what the garbage collector reclaimed) and
+  `Debug.idOfSignal`, which finds a node from the signal record a tool holds.
+  Each loaded copy registers on `Symbol.for("rescript-signals.debug")`, and
+  Xote discovers the hooks there rather than importing them, so it still
+  compiles against releases without them.
+- **Scopes** cover both owners (rows, passes, boundaries, hydrated rows) and
+  the regions they belong to (fragments, keyed lists). A node's scope is the
+  owner current when it was created, so no bookkeeping was added to the hot
+  path. No `Template` event was built.
+- **Bundle cost.** The data model ships only in `xote/devtools`, but the
+  guarded call sites in the renderer cost about 0.4 KiB gzip on the full
+  client bundle. It is not zero.
+- **`writerOf` became `writersOf`**: an element can carry several bindings
+  (its text and each reactive attribute).
+- **Hydration.** The server half renders in a separate process with no DOM,
+  because `SSRContext.isServer` is decided at load time from whether
+  `document` exists. Mismatches come from comparing the server's markup with
+  a fresh client render made under `Devtools.mute`, not from the hydration
+  walker. `SSRState.restore` outcomes are a renderer event (`StateRestored`)
+  and become `ssr-state-*` diagnostics.
+- **The panel** is `DevtoolsPanel` in Xote's own `xote/devtools` entry. It
+  renders in the page, in a shadow root, rather than over a `postMessage`
+  bridge. The CLI is a separate package, `xote-lens` in `lens/` (open
+  question 3).
+- **Open questions.** (1) One `emit` function. (2) Generated computeds carry
+  no site name; sites come from captured stacks. (3) A separate package.
+  (4) `Devtools.preview` is the depth- and length-limited, cycle-safe
+  serialiser.
 
 ## Motivation
 

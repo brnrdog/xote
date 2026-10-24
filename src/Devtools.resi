@@ -78,6 +78,10 @@ type event =
   | Caught({message: string})
   | HydrationWarning({message: string})
   | Probe({site: string, hidden: bool})
+  /* `SSRState.restore` on the client: `node` is the signal restored into,
+     `found` whether the server's state had `key`, `decoded` whether the codec
+     could decode it. A failed restore leaves the signal at its initial value. */
+  | StateRestored({key: string, node: option<int>, found: bool, decoded: bool})
 
 /* `signals` is whether the reactive graph is visible: false when the loaded
    `rescript-signals` predates its debug hooks, in which case only the
@@ -106,7 +110,7 @@ let value: int => option<unknown>
 let scopes: unit => array<scope>
 let snapshot: unit => snapshot
 /* The effects that write to a DOM node: one per binding (its text, each
-   reactive attribute), oldest first. */
+ reactive attribute), oldest first. */
 let writersOf: Dom.element => array<int>
 
 type counts = {

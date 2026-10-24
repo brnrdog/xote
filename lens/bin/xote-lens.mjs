@@ -31,6 +31,8 @@ render options:
   --around <id> --depth <n>                limit --graph to one node's neighbourhood
   --settle <ms>                            keep recording after each --act, for async work
   --html                                   print full markup
+  --markers                                with --ssr/--hydrate: outline the server markup,
+                                           naming each hydration marker
 
 global options:
   --root <dir>                             the project (default: nearest rescript.json upwards)
@@ -43,7 +45,7 @@ A <target> is a compiled module name, optionally with an export path:
 
 function parseArgs(argv) {
   const options = { _: [], act: [], why: [] };
-  const flags = new Set(["json", "ssr", "hydrate", "graph", "html", "digest", "no-build", "no-stacks", "help"]);
+  const flags = new Set(["json", "ssr", "hydrate", "graph", "html", "markers", "digest", "no-build", "no-stacks", "help"]);
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "-h") options.help = true;
@@ -80,7 +82,7 @@ async function runSession(options, target, extra = {}) {
   try {
     const mode = options.hydrate ? "hydrate" : options.ssr ? "ssr" : "client";
     report.render = await session.render({ target, mode });
-    if (!options.json) print(options, report.render, (r) => formatRender(r, { html: options.html }));
+    if (!options.json) print(options, report.render, (r) => formatRender(r, { html: options.html, markers: options.markers }));
     for (const spec of options.act) {
       const act = await session.act({ ...parseAct(spec), settle: Number(options.settle ?? 0) });
       report.acts.push(act);

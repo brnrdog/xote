@@ -10,7 +10,7 @@ import { JSDOM } from "jsdom";
 import { relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { findCompiled, importXote, parseTarget, toPosix } from "./project.mjs";
-import { compareMarkup } from "./markup.mjs";
+import { compareMarkup, markerOutline, parseStateScript } from "./markup.mjs";
 import { renderOnServer, resolveExport, toNode as nodeOf } from "./server.mjs";
 
 const GLOBALS = [
@@ -130,27 +130,37 @@ export async function createSession({ root, captureStacks = true, url = "http://
     const { module: moduleName, path } = parseTarget(target);
     const file = findCompiled(root, moduleName);
     const logStart = consoleLog.length;
+    const result = { target, mode, file: toPosix(relative(root, file)), status };
+
+    /* The server half first, in its own DOM-less process; for hydration its
+       state payload is in place before the app's modules load, as it would be
+       in a page, so module-level SSRState.signal calls restore from it. */
+    let server = null;
+    if (mode !== "client") {
+      server = await renderOnServer(root, target);
+      result.serverHtml = server.html;
+      result.stateScript = server.stateScript;
+      result.outline = markerOutline(server.html);
+      for (const entry of server.log) consoleLog.push({ ...entry, message: `[server] ${entry.message}` });
+      if (mode === "hydrate") dom.window.__XOTE_STATE__ = parseStateScript(server.stateScript);
+    }
+
+    const since = history().length;
     const module = await import(pathToFileURL(file).href);
     const value = resolveExport(module, path);
     const container = document.getElementById("root");
-    const result = { target, mode, file: toPosix(relative(root, file)), status };
 
     if (mode === "client") {
       xote.View.mount(toNode(value), container);
-    } else {
-      const server = await renderOnServer(root, target);
-      result.serverHtml = server.html;
-      result.stateScript = server.stateScript;
-      for (const entry of server.log) consoleLog.push({ ...entry, message: `[server] ${entry.message}` });
-      if (mode === "hydrate") {
-        container.innerHTML = server.html;
-        xote.Hydration.hydrate(() => toNode(value), container, undefined);
-        /* What the client renders on its own, hidden from devtools, against
-           the markup the server produced. */
-        const fresh = document.createElement("div");
-        Devtools.mute(() => xote.View.mount(toNode(value), fresh));
-        result.mismatches = compareMarkup(server.html, fresh.innerHTML);
-      }
+    } else if (mode === "hydrate") {
+      container.innerHTML = server.html;
+      xote.Hydration.hydrate(() => toNode(value), container, undefined);
+      /* What the client renders on its own, hidden from devtools, against
+         the markup the server produced. */
+      const fresh = document.createElement("div");
+      Devtools.mute(() => xote.View.mount(toNode(value), fresh));
+      result.mismatches = compareMarkup(server.html, fresh.innerHTML);
+      result.state = stateReport(dom.window.__XOTE_STATE__ ?? {}, history().slice(since));
     }
     rendered = { target, mode };
     if (mode !== "ssr") result.html = container.innerHTML;
@@ -164,7 +174,48 @@ export async function createSession({ root, captureStacks = true, url = "http://
         path: mismatch.path,
       });
     }
+    for (const entry of result.state ?? []) {
+      const signal = entry.node?.name ? `signal "${entry.node.name}"` : entry.node ? `signal #${entry.node.id}` : "signal";
+      if (entry.restored && !entry.inPayload) {
+        result.diagnostics.push({
+          rule: "ssr-state-missing",
+          severity: "warning",
+          message: `the client restores "${entry.key}" into ${signal}, but the server never registered it, so the signal keeps its initial value. Register it on the server too (SSRState.sync and SSRState.signal do both).`,
+        });
+      } else if (entry.restored && !entry.decoded) {
+        result.diagnostics.push({
+          rule: "ssr-state-decode-failed",
+          severity: "error",
+          message: `the server sent ${JSON.stringify(entry.server)} for "${entry.key}", which the client's codec cannot decode, so ${signal} silently keeps its initial value. Use the same codec on both sides.`,
+        });
+      } else if (!entry.restored) {
+        result.diagnostics.push({
+          rule: "ssr-state-unrestored",
+          severity: "warning",
+          message: `the server sent "${entry.key}" but nothing on the client restored it. Restore it under the same id (SSRState.sync and SSRState.signal do both), or stop registering it.`,
+        });
+      }
+    }
     return result;
+  }
+
+  /* Join the server's payload with what the client restored. */
+  function stateReport(payload, events) {
+    const restored = new Map();
+    for (const event of events) if (event.type === "StateRestored") restored.set(event.key, event);
+    const keys = new Set([...Object.keys(payload), ...restored.keys()]);
+    return [...keys].map((key) => {
+      const event = restored.get(key);
+      const node = event?.node !== undefined ? describe(event.node) : undefined;
+      return {
+        key,
+        inPayload: key in payload,
+        ...(key in payload ? { server: payload[key] } : {}),
+        restored: Boolean(event),
+        decoded: Boolean(event?.decoded),
+        ...(node ? { node } : {}),
+      };
+    });
   }
 
   function summary() {

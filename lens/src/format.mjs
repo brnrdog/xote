@@ -35,7 +35,7 @@ export function formatCounts(c) {
   ].join(" · ");
 }
 
-export function formatRender(r, { html = false } = {}) {
+export function formatRender(r, { html = false, markers = false } = {}) {
   const out = [];
   const how = { client: "rendered client-side", ssr: "rendered on the server", hydrate: "server-rendered and hydrated" }[r.mode];
   out.push(`${r.target} (${r.file}) ${how}`);
@@ -52,6 +52,18 @@ export function formatRender(r, { html = false } = {}) {
   const markup = r.html ?? r.serverHtml ?? "";
   out.push(`  html: ${html ? markup : truncate(markup, 400)}`);
   if (r.mode !== "client" && r.serverHtml && r.html !== undefined && html) out.push(`  server html: ${r.serverHtml}`);
+  if (r.state?.length) {
+    out.push("  ssr state:");
+    for (const e of r.state) {
+      const into = e.node ? ` → ${nodeLabel(e.node)}` : "";
+      const status = !e.inPayload ? "restored, but the server never sent it" : !e.restored ? "sent, never restored" : e.decoded ? "restored" : "could not be decoded";
+      out.push(`    "${e.key}"${e.inPayload ? ` = ${JSON.stringify(e.server)}` : ""}: ${status}${into}`);
+    }
+  }
+  if (r.outline && markers) {
+    out.push("  server markup:");
+    for (const line of r.outline) out.push(`    ${line}`);
+  }
   if (r.mismatches?.length) {
     out.push(`  hydration: ${plural(r.mismatches.length, "mismatch", "mismatches")}`);
     for (const m of r.mismatches) out.push(`    ${m.path}: server ${m.server}, client ${m.client}`);

@@ -96,3 +96,54 @@ export function compareMarkup(serverHtml, clientHtml) {
   compare(parse(serverHtml), parse(clientHtml), [], out);
   return out;
 }
+
+/* The JSON inside SSRState.generateScript's `<script>`. */
+export function parseStateScript(script) {
+  const match = /window\.__XOTE_STATE__=([\s\S]*);<\/script>/.exec(script ?? "");
+  if (!match) return {};
+  try {
+    return JSON.parse(match[1].replaceAll("<\\/script>", "</script>").replaceAll("<\\!--", "<!--"));
+  } catch {
+    return {};
+  }
+}
+
+const MARKERS = {
+  $: "reactive text",
+  "#": "reactive fragment (tracked block, Show, Switch, …)",
+  kl: "keyed list",
+  lc: "component",
+};
+
+/* Server markup as an indented outline, with each hydration marker named:
+   what the client's hydration walker will look for, and where. */
+export function markerOutline(html, { limit = 200 } = {}) {
+  const lines = [];
+  const walk = (node, depth) => {
+    for (const child of node.childNodes) {
+      if (lines.length >= limit) return;
+      const pad = "  ".repeat(depth);
+      if (child.nodeType === 8) {
+        const data = child.data;
+        if (data.startsWith("/")) {
+          depth = Math.max(0, depth - 1);
+          lines.push(`${"  ".repeat(depth)}<!--${data}-->`);
+        } else {
+          const meaning = data.startsWith("k:") ? `keyed row "${data.slice(2)}"` : MARKERS[data] ?? "comment";
+          lines.push(`${pad}<!--${data}-->  ${meaning}`);
+          depth++;
+        }
+      } else if (child.nodeType === 3) {
+        if (child.data.trim()) lines.push(`${pad}${JSON.stringify(child.data.length > 60 ? child.data.slice(0, 57) + "..." : child.data)}`);
+      } else if (child.nodeType === 1) {
+        const id = child.getAttribute("id");
+        const cls = child.getAttribute("class");
+        lines.push(`${pad}<${child.tagName.toLowerCase()}${id ? `#${id}` : ""}${cls ? `.${cls.split(/\s+/).join(".")}` : ""}>`);
+        walk(child, depth + 1);
+      }
+    }
+  };
+  walk(parse(html), 0);
+  if (lines.length >= limit) lines.push("…");
+  return lines;
+}

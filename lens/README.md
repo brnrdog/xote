@@ -47,6 +47,17 @@ Sites are `file:line:col` in the compiled `.res.mjs`, which sits next to its `.r
 
 `--ssr` renders on a server process with no DOM, so `SSRContext.isServer` really is true. `--hydrate` then hydrates that markup in the page and compares it with what the client renders on its own. Each difference is a `hydration-mismatch` error, at a path like `div#greeting > p [class]`.
 
+In hydrate mode the server's `SSRState` payload is put in the page before the app's modules load, as a real page would have it. Each key is reported with its server value and the client signal it was restored into. A key the client cannot decode, never restores, or restores without the server having sent it is a diagnostic. `--markers` adds an outline of the server markup that names every hydration marker (`<!--$-->` reactive text, `<!--kl-->` keyed list, `<!--k:a-->` keyed row "a", …):
+
+```
+$ xote-lens render Stateful --hydrate
+  ssr state:
+    "visits" = 42: restored → signal "visits"
+    "theme" = "dark": could not be decoded → signal "theme"
+    "orphan" = true: sent, never restored
+    "cart": restored, but the server never sent it → signal "cart"
+```
+
 ### Diagnostics
 
 | Rule | From | Finds |
@@ -62,6 +73,9 @@ Sites are `file:line:col` in the compiled `.res.mjs`, which sits next to its `.r
 | `undisposed-computed` | `render`/`act` | A computed still subscribed after its scope was released |
 | `unowned-effect` | `render`/`act` | An effect created inside another node's run, with no scope to own it |
 | `hydration-mismatch` | `render --hydrate` | Server markup that differs from the client's |
+| `ssr-state-decode-failed` | `render --hydrate` | A server state value the client's codec cannot decode (the signal silently keeps its initial value) |
+| `ssr-state-unrestored` | `render --hydrate` | A key the server sends that nothing on the client restores |
+| `ssr-state-missing` | `render --hydrate` | A key the client restores that the server never registered |
 | `console` | `render`/`act` | Anything the app printed with `console.warn` or `console.error` |
 
 `check` reads the site map the ppx writes when given `-sitemap`:

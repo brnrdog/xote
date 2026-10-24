@@ -244,6 +244,32 @@ await test("hydrate reports where server and client markup differ", async () => 
   equal(json.render.mismatches.map((m) => m.path), ["div#greeting > p [class]", "div#greeting > p > #text"], "paths");
   equal(json.render.diagnostics.filter((d) => d.rule === "hydration-mismatch").length, 2, "diagnostics");
 });
+await test("hydrate reports each server state key and what the client did with it", async () => {
+  const { json } = await lensJson(["render", "Stateful", "--hydrate"]);
+  const state = Object.fromEntries(json.render.state.map((e) => [e.key, e]));
+  equal([state.visits.server, state.visits.restored, state.visits.decoded], [42, true, true], "visits");
+  equal([state.theme.server, state.theme.decoded], ["dark", false], "theme");
+  equal([state.cart.inPayload, state.cart.restored], [false, true], "cart");
+  equal([state.orphan.inPayload, state.orphan.restored], [true, false], "orphan");
+  equal(
+    json.render.diagnostics.filter((d) => d.rule.startsWith("ssr-state")).map((d) => d.rule),
+    ["ssr-state-decode-failed", "ssr-state-unrestored", "ssr-state-missing"],
+    "rules",
+  );
+  assert(json.render.html.includes(">42<"), "the restored value renders");
+});
+await graphTest("server state keys name the client signal they restored into", async () => {
+  const { json } = await lensJson(["render", "Stateful", "--hydrate"]);
+  equal(json.render.state.find((e) => e.key === "visits").node?.name, "visits", "visits node");
+  equal(json.render.state.find((e) => e.key === "cart").node?.name, "cart", "cart node");
+});
+await test("the server markup outline names each hydration marker", async () => {
+  const { json } = await lensJson(["render", "Stateful", "--ssr"]);
+  const outline = json.render.outline.join("\n");
+  for (const expected of ["<!--lc-->  component", "<!--$-->  reactive text", "<!--kl-->  keyed list", '<!--k:a-->  keyed row "a"']) {
+    assert(outline.includes(expected), `missing ${expected} in\n${outline}`);
+  }
+});
 await test("markup comparison ignores hydration markers and fragment wrappers", () => {
   equal(compareMarkup('<!--$--><p>a</p><!--kl--><!--k:x--><li>x</li><!--/kl-->', '<div style="display: contents"><p>a</p></div><li>x</li>'), [], "no differences");
 });

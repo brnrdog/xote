@@ -30,6 +30,9 @@ type event =
   | HydrationWarning({message: string})
   /* A `View.probe` site was evaluated; `hidden` is whether it read a signal. */
   | Probe({site: string, hidden: bool})
+  /* `SSRState.restore` on the client: whether the server's state had `key`,
+   and whether the codec could decode it. */
+  | StateRestored({key: string, signal: Obj.t, found: bool, decoded: bool})
 
 let enabled: ref<bool> = ref(false)
 let listener: ref<option<event => unit>> = ref(None)

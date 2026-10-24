@@ -216,6 +216,15 @@ let describe = (event: Devtools.event): option<(string, string)> =>
   | Caught({message}) => Some(("issue", `caught: ${message}`))
   | HydrationWarning({message}) => Some(("issue", `hydration: ${message}`))
   | Probe({site, hidden: true}) => Some(("issue", `hidden read: ${site}`))
+  | StateRestored({key, found: false}) =>
+    Some(("issue", `ssr state: "${key}" was restored on the client, but the server never sent it`))
+  | StateRestored({key, decoded: false}) =>
+    Some(("issue", `ssr state: "${key}" could not be decoded; the signal kept its initial value`))
+  | StateRestored({key, node}) =>
+    Some((
+      "state",
+      `ssr state: "${key}" restored${node->Option.mapOr("", id => " into " ++ label(id))}`,
+    ))
   | _ => None
   }
 
