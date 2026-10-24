@@ -118,9 +118,6 @@ let searchItems: array<searchItem> = [
   {title: "MDX Support", path: "/docs/advanced/mdx-support", section: "Advanced"},
   {title: "Batching", path: "/docs/advanced/batching", section: "Advanced"},
   {title: "Technical Overview", path: "/docs/technical-overview", section: "Advanced"},
-  {title: "Devtools Overview", path: "/docs/devtools/overview", section: "Devtools"},
-  {title: "In-Page Panel", path: "/docs/devtools/panel", section: "Devtools"},
-  {title: "xote-lens CLI and MCP", path: "/docs/devtools/xote-lens", section: "Devtools"},
   {title: "Changelog", path: "/docs/changelog", section: "Project"},
 ]
 

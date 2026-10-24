@@ -186,27 +186,6 @@ const routes = [
     section: 'Advanced',
   },
   {
-    path: '/docs/devtools/overview',
-    title: 'Devtools - xote Reactive Graph, Budgets and Leaks',
-    description:
-      'Inspect what each xote update wrote, ran and changed, explain why, assert reactive budgets in tests, and find leaks.',
-    section: 'Devtools',
-  },
-  {
-    path: '/docs/devtools/panel',
-    title: 'In-Page Panel - xote Devtools',
-    description:
-      'Mount the xote devtools panel to inspect the reactive graph, a timeline of updates, scopes and issues in the running app.',
-    section: 'Devtools',
-  },
-  {
-    path: '/docs/devtools/xote-lens',
-    title: 'xote-lens CLI and MCP - xote Devtools',
-    description:
-      'Render and drive xote components headlessly, explain updates, check hydration and SSR state, from a terminal or an AI agent over MCP.',
-    section: 'Devtools',
-  },
-  {
     path: '/docs/changelog',
     title: 'Changelog - xote Releases',
     description:
