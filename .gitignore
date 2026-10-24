@@ -31,3 +31,7 @@ bundle-size-*.json
 /tests/consumer/node_modules/
 /tests/consumer/lib/
 /tests/consumer/probe/
+
+# xote-lens test fixture (generated)
+/lens/test/fixture/node_modules/
+/lens/test/fixture/lib/

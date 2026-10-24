@@ -1,0 +1,5 @@
+{
+  "name": "xote-lens-fixture",
+  "private": true,
+  "description": "A small Xote app the xote-lens tests inspect. Built by ../run.mjs."
+}
