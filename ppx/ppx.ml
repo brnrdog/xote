@@ -358,9 +358,96 @@ let site_of (loc : Location.t) : string =
   if p.Lexing.pos_lnum <= 0 then file
   else Printf.sprintf "%s:%d:%d" file p.Lexing.pos_lnum (p.Lexing.pos_cnum - p.Lexing.pos_bol + 1)
 
+(* ---- the site map --------------------------------------------------------
+   With `-sitemap`, every decision the rewriter makes is recorded against the
+   source location it was made at, and written out as JSON beside the
+   compiler's output: what was thunked, coerced, tracked or probed, and which
+   user-component props stayed one-shot reads. Devtools read it to explain a
+   component without re-implementing this analysis. It is a side output only:
+   the rewritten AST is the same with or without the flag. *)
+let sitemap_enabled = ref false
+let sites : (int * int * string * string * (string * string) list) list ref = ref []
+
+let record_site (kind : string) (loc : Location.t) (extra : (string * string) list) =
+  let p = loc.Location.loc_start in
+  (* A node the compiler synthesised has no source position worth naming. *)
+  if !sitemap_enabled && p.Lexing.pos_fname <> "_none_" && p.Lexing.pos_lnum > 0 then begin
+    sites := (p.Lexing.pos_lnum, p.Lexing.pos_cnum, kind, site_of loc, extra) :: !sites
+  end
+
+(* The modules the traversal is inside, innermost first, to name components. *)
+let module_path : string list ref = ref []
+
+let json_string (s : string) : string =
+  let b = Buffer.create (String.length s + 2) in
+  Buffer.add_char b '"';
+  String.iter
+    (fun c ->
+      match c with
+      | '"' -> Buffer.add_string b "\\\""
+      | '\\' -> Buffer.add_string b "\\\\"
+      | '\n' -> Buffer.add_string b "\\n"
+      | c when Char.code c < 0x20 -> Buffer.add_string b (Printf.sprintf "\\u%04x" (Char.code c))
+      | c -> Buffer.add_char b c)
+    s;
+  Buffer.add_char b '"';
+  Buffer.contents b
+
+let sitemap_json (file : string) : string =
+  let entry (_, _, kind, site, extra) =
+    let fields =
+      ("kind", kind) :: ("site", site) :: extra
+      |> List.map (fun (k, v) -> json_string k ^ ": " ^ json_string v)
+    in
+    "    { " ^ String.concat ", " fields ^ " }"
+  in
+  let module_name = Filename.remove_extension (Filename.basename file) in
+  Printf.sprintf "{\n  \"module\": %s,\n  \"file\": %s,\n  \"sites\": [\n%s\n  ]\n}\n"
+    (json_string module_name) (json_string file)
+    (String.concat ",\n"
+       (List.map entry
+          (List.stable_sort
+             (fun (l1, c1, _, _, _) (l2, c2, _, _, _) -> compare (l1, c1) (l2, c2))
+             (List.rev !sites))))
+
+(* The map goes to `lib/xote-sitemap/<Module>.json` under the project root,
+   found by walking up from the source file to its `rescript.json`. *)
+let write_sitemap (file : string) =
+  let rec root dir depth =
+    if depth > 32 then None
+    else if Sys.file_exists (Filename.concat dir "rescript.json") then Some dir
+    else
+      let parent = Filename.dirname dir in
+      if parent = dir then None else root parent (depth + 1)
+  in
+  let abs = if Filename.is_relative file then Filename.concat (Sys.getcwd ()) file else file in
+  match root (Filename.dirname abs) 0 with
+  | None -> ()
+  | Some dir ->
+    let mkdir d = if not (Sys.file_exists d) then Sys.mkdir d 0o755 in
+    let lib = Filename.concat dir "lib" in
+    let out = Filename.concat lib "xote-sitemap" in
+    (try
+       mkdir lib;
+       mkdir out;
+       let rel =
+         let n = String.length dir in
+         if String.length abs > n && String.sub abs 0 n = dir then
+           String.sub abs (n + 1) (String.length abs - n - 1)
+         else file
+       in
+       let oc =
+         open_out_bin
+           (Filename.concat out (Filename.remove_extension (Filename.basename file) ^ ".json"))
+       in
+       output_string oc (sitemap_json rel);
+       close_out oc
+     with Sys_error _ -> ())
+
 let view_probe = Longident.Ldot (Longident.Lident "View", "probe")
 let str_const s = mkexp (Pexp_constant (Pconst_string (s, None)))
-let wrap_probe (e : expression) : expression =
+let wrap_probe ?(role = "leaf") (e : expression) : expression =
+  record_site "probe" e.pexp_loc [ ("role", role) ];
   apply (ident view_probe) [ str_const (site_of e.pexp_loc); thunk e ]
 
 (* ---- render callbacks ----------------------------------------------------
@@ -444,8 +531,13 @@ let should_probe (env : env) (v : expression) : bool =
 
 (* A value-position leaf: thunk a visible read, probe an unresolvable call,
    leave everything else exactly as written. *)
-let leaf_value (env : env) (v : expression) : expression =
-  if should_thunk env v then thunk v else if should_probe env v then wrap_probe v else v
+let leaf_value ?(record = fun (_ : expression) -> ()) (env : env) (v : expression) : expression =
+  if should_thunk env v then begin
+    record v;
+    thunk v
+  end
+  else if should_probe env v then wrap_probe v
+  else v
 
 (* `@xote.component` is the single annotation: it derives props exactly like
    `@jsx.component` (which we emit for the JSX transform to expand) *and*
@@ -454,6 +546,16 @@ let leaf_value (env : env) (v : expression) : expression =
 let is_xote_component ((name, _) : attribute) = name.Location.txt = "xote.component"
 let strip_xote_component = List.filter (fun a -> not (is_xote_component a))
 let jsx_component_attr : attribute = (mkloc "jsx.component", PStr [])
+
+(* `Card.make` -> "Card", for the site map. *)
+let component_name (f : expression) : string =
+  let rec flat = function
+    | Longident.Lident s -> s
+    | Longident.Ldot (p, "make") -> flat p
+    | Longident.Ldot (p, s) -> flat p ^ "." ^ s
+    | Longident.Lapply (a, _) -> flat a
+  in
+  match f.pexp_desc with Pexp_ident { txt; _ } -> flat txt | _ -> "?"
 
 (* ---- decomposition ------------------------------------------------------ *)
 let rec fine_node (env : env) (e : expression) : expression =
@@ -469,7 +571,7 @@ let rec fine_node (env : env) (e : expression) : expression =
     (* user component: children are node position, but its labelled props land
        in the component's *typed props record*, so thunking them would change
        their type and break compilation with a baffling error *)
-    { e with pexp_desc = Pexp_apply (f, List.map (component_arg env) args) }
+    { e with pexp_desc = Pexp_apply (f, List.map (component_arg env (component_name f)) args) }
   | None when is_jsx_fragment e ->
     (* A fragment `<>…</>` is a JSX-tagged `::`/`[]` list, not a Pexp_apply, so
        jsx_parts misses it. Recurse fine_node into each child exactly like an
@@ -505,7 +607,10 @@ let rec fine_node (env : env) (e : expression) : expression =
           a local) is ordinary UI code, so this path matters as much as the
           reactive one. *)
        let branches = decompose_branches env e in
-       if reads_signal_eager env e then wrap_tracked branches
+       if reads_signal_eager env e then begin
+         record_site "tracked" e.pexp_loc [];
+         wrap_tracked branches
+       end
        else
          (* No visible read, so no `View.tracked`. If the condition/scrutinee is
             not provably call-free, the structure may in fact depend on a signal
@@ -533,6 +638,7 @@ let rec fine_node (env : env) (e : expression) : expression =
           contains is node position too. So descend first (see
           decompose_node_shaped), then coerce the result. *)
           let e = decompose_node_shaped env e in
+          record_site "child" e.pexp_loc [ ("reactive", string_of_bool (should_thunk env e)) ];
           wrap_child (leaf_value env e)))
 
 (* The binding forms a node-position expression can be wrapped in. Each threads
@@ -595,7 +701,7 @@ and decompose_here (env : env) (e : expression) : expression =
    control-flow child in `View.probe`. These drive the structural swap, so a
    read hidden in one of them freezes the whole branch, not just one value. *)
 and probe_condition (env : env) (e : expression) : expression =
-  let p (v : expression) = if should_probe env v then wrap_probe v else v in
+  let p (v : expression) = if should_probe env v then wrap_probe ~role:"condition" v else v in
   match e.pexp_desc with
   | Pexp_ifthenelse (c, t, eo) -> { e with pexp_desc = Pexp_ifthenelse (p c, t, eo) }
   | Pexp_match (s, cases) ->
@@ -623,10 +729,15 @@ and element_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * ex
     | Labelled _ | Optional _ ->
       (* attribute: value position. Thunk it if reactive so it lowers to a
          computed attribute; leave plain JSX/static/already-function values. *)
-      if is_non_leaf_label lbl then (lbl, v) else (lbl, leaf_value env v)
+      if is_non_leaf_label lbl then (lbl, v)
+      else
+        let attr = match label_name lbl with Some n -> n | None -> "" in
+        let record (v : expression) = record_site "thunked-attr" v.pexp_loc [ ("attr", attr) ] in
+        (lbl, leaf_value ~record env v)
     | Nolabel -> (lbl, v)
 
-and component_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
+and component_arg (env : env) (component : string) ((lbl, v) : arg_label * expression)
+    : arg_label * expression =
   (* User-component props are left untouched: an eager `Signal.get(x)` prop is a
      legitimate one-shot read of a plain-typed prop (pass the signal itself when
      the prop should be reactive). The exceptions are node-shaped values, which
@@ -637,7 +748,13 @@ and component_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * 
   if is_children_label lbl then (lbl, map_children (fine_node env) v)
   else if jsx_parts v <> None || is_jsx_fragment v then (lbl, fine_node env v)
   else if is_render_callback v then (lbl, fine_callback env v)
-  else (lbl, v)
+  else begin
+    (match label_name lbl with
+     | Some prop when should_thunk env v ->
+       record_site "one-shot-prop" v.pexp_loc [ ("component", component); ("prop", prop) ]
+     | _ -> ());
+    (lbl, v)
+  end
 
 (* Decompose the body of a render callback, walking past its parameters (and
    the uncurried `Function$` wrapper) to the node-position body. *)
@@ -650,10 +767,11 @@ and fine_callback (env : env) (e : expression) : expression =
   | _ -> fine_node env e
 
 and value_arg (env : env) ((lbl, v) : arg_label * expression) : arg_label * expression =
-  if is_children_label lbl then (lbl, map_children (leaf_value env) v)
+  let record (v : expression) = record_site "thunked-value" v.pexp_loc [] in
+  if is_children_label lbl then (lbl, map_children (leaf_value ~record env) v)
   else
     match lbl with
-    | Labelled "value" -> (lbl, leaf_value env v)
+    | Labelled "value" -> (lbl, leaf_value ~record env v)
     | _ -> (lbl, v)
 
 (* Map [f] over a JSX children list (a `::`/`[]` spine); tolerate a bare
@@ -703,6 +821,15 @@ and map_expr (env : env) (e : expression) : expression =
 and map_vb (env : env) (vb : value_binding) : value_binding =
   match List.find_opt is_xote_component vb.pvb_attributes with
   | Some _ ->
+    let binding = match vb.pvb_pat.ppat_desc with Ppat_var { txt; _ } -> txt | _ -> "make" in
+    let path = List.rev !module_path in
+    let name =
+      match (path, binding) with
+      | [], b -> b
+      | p, "make" -> String.concat "." p
+      | p, b -> String.concat "." p ^ "." ^ b
+    in
+    record_site "component" vb.pvb_loc [ ("name", name) ];
     (* swap @xote.component -> @jsx.component and decompose the returned JSX *)
     { vb with
       pvb_attributes = jsx_component_attr :: strip_xote_component vb.pvb_attributes;
@@ -823,7 +950,11 @@ and map_si (env : env) si =
   | Pstr_eval (e, attrs) -> { si with pstr_desc = Pstr_eval (map_expr env e, attrs) }
   | _ -> si
 
-and map_mb (env : env) mb = { mb with pmb_expr = map_mod env mb.pmb_expr }
+and map_mb (env : env) mb =
+  module_path := mb.pmb_name.Location.txt :: !module_path;
+  let expr = map_mod env mb.pmb_expr in
+  module_path := List.tl !module_path;
+  { mb with pmb_expr = expr }
 and map_mod (env : env) me =
   match me.pmod_desc with
   | Pmod_structure s -> { me with pmod_desc = Pmod_structure (map_structure env s) }
@@ -879,7 +1010,9 @@ let () =
      let structure = (Obj.magic payload : structure) in
      source_file := Filename.basename name;
      fine_grain_helpers := structure_has_component structure;
-     output_value oc (map_structure empty_env structure)
+     sitemap_enabled := Array.exists (fun a -> a = "-sitemap") Sys.argv;
+     output_value oc (map_structure empty_env structure);
+     if !sitemap_enabled && !sites <> [] then write_sitemap name
    else output_value oc payload);
   close_out oc
 

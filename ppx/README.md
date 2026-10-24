@@ -372,6 +372,28 @@ data={Obj.magic({"theme": () => Signal.get(theme)})} /* reactive entry */
 data={Obj.magic({"theme": Signal.get(theme)})}       /* one-shot entry */
 ```
 
+## Site map
+
+Pass `-sitemap` to have the ppx write down every decision it makes:
+
+```json
+"ppx-flags": [["xote/ppx/ppx", "-sitemap"]]
+```
+
+Each module containing `@xote.component` gets `lib/xote-sitemap/<Module>.json` under the project root, listing in source order:
+
+| `kind` | Extra fields | Meaning |
+|---|---|---|
+| `component` | `name` | An annotated component |
+| `thunked-attr` | `attr` | An attribute that eagerly read a signal, thunked into a computed attribute |
+| `thunked-value` | | A `<View.Text/Int/Float/Bool>` child or `value` that was thunked |
+| `child` | `reactive` | A bare `{…}` child wrapped in `View.child`; `reactive` is whether it was also thunked |
+| `tracked` | | An `if`/`switch` in child position lowered to `View.tracked` |
+| `probe` | `role` (`leaf` or `condition`) | An expression wrapped in `View.probe` because a call in it could not be resolved |
+| `one-shot-prop` | `component`, `prop` | A user-component prop that eagerly reads a signal and so stays a one-shot read |
+
+Every entry has a `site` (`File.res:line:column`) in the same format `View.probe` reports. The map is a side output only: the emitted JavaScript is identical with or without the flag. The `xote-lens` devtools read it to explain a component (`xote-lens expand`) and to lint one-shot props and probes (`xote-lens check`).
+
 ## How it works
 
 Same mechanism as `rescript-tracked-ppx` in PR #34: ReScript 12 hands an
