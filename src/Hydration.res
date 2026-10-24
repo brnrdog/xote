@@ -279,7 +279,7 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
 
       let region = RuntimeRender.makeRegion()
       if RuntimeDevtools.enabled.contents {
-        RuntimeDevtools.scopeCreated(region, #List, ~parent=RuntimeOwner.currentOwner.contents)
+        RuntimeDevtools.scopeCreated(region, #list, ~parent=RuntimeOwner.currentOwner.contents)
       }
       /* Registered before any row hydrates, as on the render path. */
       RuntimeOwner.track(RuntimeOwner.addDisposer, () => RuntimeRender.disposeRegion(region))
@@ -317,7 +317,7 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
             | (Some(item), Some(element)) => {
                 let owner = RuntimeOwner.createOwner()
                 if RuntimeDevtools.enabled.contents {
-                  RuntimeDevtools.scopeCreated(owner, #HydratedRow, ~key, ~parent=Some(region))
+                  RuntimeDevtools.scopeCreated(owner, #hydratedRow, ~key, ~parent=Some(region))
                 }
                 /* Tracked before it hydrates, as on the render path. */
                 region.items->Map.set(

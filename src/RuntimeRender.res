@@ -315,7 +315,7 @@ let reconcileKeyed = (
   let buildInto = (row: keyedItem<Obj.t>, item: Obj.t) => {
     let owner = createOwner()
     if RuntimeDevtools.enabled.contents {
-      RuntimeDevtools.scopeCreated(owner, #Row, ~key=row.key, ~parent=Some(region))
+      RuntimeDevtools.scopeCreated(owner, #row, ~key=row.key, ~parent=Some(region))
     }
     row.item = item
     row.owner = owner
@@ -532,7 +532,7 @@ and render = (node: node): Dom.element => {
       let endAnchor = RuntimeDom.createComment(" keyed-list-end ")
       let region = makeRegion()
       if RuntimeDevtools.enabled.contents {
-        RuntimeDevtools.scopeCreated(region, #List, ~parent=currentOwner.contents)
+        RuntimeDevtools.scopeCreated(region, #list, ~parent=currentOwner.contents)
       }
       /* Released with whatever renders the list — registered before any row
          renders, so a row that fails partway is still reachable from here. */
@@ -559,7 +559,7 @@ and render = (node: node): Dom.element => {
         }
         region.items->Map.set(key, row)
         if RuntimeDevtools.enabled.contents {
-          RuntimeDevtools.scopeCreated(row.owner, #Row, ~key, ~parent=Some(region))
+          RuntimeDevtools.scopeCreated(row.owner, #row, ~key, ~parent=Some(region))
         }
         let element = runWithOwner(row.owner, () => renderInRegion(region, renderItem(item)))
         row.element = element
@@ -654,7 +654,7 @@ and driveSignalFragment = (~container: Dom.element, ~signal: Signal.t<array<node
   ownComputed(signal)
   track(addDisposer, () => disposeRegion(region))
   if RuntimeDevtools.enabled.contents {
-    RuntimeDevtools.scopeCreated(region, #Fragment, ~parent=currentOwner.contents)
+    RuntimeDevtools.scopeCreated(region, #fragment, ~parent=currentOwner.contents)
     RuntimeDevtools.bind(container, "fragment")
   }
 
@@ -662,7 +662,7 @@ and driveSignalFragment = (~container: Dom.element, ~signal: Signal.t<array<node
     RuntimeLifecycle.rendering(() => {
       let passOwner = createOwner()
       if RuntimeDevtools.enabled.contents {
-        RuntimeDevtools.scopeCreated(passOwner, #Pass, ~parent=Some(region))
+        RuntimeDevtools.scopeCreated(passOwner, #pass, ~parent=Some(region))
       }
       let children = runWithOwner(passOwner, () => Signal.get(signal))
       renderFragmentChildren(~container, ~children, ~region, ~passOwner)

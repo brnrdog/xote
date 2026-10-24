@@ -15,7 +15,7 @@
     "README.md"
   ],
   "scripts": {
-    "test": "sh test/fixture/setup.sh && node test/run.mjs"
+    "test": "sh test/fixture/setup.sh && node --test-reporter=spec test/run.mjs"
   },
   "dependencies": {
     "jsdom": "^28.1.0"

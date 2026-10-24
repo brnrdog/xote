@@ -2,58 +2,47 @@
 // scan of the sources for patterns AGENTS.md warns about.
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
-import { build, toPosix, walk } from "./project.mjs";
+import { join } from "node:path";
+import { build, relPath, toPosix, walk } from "./project.mjs";
 
-const stripAnsi = (text) => text.replace(/\x1b\[[0-9;]*m/g, "");
+const EFFECT_FIX =
+  "An effect body must return option<unit => unit>: end it with None, or Some(cleanup) to run cleanup before the next run and on disposal.";
 
 /* Parse ReScript's build output into diagnostics. Each finding opens with a
    headline ("We've found a bug for you!" / "Warning number N"), then a
    location line, a code excerpt, and the message. */
 export function parseCompilerOutput(output, root) {
-  const lines = stripAnsi(output).split("\n");
   const out = [];
   let current = null;
   const flush = () => {
     if (!current) return;
+    const { severity, number, site } = current;
     const message = current.message.join("\n").trim().replace(/\n{3,}/g, "\n\n");
-    const diagnostic = {
-      rule: current.severity === "error" ? "compile-error" : `compiler-warning-${current.number}`,
-      severity: current.severity,
+    const unitEffect = severity === "error" && /option<unit => unit>/.test(message);
+    out.push({
+      rule: unitEffect ? "effect-returns-unit" : severity === "error" ? "compile-error" : `compiler-warning-${number}`,
+      severity,
       message,
-      ...(current.site ? { site: current.site } : {}),
-    };
-    if (current.severity === "error" && /option<unit => unit>/.test(message)) {
-      diagnostic.rule = "effect-returns-unit";
-      diagnostic.fix =
-        "An effect body must return option<unit => unit>: end it with None, or Some(cleanup) to run cleanup before the next run and on disposal.";
-    }
-    out.push(diagnostic);
+      ...(site ? { site } : {}),
+      ...(unitEffect ? { fix: EFFECT_FIX } : {}),
+    });
     current = null;
   };
-  for (const raw of lines) {
+  for (const raw of output.replace(/\x1b\[[0-9;]*m/g, "").split("\n")) {
     const line = raw.replace(/\r$/, "");
     const trimmed = line.trim();
     const warning = trimmed.match(/^Warning number (\d+)/);
-    if (/^We've found a bug for you!/.test(trimmed) || warning) {
+    if (warning || /^We've found a bug for you!/.test(trimmed)) {
       flush();
       current = { severity: warning ? "warning" : "error", number: warning?.[1], site: null, message: [], expectLocation: true };
-      continue;
-    }
-    if (!current) continue;
-    if (current.expectLocation && trimmed) {
+    } else if (!current) continue;
+    else if (current.expectLocation && trimmed) {
       const m = trimmed.match(/^(.*?\.resi?):(\d+):(\d+)/);
-      if (m) current.site = `${toPosix(relative(root, m[1]))}:${m[2]}:${m[3]}`;
+      if (m) current.site = `${relPath(root, m[1])}:${m[2]}:${m[3]}`;
       current.expectLocation = false;
-      continue;
-    }
-    if (/^(Incremental build failed|Failed to Compile|Compiled \d+ modules|Parsed \d+ source files|Cleaned)/.test(trimmed)) {
-      flush();
-      continue;
-    }
+    } else if (/^(Incremental build failed|Failed to Compile|Compiled \d+ modules|Parsed \d+ source files|Cleaned)/.test(trimmed)) flush();
     /* Code excerpt lines carry a gutter: "  27 │ ..." or "     ┆ ...". */
-    if (/^\s*\d*\s*[│┆.]\s/.test(line) || /^\s*\d+\s*[│┆]/.test(line)) continue;
-    current.message.push(trimmed);
+    else if (!/^\s*\d*\s*[│┆.]\s/.test(line) && !/^\s*\d+\s*[│┆]/.test(line)) current.message.push(trimmed);
   }
   flush();
   return out;
@@ -95,15 +84,16 @@ export function sitemapDiagnostics(root) {
 }
 
 const JS_GLOBALS = new Set(
-  "arguments this undefined null true false NaN Infinity globalThis window document console Object Array String Number Boolean Symbol Math JSON Date RegExp Error Promise Map Set WeakMap WeakSet WeakRef Reflect Proxy parseInt parseFloat setTimeout clearTimeout setInterval clearInterval queueMicrotask requestAnimationFrame process require module exports new return typeof instanceof function var let const if else for while do switch case break continue default try catch finally throw in of delete void yield await async class extends super import export".split(
-    " ",
-  ),
+  `arguments this undefined null true false NaN Infinity globalThis window document console Object Array String Number
+  Boolean Symbol Math JSON Date RegExp Error Promise Map Set WeakMap WeakSet WeakRef Reflect Proxy parseInt parseFloat
+  setTimeout clearTimeout setInterval clearInterval queueMicrotask requestAnimationFrame process require module exports
+  new return typeof instanceof function var let const if else for while do switch case break continue default try catch
+  finally throw in of delete void yield await async class extends super import export`.split(/\s+/),
 );
 
-/* `%raw` that refers to a surrounding ReScript binding by name works until the
-   compiler renames or inlines that binding, then fails at runtime with a
-   ReferenceError. Flags raw JavaScript naming a top-level `let` of the same
-   file that the raw code does not declare itself. */
+/* `%raw` naming a surrounding ReScript binding works until the compiler
+   renames or inlines it, then fails with a ReferenceError. Flags raw code
+   naming a top-level `let` of its file that it does not declare itself. */
 export function rawDiagnostics(root) {
   const out = [];
   for (const file of walk(root, (name) => name.endsWith(".res"))) {
@@ -121,15 +111,14 @@ export function rawDiagnostics(root) {
       const captured = [...new Set([...stripped.matchAll(/(?<![.\w$])([A-Za-z_$][\w$]*)/g)].map((m) => m[1]))].filter(
         (name) => bindings.has(name) && !declared.has(name) && !JS_GLOBALS.has(name),
       );
-      if (captured.length) {
-        const line = source.slice(0, match.index).split("\n").length;
-        out.push({
-          rule: "raw-captures-binding",
-          severity: "warning",
-          message: `%raw refers to the ReScript binding${captured.length > 1 ? "s" : ""} ${captured.map((c) => `\`${c}\``).join(", ")} by name. The compiler may rename or inline ${captured.length > 1 ? "them" : "it"}, and the code then fails at runtime with a ReferenceError. Write the raw code as a self-contained function literal and pass the value in as an argument.`,
-          site: `${toPosix(relative(root, file))}:${line}:1`,
-        });
-      }
+      if (!captured.length) continue;
+      const many = captured.length > 1;
+      out.push({
+        rule: "raw-captures-binding",
+        severity: "warning",
+        message: `%raw refers to the ReScript binding${many ? "s" : ""} ${captured.map((c) => `\`${c}\``).join(", ")} by name. The compiler may rename or inline ${many ? "them" : "it"}, and the code then fails at runtime with a ReferenceError. Write the raw code as a self-contained function literal and pass the value in as an argument.`,
+        site: `${relPath(root, file)}:${source.slice(0, match.index).split("\n").length}:1`,
+      });
     }
   }
   return out;
@@ -138,15 +127,13 @@ export function rawDiagnostics(root) {
 /* Build the project and gather every static finding. */
 export async function check(root, { skipBuild = false } = {}) {
   const compiled = skipBuild ? { code: 0, output: "" } : await build(root);
-  const compiler = parseCompilerOutput(compiled.output, root);
   const sitemap = sitemapDiagnostics(root);
-  const diagnostics = [...compiler, ...sitemap.diagnostics, ...rawDiagnostics(root)];
+  const diagnostics = [...parseCompilerOutput(compiled.output, root), ...sitemap.diagnostics, ...rawDiagnostics(root)];
   if (!sitemap.found) {
     diagnostics.push({
       rule: "no-sitemap",
       severity: "info",
-      message:
-        'no ppx site map found, so one-shot props and probe sites are not checked. Add "-sitemap" to the ppx flags: "ppx-flags": [["xote/ppx/ppx", "-sitemap"]].',
+      message: 'no ppx site map found, so one-shot props and probe sites are not checked. Add "-sitemap" to the ppx flags: "ppx-flags": [["xote/ppx/ppx", "-sitemap"]].',
     });
   }
   return { ok: compiled.code === 0 && !diagnostics.some((d) => d.severity === "error"), buildExitCode: compiled.code, diagnostics };

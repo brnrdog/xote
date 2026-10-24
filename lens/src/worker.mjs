@@ -1,32 +1,24 @@
-// A session in a child process, driven over IPC. The MCP server forks one per
-// render, so every render starts from freshly loaded modules.
+// A session in a child process, driven over IPC by the MCP server (which
+// forks one per render, so every render loads fresh modules).
 
 import { createSession } from "./session.mjs";
 
 let session = null;
-let root = null;
-
 const methods = {
-  async init(params) {
-    root = params.root;
-    session = await createSession({ root, captureStacks: params.captureStacks ?? true });
+  async init({ root, captureStacks = true }) {
+    session = await createSession({ root, captureStacks });
     return { status: session.status };
   },
-  render: (params) => session.render(params),
-  act: (params) => session.act(params),
-  why: (params) => session.why(params),
-  graph: (params) => session.graph(params),
-  inspect: (params) => session.inspect(params.id),
-  html: (params) => session.html(params.selector),
-  diagnostics: () => session.diagnostics(),
+  inspect: ({ id }) => session.inspect(id),
+  html: ({ selector }) => session.html(selector),
 };
+for (const name of ["render", "act", "why", "graph", "diagnostics"]) methods[name] = (params) => session[name](params);
 
 process.on("message", async ({ id, method, params }) => {
   try {
-    if (!methods[method]) throw new Error(`unknown method ${method}`);
+    if (!Object.hasOwn(methods, method)) throw new Error(`unknown method ${method}`);
     if (method !== "init" && !session) throw new Error("session not initialised");
-    const result = await methods[method](params ?? {});
-    process.send({ id, result });
+    process.send({ id, result: await methods[method](params ?? {}) });
   } catch (error) {
     process.send({ id, error: error?.message ?? String(error) });
   }

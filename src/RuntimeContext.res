@@ -254,7 +254,7 @@ let renderBoundary = (
 ): 'a => {
   let owner = RuntimeOwner.createOwner()
   if RuntimeDevtools.enabled.contents {
-    RuntimeDevtools.scopeCreated(owner, #Boundary, ~parent=RuntimeOwner.currentOwner.contents)
+    RuntimeDevtools.scopeCreated(owner, #boundary, ~parent=RuntimeOwner.currentOwner.contents)
   }
   RuntimeOwner.track(RuntimeOwner.addDisposer, () => RuntimeOwner.disposeOwner(owner))
   let wasRendering = boundary.rendering

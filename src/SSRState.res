@@ -214,21 +214,17 @@ let getClientState = (): Dict.t<JSON.t> => {
 /* Restore a signal from serialized state (client only) */
 let restore = (id: string, signal: Signal.t<'a>, codec: Codec.t<'a>): unit => {
   if SSRContext.isClient {
-    let state = getClientState()
-    let report = (~found, ~decoded) =>
-      if RuntimeDevtools.enabled.contents {
-        RuntimeDevtools.emit(StateRestored({key: id, signal: Obj.magic(signal), found, decoded}))
-      }
-    switch state->Dict.get(id) {
-    | Some(json) =>
-      switch codec.decode(json) {
-      | Some(value) => {
-          Signal.set(signal, value)
-          report(~found=true, ~decoded=true)
-        }
-      | None => report(~found=true, ~decoded=false) /* Silent fallback to default */
-      }
-    | None => report(~found=false, ~decoded=false) /* Silent fallback to default */
+    let json = getClientState()->Dict.get(id)
+    /* A value that is missing or fails to decode leaves the default. */
+    let decoded = switch json->Option.flatMap(codec.decode) {
+    | Some(value) =>
+      Signal.set(signal, value)
+      true
+    | None => false
+    }
+    if RuntimeDevtools.enabled.contents {
+      let found = Option.isSome(json)
+      RuntimeDevtools.emit(StateRestored({key: id, signal: Obj.magic(signal), found, decoded}))
     }
   }
 }
