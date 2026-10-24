@@ -3,3 +3,4 @@
 
 export * from "../src/Devtools.res.mjs";
 export * as Devtools from "../src/Devtools.res.mjs";
+export * as DevtoolsPanel from "../src/DevtoolsPanel.res.mjs";

@@ -250,9 +250,12 @@ let siteOf: string => option<string> = %raw(`function (stack) {
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i]
     if (/rescript-signals|[\\/]xote[\\/](src|dist)[\\/]|node:internal|Devtools/.test(line)) continue
+    /* In a bundle the paths are gone, but chunk names keep the module name. */
+    if (/[\\/](Signal|Computed|Effect|Scheduler|Core|Debug|View|Html|XoteJSX|MaybeSignal|Context|Resource|Hydration|SSR|SSRState|Router|Runtime\w+)\.res[-.]/.test(line)) continue
     var match = line.match(/\(?((?:file:\/\/)?[^\s()]+):(\d+):(\d+)\)?\s*$/)
     if (match) {
-      var file = match[1].replace(/^file:\/\//, "")
+      /* A page's origin says nothing; keep the path. */
+      var file = match[1].replace(/^file:\/\//, "").replace(/^https?:\/\/[^\/]+\//, "")
       try {
         var cwd = typeof process !== "undefined" && process.cwd ? process.cwd() + "/" : ""
         if (cwd && file.indexOf(cwd) === 0) file = file.slice(cwd.length)
@@ -391,7 +394,9 @@ let isMuted = (event: event): bool =>
   | Reconciled({scope}) => state.mutedScopes->Set.has(scope)
   | DomWrite({node: Some(id)}) => isMutedNode(id)
   | DomWrite(_) => state.muteDepth > 0
-  | BatchStart | BatchEnd | Caught(_) | HydrationWarning(_) | Probe(_) => false
+  /* A batch names no node, so it is muted by when it happens. */
+  | BatchStart | BatchEnd => state.muteDepth > 0
+  | Caught(_) | HydrationWarning(_) | Probe(_) => false
   }
 
 let deliver = (event: event): unit =>

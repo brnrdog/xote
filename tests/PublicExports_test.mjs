@@ -35,6 +35,7 @@ const PUBLIC_MODULES = [
   "Context",
   "Resource",
   "Devtools",
+  "DevtoolsPanel",
 ];
 
 function exportedNames(module) {

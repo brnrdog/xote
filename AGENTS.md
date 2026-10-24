@@ -56,7 +56,7 @@ The build process generates:
 - `dist/ssr.{mjs,cjs}` - SSR, SSR state, and SSR context entry
 - `dist/hydration.{mjs,cjs}` - hydration entry
 - `dist/mdx.{mjs,cjs}` - optional MDX integration entry
-- `dist/devtools.{mjs,cjs}` - devtools entry (`Devtools`)
+- `dist/devtools.{mjs,cjs}` - devtools entry (`Devtools`, `DevtoolsPanel`)
 
 ## Architecture
 
@@ -70,7 +70,7 @@ JavaScript package entries are intentionally split by feature:
 - `xote/ssr` exposes `SSR`, `SSRState`, and `SSRContext`.
 - `xote/hydration` exposes hydration only.
 - `xote/mdx` exposes the optional MDX integration.
-- `xote/devtools` exposes `Devtools`. No other entry imports it, so client bundles never carry the devtools data model; only the guarded instrumentation points in the renderer ship there.
+- `xote/devtools` exposes `Devtools` and `DevtoolsPanel`. No other entry imports it, so client bundles never carry the devtools data model; only the guarded instrumentation points in the renderer ship there.
 
 The root `xote` entry is client-focused and does not export router, SSR, hydration, or MDX. Direct source/module subpaths remain available where listed in `package.json`. There is no catch-all `./src/*` export: `package.json` names one `./src/<Module>.res.mjs` entry per public module, so `import "xote/src/RuntimeDom.res.mjs"` fails to resolve even though the ReScript module is reachable.
 
@@ -78,7 +78,7 @@ The root `xote` entry is client-focused and does not export router, SSR, hydrati
 
 **The public API is what the `.resi` interface files in `src/` declare. Nothing else.**
 
-Eighteen modules are public: `View`, `Html`, `XoteJSX`, `MaybeSignal`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Mdx`, `Signal`, `Computed`, `Effect`, `Context`, `Resource`, `Devtools`. All of them except `XoteJSX` ship a `.resi` that lists exactly the values, types and nested modules they export. A `.resi` narrows both the ReScript surface and the emitted JavaScript, so `dist/` stays clean too.
+Nineteen modules are public: `View`, `Html`, `XoteJSX`, `MaybeSignal`, `Prop`, `Route`, `Router`, `SSR`, `SSRContext`, `SSRState`, `Hydration`, `Mdx`, `Signal`, `Computed`, `Effect`, `Context`, `Resource`, `Devtools`, `DevtoolsPanel`. All of them except `XoteJSX` ship a `.resi` that lists exactly the values, types and nested modules they export. A `.resi` narrows both the ReScript surface and the emitted JavaScript, so `dist/` stays clean too.
 
 Everything else in `src/` is an internal `Runtime*` module. Public modules use them but never re-export them — no `module DOM = RuntimeDom` style aliases, because an alias inside a public module republishes the internal.
 
@@ -126,6 +126,7 @@ These three are explicit re-export shims (`src/Signal.res`, `src/Computed.res`, 
 - **`Xote.SSRState`**: State serialization/restoration between server and client. Includes a `Codec` system for type-safe encoding/decoding and a `sync`/`signal` API for seamless server-client state transfer.
 - **`Xote.Hydration`**: Client-side hydration that walks server-rendered DOM, attaches reactive effects, event listeners, and sets up keyed list reconciliation without re-rendering.
 - **`Xote.Devtools`**: The devtools data model (`xote/devtools` entry), behind the `xote-lens` CLI/MCP server and the in-page panel. `install(~captureStacks=?, ())` merges two streams: the reactive graph from `rescript-signals`' debug hooks (`Signals.Debug`, found through the `Symbol.for("rescript-signals.debug")` registry rather than imported, so Xote still compiles against releases without them — `status().signals` says whether they were found) and the renderer's own events from `RuntimeDevtools` (scopes, DOM writes, keyed passes, caught failures, hydration warnings, probes). Nodes and scopes get ids in creation order, so a deterministic program gets the same ids every run. Reads: `snapshot`, `inspect`, `scopes`, `writersOf(element)`, `history`. Analysis: `record(fn)` returns a `trace` with `counts`; `Budget.check(trace, ~effects=?, ~domWrites=?, ...)` asserts them; `why(id)` explains a node's last run as a tree of causes down to the signal writes (with write sites); `leaks()` reports effects/computeds that outlived their scope and unowned effects created inside another run. `mute(fn)` hides what `fn` creates (for a tool's own Xote UI). Install before creating anything reactive.
+- **`Xote.DevtoolsPanel`**: An in-page panel built with Xote over `Devtools` (`xote/devtools` entry). `mount(~target=?, ~expanded=?, ())` returns the unmount function; Ctrl+Shift+X toggles it. Tabs: Graph (nodes with values, edges, scope, site, and `why`), Timeline, Scopes, Issues (leaks, hidden reads, caught failures, hydration warnings), plus an element picker. It renders in a shadow root, builds everything under `Devtools.mute` (including its per-frame flush, whose batch would otherwise re-trigger itself), and applies the app's events once per animation frame, never from inside the app's own update.
 
 **Internal modules** (prefixed `Runtime`, no compatibility guarantee): `RuntimeNode` (the `node`/`attrValue` types and `resolveAttr`/`peekAttr`), `RuntimeRender` (DOM rendering and keyed reconciliation), `RuntimeTemplate` (skeleton cloning for repeated node shapes), `RuntimeContext` (context frames and component evaluation), `RuntimeDom`, `RuntimeOwner`, `RuntimeHtml`, `RuntimeAttr`, `RuntimeValue`, `RuntimeJsxProp`, `RuntimeHydrationMarkers`, `RuntimeDevtools` (the renderer's devtools hook: one `enabled` flag guards every instrumentation point; events carry raw owners/regions/DOM nodes, which `Devtools` maps to ids).
 
@@ -689,6 +690,7 @@ Guidance for AI coding agents (and humans) making changes to this repository.
 | `src/RuntimeLifecycle.res` | Internal post-render queue: element refs and `onMount`, flushed when the outermost render operation returns |
 | `src/RuntimeContext.res` | Internal context frames and error boundaries: component evaluation (`renderComponent`, `renderBoundary`) and effect binding (`bind`) |
 | `src/Devtools.res`, `src/RuntimeDevtools.res` | Public devtools data model; the renderer's internal devtools hook |
+| `src/DevtoolsPanel.res` | Public in-page devtools panel (Xote UI in a shadow root) |
 | `lens/` | The `xote-lens` CLI and MCP server (plain Node ESM; `src/session.mjs` is the headless page, `src/server.mjs` the DOM-less server render, `src/check.mjs` the static findings) |
 | `tests/consumer/` | Fixture package that compiles against the published surface |
 | `ppx/ppx.ml` | The `@xote.component` fine-grained PPX (vendored OCaml 4.06 AST + rewriter) |
@@ -743,6 +745,7 @@ The project has a test suite using the [zekr](https://github.com/nicholasgasior/
 | `tests/MaybeSignal_test.res` | `MaybeSignal` helpers and the deprecated `Prop` alias |
 | `tests/KeyedList_test.res` | Keyed list reconciliation |
 | `tests/Probe_test.res` | `View.probe` hidden-read detection (reports, false positives, dedupe) |
+| `tests/DevtoolsPanel_test.res` | `DevtoolsPanel` (async suite): launcher, unmount, its own nodes hidden, idle panel emits nothing, timeline, node detail with `why` |
 | `tests/Devtools_test.res` | `Devtools`: scopes, keyed passes, DOM writes, probes, caught failures; with hook-capable `rescript-signals`, budgets, `why`, snapshots, leaks and `mute` (skipped, not passed, against releases without the hooks) |
 | `tests/Route_test.res` | Route matching |
 | `tests/SSR_test.res` | Server-side rendering |

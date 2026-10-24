@@ -191,5 +191,8 @@
     "value",
     "why",
     "writersOf"
+  ],
+  "DevtoolsPanel": [
+    "mount"
   ]
 }

@@ -75,6 +75,7 @@
     "./src/Context.res.mjs": "./src/Context.res.mjs",
     "./src/Resource.res.mjs": "./src/Resource.res.mjs",
     "./src/Devtools.res.mjs": "./src/Devtools.res.mjs",
+    "./src/DevtoolsPanel.res.mjs": "./src/DevtoolsPanel.res.mjs",
     "./src/jsx-runtime.mjs": "./src/jsx-runtime.mjs",
     "./src/jsx-dev-runtime.mjs": "./src/jsx-dev-runtime.mjs",
     "./package.json": "./package.json",
