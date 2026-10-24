@@ -424,7 +424,8 @@ let write_sitemap (file : string) =
   match root (Filename.dirname abs) 0 with
   | None -> ()
   | Some dir ->
-    let mkdir d = if not (Sys.file_exists d) then Sys.mkdir d 0o755 in
+    (* Files compile in parallel, so another ppx may create the folder first. *)
+    let mkdir d = try Sys.mkdir d 0o755 with Sys_error _ when Sys.file_exists d -> () in
     let lib = Filename.concat dir "lib" in
     let out = Filename.concat lib "xote-sitemap" in
     (try
