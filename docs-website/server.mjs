@@ -6,6 +6,10 @@ import http from 'node:http'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isProduction = process.env.NODE_ENV === 'production'
+// `npm run dev:devtools`: inject the devtools test bed (src/devtools.js)
+// ahead of the app. Development only; see DEVTOOLS.md.
+const devtools = !isProduction && Boolean(process.env.XOTE_DEVTOOLS)
+const devtoolsScript = '<script type="module" src="/src/devtools.js"></script>'
 const port = process.env.PORT || 4242
 const base = '/'
 
@@ -77,6 +81,10 @@ async function createServer() {
         )
       } else {
         template = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf-8')
+        if (devtools) {
+          // Before every other script, so it runs before the app does.
+          template = template.replace('<script type="module"', `${devtoolsScript}\n  <script type="module"`)
+        }
         // Apply Vite HTML transforms (injects HMR client, etc.)
         template = await vite.transformIndexHtml(url, template)
       }
@@ -125,6 +133,7 @@ async function createServer() {
 
   server.listen(port, () => {
     console.log(`SSR server running at http://localhost:${port}${base}`)
+    if (devtools) console.log('Devtools on: the panel launcher is bottom-right (Ctrl+Shift+X)')
   })
 }
 
