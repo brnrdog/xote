@@ -275,6 +275,12 @@ let messageOf: Obj.t => string = %raw(`function (error) {
 
 /* ---- state ------------------------------------------------------------------------ */
 
+type weakRef
+let makeWeakRef: Dom.element => weakRef = %raw(`function (target) {
+  return typeof WeakRef === "function" ? new WeakRef(target) : { deref: function () { return target } }
+}`)
+@send external deref: weakRef => Nullable.t<Dom.element> = "deref"
+
 type nodeInfo = {
   gid: int,
   copy: int,
@@ -283,7 +289,10 @@ type nodeInfo = {
   name: option<string>,
   site: option<string>,
   scope: option<int>,
-  mutable binding: option<binding>,
+  /* What the effect writes, if it is a binding. The node is held weakly and
+   its path worked out when read: at creation it is often still detached. */
+  bindingTarget: option<weakRef>,
+  bindingWhat: string,
   /* An effect created while another node was running, under no scope: every
    run of the outer one makes another. */
   unownedNested: bool,
@@ -301,6 +310,8 @@ type weakMap
 @new external makeWeakMap: unit => weakMap = "WeakMap"
 @send external weakGet: (weakMap, Obj.t) => Nullable.t<int> = "get"
 @send external weakSet: (weakMap, Obj.t, int) => unit = "set"
+@send external weakGetAll: (weakMap, Obj.t) => Nullable.t<array<int>> = "get"
+@send external weakSetAll: (weakMap, Obj.t, array<int>) => unit = "set"
 
 let historyLimit = 20000
 
@@ -407,8 +418,12 @@ let onUpstream = (copy: int, event: Upstream.event): unit =>
         switch RuntimeDevtools.pendingBinding.contents {
         | Some({target, what}) => {
             RuntimeDevtools.pendingBinding := None
-            state.writers->weakSet(Obj.magic(target), gid)
-            Some({target: pathOf(target), what})
+            let key: Obj.t = Obj.magic(target)
+            switch state.writers->weakGetAll(key)->Nullable.toOption {
+            | Some(ids) => ids->Array.push(gid)->ignore
+            | None => state.writers->weakSetAll(key, [gid])
+            }
+            Some((makeWeakRef(target), what))
           }
         | None => None
         }
@@ -434,7 +449,8 @@ let onUpstream = (copy: int, event: Upstream.event): unit =>
           name,
           site,
           scope,
-          binding,
+          bindingTarget: binding->Option.map(((target, _)) => target),
+          bindingWhat: binding->Option.mapOr("", ((_, what)) => what),
           unownedNested: kind == #effect && scope == None && Array.length(state.running) > 0,
         },
       )
@@ -632,6 +648,15 @@ let upstreamNode = (info: nodeInfo): option<Upstream.node> =>
   | None => None
   }
 
+let bindingOf = (info: nodeInfo): option<binding> =>
+  info.bindingTarget->Option.map(target => {
+    target: switch target->deref->Nullable.toOption {
+    | Some(element) => pathOf(element)
+    | None => "(collected)"
+    },
+    what: info.bindingWhat,
+  })
+
 let globalIds = (info: nodeInfo, locals: array<int>): array<int> =>
   locals->Array.filterMap(local => globalOf(info.copy, local))
 
@@ -645,7 +670,7 @@ let inspect = (id: int): option<node> =>
       name: info.name,
       site: info.site,
       scope: info.scope,
-      binding: info.binding,
+      binding: bindingOf(info),
       level: live.level,
       value: live.value->Option.map(preview),
       sources: globalIds(info, live.sources),
@@ -698,8 +723,8 @@ let snapshot = (): snapshot => {
   {nodes, scopes: scopes()}
 }
 
-let writerOf = (element: Dom.element): option<int> =>
-  state.writers->weakGet(Obj.magic(element))->Nullable.toOption
+let writersOf = (element: Dom.element): array<int> =>
+  state.writers->weakGetAll(Obj.magic(element))->Nullable.toOption->Option.getOr([])->Array.copy
 
 /* ---- traces and budgets ------------------------------------------------------------ */
 
@@ -717,9 +742,9 @@ let countEvents = (events: array<event>): counts => {
     | Written({changed: true}) => writes := writes.contents + 1
     | RunStart({id}) =>
       switch state.nodes->Map.get(id) {
-      | Some({kind: #effect, binding}) => {
+      | Some({kind: #effect, bindingTarget}) => {
           effects := effects.contents + 1
-          if binding->Option.isSome {
+          if bindingTarget->Option.isSome {
             bindings := bindings.contents + 1
           }
         }

@@ -116,6 +116,7 @@
     "test:exports": "node tests/PublicExports_test.mjs",
     "test:boundary": "node scripts/consumer-boundary-test.mjs",
     "ppx:build": "sh ppx/build.sh",
+    "lens:test": "cd lens && npm test",
     "ppx:test": "sh ppx/example/setup.sh && sh ppx/build.sh && cd ppx/example && npx rescript clean && npm run build && npm run verify && npm run golden && npm run sitemap"
   },
   "keywords": [

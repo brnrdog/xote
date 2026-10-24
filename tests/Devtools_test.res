@@ -185,6 +185,97 @@ let suite = Zekr.suite(
         )
       })
     ),
+    /* Reactive budgets for the keyed list: each operation touches exactly the
+     rows it changes. The list's own binding runs once per update. */
+    graphTest("keyed list budget: appending builds one row and touches no other", () =>
+      withDevtools(() => {
+        let {container} = Dom.render("")
+        let items = Signal.make(["a", "b", "c"])
+        let _ = mountTo(list(items), container)
+        let trace = Devtools.record(() => Signal.update(items, xs => Array.concat(xs, ["d"])))
+        assertEqual(
+          Devtools.Budget.check(
+            trace,
+            ~effects=1,
+            ~scopesCreated=1,
+            ~scopesDisposed=0,
+            ~domWrites=0,
+          ),
+          Ok(),
+        )
+      })
+    ),
+    graphTest("keyed list budget: removing releases one row and builds none", () =>
+      withDevtools(() => {
+        let {container} = Dom.render("")
+        let items = Signal.make(["a", "b", "c"])
+        let _ = mountTo(list(items), container)
+        let trace = Devtools.record(() => Signal.set(items, ["a", "c"]))
+        assertEqual(
+          Devtools.Budget.check(trace, ~effects=1, ~scopesCreated=0, ~scopesDisposed=1),
+          Ok(),
+        )
+      })
+    ),
+    graphTest("keyed list budget: swapping two rows builds and releases nothing", () =>
+      withDevtools(() => {
+        let {container} = Dom.render("")
+        let items = Signal.make(["a", "b", "c", "d"])
+        let _ = mountTo(list(items), container)
+        let trace = Devtools.record(() => Signal.set(items, ["a", "c", "b", "d"]))
+        assertEqual(
+          Devtools.Budget.check(trace, ~effects=1, ~scopesCreated=0, ~scopesDisposed=0),
+          Ok(),
+        )
+      })
+    ),
+    graphTest("keyed list budget: replacing every key rebuilds every row", () =>
+      withDevtools(() => {
+        let {container} = Dom.render("")
+        let items = Signal.make(["a", "b", "c"])
+        let _ = mountTo(list(items), container)
+        let trace = Devtools.record(() => Signal.set(items, ["x", "y", "z"]))
+        assertEqual(
+          Devtools.Budget.check(trace, ~effects=1, ~scopesCreated=3, ~scopesDisposed=3),
+          Ok(),
+        )
+      })
+    ),
+    graphTest("keyed list budget: a row's own signal updates that row alone", () =>
+      withDevtools(() => {
+        let {container} = Dom.render("")
+        let labels = ["a", "b", "c"]->Array.map(label => (label, Signal.make(label)))
+        let items = Signal.make(labels)
+        let _ = mountTo(
+          Html.ul(
+            ~children=[
+              View.eachWithKey(
+                items,
+                ((key, _)) => key,
+                ((_, label)) => Html.li(~children=[View.signalText(() => Signal.get(label))], ()),
+              ),
+            ],
+            (),
+          ),
+          container,
+        )
+        let (_, second) = labels->Array.getUnsafe(1)
+        let trace = Devtools.record(() => Signal.set(second, "B"))
+        assertEqual(
+          Devtools.Budget.check(
+            trace,
+            ~writes=1,
+            ~computeds=1,
+            ~effects=1,
+            ~bindings=1,
+            ~domWrites=1,
+            ~scopesCreated=0,
+            ~scopesDisposed=0,
+          ),
+          Ok(),
+        )
+      })
+    ),
     graphTest("a budget that does not hold names every mismatch", () =>
       withDevtools(() => {
         let {container} = Dom.render("")
@@ -208,7 +299,7 @@ let suite = Zekr.suite(
         let full = Computed.make(() => Signal.get(first) ++ " " ++ Signal.get(last), ~name="full")
         let _ = mountTo(Html.p(~children=[View.signalText(() => Signal.get(full))], ()), container)
         Signal.set(last, "Byron")
-        let writer = Devtools.writerOf(find(container, "p"))
+        let writer = Devtools.writersOf(find(container, "p"))->Array.get(0)
         let chain = writer->Option.flatMap(Devtools.why)->Option.map(flatten)
         switch chain {
         | Some([binding, leaf, "full:recomputed", "last:written"]) =>

@@ -105,8 +105,9 @@ let inspect: int => option<node>
 let value: int => option<unknown>
 let scopes: unit => array<scope>
 let snapshot: unit => snapshot
-/* The effect that writes to a DOM node, if a binding does. */
-let writerOf: Dom.element => option<int>
+/* The effects that write to a DOM node: one per binding (its text, each
+   reactive attribute), oldest first. */
+let writersOf: Dom.element => array<int>
 
 type counts = {
   /* Writes that changed a value. */
