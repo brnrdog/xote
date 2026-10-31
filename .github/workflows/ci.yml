@@ -64,6 +64,11 @@ jobs:
       - name: Build & verify @xote.component ppx
         run: npm run ppx:test
 
+      # xote-lens (lens/) is the devtools CLI and MCP server. Its tests drive a
+      # fixture app compiled through the ppx built above.
+      - name: Test xote-lens devtools
+        run: npm run lens:test
+
       # The docs site is the only real *consumer* of the ppx in this repo — its
       # own rescript.json carries the ppx-flags and its sources are ordinary
       # @xote.component components, so this catches a broken consumer config or

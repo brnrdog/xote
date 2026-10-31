@@ -1,0 +1,34 @@
+{
+  "name": "xote-lens",
+  "version": "0.0.0",
+  "description": "Devtools for Xote apps: a CLI and an MCP server that render components headlessly and explain their reactive behaviour.",
+  "type": "module",
+  "bin": {
+    "xote-lens": "./bin/xote-lens.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "sh test/fixture/setup.sh && node --test-reporter=spec test/run.mjs"
+  },
+  "dependencies": {
+    "jsdom": "^28.1.0"
+  },
+  "peerDependencies": {
+    "xote": "*"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "url": "https://github.com/brnrdog/xote",
+    "directory": "lens"
+  },
+  "license": "LGPL-3.0-or-later"
+}

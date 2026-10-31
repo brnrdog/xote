@@ -19,4 +19,5 @@ Zekr.runSuites([
   ErrorBoundary_test.suite,
   Lifecycle_test.suite,
   Portal_test.suite,
+  Devtools_test.suite,
 ])

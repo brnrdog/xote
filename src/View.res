@@ -707,6 +707,9 @@ let probe = (site: string, compute: unit => 'a): 'a =>
   } else {
     probedSites->Dict.set(site, true)
     let signal = Computed.make(compute)
+    if RuntimeDevtools.enabled.contents {
+      RuntimeDevtools.emit(Probe({site, hidden: hasDependencies(signal)}))
+    }
     if hasDependencies(signal) {
       if isScalar(Signal.peek(signal)) {
         warnHiddenRead(site)

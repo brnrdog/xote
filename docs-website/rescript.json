@@ -19,5 +19,5 @@
     "module": "XoteJSX"
   },
   "compiler-flags": ["-open Xote"],
-  "ppx-flags": ["xote-tracked-ppx/ppx"]
+  "ppx-flags": [["xote-tracked-ppx/ppx", "-sitemap"]]
 }

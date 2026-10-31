@@ -272,3 +272,20 @@ let mdxText = Xote.Mdx.childrenToText(mdxChildren)
 
 let mount: Dom.element => unit = container => Xote.View.mount(group, container)
 let mountById = () => Xote.View.mountById(group, "root")
+
+/* ------------------------------------------------------------------ devtools */
+
+let devtoolsStatus = Xote.Devtools.install(~captureStacks=false, ())
+let unsubscribe = Xote.Devtools.subscribe(event =>
+  switch event {
+  | Xote.Devtools.Written({id}) => ignore(Xote.Devtools.why(id))
+  | _ => ()
+  }
+)
+let devtoolsTrace = Xote.Devtools.record(() => Xote.Signal.set(count, 3))
+let devtoolsBudget = Xote.Devtools.Budget.check(devtoolsTrace, ~writes=1)
+let devtoolsSnapshot = Xote.Devtools.snapshot()
+let devtoolsLeaks = Xote.Devtools.leaks()
+let () = unsubscribe()
+let unmountPanel: unit => unit = () => Xote.DevtoolsPanel.mount(~expanded=true, ())()
+let () = Xote.Devtools.uninstall()

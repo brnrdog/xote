@@ -137,6 +137,9 @@ module DOMWalker = {
  * ============================================================================ */
 
 let logHydrationWarning = (msg: string): unit => {
+  if RuntimeDevtools.enabled.contents {
+    RuntimeDevtools.emit(HydrationWarning({message: msg}))
+  }
   Console.warn(`[Xote Hydration] ${msg}`)
 }
 
@@ -275,6 +278,9 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
       )
 
       let region = RuntimeRender.makeRegion()
+      if RuntimeDevtools.enabled.contents {
+        RuntimeDevtools.scopeCreated(region, #list, ~parent=RuntimeOwner.currentOwner.contents)
+      }
       /* Registered before any row hydrates, as on the render path. */
       RuntimeOwner.track(RuntimeOwner.addDisposer, () => RuntimeRender.disposeRegion(region))
       let endAnchor = ref(None)
@@ -310,6 +316,9 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
                row owns what that attaches, exactly like a rendered row. */
             | (Some(item), Some(element)) => {
                 let owner = RuntimeOwner.createOwner()
+                if RuntimeDevtools.enabled.contents {
+                  RuntimeDevtools.scopeCreated(owner, #hydratedRow, ~key, ~parent=Some(region))
+                }
                 /* Tracked before it hydrates, as on the render path. */
                 region.items->Map.set(
                   key,

@@ -194,12 +194,14 @@ let insertOrAppend = (parent: Dom.element, element: Dom.element, before: Nullabl
    possible. `tail` is what the last item must precede — a keyed list's end
    anchor — or null to append at the end. A row with index -1 is not in the
    document yet (freshly built, or rebuilt after an identity change) and can
-   never be "already in place", so it is always inserted. */
+   never be "already in place", so it is always inserted. Returns how many
+   nodes it inserted, for devtools. */
 let placeInOrder = (
   ~parent: Dom.element,
   ~items: array<keyedItem<Obj.t>>,
   ~tail: Nullable.t<Dom.element>,
-): unit => {
+): int => {
+  let inserted = ref(0)
   let positions = items->Array.map(item => item.index)
   let settled = longestIncreasingSubsequence(positions, ~skip=-1)
 
@@ -217,6 +219,7 @@ let placeInOrder = (
       nextSettled := nextSettled.contents - 1
     } else {
       insertOrAppend(parent, item.element, before.contents)
+      inserted := inserted.contents + 1
     }
 
     if item.anchors {
@@ -224,6 +227,7 @@ let placeInOrder = (
     }
     index := index.contents - 1
   }
+  inserted.contents
 }
 
 /* The rows that survived kept their relative order, so nothing that is in the
@@ -303,11 +307,16 @@ let reconcileKeyed = (
   let order: array<keyedItem<Obj.t>> = []
   let survivors = ref(0)
   let fresh = ref(0)
+  let rebuilt = ref(0)
+  let removed = ref(0)
   let ordered = ref(true)
   let lastIndex = ref(-1)
 
   let buildInto = (row: keyedItem<Obj.t>, item: Obj.t) => {
     let owner = createOwner()
+    if RuntimeDevtools.enabled.contents {
+      RuntimeDevtools.scopeCreated(owner, #row, ~key=row.key, ~parent=Some(region))
+    }
     row.item = item
     row.owner = owner
     let element = runWithOwner(owner, () => build(item))
@@ -332,6 +341,7 @@ let reconcileKeyed = (
           disposeOwner(existing.owner)
           existing.element->RuntimeDom.remove
           buildInto(existing, item)
+          rebuilt := rebuilt.contents + 1
         }
         existing.stamp = pass
         survivors := survivors.contents + 1
@@ -368,17 +378,35 @@ let reconcileKeyed = (
         disposeOwner(row.owner)
         row.element->RuntimeDom.remove
         items->Map.delete(key)->ignore
+        removed := removed.contents + 1
       }
     })
   }
 
-  if !ordered.contents {
-    placeInOrder(~parent, ~items=order, ~tail)
-  } else if fresh.contents > 0 {
-    insertFresh(~parent, ~items=order, ~tail)
+  let moved = if !ordered.contents {
+    /* Fresh rows are inserted by the same walk; only survivors moved. */
+    placeInOrder(~parent, ~items=order, ~tail) - fresh.contents
+  } else {
+    if fresh.contents > 0 {
+      insertFresh(~parent, ~items=order, ~tail)
+    }
+    0
   }
 
   order->Array.forEachWithIndex((row, index) => row.index = index)
+
+  if RuntimeDevtools.enabled.contents {
+    RuntimeDevtools.emit(
+      Reconciled({
+        scope: Obj.magic(region),
+        kept: survivors.contents - rebuilt.contents,
+        rebuilt: rebuilt.contents,
+        created: fresh.contents - rebuilt.contents,
+        removed: removed.contents,
+        moved,
+      }),
+    )
+  }
 }
 
 let keyedChildIdentity = (child: keyedChild): Obj.t => Obj.magic(child)
@@ -503,6 +531,9 @@ and render = (node: node): Dom.element => {
       let startAnchor = RuntimeDom.createComment(" keyed-list-start ")
       let endAnchor = RuntimeDom.createComment(" keyed-list-end ")
       let region = makeRegion()
+      if RuntimeDevtools.enabled.contents {
+        RuntimeDevtools.scopeCreated(region, #list, ~parent=currentOwner.contents)
+      }
       /* Released with whatever renders the list — registered before any row
          renders, so a row that fails partway is still reachable from here. */
       track(addDisposer, () => disposeRegion(region))
@@ -527,6 +558,9 @@ and render = (node: node): Dom.element => {
           anchors: false,
         }
         region.items->Map.set(key, row)
+        if RuntimeDevtools.enabled.contents {
+          RuntimeDevtools.scopeCreated(row.owner, #row, ~key, ~parent=Some(region))
+        }
         let element = runWithOwner(row.owner, () => renderInRegion(region, renderItem(item)))
         row.element = element
         row.anchors = !RuntimeDom.isDocumentFragment(element)
@@ -555,12 +589,18 @@ and applyAttr = (el: Dom.element, key: string, value: attrValue): unit =>
 and attachAttr = (el: Dom.element, key: string, read: unit => Nullable.t<string>): unit => {
   let last: ref<Nullable.t<string>> = ref(Nullable.undefined)
   let written = ref(false)
+  if RuntimeDevtools.enabled.contents {
+    RuntimeDevtools.bind(el, "attr:" ++ key)
+  }
   Effect.run(() => {
     let next = read()
     if !written.contents || next !== last.contents {
       written := true
       last := next
       RuntimeDom.setAttrOrProp(el, key, next)
+      if RuntimeDevtools.enabled.contents {
+        RuntimeDevtools.domWrite(el, "attr:" ++ key)
+      }
     }
     None
   })
@@ -576,11 +616,17 @@ and attachText = (
   current: Nullable.t<string>,
 ): unit => {
   let last = ref(current)
+  if RuntimeDevtools.enabled.contents {
+    RuntimeDevtools.bind(node, "text")
+  }
   Effect.run(() => {
     let next = Signal.get(signal)
     if Nullable.make(next) !== last.contents {
       last := Nullable.make(next)
       RuntimeDom.writeText(node, next)
+      if RuntimeDevtools.enabled.contents {
+        RuntimeDevtools.domWrite(node, "text")
+      }
     }
     None
   })
@@ -607,10 +653,17 @@ and driveSignalFragment = (~container: Dom.element, ~signal: Signal.t<array<node
   let region = makeRegion()
   ownComputed(signal)
   track(addDisposer, () => disposeRegion(region))
+  if RuntimeDevtools.enabled.contents {
+    RuntimeDevtools.scopeCreated(region, #fragment, ~parent=currentOwner.contents)
+    RuntimeDevtools.bind(container, "fragment")
+  }
 
   Effect.run(() => {
     RuntimeLifecycle.rendering(() => {
       let passOwner = createOwner()
+      if RuntimeDevtools.enabled.contents {
+        RuntimeDevtools.scopeCreated(passOwner, #pass, ~parent=Some(region))
+      }
       let children = runWithOwner(passOwner, () => Signal.get(signal))
       renderFragmentChildren(~container, ~children, ~region, ~passOwner)
     })
@@ -631,6 +684,9 @@ and attachKeyedList = (
   ~endAnchor: Dom.element,
 ): unit => {
   ownComputed(signal)
+  if RuntimeDevtools.enabled.contents {
+    RuntimeDevtools.bind(endAnchor, "list")
+  }
 
   Effect.run(() => {
     RuntimeLifecycle.rendering(() =>
