@@ -1,0 +1,86 @@
+Most components only need signals and JSX. This page covers the extra tools for the rest: reaching the real DOM element, running code when a component appears or goes away, rendering somewhere else on the page, and containing errors.
+
+## Run code when a component mounts
+
+A component's body runs before its elements are on the page, so you can't focus or measure them there yet. [`View.onMount`](/docs/api/view#view-onmount) runs a function once the component is in the document. [`View.onCleanup`](/docs/api/view#view-oncleanup) runs one when it's removed.
+
+```rescript
+@xote.component
+let make = () => {
+  let now = Signal.make(Date.now())
+  View.onMount(() => {
+    let id = setInterval(() => Signal.set(now, Date.now()), 1000)
+    View.onCleanup(() => clearInterval(id))
+  })
+  <time> {Date.fromTime(Signal.get(now))->Date.toLocaleTimeString} </time>
+}
+```
+
+Whatever you set up in `onMount` should be undone in `onCleanup`: timers, listeners, subscriptions. Effects started inside it are cleaned up with the component automatically.
+
+`onMount` never runs during server rendering. In the browser it runs after hydration, which makes it the safe place for code that needs `window` or `document`.
+
+## Reach a DOM element with a ref
+
+Create a ref with [`View.Ref.make`](/docs/api/view#view-ref) and pass it to an element's `ref` prop. The element is filled in before any `onMount` runs.
+
+```rescript
+@send external focus: Dom.element => unit = "focus"
+
+@xote.component
+let make = () => {
+  let field = View.Ref.make()
+  View.onMount(() => View.Ref.peek(field)->Option.forEach(focus))
+  <input ref=field type_="search" placeholder="Search" />
+}
+```
+
+`View.Ref.peek` reads the element once. A ref is backed by a signal, so `View.Ref.get` inside an effect reruns it when the element arrives or goes away. `View.Ref.fromCallback` makes a ref that also calls your function with each element.
+
+## Render somewhere else with a portal
+
+[`View.Portal`](/docs/api/view#view-portal) renders its children into another element, `document.body` by default. Use it for modals, tooltips and menus that need to escape a parent's `overflow: hidden` or stacking order.
+
+```rescript
+module Modal = {
+  @xote.component
+  let make = (~children: View.node) =>
+    <View.Portal>
+      <div class="modal-backdrop" onClick={_ => Signal.set(isOpen, false)}>
+        <div class="modal"> {children} </div>
+      </div>
+    </View.Portal>
+}
+```
+
+Pass `target` to render into a specific element. When the portal is removed, everything it rendered goes with it. On the server a portal renders nothing.
+
+DOM events from inside a portal bubble through the element it renders into, not through the component that contains it.
+
+## Contain errors with a boundary
+
+[`View.ErrorBoundary`](/docs/api/view#view-errorboundary) stops one failing part of the page from taking down the rest. If anything inside it throws while rendering or updating, it shows `fallback` instead.
+
+```rescript
+<View.ErrorBoundary
+  fallback={(_error, reset) =>
+    <p>
+      {"This panel failed to load. "}
+      <button onClick={_ => reset()}> {"Retry"} </button>
+    </p>}
+  onError={error => Console.error(error)}>
+  <Dashboard />
+</View.ErrorBoundary>
+```
+
+`reset` renders the contents again from scratch. Boundaries nest: the nearest one catches.
+
+A boundary catches errors from component bodies, reactive text and attributes, and effects started while rendering. It does **not** catch errors in event handlers, timers or promise callbacks, since those run later; handle them where they happen.
+
+With server rendering, a part that fails renders its fallback into the HTML, and the browser renders everything inside that boundary again instead of reusing the server's markup. Wrap the parts of a page that can fail, not the whole app.
+
+## Common mistakes
+
+- **Touching the DOM in the component body.** Elements aren't on the page yet. Use `onMount`.
+- **Forgetting cleanup.** A timer started in `onMount` keeps running after the component is gone unless `onCleanup` stops it.
+- **Expecting a boundary to catch a click handler's error.** Catch it in the handler.

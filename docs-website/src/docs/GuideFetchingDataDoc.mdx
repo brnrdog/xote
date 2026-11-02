@@ -1,0 +1,233 @@
+These recipes cover the data loading most screens need: a first load, loading and error states, refetching when something changes, search as you type, and saving changes. They all build on [resources](/docs/learn/async-data), so read that page first if `Resource.make` is new to you.
+
+## Try it
+
+Type in the box below. The search waits for a short pause in typing, then asks a pretend server that takes 400ms to answer. While a new search runs, the previous results stay on screen, dimmed.
+
+<DocsExamplePanel
+      filename="FruitSearch.res"
+      code={`let fruits = [
+  "Apple", "Apricot", "Banana", "Blackberry", "Blueberry", "Cherry", "Grape", "Lemon",
+  "Lime", "Mango", "Orange", "Peach", "Pear", "Plum", "Raspberry", "Strawberry",
+]
+
+// A pretend server: answers after 400ms.
+let searchFruits = (query: string): promise<array<string>> =>
+  Promise.make((resolve, _reject) => {
+    let _ = setTimeout(() => {
+      let q = query->String.toLowerCase
+      resolve(fruits->Array.filter(fruit => fruit->String.toLowerCase->String.includes(q)))
+    }, 400)
+  })
+
+@xote.component
+let make = () => {
+  let text = Signal.make("")
+  let query = Signal.make("")
+
+  // Search only after a 300ms pause in typing.
+  Effect.run(() => {
+    let next = Signal.get(text)
+    let id = setTimeout(() => Signal.set(query, next), 300)
+    Some(() => clearTimeout(id))
+  })
+
+  let results = Resource.make(() => searchFruits(Signal.get(query)))
+
+  let onInput = (event: Dom.event) => {
+    let target: {"value": string} = (event->Obj.magic)["target"]
+    Signal.set(text, target["value"])
+  }
+
+  <div class="fetch-demo">
+    <input
+      type_="search"
+      class="fetch-demo-input"
+      placeholder="Search fruit"
+      value={Signal.get(text)}
+      onInput
+    />
+    {switch Signal.get(results) {
+    | Pending => <p class="fetch-demo-status"> {"Searching..."} </p>
+    | Failed(_) => <p class="fetch-demo-status"> {"Search failed. Try again."} </p>
+    | Ready([]) => <p class="fetch-demo-status"> {"No fruit matches."} </p>
+    | Ready(items) | Refreshing(items) =>
+      <ul class={Resource.isLoading(Signal.get(results)) ? "fetch-demo-list is-stale" : "fetch-demo-list"}>
+        {items->Array.map(fruit => <li> {fruit} </li>)->View.fragment}
+      </ul>
+    }}
+  </div>
+}`}
+      caption="A debounced search over a pretend server."
+    >
+      <FetchingDataDemo />
+    </DocsExamplePanel>
+
+The rest of this page takes that example apart.
+
+## Load data when a component mounts
+
+Create the resource inside the component. It starts fetching straight away, and it belongs to the component: if the component goes away, a fetch still in flight is dropped.
+
+```rescript
+module Profile = {
+  @xote.component
+  let make = (~id: string) => {
+    let user = Resource.make(() => loadUser(id))
+
+    <section>
+      {switch Signal.get(user) {
+      | Pending => <p> {"Loading..."} </p>
+      | Failed(_) => <p> {"Could not load this profile."} </p>
+      | Ready(user) | Refreshing(user) =>
+        <div>
+          <h2> {user.name} </h2>
+          <p> {user.email} </p>
+        </div>
+      }}
+    </section>
+  }
+}
+```
+
+`loadUser` is any function that returns a promise, such as a wrapper around `fetch`. The `switch` covers every state, so the compiler tells you if you forget the error case.
+
+Treat `Ready` and `Refreshing` the same when you only want to show data. Split them when you want to show that a reload is running, as the demo does by dimming the list.
+
+## Fetch again when a value changes
+
+A resource tracks the signals its fetch reads **before the first `await`**. Change one of them and it fetches again. Here, changing the page loads that page:
+
+```rescript
+module TodoPages = {
+  @xote.component
+  let make = () => {
+    let page = Signal.make(1)
+    let todos = Resource.make(() => loadTodos(~page=Signal.get(page)))
+
+    <div>
+      {switch Signal.get(todos) {
+      | Pending => <p> {"Loading..."} </p>
+      | Failed(_) => <p> {"Could not load todos."} </p>
+      | Ready(items) | Refreshing(items) =>
+        <ul> {items->Array.map(todo => <li> {todo.title} </li>)->View.fragment} </ul>
+      }}
+      <button onClick={_ => Signal.update(page, n => n - 1)} disabled={Signal.get(page) == 1}>
+        {"Previous"}
+      </button>
+      <span> {"Page "} {Signal.get(page)} </span>
+      <button onClick={_ => Signal.update(page, n => n + 1)}> {"Next"} </button>
+    </div>
+  }
+}
+```
+
+In an `async` fetch, read your signals at the top:
+
+```rescript
+let todos = Resource.make(async () => {
+  let page = Signal.get(page) // tracked: read before the first await
+  await waitForAuth()
+  await loadTodos(~page)
+})
+```
+
+## Search as you type
+
+Fetching on every keystroke wastes requests. Keep two signals: `text` follows the input, and `query` follows `text` after a pause. An [effect](/docs/learn/effects) does the waiting, and its cleanup cancels the timer whenever the user types again:
+
+```rescript
+let text = Signal.make("")
+let query = Signal.make("")
+
+Effect.run(() => {
+  let next = Signal.get(text)
+  let id = setTimeout(() => Signal.set(query, next), 300)
+  Some(() => clearTimeout(id))
+})
+
+let results = Resource.make(() => searchFruits(Signal.get(query)))
+```
+
+The resource reads only `query`, so it fetches once per pause, not once per key.
+
+## Ignore stale responses
+
+You don't have to do anything here. Only the latest fetch can settle a resource. If an older request answers after a newer one, its result is thrown away, so the screen never jumps back to old results.
+
+Earlier requests are not aborted, though. They finish in the background and are ignored. Debouncing, as above, keeps that number small.
+
+## Reload, and update after saving
+
+`Resource.refetch` fetches again with the same inputs. While it runs, the state is `Refreshing` with the old value, so the page doesn't flash back to a spinner:
+
+```rescript
+let todos = Resource.make(() => loadTodos(~page=1))
+
+module Reload = {
+  @xote.component
+  let make = () =>
+    <button onClick={_ => Resource.refetch(todos)} disabled={Resource.isLoading(Signal.get(todos))}>
+      {"Reload"}
+    </button>
+}
+```
+
+To make a change feel instant, update the value yourself with `Resource.mutate`, save, then refetch to get what the server actually stored:
+
+```rescript
+let addTodo = async (todo: todo) => {
+  // Show the new todo straight away...
+  switch Signal.peek(todos)->Resource.value {
+  | Some(list) => Resource.mutate(todos, [...list, todo])
+  | None => ()
+  }
+  // ...then save it and load the list the server has.
+  await saveTodo(todo)
+  Resource.refetch(todos)
+}
+```
+
+`mutate` also drops any fetch in flight, so a slow earlier load can't overwrite your update.
+
+## Wait for several requests at once
+
+When a screen needs a few resources before it makes sense, wrap it in [`View.Suspense`](/docs/learn/async-data#suspense). The fallback shows until every resource created inside has loaded once:
+
+```rescript
+<View.Suspense fallback={<p> {"Loading your dashboard..."} </p>}>
+  <Profile id />
+  <TodoPages />
+</View.Suspense>
+```
+
+Later reloads show as `Refreshing` inside each component and never bring the fallback back.
+
+## Data in server-rendered pages
+
+Resources don't fetch during a [server render](/docs/advanced/ssr). The HTML shows the `Pending` state, and the browser fetches after hydration. That's fine for most data.
+
+When the data must be in the HTML, for search engines or a faster first paint, load it on the server before rendering and hand it to the client with `SSRState`:
+
+```rescript
+// Posts.res: shared by the server and the client
+let posts: Signal.t<array<string>> = Signal.make([])
+let codec = SSRState.Codec.array(SSRState.Codec.string)
+
+// Server: load first, then record the value and render.
+Signal.set(posts, await loadPosts())
+SSRState.sync("posts", posts, codec)
+let html = SSR.renderDocument(~stateScript=SSRState.generateScript(), app)
+
+// Client: restore the value before hydrating.
+SSRState.sync("posts", posts, codec)
+```
+
+Call `sync` after loading on the server: it records the signal's value at that moment.
+
+## Common mistakes
+
+- **Reading a signal after `await`.** It isn't tracked, so changing it won't fetch again. Read inputs first.
+- **Creating a resource for every keystroke.** Create it once and let a signal drive it.
+- **Forgetting the `Failed` state.** Networks fail. Show a message, or throw the error to an [error boundary](/docs/learn/lifecycle).
+- **Expecting data in server HTML.** Resources only fetch in the browser; use `SSRState` when the server must render the data.

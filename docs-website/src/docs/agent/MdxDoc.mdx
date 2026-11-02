@@ -1,0 +1,186 @@
+## Summary
+
+`.mdx` files compile, through your bundler's MDX plugin, to components that call Xote's automatic JSX runtime (`xote/jsx-runtime`), so a compiled MDX document returns a `View.node`. The `Mdx` module is the typed boundary from ReScript: bind the document as `Mdx.document`, render it with `Mdx.render`, and replace elements or provide custom components with `Mdx.components` + `Mdx.component`. Xote does not compile MDX itself. The rule that matters most: override props arrive as an untyped JavaScript object, so the ReScript props record MUST use the exact JavaScript prop names MDX passes (`className`, `href`, `children`, …).
+
+## Availability
+
+| Item | Value |
+| --- | --- |
+| Modules | `Mdx`; the JSX runtime `xote/jsx-runtime` and `xote/jsx-dev-runtime` |
+| Import / entry | `xote/mdx` (or `xote` with `-open Xote`); the bundler resolves `xote/jsx-runtime` from `jsxImportSource: "xote"` |
+| First stable version | 7.0.0 |
+| Status | stable since 7.1.0 |
+| PPX required | No. Components used in MDX may use `@xote.component` or not |
+| Bundler requirement | `@mdx-js/rollup` 3.x (Vite/Rollup); `remark-gfm` for tables; `rehype-slug` if headings need ids |
+
+## Rules
+
+1. Configure the MDX plugin with `jsxImportSource: "xote"` and `jsxRuntime: "automatic"`. MDX then imports `jsx`, `jsxs` and `Fragment` from `xote/jsx-runtime` (development builds use `xote/jsx-dev-runtime`, which delegates to the same `jsx`).
+2. A compiled `.mdx` file's default export has type `Mdx.document = Mdx.props => View.node`. Bind it with `@module("./file.mdx") external doc: Mdx.document = "default"`.
+3. `Mdx.render(document, ~components=?, ())` calls the document with `{components}` (or `{}`) and returns its node. It renders once; MDX content is static.
+4. `Mdx.components(entries)` builds a `dict` from `(name, component)` pairs. Keys are element names MDX emits for Markdown syntax (`"h1"`, `"p"`, `"a"`, `"code"`, `"pre"`, `"table"`, …) or names of custom components used in the MDX (`"Counter"`). Elements without an entry render as plain HTML elements. Literal lowercase JSX tags in the MDX are never replaced.
+5. `Mdx.component(make)` casts a typed function `'props => View.node` to `Obj.t => View.node`. No validation happens: the props record's field names MUST match what MDX passes, and every field SHOULD be optional.
+6. For Markdown elements MDX passes the element's attributes as props using JavaScript names: `className` (not `class`; e.g. `"language-js"` on a fenced code block's `code`), `href`, `title`, `src`, `alt`, `id`, plus `children`.
+7. `children` is untyped (`Mdx.children = Obj.t`): a string, a Xote node, an array of those, or absent. Convert it with `Mdx.childrenToNodes` (to `array<View.node>`) or `Mdx.childrenToText` (to `string`). Never pattern-match on it directly.
+8. `Mdx.childrenToNodes`: `null`/`undefined`/booleans → nothing, arrays are flattened, Xote nodes pass through, anything else becomes a text node via `String(value)`.
+9. `Mdx.childrenToText`: concatenates strings and the text of `View.text` nodes and fragments; other nodes (elements, reactive text) contribute `""`.
+10. For plain elements (no override), the JSX runtime converts props: `className` → `class`, `htmlFor` → `for`, `ariaLabel`/`dataFoo`-style camelCase `aria*`/`data*` → kebab-case, a `style` object → a `key:value;…` string (camelCase keys to kebab-case, no units added), functions named `on[A-Z]…` → event listeners, `null`/`undefined` props → omitted, a function prop value on a non-event attribute → a reactive attribute, a signal → a reactive attribute.
+11. A function component (an override or a custom component) is wrapped in a lazy component node: it runs when the node renders, under the current owner, and may create signals, effects and resources like any Xote component.
+12. A custom component used in the MDX but missing from `components` (and not imported in the MDX) makes rendering throw MDX's error: ``Expected component `Name` to be defined: you likely forgot to import, pass, or provide it.``
+13. MDX can `import` ESM modules, including compiled ReScript output, e.g. `import { make as Changelog } from "./Changelog.res.mjs"`.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `Mdx.children` | `Obj.t` | Opaque children from the MDX runtime. |
+| `Mdx.components` (type) | `dict<Obj.t => View.node>` | Override map. |
+| `Mdx.props` | `{components?: components}` | Props every document accepts. |
+| `Mdx.document` | `props => View.node` | A compiled `.mdx` default export. |
+| `Mdx.component` | `('props => View.node) => Obj.t => View.node` | Make a typed component usable as an override. |
+| `Mdx.components` (function) | `array<(string, Obj.t => View.node)> => components` | Build the override map. |
+| `Mdx.render` | `(document, ~components: components=?, unit) => View.node` | Render a document. |
+| `Mdx.childrenToNodes` | `children => array<View.node>` | Children as nodes. |
+| `Mdx.childrenToText` | `children => string` | Children as plain text. |
+
+## Patterns
+
+Use to set up Vite for MDX:
+
+```js
+// vite.config.js
+import mdx from "@mdx-js/rollup"
+import remarkGfm from "remark-gfm"
+import rehypeSlug from "rehype-slug"
+import { defineConfig } from "vite"
+
+export default defineConfig({
+  plugins: [
+    mdx({
+      jsxImportSource: "xote",
+      jsxRuntime: "automatic",
+      remarkPlugins: [remarkGfm],
+      rehypePlugins: [rehypeSlug],
+    }),
+  ],
+})
+```
+
+Use to render a document with overrides: internal links through the router, external links in a new tab, a code block override that reads the language, and a custom interactive component.
+
+```rescript
+@module("./article.mdx") external article: Mdx.document = "default"
+
+type linkProps = {href?: string, children?: Mdx.children}
+type codeProps = {className?: string, children?: Mdx.children}
+
+module Link = {
+  let make = (props: linkProps) => {
+    let href = props.href->Option.getOr("#")
+    let children = switch props.children {
+    | Some(children) => Mdx.childrenToNodes(children)
+    | None => []
+    }
+    String.startsWith(href, "/")
+      ? Router.link(~to=href, ~children, ())
+      : <a href target="_blank" attrs=[("rel", "noreferrer")]> {View.fragment(children)} </a>
+  }
+}
+
+module Code = {
+  let make = (props: codeProps) => {
+    let source = props.children->Option.mapOr("", Mdx.childrenToText)
+    let language = props.className->Option.getOr("")
+    <code class={language}> {View.text(source)} </code>
+  }
+}
+
+module Counter = {
+  @xote.component
+  let make = () => {
+    let count = Signal.make(0)
+    <button onClick={_ => Signal.update(count, n => n + 1)}> {"Clicked "} {Signal.get(count)} </button>
+  }
+}
+
+let components = Mdx.components([
+  ("a", Mdx.component(Link.make)),
+  ("code", Mdx.component(Code.make)),
+  ("Counter", Mdx.component(Counter.make)),
+])
+
+let page = () => <main> {Mdx.render(article, ~components, ())} </main>
+```
+
+In `article.mdx`, `<Counter />` then renders the interactive component; the code fence's `code` element gets `className: "language-js"` and its source as a string child (with a trailing newline).
+
+## Anti-patterns
+
+**Naming the props field `class`.**
+
+```rescript
+type codeProps = {class?: string, children?: Mdx.children} // MDX never passes `class`
+```
+
+Symptom: compiles, but the field is always `None`, so the language class of a code block is lost. Correct: `className?: string`. Why: rule 6, MDX passes JavaScript prop names.
+
+**Using `children` as a node or string directly.**
+
+```rescript
+let make = (props: {children?: Mdx.children}) => <h2> {Obj.magic(props.children)} </h2>
+```
+
+Symptom: works for single strings, then renders `[object Object]` or drops content for nested Markdown (emphasis, links, arrays). Correct: `View.fragment(props.children->Option.mapOr([], Mdx.childrenToNodes))`. Why: rule 7.
+
+**Using a custom component without registering it.**
+
+```mdx
+<Counter />
+```
+
+with `Mdx.render(article, ())`. Symptom: rendering throws ``Expected component `Counter` to be defined…``. Correct: pass `("Counter", Mdx.component(Counter.make))` in `components`, or import it in the MDX file. Why: rule 12.
+
+**Expecting MDX expressions to be reactive.**
+
+```mdx
+Count: {count}
+```
+
+Symptom: renders once, never updates (and `count` is not in scope unless exported or imported). Correct: put reactive output in a Xote component and use that component in the MDX. Why: rule 3, MDX content renders once.
+
+**A `style` object with unitless lengths.**
+
+```mdx
+<div style={{marginTop: 4}}>…</div>
+```
+
+Symptom: renders `style="margin-top:4"`, which browsers ignore. Correct: `style={{marginTop: "4px"}}` or a string `style="margin-top: 4px"`. Why: rule 10, no units are added.
+
+## Edge cases
+
+- Indentation inside JavaScript expressions: MDX 3 removes up to two leading spaces from every line of an expression (including template literals passed as props). A multi-line code string passed as `code={`…`}` loses two spaces of indentation per line unless you compensate (this docs site adds them back with a Vite `transform` before MDX runs).
+- `rehype-slug` ids follow GitHub's slug rules; heading text with backticks or punctuation produces ids without them. Link targets MUST use the generated id.
+- A `ref` prop must be a `View.Ref.t` or a function; any other value (a React-style `{current}` object) is ignored with a console warning.
+- A `key` prop on an element produces a keyed node (`View.Keyed`).
+- An override for `pre` receives the already-built `code` node as `children` (a Xote node), not text; override `code` to get the source text.
+- `components` replaces elements MDX creates from Markdown syntax (a paragraph becomes `p`, a link `a`, …) and capitalized component names. Lowercase tags written literally as JSX in the MDX (`<div>…</div>`) are not replaced: they render through the JSX runtime as plain elements even when `components` has a `div` entry.
+
+## SSR and hydration
+
+- A rendered MDX document is an ordinary node tree: `SSR.renderToString` renders it on the server and `Hydration.hydrateById` adopts it on the client, as long as both sides render the same document with the same `components`.
+- Overrides and custom components follow normal server rules: `View.onMount` for browser-only code; effects run on the server too (see `/docs/advanced/ssr`).
+- MDX is compiled at build time by the bundler; the server bundle (for example `vite build --ssr`) needs the same MDX plugin configuration as the client bundle.
+
+## Verify
+
+- Build errors: `Cannot find module './article.mdx'` means the MDX plugin is missing from the bundler config; a JSX runtime import error for `react/jsx-runtime` means `jsxImportSource: "xote"` is missing.
+- Server test: `SSR.renderToString(() => Mdx.render(article, ~components, ()))` and assert the expected HTML (overridden elements show your classes; `className` became `class`).
+- Override props test: temporarily log `Object.keys(props)` in an override to see exactly which props MDX passes for that element.
+- A missing component is a runtime error at render, not a compile error; render every MDX page in a test to catch it.
+
+## Related
+
+- `/docs/learn/components` — writing the components used as overrides.
+- `/docs/learn/routing` — `Router.link` for internal links in overrides.
+- `/docs/advanced/ssr` — rendering MDX pages on the server.
+- `/docs/api/view` — `View.node`, `View.fragment`, `View.text`.
