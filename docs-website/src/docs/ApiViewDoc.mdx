@@ -8,7 +8,6 @@ This page lists the supported API for the `View` module.
 
 `View` is the UI node API used by JSX components and lower-level rendering helpers.
 
-<a id="view-types" />
 
 ### View types
 
@@ -298,6 +297,8 @@ JSX primitive that re-renders a node from one static or reactive value.
 
 ### View.Suspense
 
+<New />
+
 ```rescript
 module Suspense: {
   type props = {
@@ -309,11 +310,13 @@ module Suspense: {
 }
 ```
 
-Shows `fallback` until every `Resource` created below it has loaded once. The children render hidden meanwhile, and their refs and `onMount` callbacks wait until they are shown. See [Resources](/docs/core-concepts/resources).
+Shows `fallback` until every `Resource` created below it has loaded once. The children render hidden meanwhile, and their refs and `onMount` callbacks wait until they are shown. See [Resources](/docs/learn/async-data).
 
 <a id="view-ref" />
 
 ### View.Ref
+
+<New />
 
 ```rescript
 module Ref: {
@@ -332,6 +335,8 @@ A handle on the DOM element a tag renders to. Pass it as `ref` (`<input ref=fiel
 
 ### View.onMount
 
+<New />
+
 ```rescript
 let onMount: (unit => unit) => unit
 ```
@@ -342,6 +347,8 @@ Runs a callback once the calling component's DOM is in the document. Call it in 
 
 ### View.onCleanup
 
+<New />
+
 ```rescript
 let onCleanup: (unit => unit) => unit
 ```
@@ -351,6 +358,8 @@ Runs a callback when the calling component is removed. Call it in a component bo
 <a id="view-portal" />
 
 ### View.Portal
+
+<New />
 
 ```rescript
 module Portal: {
@@ -368,6 +377,8 @@ Renders its children into `target` (`document.body` if omitted), and nothing whe
 <a id="view-errorboundary" />
 
 ### View.ErrorBoundary
+
+<New />
 
 ```rescript
 module ErrorBoundary: {
@@ -506,5 +517,5 @@ View.mountById(app(), "app")
 
 ## See Also
 
-- [View guide](/docs/view/overview)
+- [View guide](/docs/learn/components)
 - [Signal API](/docs/api/signal)

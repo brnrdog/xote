@@ -1,0 +1,264 @@
+## Summary
+
+Lifecycle tools let a component touch the real DOM and the outside world at the right time: `View.onMount` runs code once the component's DOM is in the document, `View.onCleanup` runs code when the component is removed, `View.Ref` hands over an element, `View.Portal` renders children into another element, and `View.ErrorBoundary` replaces a failing subtree with a fallback. The rule that matters most: anything that needs a laid-out, focusable element MUST run in `onMount` (or an effect that reads a ref with `View.Ref.get`), never in the component body.
+
+## Availability
+
+| Item | Module / entry | Stable since | Changed in 7.2.0 | PPX required |
+| --- | --- | --- | --- | --- |
+| `View.onMount`, `View.onCleanup` | `xote` · `xote/view` | 7.2.0 (new) | — | no |
+| `View.Ref` (`make`, `fromCallback`, `get`, `peek`), `ref` prop | `xote` · `xote/view` | 7.2.0 (new) | — | no |
+| `View.Portal` | `xote` · `xote/view` | 7.2.0 (new) | — | no |
+| `View.ErrorBoundary` | `xote` · `xote/view` | 7.2.0 (new) | — | no |
+| Effect returning a cleanup (`Some(() => …)`) | `xote` · `xote/effect` | 7.1.0 | — | no |
+
+Before 7.2.0, the only lifecycle tool is an effect created in the component body with a returned cleanup; there is no mount hook, no ref and no error boundary.
+
+## Rules
+
+### `View.onMount`
+
+1. Call `View.onMount(callback)` in a component body. `callback` runs once, after the render that created the component has inserted all of its DOM into the document, refs included.
+2. Order: within one render, a parent's `onMount` runs before its children's (all of them run only after the whole tree is inserted).
+3. `callback` runs untracked (reads subscribe nothing), under the component's context and error boundary.
+4. `View.onCleanup` and `Effect.run` called inside `callback` are owned by the component and released when it is removed.
+5. A component removed before its DOM was inserted (for example a subtree an error boundary replaced) never runs its `onMount`.
+6. `onMount` never runs during server rendering. After hydration it runs once the page is interactive.
+7. A component function called directly (`View.mount(app(), container)`) schedules its `onMount` before anything renders; it then waits for the next `View.mount` or hydration.
+8. A failing `onMount` goes to the nearest `View.ErrorBoundary`. Without a boundary, the remaining `onMount` callbacks of the batch still run and the exception is then raised from `View.mount`.
+
+### `View.onCleanup`
+
+9. Call it in a component body or inside that component's `onMount`. `callback` runs once, untracked, when the component is removed.
+10. Registered in the body, it runs even if the component never mounted (for example its subtree was replaced by an error boundary), because the body that allocated resources did run.
+11. Outside any component, there is nothing to remove and the callback never runs.
+12. Order on removal: a parent's cleanups run before its children's.
+13. For an effect's own teardown, return the cleanup from the effect (`Some(() => …)`) instead; it also runs before every re-run of the effect.
+
+### `View.Ref`
+
+14. `View.Ref.make()` creates a ref; pass it to an intrinsic element as `ref` (`<input ref=field />`, or `~ref` on `View.element`). Not a prop of user components unless they declare one.
+15. The element is handed over once it is in the document, before any `onMount` runs; the ref reads `None` again when the element is removed.
+16. `View.Ref.peek(ref)` reads the element untracked. `View.Ref.get(ref)` is a tracked read: an effect or computed calling it re-runs when the element arrives or goes.
+17. `View.Ref.fromCallback(cb)` creates a ref that also calls `cb` (untracked) with each element handed to it. A failing callback does not hold back the `onMount` callbacks.
+18. A ref follows one element; given to several elements it holds whichever was inserted last.
+19. On the server no DOM exists and a ref stays `None`; hydration hands the ref the server-rendered element.
+
+### `View.Portal`
+
+20. `<View.Portal target=? > children </View.Portal>` renders `children` into `target` (default `document.body`) and nothing where the portal stands.
+21. Children render under the portal's context and error boundary, stay reactive, and are inserted into the target after the rest of the render, before refs and `onMount` callbacks run: a component's `onMount` can read refs of elements inside its portal. Inside a `View.Suspense` that is still waiting, they are inserted once the suspense shows its children.
+22. Portal content sits between two comment anchors in the target. Removing the portal removes everything between them (including nodes children added later, such as new keyed rows) and releases everything they set up.
+23. DOM events bubble through the target's DOM ancestors, not through the portal's position in the component tree.
+24. On the server a portal renders nothing; its children render into the target on the client after hydration.
+
+### `View.ErrorBoundary`
+
+25. Props: `fallback: (exn, unit => unit) => node` (required), `onError?: exn => unit`, `children?: node`.
+26. Caught: failures while the subtree renders and updates — a component body, a reactive region re-rendering (`View.tracked`, `Show`, `For`, `if`/`switch` regions), a reactive text or attribute, an `Effect.run` set up in a component body (first run, later runs and its cleanup), and an `onMount` callback.
+27. Not caught: event handlers, timers, promise callbacks (they run outside any render), and a `Computed` made with `~equals` (its failure goes to the code that wrote the signal). Handle these where they happen.
+28. A failure from a region outside the boundary is never claimed, even when a write inside the boundary caused that region to update.
+29. On a caught failure, the whole subtree is released (its cleanups run) and `fallback(error, reset)` renders in its place. `reset()` renders the subtree again from scratch (new component instances, new local state).
+30. `onError` is called for every failure the boundary catches; when several fail in one render, the fallback shows the first.
+31. Boundaries nest: the nearest one catches. A failure inside `fallback` goes to the boundary above.
+32. Signals read while building `fallback` do not subscribe the boundary (the fallback is not rebuilt when they change); reactive leaves inside the fallback's JSX still update.
+33. The subtree keeps the context provided above the boundary.
+34. The boundary renders a `<div style="display: contents">` around its subtree (affects CSS child selectors such as `>`).
+35. To route an async failure from a resource to a boundary, throw it where the state is read: `| Failed(exn) => throw(exn)` in a reactive leaf or region.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `View.onMount` | `(unit => unit) => unit` | Run once after the component's DOM is inserted. |
+| `View.onCleanup` | `(unit => unit) => unit` | Run once when the component is removed. |
+| `View.Ref.make` | `unit => View.Ref.t` | A ref; `None` until its element is in the document. |
+| `View.Ref.fromCallback` | `(Dom.element => unit) => View.Ref.t` | A ref that also calls back with each element. |
+| `View.Ref.get` | `View.Ref.t => option<Dom.element>` | Tracked read of the element. |
+| `View.Ref.peek` | `View.Ref.t => option<Dom.element>` | Untracked read of the element. |
+| `View.Portal` | props `{target?: Dom.element, children?: node}` | Render children into another element. |
+| `View.ErrorBoundary` | props `{fallback: (exn, unit => unit) => node, onError?: exn => unit, children?: node}` | Contain failures of a subtree. |
+| `Effect.run` | `(unit => option<unit => unit>, ~name: string=?) => unit` | Effect; the returned cleanup runs before re-runs and on disposal. |
+
+## Patterns
+
+Focus an element after mount. Use when: autofocus, measuring, third-party DOM libraries.
+
+```rescript
+@send external focus: Dom.element => unit = "focus"
+
+module AutoFocus = {
+  @xote.component
+  let make = () => {
+    let field = View.Ref.make()
+    View.onMount(() => View.Ref.peek(field)->Option.forEach(focus))
+    <input ref=field type_="search" />
+  }
+}
+```
+
+Start and stop a timer. Use when: intervals, subscriptions, listeners.
+
+```rescript
+@val external setInterval: (unit => unit, int) => int = "setInterval"
+@val external clearInterval: int => unit = "clearInterval"
+
+module Clock = {
+  @xote.component
+  let make = () => {
+    let now = Signal.make(Date.now())
+    View.onMount(() => {
+      let id = setInterval(() => Signal.set(now, Date.now()), 1000)
+      View.onCleanup(() => clearInterval(id))
+    })
+    <time> {Date.fromTime(Signal.get(now))->Date.toLocaleTimeString} </time>
+  }
+}
+```
+
+React to the element arriving. Use when: the element can appear later (inside a conditional) or be replaced.
+
+```rescript
+@get external offsetWidth: Dom.element => int = "offsetWidth"
+
+module Measure = {
+  @xote.component
+  let make = () => {
+    let box = View.Ref.make()
+    let width = Signal.make(0)
+    Effect.run(() => {
+      switch View.Ref.get(box) {
+      | Some(el) => Signal.set(width, offsetWidth(el))
+      | None => ()
+      }
+      None
+    })
+    <div ref=box> {Signal.get(width)} </div>
+  }
+}
+```
+
+Modal through a portal. Use when: content must escape `overflow: hidden` or stacking contexts.
+
+```rescript
+module Modal = {
+  @xote.component
+  let make = (~onClose: unit => unit, ~children: View.node) =>
+    <View.Portal>
+      <div class="backdrop" onClick={_ => onClose()}>
+        <div class="modal"> {children} </div>
+      </div>
+    </View.Portal>
+}
+
+let isOpen = Signal.make(false)
+
+module App = {
+  @xote.component
+  let make = () =>
+    <div>
+      <button onClick={_ => Signal.set(isOpen, true)}> {"Open"} </button>
+      {Signal.get(isOpen) ? <Modal onClose={() => Signal.set(isOpen, false)}> <p> {"Hi"} </p> </Modal> : View.null()}
+    </div>
+}
+```
+
+Error boundary with retry and typed errors. Use when: a part of the page can fail independently.
+
+```rescript
+exception LoadFailed(string)
+
+module Guarded = {
+  @xote.component
+  let make = () =>
+    <View.ErrorBoundary
+      fallback={(error, reset) =>
+        <div role="alert">
+          <p>
+            {switch error {
+            | LoadFailed(message) => message
+            | _ => "Something went wrong."
+            }}
+          </p>
+          <button onClick={_ => reset()}> {"Retry"} </button>
+        </div>}
+      onError={error => Console.error(error)}>
+      <Dashboard />
+    </View.ErrorBoundary>
+}
+```
+
+## Anti-patterns
+
+DOM access in the component body.
+
+```rescript
+@xote.component
+let make = () => {
+  let field = View.Ref.make()
+  View.Ref.peek(field)->Option.forEach(focus) // always None here
+  <input ref=field />
+}
+```
+
+Symptom: nothing happens (the ref is `None` while the body runs). Fix: move the call into `View.onMount(() => …)`. Why: the body runs before the element exists in the document.
+
+Timer without cleanup.
+
+```rescript
+View.onMount(() => {
+  let _ = setInterval(() => Signal.update(ticks, n => n + 1), 1000)
+})
+```
+
+Symptom: after the component is removed the interval keeps running and keeps writing signals (leak; possible writes to disposed state). Fix: `View.onCleanup(() => clearInterval(id))` inside the same `onMount`.
+
+Expecting a boundary to catch an event handler.
+
+```rescript
+<button onClick={_ => throw(Failure("boom"))}> {"Go"} </button>
+```
+
+Symptom: the boundary fallback never shows; the error surfaces as an uncaught exception. Fix: catch in the handler (`try … catch`) and set an error signal that the UI renders, or move the failing work into a resource and `throw` its `Failed(exn)` from a reactive leaf.
+
+Wrapping the whole app in one boundary with SSR.
+
+Symptom: hydration re-renders everything inside the boundary on the client instead of adopting the server DOM (slower first interaction, lost server DOM reuse). Fix: wrap only the parts that can fail.
+
+Expecting portal events to bubble to the component's parent element.
+
+Symptom: a click handler on an ancestor element of the `<View.Portal>` does not fire for clicks inside the portal content. Fix: attach handlers inside the portal content, or on the target element.
+
+Relying on `>` CSS selectors across a boundary.
+
+Symptom: `.list > .item` stops matching when items are inside an error boundary (wrapped in `<div style="display: contents">`). Fix: use descendant selectors or put the boundary inside each item.
+
+## Edge cases
+
+- `onMount` in a keyed list row runs per row, including rows added later.
+- A component shown on a later update (inside a branch that becomes true) runs its `onMount` when it is inserted, and its cleanups when it is removed.
+- An effect created in the body runs immediately, before the DOM is inserted; use `View.Ref.get` inside it to re-run when the element arrives, or use `onMount`.
+- `reset()` re-runs component bodies inside the boundary: local signals are created again; module-level signals are untouched.
+- An error boundary inside each keyed row isolates failures per row.
+- `onError` is for logging; it cannot prevent the fallback.
+
+## SSR and hydration
+
+- Server: no `onMount`, refs stay `None`, portals render nothing, a failing subtree renders its boundary's fallback into the HTML.
+- Hydration: refs receive the server elements, `onMount` runs once interactive, portal children render into their target, and every subtree inside an `ErrorBoundary` is rendered again on the client rather than adopted.
+- Code that touches `window`/`document` MUST run in `onMount`, in an effect guarded by `SSRContext.isClient`, or in event handlers.
+
+## Verify
+
+- jsdom: mount a component whose `onMount` pushes to a log and reads a ref; assert the log has one entry and the ref was `Some` with `isConnected == true`.
+- Removal: toggle the condition that shows the component and assert cleanup callbacks ran once.
+- Boundary: render a child that throws in its body; assert the fallback's markup is present and the child's markup is absent; call `reset` after fixing the cause and assert the child renders.
+- Portal: assert content is a descendant of `document.body` (or the target) and not of the component's container; remove the portal and assert the content is gone.
+
+## Related
+
+- `/docs/learn/components` — component bodies run once; ownership.
+- `/docs/learn/effects` — effects and cleanups (available in 7.1.0 stable).
+- `/docs/learn/async-data` — resources and `View.Suspense`; throwing `Failed` into a boundary.
+- `/docs/advanced/ssr` — server rendering and hydration.
+- `/docs/api/view` — full `View` reference.

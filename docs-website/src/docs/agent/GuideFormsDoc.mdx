@@ -1,0 +1,272 @@
+## Summary
+
+A Xote form is plain HTML elements bound to signals: each field's `value` (or `checked`) prop reads a signal, and an event handler writes the new value back with `Signal.set`. Xote has no two-way binding, no form library and no event-value helper; you add four small `external` bindings once. Derived state (errors, "can submit") MUST be a computed, never a signal written from an effect. The one rule that matters most: bind `value={signal}` (or read it in the attribute) and write back in `onInput`; never copy the value into the component body.
+
+## Availability
+
+| Item | Import / entry | First stable | Changed in 7.2.0 | Needs the PPX |
+| --- | --- | --- | --- | --- |
+| `value`, `checked`, `disabled`, `type_`, event props on intrinsic elements | `xote` (JSX via `XoteJSX`) | 7.0.0 | — | No (thunks or signals work without it) |
+| Reading `Signal.get` inline in an attribute | `xote` | 7.1.0 | — | Yes (`@xote.component`) |
+| `attrs` escape hatch, attribute removal with `None` | `xote` | 7.1.0 | — | No |
+| `ref` prop, `View.Ref`, `View.onMount` (focus management) | `xote` | 7.2.0 (new) | — | No |
+| `Signal.batch` | `xote` | stable (all 7.x) | — | No |
+
+## Rules
+
+1. Xote writes `value`, `checked` and `disabled` as DOM **properties** (`el.value`, `el.checked`, `el.disabled`), not attributes. Consequence: `Signal.set(name, "")` clears a field the user has already typed in; `getAttribute("value")` on a bound input returns `null`; CSS `[value="…"]` selectors do not match a bound value.
+2. A string-typed attribute prop (`value`, `class`, `name`, `placeholder`, `min`, `max`, `step`, `pattern`, …) accepts: a `string`, a `Signal.t<string>`, a thunk `unit => string`, or a `MaybeSignal.t<string>`. A signal or thunk makes it a reactive leaf.
+3. A boolean prop (`checked`, `disabled`, `required`, `readOnly`, `multiple`, `autofocus`, `hidden`) accepts `bool`, `Signal.t<bool>`, `unit => bool` or `MaybeSignal.t<bool>`. `false` removes the attribute (or clears the property).
+4. `maxLength`, `minLength`, `rows`, `cols` and `tabIndex` are typed `int` and are applied once. They MUST NOT be passed a signal or thunk; use `attrs=[("maxlength", …)]` for a reactive value.
+5. Under `@xote.component`, an attribute expression on an intrinsic element that reads a signal (`value={Signal.get(name)}`) becomes a reactive leaf. `value={name}` (passing the signal) is equivalent and preferred: it is explicit and does not depend on PPX detection.
+6. Binding is one-way (signal → DOM). The handler MUST write the user's input back: text fields in `onInput`, checkboxes, radios and selects in `onChange`.
+7. `onChange` on a text `<input>` or `<textarea>` fires only when the field commits (blur, or Enter). Use `onInput` for per-keystroke state.
+8. An event handler is not a tracking scope. Inside it, `Signal.peek` and `Signal.get` behave identically (no subscription); `Signal.peek` SHOULD be used to make that explicit.
+9. A `<form>` MUST have `onSubmit` that calls `preventDefault` on the event, or submitting navigates/reloads the page. Pressing Enter in a field submits the form.
+10. Validation and "can submit" flags MUST be computeds derived from field signals. A computed recomputes only when a field it read changes, and it is never out of sync.
+11. Resetting a form is setting its signals back. Wrap several writes in `Signal.batch` so dependents (computeds, effects, reactive leaves) update once.
+12. For a `<select>`, Xote applies `value` after the select's children (options) are created, so the initial value selects the matching option.
+13. Xote provides no helper to read `event.target.value`; declare the bindings in API below (once, in a shared module).
+14. Props that are not in the JSX props record (for example `inputmode`, `enterkeyhint`, `aria-invalid`, `aria-describedby`) are a compile error as props; pass them through `attrs`.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `value` prop | `string \| Signal.t<string> \| unit => string \| MaybeSignal.t<string>` | Sets `el.value`; reactive when given a signal/thunk. |
+| `checked` prop | `bool \| Signal.t<bool> \| unit => bool \| MaybeSignal.t<bool>` | Sets `el.checked`. |
+| `disabled` prop | same as `checked` | Sets `el.disabled`. |
+| `type_` prop | string | Renders `type` (`type` is a ReScript keyword). |
+| `for_` prop | string | Renders `for` on `<label>`. |
+| `onInput`, `onChange`, `onSubmit`, `onFocus`, `onBlur`, `onKeyDown` | `Dom.event => unit` | DOM event listeners. |
+| `attrs` | `array<(string, 'a)>` | Any other attribute; all entries share one type (see Styling guide). |
+| `ref` | `View.Ref.t` | Receives the element (7.2.0). |
+| `View.Ref.make` | `unit => View.Ref.t` | Creates a ref. |
+| `View.Ref.peek` | `View.Ref.t => option<Dom.element>` | Reads the element without tracking. |
+| `View.onMount` | `(unit => unit) => unit` | Runs after the component's DOM is in the document; never on the server. |
+| `Signal.batch` | `(unit => 'a) => 'a` | Defers notifications until the outermost batch ends. |
+| `Computed.make` | `(unit => 'a, ~name: string=?, ~equals: ('a, 'a) => bool=?) => Signal.t<'a>` | Derived value. |
+
+Event bindings to declare (canonical set):
+
+```rescript
+// src/FormEvent.res
+@get external target: Dom.event => Dom.element = "target"
+@get external value: Dom.element => string = "value"
+@get external checked: Dom.element => bool = "checked"
+@send external preventDefault: Dom.event => unit = "preventDefault"
+```
+
+## Patterns
+
+**Text field** — Use when: any text, email, password, search or textarea input.
+
+```rescript
+let name = Signal.make("")
+
+@xote.component
+let make = () =>
+  <input value={name} onInput={e => Signal.set(name, e->target->value)} />
+```
+
+**Checkbox, select** — Use when: boolean or one-of-many choices.
+
+```rescript
+let agreed = Signal.make(false)
+let plan = Signal.make("free")
+
+@xote.component
+let make = () =>
+  <div>
+    <input type_="checkbox" checked={agreed} onChange={e => Signal.set(agreed, e->target->checked)} />
+    <select value={plan} onChange={e => Signal.set(plan, e->target->value)}>
+      <option value="free"> {"Free"} </option>
+      <option value="team"> {"Team"} </option>
+    </select>
+  </div>
+```
+
+**Radio group** — Use when: a small one-of-many choice shown inline. Each radio computes its own `checked`.
+
+```rescript
+let size = Signal.make("m")
+
+@xote.component
+let make = () =>
+  <fieldset>
+    <label>
+      <input type_="radio" name="size" value="s" checked={Signal.get(size) == "s"} onChange={_ => Signal.set(size, "s")} />
+      {"Small"}
+    </label>
+    <label>
+      <input type_="radio" name="size" value="m" checked={Signal.get(size) == "m"} onChange={_ => Signal.set(size, "m")} />
+      {"Medium"}
+    </label>
+  </fieldset>
+```
+
+**Numeric field with validation** — Use when: the value is a number. Keep the raw text as the source of truth and parse in a computed; writing a parsed-and-reformatted string back into `value` while the user types moves the caret.
+
+```rescript
+let ageText = Signal.make("")
+let age = Computed.make(() => Int.fromString(Signal.get(ageText)))
+let ageError = Computed.make(() =>
+  switch Signal.get(age) {
+  | Some(n) if n >= 0 && n < 150 => None
+  | Some(_) => Some("Enter an age between 0 and 149.")
+  | None => Signal.get(ageText) == "" ? None : Some("Enter a whole number.")
+  }
+)
+
+@xote.component
+let make = () =>
+  <label>
+    {"Age"}
+    <input
+      type_="number"
+      attrs=[("inputmode", "numeric")]
+      value={ageText}
+      onInput={e => Signal.set(ageText, e->target->value)}
+    />
+    <span class="field-error"> {Signal.get(ageError)->Option.getOr("")} </span>
+  </label>
+```
+
+**Form with derived validity, async submit and reset** — Use when: a complete form posts to a server.
+
+```rescript
+let email = Signal.make("")
+let submitting = Signal.make(false)
+let error: Signal.t<option<string>> = Signal.make(None)
+
+let emailError = Computed.make(() =>
+  Signal.get(email)->String.includes("@") ? None : Some("Enter an email address.")
+)
+let canSubmit = Computed.make(() => Signal.get(emailError) == None && !Signal.get(submitting))
+
+let submit = (evt: Dom.event) => {
+  preventDefault(evt)
+  if Signal.peek(canSubmit) {
+    Signal.set(submitting, true)
+    saveEmail(Signal.peek(email))
+    ->Promise.thenResolve(() =>
+      Signal.batch(() => {
+        Signal.set(submitting, false)
+        Signal.set(email, "")
+      })
+    )
+    ->Promise.catch(_ => {
+      Signal.batch(() => {
+        Signal.set(submitting, false)
+        Signal.set(error, Some("Could not save. Try again."))
+      })
+      Promise.resolve()
+    })
+    ->ignore
+  }
+}
+
+@xote.component
+let make = () =>
+  <form onSubmit=submit>
+    <input type_="email" value={email} onInput={e => Signal.set(email, e->target->value)} />
+    <button type_="submit" disabled={!Signal.get(canSubmit)}> {"Save"} </button>
+    <p role="alert"> {Signal.get(error)->Option.getOr("")} </p>
+  </form>
+```
+
+(`saveEmail` is any `string => promise<unit>`.)
+
+**Focus a field when it appears** (7.2.0) — Use when: a dialog or search box opens.
+
+```rescript
+@send external focus: Dom.element => unit = "focus"
+
+@xote.component
+let make = () => {
+  let field = View.Ref.make()
+  View.onMount(() => View.Ref.peek(field)->Option.forEach(focus))
+  <input ref=field type_="search" placeholder="Search" />
+}
+```
+
+## Anti-patterns
+
+1. **Copying the value in the component body.**
+   Wrong: `let current = Signal.get(name)` then `<input value={current} />`.
+   Symptom: `Signal.set(name, "")` (e.g. after submit) does not clear the field; the field shows the value from first render.
+   Right: `<input value={name} … />` or `value={Signal.get(name)}` inside the attribute.
+   Why: the component body runs once, untracked; only attribute expressions become reactive leaves.
+
+2. **`onChange` on a text input.**
+   Wrong: `<input value={query} onChange={e => Signal.set(query, e->target->value)} />`.
+   Symptom: the signal (and everything derived from it) updates only when the field loses focus.
+   Right: `onInput`.
+   Why: the DOM `change` event on text fields fires on commit.
+
+3. **Validation written from an effect.**
+   Wrong: `Effect.run(() => { Signal.set(error, Signal.get(name) == "" ? Some("…") : None); None })`.
+   Symptom: an extra signal to keep in sync; error can be stale for one update; writes inside effects can cascade.
+   Right: `let error = Computed.make(() => Signal.get(name) == "" ? Some("…") : None)`.
+   Why: derived state is a computed by definition.
+
+4. **Missing `preventDefault`.**
+   Wrong: `<form onSubmit={_ => save()}>`.
+   Symptom: the page reloads (or navigates to the form's `action`), losing state.
+   Right: `onSubmit={e => { preventDefault(e); save() }}`.
+
+5. **Passing a signal to an `int` prop.**
+   Wrong: `<textarea rows={rowCount} />` with `rowCount: Signal.t<int>`.
+   Symptom: compile error (`int` expected); if forced with `Obj.magic`, the attribute renders garbage.
+   Right: `attrs=[("rows", () => Int.toString(Signal.get(rowCount)))]`.
+
+6. **`<button type="reset">`.**
+   Symptom: the browser resets the DOM fields but not the signals; the UI and state disagree, and the next signal change overwrites the field again.
+   Right: a regular button whose handler sets the signals (in a `Signal.batch`).
+
+## Edge cases
+
+- Writing a different string into `value` while the field has focus moves the caret to the end (browser behaviour). Transform input on blur or submit, not on every keystroke.
+- Setting a signal to the value it already holds does not notify (strict equality), so `Signal.set(name, e->target->value)` from `onInput` never re-writes the DOM with the same string.
+- `<select multiple>`: Xote has no `selected` prop, and `value` selects only one option. Read the choices in the handler (`selectedOptions`, via your own binding) and set selection imperatively through a ref if needed.
+- Options rendered later (for example from a resource) do not re-apply the select's `value`; write the value signal again after the options change.
+- An uncontrolled field (no `value` prop) is valid: read it in the submit handler through a ref or `FormData`.
+- `required`, `pattern`, `min`, `max` enable native constraint validation; the browser blocks `submit` events for invalid fields only when the form has no `novalidate` attribute.
+
+## SSR and hydration
+
+- On the server, `value` renders as an attribute (`<input value="Ada" />`) and `checked`/`disabled` as presence attributes; inputs therefore show their values in the HTML.
+- `<select value>` and `<textarea value>` render as a `value` attribute, which browsers ignore: until hydration the select shows its first option and the textarea is empty. Hydration then writes the properties. If this flash matters, render the matching `<option>` with `attrs=[("selected", "")]` on the server or put the text inside the textarea.
+- Event handlers attach on hydration; input typed before hydration finishes is not written to signals. `View.onMount` (focus) runs only in the browser, after hydration.
+
+## Verify
+
+- Compile errors: "The field X does not belong to type XoteJSX.Elements.props" means the attribute is not a typed prop; move it into `attrs`. `This has type: Signal.t<…> But it's expected to have type: int` means an `int` prop got a signal.
+- Test with Zekr + jsdom (see the Testing guide):
+
+```rescript
+// SignupForm.res: <input type_="email" placeholder="Email" value={email} onInput=…/>
+test("typing updates the signal; setting the signal clears the field", () => {
+  let {container} = Dom.render("")
+  View.mount(<SignupForm />, container)
+  let input = Dom.Query.getByPlaceholder(container, "Email")
+  Dom.Event.typeText(input, "ada@example.com")
+  let typed = assertEqual(Signal.peek(SignupForm.email), "ada@example.com")
+  Signal.set(SignupForm.email, "")
+  combineResults([
+    typed,
+    assertNone(Dom.Query.queryByDisplayValue(container, "ada@example.com")),
+  ])
+}),
+```
+
+- Observable: after `Signal.set(field, "")` the element's `.value` is `""`; `disabled={!Signal.get(canSubmit)}` toggles `button.disabled` as fields change.
+
+## Related
+
+- `/docs/learn/rendering` — attribute and event rules this page relies on.
+- `/docs/learn/computeds` — validation as derived state.
+- `/docs/advanced/batching` — grouping resets.
+- `/docs/learn/lifecycle` — refs and `View.onMount` for focus.
+- `/docs/guides/styling` — `attrs` typing and attribute removal.
+- `/docs/api/view` — `View.Ref`, `View.onMount`.

@@ -1,26 +1,23 @@
-A resource turns an asynchronous fetch into a signal, and `View.Suspense` shows a fallback while the resources below it load for the first time.
+A resource turns asynchronous work, like a fetch, into a signal. `View.Suspense` shows a fallback while the resources below it load for the first time.
 
 > **Info:** A resource is a `Signal.t` of its loading state. Read it with `Signal.get` like any other signal.
 
-## Resources
+## Create a resource
 
-### Creating a Resource
-
-[`Resource.make`](#resources) takes a function that returns a promise and starts fetching right away:
+`Resource.make` takes a function that returns a promise, and starts it right away. Here `Api.getUser` stands for your own function that returns `promise<user>`; [Fetching data](/docs/guides/fetching-data) shows how to write one.
 
 ```rescript
 let userId = Signal.make("1")
 
 let user = Resource.make(async () => {
   let id = Signal.get(userId) // a dependency: read before the first await
-  let response = await fetch(`/api/users/${id}`)
-  await response->json
+  await Api.getUser(id)
 })
 ```
 
-The fetch runs in an effect. The signals it reads **before its first `await`** are its dependencies: change `userId` and the resource fetches again. Reads after an `await` are not tracked.
+The function runs in an effect. The signals it reads **before its first `await`** are its dependencies: change `userId` and the resource fetches again. Reads after an `await` aren't tracked.
 
-### Reading the State
+## Read its state
 
 A resource holds one of four states:
 
@@ -45,7 +42,7 @@ module UserName = {
 
 `Resource.value` returns the value a state carries, if any, and `Resource.isLoading` tells whether a fetch is in flight.
 
-### Refetching and Mutating
+## Refetch or set the value
 
 `Resource.refetch` fetches again with the same dependencies. `Resource.mutate` sets the value directly, which is useful for optimistic updates, and drops any fetch in flight.
 
@@ -53,11 +50,11 @@ module UserName = {
 <button onClick={_ => Resource.refetch(user)}> {"Reload"} </button>
 ```
 
-Only the latest fetch can settle the state. If the user switches from one id to another and the first response arrives last, it is ignored.
+Only the latest fetch can settle the state. If the user switches from one id to another and the first response arrives last, it's ignored.
 
-### Errors
+## Handle errors
 
-A failed fetch is a state like any other. To send it to a [`View.ErrorBoundary`](/docs/api/view#view-errorboundary) instead, throw it where the state is read:
+A failed fetch is a state like any other. To hand it to a [`View.ErrorBoundary`](/docs/api/view#view-errorboundary) instead, throw it where the state is read:
 
 ```rescript
 switch Signal.get(user) {
@@ -68,9 +65,7 @@ switch Signal.get(user) {
 
 ## Suspense
 
-### Showing a Fallback
-
-Wrap the components that create resources in [`View.Suspense`](/docs/api/view#view-suspense):
+To show a fallback while loading, wrap the components that create resources in [`View.Suspense`](/docs/api/view#view-suspense):
 
 ```rescript
 <View.Suspense fallback={<p> {"Loading..."} </p>}>
@@ -79,20 +74,17 @@ Wrap the components that create resources in [`View.Suspense`](/docs/api/view#vi
 </View.Suspense>
 ```
 
-The fallback shows until every resource created below the suspense has loaded once. The children render straight away, hidden, so their fetches start at once and their state survives the wait. Their refs and `onMount` callbacks are held back until they are shown.
+The fallback shows until every resource created below the suspense has loaded once. The children render straight away, hidden, so their fetches start at once and their state survives the wait. Their refs and `onMount` callbacks wait until they're shown.
 
-### Rules
+### Suspense rules
 
 - A resource suspends the nearest `Suspense` above the component that **created** it, wherever it is read.
 - A resource counts once. A later fetch shows as `Refreshing` and never brings the fallback back.
 - Suspenses nest. The nearest one waits, and an inner subtree that is ready stays hidden while an outer suspense still waits.
 - Removing a component releases its resources: a fetch in flight is dropped, and a suspense waiting for it stops waiting.
 
-### Server Rendering
+## Server rendering
 
-During a server render (`SSR.renderToString`) nothing is awaited: no fetch starts, and `Suspense` renders its fallback. A resource created outside a render, at module level in a server process, is not covered and does fetch; create resources in components. Hydration then renders the children on the client, where the resources fetch.
+During a [server render](/docs/advanced/ssr) (`SSR.renderToString`) nothing is awaited: no fetch starts, and `Suspense` renders its fallback. A resource created outside a render, at module level in a server process, isn't covered and does fetch, so create resources in components. Hydration then renders the children in the browser, where the resources fetch.
 
-## Next Steps
-
-- Learn how effects track their dependencies in [Effects](/docs/core-concepts/effects).
-- Handle failures with [error boundaries](/docs/view/overview#error-boundaries).
+To handle failures with a boundary, see [error boundaries](/docs/learn/lifecycle). For loading, refetching and search patterns, see [Fetching data](/docs/guides/fetching-data).

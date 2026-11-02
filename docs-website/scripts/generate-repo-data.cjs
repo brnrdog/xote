@@ -137,6 +137,41 @@ function inlineTextToRescript(text, indent) {
     .join(',\n')
 }
 
+// One changelog bullet split into its parts: an optional scope (the bold
+// "**view:**" prefix), the description, and the trailing issue and commit
+// references. Release tooling turns "@xote" into a link to a GitHub profile;
+// that is undone here.
+function parseChange(text) {
+  let rest = text.replace(/\[@([\w-]+)\]\(https:\/\/github\.com\/\1\)/g, '@$1')
+  let scope = null
+  const scopeMatch = rest.match(/^\*\*([^*]+?):\*\*\s*/)
+  if (scopeMatch) {
+    scope = scopeMatch[1].trim()
+    rest = rest.slice(scopeMatch[0].length)
+  }
+  const refs = []
+  let refMatch
+  while ((refMatch = rest.match(/\s*\(\[([^\]]+)\]\(([^)]+)\)\)\s*$/))) {
+    refs.unshift({ label: refMatch[1], url: refMatch[2] })
+    rest = rest.slice(0, refMatch.index)
+  }
+  return { scope, text: rest.trim(), refs }
+}
+
+function changeToRescript(change, indent) {
+  const scope = change.scope === null ? 'None' : `Some("${escapeForReScript(change.scope)}")`
+  const refs = change.refs
+    .map(ref => `{label: "${escapeForReScript(ref.label)}", url: "${escapeForReScript(ref.url)}"}`)
+    .join(', ')
+  return `${indent}{
+${indent}  scope: ${scope},
+${indent}  text: [
+${inlineTextToRescript(change.text, indent + '    ')}
+${indent}  ],
+${indent}  refs: [${refs}],
+${indent}}`
+}
+
 function ensureSection(release, currentSection) {
   if (currentSection) {
     return currentSection
@@ -228,13 +263,11 @@ function generateRepoData(releases) {
     .map(release => {
       const sections = release.sections
         .map(section => {
-          const items = section.items
-            .map(
-              item => `          [\n${inlineTextToRescript(item, '            ')}\n          ]`,
-            )
+          const changes = section.items
+            .map(item => changeToRescript(parseChange(item), '          '))
             .join(',\n')
 
-          return `      {\n        title: "${escapeForReScript(section.title)}",\n        items: [\n${items}\n        ],\n      }`
+          return `      {\n        title: "${escapeForReScript(section.title)}",\n        changes: [\n${changes}\n        ],\n      }`
         })
         .join(',\n')
 
@@ -245,15 +278,25 @@ function generateRepoData(releases) {
   return `// ****************************************************
 // * THIS FILE IS GENERATED - DO NOT EDIT MANUALLY! *
 // * Generated from: ../../docs/CHANGELOG.md
+// * Pre-releases (versions with a "-") are left out.
 // * To update: modify docs/CHANGELOG.md and run:
 // *   npm run generate-repo-data
 // ****************************************************
 
 type inlineNodes = array<View.node>
 
+// A link to an issue or a commit.
+type reference = {label: string, url: string}
+
+type change = {
+  scope: option<string>,
+  text: inlineNodes,
+  refs: array<reference>,
+}
+
 type releaseSection = {
   title: string,
-  items: array<inlineNodes>,
+  changes: array<change>,
 }
 
 type release = {
@@ -278,7 +321,9 @@ ${releaseEntries}
 
 function main() {
   const markdown = fs.readFileSync(CHANGELOG_PATH, 'utf-8')
-  const releases = parseChangelog(markdown)
+  // Pre-releases (versions with a "-", like 7.2.0-beta.1) are internal: they
+  // are left out of the site, and the latest version is the latest stable one.
+  const releases = parseChangelog(markdown).filter(release => !release.version.includes('-'))
   const output = generateRepoData(releases)
 
   fs.writeFileSync(OUTPUT_PATH, output, 'utf-8')

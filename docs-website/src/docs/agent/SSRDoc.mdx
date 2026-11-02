@@ -1,0 +1,205 @@
+## Summary
+
+Server rendering turns a component into an HTML string (`SSR.renderToString`, `SSR.renderToStringWithRoot`, `SSR.renderDocument`); hydration (`Hydration.hydrate`, `Hydration.hydrateById`) attaches event listeners and reactive leaves to that HTML in the browser instead of re-creating it. `SSRState` carries signal values from the server to the client, and `SSRContext` tells shared code where it runs. The rule that matters most: the client MUST build the same tree, from the same state, as the server; any difference is kept silently as stale server markup or replaced, and nothing throws.
+
+## Availability
+
+| Item | Value |
+| --- | --- |
+| Modules | `SSR`, `Hydration`, `SSRState`, `SSRContext` |
+| Import / entry | `xote` (with `-open Xote`), or `xote/ssr`, `xote/hydration`, `xote/ssr-state`, `xote/ssr-context` |
+| First stable version | 4.14.0 (server rendering with hydration); `SSRState.signal` / `SSRState.sync` are the only names since 7.0.0 (`SSRState.make` and `SSRState.syncSignal` were removed) |
+| Status | stable since 7.1.0 |
+| PPX required | No |
+
+## Rules
+
+1. `SSR.renderToString(component)` calls `component()` and serializes the node tree synchronously. Signals are read with their current value (untracked). The output contains hydration markers (rule 14).
+2. During a server render, `View.onMount` callbacks and element refs never run, `Resource.make` starts no fetch, and `View.Suspense` renders its fallback.
+3. `Effect.run` **does** run during a server render: an effect created in a component body executes its function once, synchronously, on the server. Browser-only code inside an effect MUST be guarded (`SSRContext.isClient`) or moved to `View.onMount`. (The `SSR` interface comment saying effects do not run is wrong; verified against the implementation.)
+4. `SSR.renderToStringWithRoot(component, ~rootId="root")` wraps the output in `<!--xote-root:ID-->` … `<!--/xote-root-->`. It does not create an element; put the output inside an element with that id yourself.
+5. `SSR.renderDocument(~head=?, ~bodyAttrs=?, ~scripts=?, ~styles=?, ~stateScript=?, ~nonce=?, component)` returns a full `<!DOCTYPE html>` document: `styles` become `<link rel="stylesheet">`, `head` and `bodyAttrs` are inserted **raw (not escaped)**, the app goes into `<div id="root">`, followed by `stateScript`, a `window.__XOTE_HYDRATED__=false` script, and `<script type="module">` tags for `scripts`. `nonce` is added to the generated scripts.
+6. Arguments are evaluated before the call: in `SSR.renderDocument(~stateScript=SSRState.generateScript(), app)`, the state script is generated **before** `app` renders. Anything registered during the render is not in that script.
+7. `SSRState.register(id, signal, codec)` (server only) stores `codec.encode(Signal.peek(signal))` **at call time**. Later writes to the signal are not serialized. `SSRState.sync` and `SSRState.signal` register on the server, so the same timing applies.
+8. The `SSRState` registry is module-level and shared by every request in the process. Call `SSRState.clear()` at the start of each request.
+9. `SSRState.generateScript(~nonce=?)` emits `<script>window.__XOTE_STATE__=...;</script>` with the registry as JSON (`</script>` and `<!--` escaped).
+10. `SSRState.restore(id, signal, codec)` (client only) sets the signal from `window.__XOTE_STATE__[id]` if present and decodable; otherwise the signal keeps its value, silently. `SSRState.sync` restores on the client; `SSRState.signal(id, initial, codec)` = `Signal.make(initial)` + `sync`.
+11. Restoring MUST happen before hydration. Module-level `SSRState.signal` calls run on import, which is before `Hydration.hydrateById` in a normal client entry.
+12. `SSRContext.isServer` is `typeof document === "undefined"`, computed **once when the module loads**; `isClient` is its inverse. `onServer`, `onClient` and `match` branch on it.
+13. `Hydration.hydrate(component, container, ~options=?)` calls `component()` and walks the container's existing DOM:
+    - elements outside reactive regions are **adopted** (same DOM nodes); static attributes and static text are left exactly as the server wrote them;
+    - each reactive text leaf is set to the client's current value, then follows its signal;
+    - reactive attributes are attached and set from the client's state;
+    - event listeners are attached;
+    - keyed lists (`View.For` with `~by`) adopt their rows by key;
+    - every reactive region (`if`/`switch` in JSX, `View.Show`, `View.Maybe`, `View.Value`, `View.tracked`, `Router.routes`/`route`, `View.Suspense`, `View.ErrorBoundary`) is **rendered again** on the client: its server DOM is removed and replaced once.
+14. Hydration markers (HTML comments): `<!--$-->`…`<!--/$-->` reactive text, `<!--#-->`…`<!--/#-->` reactive region, `<!--kl-->`…`<!--/kl-->` keyed list, `<!--k:KEY-->`…`<!--/k-->` keyed row, `<!--lc-->`…`<!--/lc-->` component, `<!--xote-root:ID-->` root. They MUST reach the browser unmodified (no HTML minifier that strips comments).
+15. `Hydration.hydrate` sets `window.__XOTE_HYDRATED__ = true`, then calls `onHydrated`. Refs and `View.onMount` callbacks run once the whole tree is hydrated.
+16. `Hydration.hydrateById(component, id)` logs `[Xote Hydration] Container element not found: ID` with `console.error` and does nothing else when the element is missing.
+17. `renderOptions.renderId`, `renderOptions.nonce` (on `renderToString` / `renderToStringWithRoot`) and `hydrateOptions.renderId` are accepted but currently have **no effect**: markers are not namespaced. Do not rely on them to separate two trees on one page.
+
+## API
+
+| Name | Signature | Behaviour |
+| --- | --- | --- |
+| `SSR.renderToString` | `(unit => View.node, ~options: renderOptions=?) => string` | HTML with markers; options currently ignored. |
+| `SSR.renderToStringWithRoot` | `(unit => View.node, ~rootId: string=?, ~options: renderOptions=?) => string` | Same, wrapped in root comment markers (default id `"root"`). |
+| `SSR.renderDocument` | `(~head: string=?, ~bodyAttrs: string=?, ~scripts: array<string>=?, ~styles: array<string>=?, ~stateScript: string=?, ~nonce: string=?, unit => View.node) => string` | Full HTML document, app in `<div id="root">`. |
+| `SSR.generateHydrationScript` | `(~nonce: string=?) => string` | `<script>window.__XOTE_HYDRATED__=false;</script>`. |
+| `Hydration.hydrate` | `(unit => View.node, Dom.element, ~options: hydrateOptions=?) => unit` | Attach to existing markup in an element. |
+| `Hydration.hydrateById` | `(unit => View.node, string, ~options: hydrateOptions=?) => unit` | `hydrate` by element id. |
+| `Hydration.hydrateOptions` | `{renderId?: string, onHydrated?: unit => unit}` | `onHydrated` runs once after hydration. |
+| `SSRState.register` | `(string, Signal.t<'a>, Codec.t<'a>) => unit` | Server: record the current value. |
+| `SSRState.restore` | `(string, Signal.t<'a>, Codec.t<'a>) => unit` | Client: set from the page's state. |
+| `SSRState.sync` | `(string, Signal.t<'a>, Codec.t<'a>) => unit` | `register` on the server, `restore` on the client. |
+| `SSRState.signal` | `(string, 'a, Codec.t<'a>) => Signal.t<'a>` | `Signal.make` + `sync`. |
+| `SSRState.clear` | `unit => unit` | Empty the server registry. |
+| `SSRState.generateScript` | `(~nonce: string=?) => string` | `<script>` with `window.__XOTE_STATE__`. |
+| `SSRState.getClientState` | `unit => Dict.t<JSON.t>` | Raw state payload (client), `{}` on the server. |
+| `SSRState.Codec` | `int`, `float`, `string`, `bool`, `array`, `option`, `tuple2`, `tuple3`, `dict`, `make(~encode, ~decode)` | JSON codecs; `decode` returns `option`. |
+| `SSRContext.isServer` / `isClient` | `bool` | Environment, fixed at module load. |
+| `SSRContext.onServer` / `onClient` | `(unit => 'a) => option<'a>` | Run on one side only. |
+| `SSRContext.match` | `(~server: unit => 'a, ~client: unit => 'a) => 'a` | Pick a branch. |
+
+## Patterns
+
+Use for a shared app with state that must survive the trip: declare synced signals at module level, put browser-only reads in `View.onMount`.
+
+```rescript
+@val @scope("window") external innerWidth: int = "innerWidth"
+
+let count = SSRState.signal("count", 0, SSRState.Codec.int)
+
+module App = {
+  @xote.component
+  let make = () => {
+    let width = Signal.make(0)
+    View.onMount(() => Signal.set(width, innerWidth)) // browser only, after hydration
+    <div>
+      <h1> {"Count: "} {Signal.get(count)} </h1>
+      <p> {"Window width: "} {Signal.get(width)} </p>
+      <button onClick={_ => Signal.update(count, n => n + 1)}> {"+"} </button>
+    </div>
+  }
+}
+
+let app = () => <App />
+```
+
+Use for a request handler that loads data first: clear the registry, seed the router, load, **then** sync, then render.
+
+```rescript
+let posts: Signal.t<array<string>> = Signal.make([])
+
+let handleRequest = async (~pathname) => {
+  SSRState.clear()
+  Router.initSSR(~pathname, ())
+  Signal.set(posts, await loadPosts())
+  SSRState.sync("posts", posts, SSRState.Codec.array(SSRState.Codec.string)) // after the data is in
+  SSR.renderDocument(~scripts=["/client.js"], ~stateScript=SSRState.generateScript(), app)
+}
+```
+
+Use for the client entry: restore the same ids, initialize the router, hydrate the element `renderDocument` created.
+
+```rescript
+let hydrateClient = () => {
+  SSRState.sync("posts", posts, SSRState.Codec.array(SSRState.Codec.string))
+  Router.init()
+  Hydration.hydrateById(app, "root", ~options={onHydrated: () => Console.log("interactive")})
+}
+```
+
+Use for a variant or record: write a codec with `SSRState.Codec.make`.
+
+```rescript
+type status = Draft | Published
+let statusCodec = SSRState.Codec.make(
+  ~encode=status =>
+    JSON.String(
+      switch status {
+      | Draft => "draft"
+      | Published => "published"
+      },
+    ),
+  ~decode=json =>
+    switch json {
+    | JSON.String("draft") => Some(Draft)
+    | JSON.String("published") => Some(Published)
+    | _ => None
+    },
+)
+let status = SSRState.signal("status", Draft, statusCodec)
+```
+
+## Anti-patterns
+
+**Touching browser globals in an effect.**
+
+```rescript
+Effect.run(() => {
+  Console.log(innerWidth) // window.innerWidth
+  None
+})
+```
+
+Symptom: `ReferenceError: window is not defined` (or `document is not defined`) thrown from the server render. Correct: `View.onMount(() => ...)`, or guard with `if SSRContext.isClient`. Why: effects run during server renders (rule 3); `onMount` does not.
+
+**Syncing before the data is loaded.**
+
+```rescript
+let posts = SSRState.signal("posts", [], SSRState.Codec.array(SSRState.Codec.string)) // module level
+// later, per request:
+Signal.set(posts, await loadPosts())
+```
+
+Symptom: the server HTML shows the posts, but the state script carries `[]`, so the client starts from `[]`: reactive text flips to the default on hydration, a keyed list logs `Keyed item "KEY" is in the markup but not in the list` warnings and stops matching the markup. Correct: call `SSRState.sync` (or `register`) after `Signal.set`, per request, as in the request-handler pattern. Why: rule 7.
+
+**Rendering values that differ between server and client.**
+
+```rescript
+<p> {"Generated at " ++ Date.now()->Float.toString} </p>
+```
+
+Symptom: the static text keeps the server's value forever (hydration does not touch static text); event handlers may attach to the wrong elements when structure differs. Correct: render time-dependent or random values from a signal set in `View.onMount`, or transfer them with `SSRState`. Why: rule 13 (static text is adopted as-is).
+
+**Forgetting `SSRState.clear()` between requests.**
+
+Symptom: one user's data appears in another response's state script. Correct: `SSRState.clear()` first in every request handler. Why: rule 8.
+
+**Stripping comments from the HTML.**
+
+Symptom: `[Xote Hydration] ...` warnings, and reactive text, regions and keyed lists that never update. Correct: disable comment removal in the HTML minifier. Why: rule 14.
+
+**Generating the state script after registering during the render, expecting it to be included.**
+
+Symptom: values registered by components while rendering are missing from `window.__XOTE_STATE__`. Correct: register before calling `renderDocument`, or render with `renderToString` first and build the document yourself after calling `SSRState.generateScript()`. Why: rule 6.
+
+## Edge cases
+
+- `SSRContext.isServer` is decided at module load. In tests that set up jsdom after importing Xote modules, `isServer` stays `true`.
+- Hydration does not reconcile structure. When the client tree differs, elements are matched by position; missing nodes produce `[Xote Hydration] Missing DOM element for Element node` / `Missing text node for SignalText` warnings and the rest may bind to the wrong elements.
+- Keyed lists: a row whose key is in the markup but not in the client's list logs `Keyed item "KEY" is in the markup but not in the list`; missing markers log `Keyed list markers are missing; the list will not update`.
+- Regions are re-rendered on hydration (rule 13), so focus, selection, scroll positions and loaded images inside them are reset once. Keep forms that users may start typing into before hydration outside reactive regions.
+- Router state is global (see `/docs/learn/routing`); call `Router.initSSR` per request.
+- `Codec.int` decodes any JSON number and truncates it; `Codec.array` and `Codec.dict` fail as a whole if one element fails.
+- `renderDocument` emits `<html>` without a `lang` attribute; add it by building the document yourself if needed.
+
+## SSR and hydration
+
+This page is the SSR reference. For per-feature server behaviour see: `Resource` (no fetch on the server, `/docs/learn/async-data`), `View.ErrorBoundary` (renders its fallback into the HTML and re-renders on the client, `/docs/learn/lifecycle`), `View.Portal` (renders nothing on the server).
+
+## Verify
+
+- `SSR.renderToString(app)` in Node with no DOM must not throw; any `window`/`document` reference outside `View.onMount` or an `SSRContext.isClient` guard will.
+- The HTML must contain the expected markers (`<!--$-->` around reactive text, `<!--#-->` around regions).
+- Hydration test (jsdom): set `document.body.innerHTML` to the server HTML inside `<div id="root">`, keep a reference to an element outside any region, call `Hydration.hydrateById(app, "root")`, assert the element is the same object (`===`) and that clicking a button updates the text.
+- State test: after `SSRState.clear()`, `SSRState.sync("x", signal, codec)`, `SSRState.generateScript()` must contain `"x":` with the value present at sync time.
+- Watch the console for `[Xote Hydration]` warnings; any warning means the trees differ.
+
+## Related
+
+- `/docs/learn/routing` — `Router.initSSR` and `Router.init`.
+- `/docs/learn/async-data` — resources and Suspense on the server.
+- `/docs/learn/lifecycle` — `View.onMount`, the place for browser-only code.
+- `/docs/guides/deploying` — prerendering pages to static HTML.

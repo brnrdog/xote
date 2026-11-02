@@ -1,93 +1,104 @@
-## Rendering Model
+Server rendering sends real HTML on the first load, so content shows before any JavaScript runs. Hydration then makes that HTML interactive in the browser, without rendering it again.
 
-### Overview
+## How it fits together
 
-Xote's SSR story is built from three modules that line up with the render flow:
+Three modules line up with the render flow:
 
-- **SSR** - render nodes to HTML
-- **SSRState** - serialize state on the server and restore it on the client
-- **Hydration** - attach reactivity and event handlers to existing DOM
+- **SSR** renders nodes to HTML.
+- **SSRState** serializes state on the server and restores it in the browser.
+- **Hydration** attaches reactivity and event handlers to the existing DOM.
 
-The key idea is that the client should not re-render what the server already produced. Hydration walks the server HTML, reconnects reactive boundaries, and continues from there.
+The browser never re-renders what the server already produced. Hydration walks the server HTML, reconnects the reactive parts, and carries on from there.
 
-### Render on the Server
+## Render on the server
 
-Use `SSR.renderToString` for fragments and `SSR.renderToStringWithRoot` when you want a hydration root.
+Use `SSR.renderToString` for a fragment, and `SSR.renderToStringWithRoot` when you want it wrapped in a root element to hydrate later.
 
 ```rescript
 open Xote
 
-let app = () => {
-  <div>
-    <h1> <View.Text> "Hello from the server" </View.Text> </h1>
-  </div>
+module App = {
+  @xote.component
+  let make = () =>
+    <div>
+      <h1> {"Hello from the server"} </h1>
+    </div>
 }
+
+let app = () => <App />
 
 let html = SSR.renderToStringWithRoot(app, ~rootId="root")
 ```
 
-### Full Document Rendering
+## Render a full document
 
-Use `SSR.renderDocument` when the server is responsible for the whole HTML document.
+Use `SSR.renderDocument` when the server sends the whole HTML page. It renders your app into `<div id="root">`, and adds the hydration script and any styles and scripts you list.
 
 ```rescript
 let html = SSR.renderDocument(
   ~head="<title>Xote App</title>",
+  ~styles=["/app.css"],
   ~scripts=["/client.js"],
   ~stateScript=SSRState.generateScript(),
   app,
 )
 ```
 
-### Environment Detection
+## Check where code runs
 
-Use `SSRContext` when code needs to branch between server and client behavior.
+Use `SSRContext` when code must behave differently on the server and in the browser. `SSRContext.isServer` and `SSRContext.isClient` are plain booleans; `SSRContext.match` picks a branch:
 
 ```rescript
 let greeting = SSRContext.match(
   ~server=() => "Rendered on the server",
-  ~client=() => "Rendered on the client",
+  ~client=() => "Rendered in the browser",
 )
 ```
 
-## State and Hydration
+## Transfer state to the browser
 
-### State Transfer
+If the server and the browser must start from the same state, declare or register the signals with `SSRState`. On the server they're recorded for the state script; in the browser they're restored from it.
 
-If the server and client must start from the same state, create or register signals with `SSRState`.
+### Create synced state
 
-#### Creating Synced State
+`SSRState.signal` creates a signal and syncs it in one call:
 
 ```rescript
 let count = SSRState.signal("count", 0, SSRState.Codec.int)
 let name = SSRState.signal("name", "Ada", SSRState.Codec.string)
 ```
 
-#### Syncing Existing Signals
+### Sync an existing signal
+
+`SSRState.sync` registers a signal on the server and restores it in the browser:
 
 ```rescript
 let draft = Signal.make("")
-SSRState.syncSignal("draft", draft, SSRState.Codec.string)
+SSRState.sync("draft", draft, SSRState.Codec.string)
 ```
 
-#### Built-in Codecs
+> **Important:** On the server, `sync` (and `SSRState.signal`) records the signal's value **when you call it**, not when the state script is generated. A signal set after `sync` is sent with its old value. Load the data first, then call `sync`. Likewise, `generateScript` only includes what was registered before it runs, and an argument like `~stateScript=SSRState.generateScript()` runs before `renderDocument` renders.
 
-Use the built-in codecs for primitives and common containers, or create your own with `SSRState.Codec.make`.
+### Codecs
+
+Codecs turn values into JSON and back. Use the built-in ones for primitives and common containers, or write your own with `SSRState.Codec.make`.
 
 ```rescript
 SSRState.Codec.int
+SSRState.Codec.float
 SSRState.Codec.string
 SSRState.Codec.bool
 SSRState.Codec.array(SSRState.Codec.string)
 SSRState.Codec.option(SSRState.Codec.int)
 SSRState.Codec.tuple2(SSRState.Codec.int, SSRState.Codec.string)
+SSRState.Codec.dict(SSRState.Codec.int)
 ```
 
-On long-lived servers that render more than one request, call `SSRState.clear()` between renders to reset the registry.
+On a long-lived server that renders more than one request, call `SSRState.clear()` before each render so one request's state doesn't leak into the next.
 
-### Client-Side Hydration
+## Hydrate in the browser
 
-Hydration connects the client runtime to server-rendered DOM without replacing it.
+Hydration connects the browser runtime to the server-rendered DOM without replacing it.
 
 ```rescript
 Hydration.hydrateById(app, "root", ~options={
@@ -95,33 +106,30 @@ Hydration.hydrateById(app, "root", ~options={
 })
 ```
 
-## In Practice
+## Example: shared counter
 
-### Complete Example
+A typical setup shares one component between the server and the browser.
 
-A typical setup shares the same component between server and client.
-
-#### Shared Component
+**Shared component**
 
 ```rescript
 open Xote
 
 let count = SSRState.signal("count", 0, SSRState.Codec.int)
 
-let app = () => {
-  <div>
-    <h1>
-      <View.Text> "Count: " </View.Text>
-      <View.Int> {count} </View.Int>
-    </h1>
-    <button onClick={_ => Signal.update(count, n => n + 1)}>
-      <View.Text> "Increment" </View.Text>
-    </button>
-  </div>
+module App = {
+  @xote.component
+  let make = () =>
+    <div>
+      <h1> {"Count: "} {Signal.get(count)} </h1>
+      <button onClick={_ => Signal.update(count, n => n + 1)}> {"Increment"} </button>
+    </div>
 }
+
+let app = () => <App />
 ```
 
-#### Server Entry
+**Server entry**
 
 ```rescript
 Router.initSSR(~pathname="/", ())
@@ -133,27 +141,21 @@ let html = SSR.renderDocument(
 )
 ```
 
-#### Client Entry
+**Browser entry**
 
 ```rescript
 Router.init()
 Hydration.hydrateById(app, "root")
 ```
 
-### Hydration Markers
+## Hydration markers
 
-Xote inserts HTML comments around reactive boundaries during SSR. The client uses those markers to find reactive view text, fragments, keyed lists, and lazy components while hydrating.
+During server rendering Xote puts HTML comments around reactive parts. While hydrating, the browser uses those markers to find reactive text, fragments, keyed lists and lazy components.
 
-## Working Style
+## Tips
 
-### Best Practices
-
-- Render the same component tree on the server and the client so hydration can attach cleanly.
-- Initialize the router for the right environment: `initSSR` on the server, `init` on the client.
-- Clear `SSRState` between server renders, especially in custom or long-lived processes.
-- Choose codecs deliberately because they define the contract between serialized output and restored client state.
-
-### Next Steps
-
-- [Read Router](/docs/router/overview) if these pages also depend on route state.
-- [Read the Technical Overview](/docs/technical-overview) if you want the internal model behind hydration and runtime ownership.
+- Render the same component tree on the server and in the browser, so hydration can attach cleanly.
+- Initialize the router for each side: `initSSR` on the server, `init` in the browser. See [Routing](/docs/learn/routing).
+- Clear `SSRState` between server renders, especially in long-lived processes.
+- Pick codecs on purpose: they're the contract between what the server sends and what the browser restores.
+- For hosting a server-rendered or pre-rendered site, see [Deploying](/docs/guides/deploying).

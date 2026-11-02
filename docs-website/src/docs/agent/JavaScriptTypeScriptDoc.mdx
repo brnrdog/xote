@@ -1,0 +1,179 @@
+## Summary
+
+Xote's compiled runtime can be used from plain JavaScript. ReScript functions compile to plain JS functions with **positional** arguments (labeled and optional arguments become positions; omitted optional arguments are `undefined`), ReScript `option` is `undefined | value`, and Xote nodes are plain objects built by `View.*` constructors. Without ReScript there is no PPX: reactivity in JS comes only from functions you pass to `Computed.make`, `Effect.run`, `View.signalText`, `View.computedAttr`, attribute thunks, and signals passed where a signal is expected. The package ships no TypeScript declarations.
+
+## Availability
+
+| Entry (import specifier) | File | Exports |
+| --- | --- | --- |
+| `xote` | `dist/xote.mjs` (ESM), `dist/xote.cjs` (CJS), `dist/xote.umd.js` (UMD global `xote`) | `Signal`, `Computed`, `Effect`, `View`, `Html`, `XoteJSX`, `MaybeSignal`, `Prop` (deprecated), `Context`, `Resource` |
+| `xote/client` | `dist/client.mjs` / `.cjs` | same as `xote` |
+| `xote/router` | `dist/router.mjs` / `.cjs` | `Router`, `Route`, and `init`, `initSSR`, `location`, `push`, `replace`, `route`, `routes`, `link`, `Link` |
+| `xote/ssr` | `dist/ssr.mjs` / `.cjs` | `SSR`, `SSRContext`, `SSRState`, and `renderToString`, `renderToStringWithRoot`, `renderDocument`, `generateHydrationScript` |
+| `xote/hydration` | `dist/hydration.mjs` / `.cjs` | `Hydration`, `hydrate`, `hydrateById` |
+| `xote/mdx` | `dist/mdx.mjs` / `.cjs` | `Mdx`, `render`, `components`, `component`, `childrenToNodes`, `childrenToText` |
+| `xote/signal`, `xote/computed`, `xote/effect`, `xote/view`, `xote/html`, `xote/jsx`, `xote/maybe-signal`, `xote/route`, `xote/ssr-context`, `xote/ssr-state` | compiled ReScript sources (`src/*.res.mjs`, ESM only) | one module each |
+| `xote/context`, `xote/resource` | compiled sources, ESM only | 7.2.0 (new) |
+| `xote/jsx-runtime`, `xote/jsx-dev-runtime` | `src/jsx-runtime.mjs` | `jsx`, `jsxs`, `Fragment` (`jsxDEV` in the dev runtime): React-style automatic JSX runtime used by MDX |
+
+`Context` and `Resource` inside `xote`/`xote/client` were added in 7.2.0. The PPX (`@xote.component`) is ReScript-only and unavailable in JS.
+
+## Rules
+
+1. Call ReScript functions with arguments in declaration order, labeled ones included. Optional trailing arguments may be omitted; a skipped middle optional MUST be passed as `undefined`. Example: `Signal.make(value, name, equals)`; `View.element(tag, attrs, events, children, ref)`.
+2. `option<'a>` crosses the boundary as `undefined` (None) or the value (Some). An effect's function returns `undefined` or a cleanup function.
+3. A ReScript variant crosses as an object with `TAG` (and `_0`, …) or a string for constant constructors. Do not construct variants by hand; use the module's constructors (`MaybeSignal.reactive(signal)`, `MaybeSignal.$$static(value)`).
+4. Identifiers that clash with JS reserved words are exported with a `$$` prefix: `MaybeSignal.static` is `MaybeSignal.$$static` in JS.
+5. Reactive text MUST be `View.signalText(() => string)` (or a `Signal.t<string>` passed to APIs that take one). Children of `View.element` MUST be nodes (`View.text`, `View.signalText`, `View.element`, …); a function or signal is not a node. In JSX children, functions and signals are stringified, not reactive.
+6. In `View.element`, attributes are `[name, attrValue]` pairs built with `View.attr(name, string)` (static), `View.signalAttr(name, signal)`, or `View.computedAttr(name, () => string)` (reactive). Events are `[eventName, handler]` pairs with DOM event names (`"click"`, `"input"`).
+7. Lists: `View.each(signal, render)` re-renders all items on change; `View.eachWithKey(signal, keyFn, render)` keeps items by string key. Use the keyed form for lists that reorder or contain inputs.
+8. With the JSX runtime (`jsxImportSource: "xote"`), attribute values that are functions become reactive attributes and signals passed as attribute values are reactive; children that are functions or signals are stringified (rendered as source text / `[object Object]`). Use `View.signalText` for reactive text in JSX children.
+9. In the JSX runtime, `className` and `htmlFor` are accepted and renamed to `class`/`for`; `onXxx` function props become event listeners; `style` accepts a string or an object (camelCase keys are kebab-cased); `attrs` takes `[name, value]` pairs; `ref` takes a `View.Ref.t` or a callback (7.2.0).
+10. A function component in the JSX runtime is called once (it becomes a lazy component node), like a ReScript component.
+11. No `.d.ts` files are published; in TypeScript, declare the modules you use (`declare module "xote/client"`) or allow JS. All values are effectively `any`.
+
+## API
+
+| Name | JS call shape | Behaviour |
+| --- | --- | --- |
+| `Signal.make` | `Signal.make(value, name?, equals?)` | creates a signal |
+| `Signal.get` / `Signal.peek` | `Signal.get(s)` | tracked / untracked read |
+| `Signal.set` / `Signal.update` | `Signal.set(s, v)`, `Signal.update(s, f)` | write; notifies dependents synchronously |
+| `Signal.batch` | `Signal.batch(() => …)` | one notification for several writes |
+| `Computed.make` | `Computed.make(() => value, name?, equals?)` | derived signal |
+| `Effect.run` | `Effect.run(() => cleanup?, name?)` | runs now and on change |
+| `View.element` | `View.element(tag, attrs?, events?, children?, ref?)` | element node |
+| `View.text` / `View.signalText` | `View.text(string)`, `View.signalText(() => string)` | static / reactive text |
+| `View.attr` / `View.signalAttr` / `View.computedAttr` | `(name, string)`, `(name, signal)`, `(name, () => string)` | attribute entries |
+| `View.fragment` | `View.fragment([nodes])` | grouping without an element |
+| `View.each` / `View.eachWithKey` | `(signal, render)`, `(signal, keyFn, render)` | lists |
+| `View.mountById` / `View.mount` | `(node, id)`, `(node, element)` | render into the DOM |
+| `Html.div`, `Html.span`, `Html.button`, … | see `/docs/api/view` | shorthand element constructors |
+
+## Patterns
+
+Counter with `View.element`, use for widgets without a build step for JSX:
+
+```js
+import { Signal, Computed, View } from "xote/client";
+
+const count = Signal.make(0);
+const doubled = Computed.make(() => Signal.get(count) * 2);
+
+const app = View.element("main", [View.attr("class", "counter")], [], [
+  View.element("p", [], [], [
+    View.text("Count: "),
+    View.signalText(() => String(Signal.get(count))),
+  ]),
+  View.element("p", [View.computedAttr("class", () => (Signal.get(count) > 5 ? "high" : "low"))], [], [
+    View.signalText(() => `Doubled: ${Signal.get(doubled)}`),
+  ]),
+  View.element(
+    "button",
+    [View.attr("type", "button")],
+    [["click", () => Signal.update(count, n => n + 1)]],
+    [View.text("Increment")],
+  ),
+]);
+
+View.mountById(app, "app");
+```
+
+Effect with cleanup, use for timers/listeners:
+
+```js
+import { Signal, Effect } from "xote/client";
+
+const delay = Signal.make(1000);
+Effect.run(() => {
+  const id = setInterval(() => console.log("tick"), Signal.get(delay));
+  return () => clearInterval(id);
+});
+```
+
+Keyed list, use for lists that change:
+
+```js
+import { Signal, View } from "xote/client";
+
+const items = Signal.make([{ id: "a", text: "A" }, { id: "b", text: "B" }]);
+const list = View.element("ul", [], [], [
+  View.eachWithKey(items, item => item.id, item => View.element("li", [], [], [View.text(item.text)])),
+]);
+```
+
+JSX in JavaScript (automatic runtime), use when a JSX toolchain is already present. Configure the compiler with `jsx: "automatic"` and `jsxImportSource: "xote"` (esbuild/Vite: `esbuild: { jsx: "automatic", jsxImportSource: "xote" }`; Babel: `@babel/preset-react` with `runtime: "automatic", importSource: "xote"`):
+
+```js
+import { Signal, View } from "xote/client";
+
+const count = Signal.make(0);
+
+export const Counter = () => (
+  <button class={() => (Signal.get(count) > 0 ? "on" : "off")} onClick={() => Signal.update(count, n => n + 1)}>
+    Count: {View.signalText(() => String(Signal.get(count)))}
+  </button>
+);
+```
+
+Static vs reactive `MaybeSignal` from JS:
+
+```js
+import { MaybeSignal, Signal } from "xote/client";
+const fixed = MaybeSignal.$$static(10);
+const live = MaybeSignal.reactive(Signal.make(10));
+```
+
+## Anti-patterns
+
+Function as a child:
+
+```js
+View.element("p", [], [], [() => String(Signal.get(count))]);
+```
+
+Symptom: a function is not a node; in Xote 7.2.0-beta.2, mounting this element did not return (the page hangs). Fix: `View.signalText(() => String(Signal.get(count)))`.
+
+JSX child as a thunk or signal:
+
+```js
+<p>{() => Signal.get(count)}</p>
+```
+
+Symptom: the text is the function's source code; a signal child renders `[object Object]`. Fix: `<p>{View.signalText(() => String(Signal.get(count)))}</p>`.
+
+Labeled arguments passed as an object:
+
+```js
+View.element("div", { attrs: [], children: [] });
+```
+
+Symptom: `TypeError: … forEach is not a function` when mounted; arguments are positional. Fix: `View.element("div", [], [], [])`.
+
+`MaybeSignal.static(1)`: undefined at runtime. Fix: `MaybeSignal.$$static(1)`.
+
+Non-string text: `View.text` and `View.signalText` are typed for strings (`string`, `unit => string`). A number happens to render (`View.text(42)` shows `42`) but is outside the contract. Fix: `String(…)`.
+
+## Edge cases
+
+- `View.mountById` logs `Container element not found: <id>` and does nothing if the element is missing.
+- Each `Signal.set` notifies dependents synchronously; two writes run a dependent effect twice unless wrapped in `Signal.batch`.
+- Signal equality is `===`: setting a new object with the same contents notifies; pass `equals` as the third argument of `Signal.make` to change it.
+- `xote/signal` and the other source subpaths are ESM-only; CommonJS consumers use `xote`, `xote/client`, `xote/router`, `xote/ssr`, `xote/hydration` or `xote/mdx`.
+- The `xote` UMD bundle exposes the global `xote` (e.g. `xote.Signal`).
+
+## SSR and hydration
+
+From Node: `import { renderToString } from "xote/ssr"` and call `renderToString(() => node)`; `SSRContext.isServer` / `isClient` are booleans. In the browser: `import { hydrateById } from "xote/hydration"` and call `hydrateById(() => node, "root")` with the same node tree the server rendered. See `/docs/advanced/ssr`.
+
+## Verify
+
+- `node -e "import('xote/client').then(m => console.log(Object.keys(m)))"` lists the modules.
+- Render to a string without a DOM: `import { renderToString } from "xote/ssr"; renderToString(() => View.element("p", [], [], [View.text("ok")]))` returns `<p>ok</p>`.
+- In jsdom: mount, `Signal.set`, then assert the text node changed and the element is the same object.
+
+## Related
+
+- `/docs/learning-rescript` — why ReScript is the primary language and how interop works.
+- `/docs/api/view` — every `View` constructor.
+- `/docs/advanced/mdx-support` — the JSX runtime in MDX.
