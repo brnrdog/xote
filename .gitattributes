@@ -3,8 +3,12 @@
 
 # Build artifacts
 dist/**/* linguist-generated
+
 # Documentation site
 docs-website/**/* linguist-documentation
+
+# Benchmarks
+benchmarks/**/* linguist-generated
 
 # Config files
 vite.config.js linguist-vendored
