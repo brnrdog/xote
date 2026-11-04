@@ -59,7 +59,7 @@ module Switch = {
   type props = {}
 
   let make = (_props: props) => {
-    let option = (layer, label, extraClass) =>
+    let option = (layer, label, short, extraClass) =>
       View.element(
         "button",
         ~attrs=[
@@ -70,13 +70,16 @@ module Switch = {
           View.computedAttr("aria-pressed", () => Signal.get(current) == layer ? "true" : "false"),
         ],
         ~events=[("click", _ => set(layer))],
-        ~children=[View.text(label)],
+        ~children=[
+          <span class="layer-full"> {View.text(label)} </span>,
+          <span class="layer-short"> {View.text(short)} </span>,
+        ],
         (),
       )
 
     <div class="layer-switch" role="group" ariaLabel="Documentation layer">
-      {option(Human, "◎ For humans", "")}
-      {option(Agent, ">_ for agents", " layer-option-agent")}
+      {option(Human, "For humans", "Human", "")}
+      {option(Agent, ">_ for agents", ">_ AI", " layer-option-agent")}
     </div>
   }
 }

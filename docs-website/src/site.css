@@ -317,6 +317,12 @@ pre code {
   display: none;
 }
 
+/* The button shows the theme you would switch to: a sun in dark, a moon in light. */
+:root[data-theme="dark"] .theme-icon-moon,
+:root:not([data-theme="dark"]) .theme-icon-sun {
+  display: none;
+}
+
 /* Docs layer switch */
 .layer-switch {
   display: inline-flex;
@@ -404,18 +410,38 @@ pre code {
   .layer-switch {
     margin-left: auto;
   }
+  .site-header-home .header-icon-btn:not(.mobile-menu-btn) {
+    margin-left: auto;
+  }
   .header-version {
     display: none;
   }
 }
+.layer-short {
+  display: none;
+}
 @media (max-width: 520px) {
   .header-inner {
     padding: 0 16px;
-    gap: 8px;
+    gap: 4px;
+  }
+  .layer-switch {
+    padding: 3px;
   }
   .layer-option {
+    height: 28px;
     padding: 0 10px;
     font-size: 12px;
+  }
+  .layer-full {
+    display: none;
+  }
+  .layer-short {
+    display: inline;
+  }
+  .header-icon-btn {
+    width: 36px;
+    height: 36px;
   }
 }
 
@@ -766,7 +792,9 @@ pre code {
   color: var(--ink-faint);
 }
 .demo-todos,
-.demo-autosave {
+.demo-autosave,
+.demo-form,
+.demo-search {
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -860,6 +888,34 @@ pre code {
   gap: 6px;
   font: 400 12px/16px var(--font-mono);
   color: var(--ink-faint);
+}
+.demo-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font: 400 12px/16px var(--font-mono);
+}
+.demo-check {
+  color: var(--ink-faint);
+}
+.demo-check::before {
+  content: "○ ";
+}
+.demo-check.ok {
+  color: var(--ink);
+}
+.demo-check.ok::before {
+  content: "● ";
+}
+.demo-form .btn-pill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.demo-search .demo-meta {
+  margin: 0;
+}
+.demo-stale {
+  opacity: 0.5;
 }
 @keyframes demo-blink {
   50% {

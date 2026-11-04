@@ -108,17 +108,17 @@ module Hero = {
         {Router.link(
           ~to="/docs/changelog",
           ~attrs=[View.attr("class", "hero-release")],
-          ~children=[View.text(releaseName ++ " is out — see what’s new →")],
+          ~children=[View.text(releaseName ++ " — see what’s new →")],
           (),
         )}
         <h1 class="hero-title">
-          {View.text("Signals,")}
+          {View.text("Fine-grained")}
           <br />
-          {View.text("all the way down.")}
+          {View.text("reactivity for ReScript.")}
         </h1>
         <p class="hero-lead">
           {View.text(
-            "Build applications with fine-grained reactivity while leveraging a robust type system with ReScript.",
+            "Xote is a small UI library built on signals. An update changes only the DOM nodes that read the value, with no virtual DOM diffing, and components are type-checked by ReScript.",
           )}
         </p>
         <div class="hero-actions">
@@ -202,6 +202,43 @@ let make = () =>
     />
     {Signal.get(status)}
   </div>`
+
+let formCode = `let email = Signal.make("")
+let password = Signal.make("")
+
+let emailOk = Computed.make(() => Signal.get(email)->String.includes("@"))
+let passwordOk = Computed.make(() => Signal.get(password)->String.length >= 8)
+let canSubmit = Computed.make(() => Signal.get(emailOk) && Signal.get(passwordOk))
+
+@xote.component
+let make = () =>
+  <form>
+    <input value={Signal.get(email)} onInput={e => Signal.set(email, targetValue(e))} />
+    <input value={Signal.get(password)} onInput={e => Signal.set(password, targetValue(e))} />
+    <button disabled={!Signal.get(canSubmit)}> {"Create account"} </button>
+  </form>`
+
+let searchCode = `let text = Signal.make("")
+let query = Signal.make("")
+
+// Debounce: only update the query after a pause in typing.
+Effect.run(() => {
+  let next = Signal.get(text)
+  let id = setTimeout(() => Signal.set(query, next), 300)
+  Some(() => clearTimeout(id))
+})
+
+// Refetches whenever \`query\` changes.
+let results = Resource.make(() => searchFruits(Signal.get(query)))
+
+@xote.component
+let make = () =>
+  switch Signal.get(results) {
+  | Pending => <p> {"Searching…"} </p>
+  | Failed(_) => <p> {"Search failed."} </p>
+  | Ready(items) | Refreshing(items) =>
+    <ul> {items->Array.map(i => <li> {i} </li>)->View.fragment} </ul>
+  }`
 
 module CounterDemo = {
   @xote.component
@@ -333,6 +370,93 @@ module AutosaveDemo = {
   }
 }
 
+module FormDemo = {
+  @xote.component
+  let make = () => {
+    let email = Signal.make("")
+    let password = Signal.make("")
+    let emailOk = Computed.make(() => Signal.get(email)->String.includes("@"))
+    let passwordOk = Computed.make(() => Signal.get(password)->String.length >= 8)
+    let canSubmit = Computed.make(() => Signal.get(emailOk) && Signal.get(passwordOk))
+
+    <div class="demo-form">
+      <input
+        class="demo-input"
+        type_="email"
+        placeholder="Email"
+        ariaLabel="Email"
+        value={Signal.get(email)}
+        onInput={e => Signal.set(email, eventValue(e))}
+      />
+      <input
+        class="demo-input"
+        type_="password"
+        placeholder="Password (8+ characters)"
+        ariaLabel="Password"
+        value={Signal.get(password)}
+        onInput={e => Signal.set(password, eventValue(e))}
+      />
+      <div class="demo-checks">
+        <span class={Signal.get(emailOk) ? "demo-check ok" : "demo-check"}> {"Email looks valid"} </span>
+        <span class={Signal.get(passwordOk) ? "demo-check ok" : "demo-check"}> {"Password length"} </span>
+      </div>
+      <button type_="button" class="btn-pill btn-soft" disabled={!Signal.get(canSubmit)}>
+        {View.text("Create account")}
+      </button>
+    </div>
+  }
+}
+
+let fruits = [
+  "Apple", "Apricot", "Banana", "Blueberry", "Cherry", "Grape", "Lemon", "Lime", "Mango",
+  "Orange", "Peach", "Pear", "Plum", "Raspberry", "Strawberry",
+]
+
+// A pretend server: answers after 400ms.
+let searchFruits = (query: string): promise<array<string>> =>
+  Promise.make((resolve, _reject) => {
+    let _ = setTimeout(() => {
+      let q = query->String.toLowerCase
+      resolve(fruits->Array.filter(fruit => fruit->String.toLowerCase->String.includes(q)))
+    }, 400)
+  })
+
+module SearchDemo = {
+  @xote.component
+  let make = () => {
+    let text = Signal.make("")
+    let query = Signal.make("")
+
+    Effect.run(() => {
+      let next = Signal.get(text)
+      let id = setTimeout(() => Signal.set(query, next), 300)
+      Some(() => clearTimeout(id))
+    })
+
+    let results = Resource.make(() => searchFruits(Signal.get(query)))
+
+    <div class="demo-search">
+      <input
+        class="demo-input"
+        type_="search"
+        placeholder="Search fruit"
+        ariaLabel="Search fruit"
+        value={Signal.get(text)}
+        onInput={e => Signal.set(text, eventValue(e))}
+      />
+      {switch Signal.get(results) {
+      | Pending => <p class="demo-meta"> {"Searching…"} </p>
+      | Failed(_) => <p class="demo-meta"> {"Search failed."} </p>
+      | Ready([]) => <p class="demo-meta"> {"No fruit matches."} </p>
+      | Ready(items) | Refreshing(items) =>
+        <ul class={Resource.isLoading(Signal.get(results)) ? "demo-list demo-stale" : "demo-list"}>
+          {items->Array.map(fruit => <li> {fruit} </li>)->View.fragment}
+        </ul>
+      }}
+    </div>
+  }
+}
+
 type example = {
   id: string,
   label: string,
@@ -362,6 +486,20 @@ let examples = [
     file: "Autosave.res",
     code: autosaveCode,
     caption: "Each keystroke re-runs the effect; its cleanup cancels the pending save.",
+  },
+  {
+    id: "form",
+    label: "Form",
+    file: "Signup.res",
+    code: formCode,
+    caption: "Validity is derived from the inputs, so the button follows without any wiring.",
+  },
+  {
+    id: "search",
+    label: "Async search",
+    file: "Search.res",
+    code: searchCode,
+    caption: "A debounced query drives a Resource; the old list stays visible while it refetches.",
   },
 ]
 
@@ -405,10 +543,10 @@ module Examples = {
     <section id="examples" class="home-section" ariaLabel="Examples">
       <SectionHead
         label="Examples"
-        title="See some examples."
-        titleMuted="Then try it yourself."
-        body="Have a quick look at how small applications written in Xote look. Then try it yourself in the playground."
-        link=("/docs/learn/signals", "All examples")
+        title="Small programs,"
+        titleMuted="running next to their code."
+        body="Each example is the code on the left running live on the right. The playground lets you edit them."
+        link=("/docs/learn/signals", "Read the guides")
       />
       <div class="examples-panel">
         <div class="examples-tabs" role="tablist" ariaLabel="Examples">
@@ -430,6 +568,8 @@ module Examples = {
                   switch Signal.get(selected) {
                   | "todos" => [<TodosDemo />]
                   | "autosave" => [<AutosaveDemo />]
+                  | "form" => [<FormDemo />]
+                  | "search" => [<SearchDemo />]
                   | _ => [<CounterDemo />]
                   }
                 ),
@@ -492,9 +632,9 @@ module HowItWorks = {
       <div class="home-pane-inner">
         <SectionHead
           label="How it works"
-          title="Meet the triad."
-          titleMuted="The core of everything in Xote."
-          body="Signals hold state, computed values derive from it, and effects carry changes out to the page. That’s everything you need before you build."
+          title="Three primitives."
+          titleMuted="State, derived values, side effects."
+          body="Signals hold state, computeds derive from it, and effects react to changes. Components read them directly, and only what read a changed signal re-runs."
           link=("/docs/learn/signals", "Read the guide")
         />
         <ol class="triad">
@@ -536,22 +676,34 @@ module HowItWorks = {
 type benefit = {title: string, body: string}
 
 let benefits = [
-  {title: "Fast by default", body: "No virtual DOM. Updates touch only the nodes that changed."},
-  {title: "Sound types", body: "ReScript catches mistakes before they reach the browser."},
-  {title: "Small surface", body: "Sixteen modules you can keep in your head."},
-  {title: "Full stack", body: "Router, SSR and hydration when you need them."},
+  {
+    title: "No virtual DOM",
+    body: "A signal read in a component updates that text node or attribute directly. There is no diffing pass.",
+  },
+  {
+    title: "Typed end to end",
+    body: "State, props and events are checked by the ReScript compiler. The JSX transform adds no runtime types.",
+  },
+  {
+    title: "A few concepts",
+    body: "Signals, computeds, effects and components. Most apps need little beyond these.",
+  },
+  {
+    title: "Opt-in extras",
+    body: "Router, server rendering and hydration are separate imports, so you only ship what you use.",
+  },
 ]
 
 module WhyItMatters = {
   type props = {}
 
   let make = (_props: props) => {
-    <section class="home-section" ariaLabel="Why it matters">
+    <section class="home-section" ariaLabel="Why Xote">
       <SectionHead
-        label="Why it matters"
-        title="Less to learn and hold."
-        titleMuted="Less to break."
-        body="A small API on top of a sound type system: fewer concepts to hold in your head, and fewer surprises once it ships."
+        label="Why Xote"
+        title="A small surface"
+        titleMuted="to learn."
+        body="Xote is young and its ecosystem is small. In exchange, the model fits in your head and the compiler checks the rest."
       />
       <div class="benefits">
         {View.fragment(
@@ -581,7 +733,7 @@ module GetStarted = {
             {View.text("one signal.")}
           </h2>
           <p>
-            {View.text("Install the package, add the JSX transform, and render your first component in a few minutes.")}
+            {View.text("Install the package, configure the JSX transform, and render a first component. The quick start walks through it.")}
           </p>
         </div>
         <div class="home-cta-actions">
