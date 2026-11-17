@@ -148,6 +148,12 @@ let suspended =
   <Xote.View.Suspense fallback={Xote.View.text("Loading")}>
     {Xote.View.text("Loaded")}
   </Xote.View.Suspense>
+/* Component-body calls, so wrapped in a component rather than run at load. */
+let holdsProfile = () => {
+  let () = Xote.Resource.hold(profile)
+  let refreshing: Xote.Signal.t<bool> = Xote.View.Suspense.pending()
+  Xote.View.signalText(() => Xote.Signal.get(refreshing) ? "refreshing" : "")
+}
 
 /* ---------------------------------------------------------- refs, lifecycle */
 

@@ -34,6 +34,10 @@ type boundary = {
    while that count is above zero so they run once the subtree is shown. */
 type rec suspense = {
   pending: Signal.t<int>,
+  /* How many resources counting toward this suspense have a fetch in flight,
+     first or later — what `View.Suspense.pending` reads. Unlike `pending` it
+     holds nothing back. */
+  inFlight: Signal.t<int>,
   /* The suspense this one renders inside, whose wait also holds back what
      this one renders. */
   parent: Nullable.t<suspense>,
@@ -119,6 +123,7 @@ let installBoundary = (boundary: boundary): unit =>
 
 let makeSuspense = (): suspense => {
   pending: Signal.make(0),
+  inFlight: Signal.make(0),
   parent: suspenseOf(current.contents),
   heldRefs: [],
   heldMounts: [],

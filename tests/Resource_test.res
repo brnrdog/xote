@@ -105,6 +105,34 @@ let catchingRejections: (unit => promise<unit>) => promise<array<string>> = %raw
   return seen
 }`)
 
+/* Renders whether the nearest suspense has a fetch in flight. */
+let pendingProbe = (~name="probe") =>
+  View.LazyComponent(
+    () => {
+      let pending = View.Suspense.pending()
+      <span class=name> {View.signalText(() => Signal.get(pending) ? "busy" : "idle")} </span>
+    },
+  )
+
+/* Holds a resource created elsewhere, renders its state and logs its mount. */
+let holder = (resource: Resource.t<string>, ~log: array<string>, ~name="holder") =>
+  View.LazyComponent(
+    () => {
+      Resource.hold(resource)
+      View.onMount(() => log->Array.push(name ++ ":mount")->ignore)
+      <span class=name> {View.signalText(() => describe(Signal.get(resource)))} </span>
+    },
+  )
+
+/* What `console.warn` received while `run` ran. */
+let capturingWarnings: (unit => unit) => array<string> = %raw(`function (run) {
+  const seen = []
+  const original = console.warn
+  console.warn = (message) => { seen.push(String(message)) }
+  try { run() } finally { console.warn = original }
+  return seen
+}`)
+
 let mountTo = (node, container) => {
   View.mount(node, container)
   container
@@ -449,6 +477,301 @@ let suite = Zekr.asyncSuite(
       )
       await settle()
       assertTrue(has(container, ".error"))
+    }),
+    asyncTest("pending is true while a fetch is in flight, first or later", async () => {
+      let {container} = Dom.render("")
+      let first = deferred()
+      let again = deferred()
+      let calls = ref(0)
+      let resource = ref(None)
+      let _ = mountTo(
+        <View.Suspense>
+          {pendingProbe()}
+          {View.LazyComponent(
+            () => {
+              resource :=
+                Some(
+                  Resource.make(() => {
+                    calls := calls.contents + 1
+                    calls.contents == 1 ? first.promise : again.promise
+                  }),
+                )
+              <span />
+            },
+          )}
+        </View.Suspense>,
+        container,
+      )
+      let loading = text(container, ".probe")
+      first.resolve("a")
+      await settle()
+      let loaded = text(container, ".probe")
+      Resource.refetch(resource.contents->Option.getOrThrow)
+      let refreshing = text(container, ".probe")
+      again.resolve("b")
+      await settle()
+      combineResults([
+        assertEqual(loading, Some("busy")),
+        assertEqual(loaded, Some("idle")),
+        assertEqual(refreshing, Some("busy")),
+        assertEqual(text(container, ".probe"), Some("idle")),
+      ])
+    }),
+    asyncTest("pending stays true while a fetch that replaced another is in flight", async () => {
+      let {container} = Dom.render("")
+      let id = Signal.make("1")
+      let fetches: Dict.t<deferred<string>> = Dict.make()
+      let _ = mountTo(
+        <View.Suspense>
+          {pendingProbe()}
+          {View.LazyComponent(
+            () => {
+              let _ = Resource.make(() => {
+                let fetch = deferred()
+                fetches->Dict.set(Signal.get(id), fetch)
+                fetch.promise
+              })
+              <span />
+            },
+          )}
+        </View.Suspense>,
+        container,
+      )
+      Signal.set(id, "2")
+      (fetches->Dict.getUnsafe("1")).resolve("late")
+      await settle()
+      let afterSuperseded = text(container, ".probe")
+      (fetches->Dict.getUnsafe("2")).resolve("two")
+      await settle()
+      combineResults([
+        assertEqual(afterSuperseded, Some("busy")),
+        assertEqual(text(container, ".probe"), Some("idle")),
+      ])
+    }),
+    asyncTest("pending follows mutate and the removal of the resource", async () => {
+      let {container} = Dom.render("")
+      let first = deferred()
+      let second = deferred()
+      let shown = Signal.make(true)
+      let resource = ref(None)
+      let _ = mountTo(
+        <View.Suspense>
+          {pendingProbe()}
+          {View.LazyComponent(
+            () => {
+              resource := Some(Resource.make(() => first.promise))
+              <span />
+            },
+          )}
+          <View.Show when_={MaybeSignal.reactive(shown)}>
+            {loader(~fetch=() => second.promise, ~log=[])}
+          </View.Show>
+        </View.Suspense>,
+        container,
+      )
+      Resource.mutate(resource.contents->Option.getOrThrow, "optimistic")
+      let afterMutate = text(container, ".probe")
+      Signal.set(shown, false)
+      let afterRemoval = text(container, ".probe")
+      await settle()
+      combineResults([
+        assertEqual(afterMutate, Some("busy")),
+        assertEqual(afterRemoval, Some("idle")),
+      ])
+    }),
+    asyncTest("pending counts only the nearest suspense", async () => {
+      let {container} = Dom.render("")
+      let inner = deferred()
+      let _ = mountTo(
+        <View.Suspense>
+          {pendingProbe(~name="outer")}
+          <View.Suspense>
+            {pendingProbe(~name="inner")}
+            {loader(~fetch=() => inner.promise, ~log=[])}
+          </View.Suspense>
+        </View.Suspense>,
+        container,
+      )
+      let whileLoading = (text(container, ".outer"), text(container, ".inner"))
+      inner.resolve("i")
+      await settle()
+      combineResults([
+        assertEqual(whileLoading, (Some("idle"), Some("busy"))),
+        assertEqual(text(container, ".inner"), Some("idle")),
+      ])
+    }),
+    asyncTest("pending outside any suspense is always false", async () => {
+      let {container} = Dom.render("")
+      let pending = deferred()
+      let _ = mountTo(
+        <div>
+          {pendingProbe()}
+          {loader(~fetch=() => pending.promise, ~log=[])}
+        </div>,
+        container,
+      )
+      let whileLoading = text(container, ".probe")
+      pending.resolve("a")
+      await settle()
+      assertEqual(whileLoading, Some("idle"))
+    }),
+    asyncTest("pending warns when called outside a component body, and not inside one", async () => {
+      let {container} = Dom.render("")
+      let outside = capturingWarnings(() => View.Suspense.pending()->ignore)
+      let inside = capturingWarnings(() =>
+        mountTo(<View.Suspense> {pendingProbe()} </View.Suspense>, container)->ignore
+      )
+      combineResults([
+        assertEqual(Array.length(outside), 1),
+        assertTrue(
+          outside->Array.get(0)->Option.mapOr(false, message =>
+            String.includes(message, "View.Suspense.pending")
+          ),
+        ),
+        assertEqual(inside, []),
+      ])
+    }),
+    asyncTest("hold makes a suspense wait for a resource created elsewhere", async () => {
+      let {container} = Dom.render("")
+      let pending = deferred()
+      let shared = Resource.make(() => pending.promise)
+      let log = []
+      let _ = mountTo(
+        <View.Suspense fallback={<p class="fallback" />}>
+          {pendingProbe()}
+          {holder(shared, ~log)}
+        </View.Suspense>,
+        container,
+      )
+      let waiting = (has(container, ".fallback"), Array.copy(log), text(container, ".probe"))
+      pending.resolve("ada")
+      await settle()
+      combineResults([
+        assertEqual(waiting, (true, [], Some("busy"))),
+        assertFalse(has(container, ".fallback")),
+        assertEqual(log, ["holder:mount"]),
+        assertEqual(text(container, ".holder"), Some("ready:ada")),
+        assertEqual(text(container, ".probe"), Some("idle")),
+      ])
+    }),
+    asyncTest("hold counts a refetch toward pending but never brings the fallback back", async () => {
+      let {container} = Dom.render("")
+      let first = deferred()
+      let again = deferred()
+      let calls = ref(0)
+      let shared = Resource.make(() => {
+        calls := calls.contents + 1
+        calls.contents == 1 ? first.promise : again.promise
+      })
+      let _ = mountTo(
+        <View.Suspense fallback={<p class="fallback" />}>
+          {pendingProbe()}
+          {holder(shared, ~log=[])}
+        </View.Suspense>,
+        container,
+      )
+      first.resolve("a")
+      await settle()
+      Resource.refetch(shared)
+      let refreshing = (has(container, ".fallback"), text(container, ".probe"))
+      again.resolve("b")
+      await settle()
+      combineResults([
+        assertEqual(refreshing, (false, Some("busy"))),
+        assertEqual(text(container, ".probe"), Some("idle")),
+      ])
+    }),
+    asyncTest("hold ends its wait on a failure, and a retry does not wait again", async () => {
+      let {container} = Dom.render("")
+      let attempts = ref(0)
+      let retry = deferred()
+      let shared = Resource.make(() => {
+        attempts := attempts.contents + 1
+        attempts.contents == 1 ? Promise.reject(Unavailable("offline")) : retry.promise
+      })
+      let _ = mountTo(
+        <View.Suspense fallback={<p class="fallback" />}> {holder(shared, ~log=[])} </View.Suspense>,
+        container,
+      )
+      await settle()
+      let failed = (has(container, ".fallback"), text(container, ".holder"))
+      Resource.refetch(shared)
+      let retrying = (has(container, ".fallback"), text(container, ".holder"))
+      retry.resolve("back")
+      await settle()
+      combineResults([
+        assertEqual(failed, (false, Some("failed:offline"))),
+        assertEqual(retrying, (false, Some("pending"))),
+      ])
+    }),
+    asyncTest("hold on a resource that already has a value holds nothing", async () => {
+      let {container} = Dom.render("")
+      let shared = Resource.make(() => Promise.resolve("ready"))
+      await settle()
+      let log = []
+      let _ = mountTo(
+        <View.Suspense fallback={<p class="fallback" />}> {holder(shared, ~log)} </View.Suspense>,
+        container,
+      )
+      let shownAtOnce = has(container, ".fallback")
+      await settle()
+      combineResults([assertFalse(shownAtOnce), assertEqual(log, ["holder:mount"])])
+    }),
+    asyncTest("removing the holder ends its wait", async () => {
+      let {container} = Dom.render("")
+      let pending = deferred()
+      let shared = Resource.make(() => pending.promise)
+      let shown = Signal.make(true)
+      let _ = mountTo(
+        <View.Suspense fallback={<p class="fallback" />}>
+          {pendingProbe()}
+          <View.Show when_={MaybeSignal.reactive(shown)}> {holder(shared, ~log=[])} </View.Show>
+        </View.Suspense>,
+        container,
+      )
+      let waiting = has(container, ".fallback")
+      Signal.set(shown, false)
+      await settle()
+      combineResults([
+        assertTrue(waiting),
+        assertFalse(has(container, ".fallback")),
+        assertEqual(text(container, ".probe"), Some("idle")),
+      ])
+    }),
+    asyncTest("holding a resource the component also created waits once", async () => {
+      let {container} = Dom.render("")
+      let pending = deferred()
+      let log = []
+      let _ = mountTo(
+        <View.Suspense fallback={<p class="fallback" />}>
+          {View.LazyComponent(
+            () => {
+              let resource = Resource.make(() => pending.promise)
+              Resource.hold(resource)
+              View.onMount(() => log->Array.push("mount")->ignore)
+              <span class="both"> {View.signalText(() => describe(Signal.get(resource)))} </span>
+            },
+          )}
+        </View.Suspense>,
+        container,
+      )
+      let waiting = has(container, ".fallback")
+      pending.resolve("a")
+      await settle()
+      combineResults([
+        assertTrue(waiting),
+        assertFalse(has(container, ".fallback")),
+        assertEqual(log, ["mount"]),
+      ])
+    }),
+    asyncTest("hold does nothing outside a suspense", async () => {
+      let {container} = Dom.render("")
+      let pending = deferred()
+      let shared = Resource.make(() => pending.promise)
+      let log = []
+      let _ = mountTo(<div> {holder(shared, ~log)} </div>, container)
+      await settle()
+      combineResults([assertEqual(log, ["holder:mount"]), assertEqual(text(container, ".holder"), Some("pending"))])
     }),
     asyncTest("the server renders the fallback without fetching; hydration loads", async () => {
       let pending = deferred()

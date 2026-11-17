@@ -307,10 +307,11 @@ module Suspense: {
   }
 
   let make: props => View.node
+  let pending: unit => Signal.t<bool>
 }
 ```
 
-Shows `fallback` until every `Resource` created below it has loaded once. The children render hidden meanwhile, and their refs and `onMount` callbacks wait until they are shown. See [Resources](/docs/learn/async-data).
+Shows `fallback` until every `Resource` created below it, or held below it with `Resource.hold`, has loaded once. The children render hidden meanwhile, and their refs and `onMount` callbacks wait until they are shown. `View.Suspense.pending()`, called in a component body below it, returns a signal that is `true` while any of those resources is fetching, refetches included. See [Resources](/docs/learn/async-data#show-that-something-is-refreshing).
 
 <a id="view-ref" />
 

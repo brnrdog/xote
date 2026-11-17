@@ -165,6 +165,7 @@
     "use"
   ],
   "Resource": [
+    "hold",
     "isLoading",
     "make",
     "mutate",

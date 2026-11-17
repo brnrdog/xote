@@ -1,6 +1,6 @@
 ## Summary
 
-A resource (`Resource.make`) is a signal of the loading state of an async function: `Signal.t<Resource.state<'a>>`. The fetch runs inside an effect, so every signal it reads (tracked) **before its first `await`** is a dependency, and a change to any dependency starts a new fetch. Only the latest fetch can settle the state; an earlier one that resolves late is ignored. `View.Suspense` shows a fallback until the resources created below it settle once; a `Failed` state can be thrown to a `View.ErrorBoundary`. The rule that matters most: read every input signal before the first `await`, or changes to it will not refetch.
+A resource (`Resource.make`) is a signal of the loading state of an async function: `Signal.t<Resource.state<'a>>`. The fetch runs inside an effect, so every signal it reads (tracked) **before its first `await`** is a dependency, and a change to any dependency starts a new fetch. Only the latest fetch can settle the state; an earlier one that resolves late is ignored. `View.Suspense` shows a fallback until the resources created below it (or held below it with `Resource.hold`) settle once, and `View.Suspense.pending()` reports refetches it does not cover; a `Failed` state can be thrown to a `View.ErrorBoundary`. The rule that matters most: read every input signal before the first `await`, or changes to it will not refetch.
 
 ## Availability
 
@@ -9,7 +9,7 @@ A resource (`Resource.make`) is a signal of the loading state of an async functi
 | Modules | `Resource`, `View.Suspense` (plus `View.ErrorBoundary` for failures) |
 | Import / entry | `xote` (with `-open Xote`), or `xote/resource` for `Resource` alone |
 | First stable version | 7.2.0 (new) |
-| Status | new in 7.2.0 (`Resource`, `View.Suspense` and `View.ErrorBoundary` all first appear in 7.2.0) |
+| Status | new in 7.2.0 (`Resource`, `View.Suspense` and `View.ErrorBoundary` all first appear in 7.2.0). `Resource.hold` and `View.Suspense.pending` are unreleased: added after 7.2.0 |
 | PPX required | No. `Resource` and `View.Suspense` work with `@jsx.component`; examples use `@xote.component` |
 
 ## Rules
@@ -28,6 +28,9 @@ A resource (`Resource.make`) is a signal of the loading state of an async functi
 12. Nested suspenses: the nearest one waits for its own resources; a ready inner subtree stays hidden while an outer suspense still waits.
 13. During `SSR.renderToString` / `SSR.renderDocument` no fetch starts and the resource stays `Pending` forever on the server. `View.Suspense` renders its `fallback` into the HTML. A resource created at module level in a server process is not inside a render, so it does fetch.
 14. To send a failure to an error boundary, throw it where the state is read inside the render tree: `| Failed(error) => throw(error)` in a reactive leaf or region.
+15. `Resource.hold(r)`, called in a component body, makes the nearest `View.Suspense` of that component wait for `r` wherever `r` was created. It follows rule 11: the wait lasts until `r` first leaves `Pending` (a value, a failure, or `mutate`) and never comes back; a resource that is already `Ready`, `Refreshing` or `Failed` holds nothing. The hold is released with the calling component. Outside any `Suspense`, and during a server render, `hold` does nothing.
+16. `View.Suspense.pending()`, called in a component body, returns a `Signal.t<bool>` that is `true` while any resource counting toward the nearest `Suspense` (created below it, or held below it while the hold lasts) has a fetch in flight: the first fetch and every later one. A fetch that replaces one still in flight does not make it flicker to `false`. It counts the nearest suspense only, not nested ones. Outside any `Suspense` it returns a signal that is always `false`.
+17. `View.Suspense.pending()` reads which suspense it is under from the render in progress. Called outside a component body (an event handler, a timer, an effect's later run, an `onMount` callback) it logs a warning in development, and its result is whatever the frame installed at that moment gives.
 
 ### State machine
 
@@ -54,7 +57,9 @@ A resource (`Resource.make`) is a signal of the loading state of an async functi
 | `Resource.mutate` | `(t<'a>, 'a) => unit` | Sets `Ready(value)` now, drops any fetch in flight. |
 | `Resource.value` | `state<'a> => option<'a>` | `Some(v)` for `Ready(v)` and `Refreshing(v)`, `None` otherwise. |
 | `Resource.isLoading` | `state<'a> => bool` | `true` for `Pending` and `Refreshing`. |
-| `View.Suspense` | props `fallback?: node`, `children?: node` | Shows `fallback` until every resource created below has settled once. |
+| `Resource.hold` | `t<'a> => unit` | In a component body: makes the nearest `View.Suspense` wait for this resource until it first leaves `Pending` (rule 15). |
+| `View.Suspense` | props `fallback?: node`, `children?: node` | Shows `fallback` until every resource created (or held) below has settled once. |
+| `View.Suspense.pending` | `unit => Signal.t<bool>` | In a component body: `true` while a resource counting toward the nearest suspense is fetching, refetches included (rule 16). |
 | `View.ErrorBoundary` | props `fallback: (exn, unit => unit) => node`, `onError?: exn => unit`, `children?: node` | Catches render/update failures below; `fallback` gets the error and a reset function. |
 
 Note that `Resource.value` and `Resource.isLoading` take a **state**, not a resource: write `Resource.value(Signal.get(r))` or `Signal.get(r)->Resource.value`.
@@ -140,11 +145,33 @@ module EditableName = {
 }
 ```
 
-Use when several components share one piece of remote state for the life of the page: create the resource at module level. It has no owner and is never disposed.
+Use when several components share one piece of remote state for the life of the page: create the resource at module level. It has no owner and is never disposed. Components under a `Suspense` that should wait for it call `Resource.hold`.
 
 ```rescript
 let currentUserId = Signal.make("1")
 let currentUser = Resource.make(() => Api.getUser(Signal.get(currentUserId)))
+
+module Greeting = {
+  @xote.component
+  let make = () => {
+    Resource.hold(currentUser)
+    <h1> {Signal.get(currentUser)->Resource.value->Option.mapOr("", u => u.name)} </h1>
+  }
+}
+```
+
+Use when the page should show that a refetch is in progress without matching on every resource: read `View.Suspense.pending()` in any component under the suspense.
+
+```rescript
+module Toolbar = {
+  @xote.component
+  let make = () => {
+    let refreshing = View.Suspense.pending()
+    <div class={Signal.get(refreshing) ? "toolbar dimmed" : "toolbar"}>
+      <button onClick={_ => Resource.refetch(currentUser)}> {"Reload"} </button>
+    </div>
+  }
+}
 ```
 
 ## Anti-patterns
@@ -183,7 +210,11 @@ let make = (~userId) => {
 }
 ```
 
-Symptom: the fallback never shows; `UserView` renders `Pending` itself. Correct: create the resource inside a component rendered under the `Suspense` (see the `UserName` pattern). Why: a resource suspends the nearest suspense above the component that created it (rule 10), and here there is none.
+Symptom: the fallback never shows; `UserView` renders `Pending` itself. Correct: create the resource inside a component rendered under the `Suspense` (see the `UserName` pattern), or call `Resource.hold(user)` in `UserView`. Why: a resource suspends the nearest suspense above the component that created it (rule 10), and here there is none.
+
+**Calling `View.Suspense.pending()` from an event handler or an effect.**
+
+Symptom: a development warning, and a signal that is always `false` or belongs to the wrong suspense. Correct: call it once in the component body and keep the signal. Why: it reads the suspense from the render in progress (rule 17).
 
 **Swallowing failures under an error boundary.**
 

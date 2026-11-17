@@ -13,7 +13,8 @@ ignored. A fetch that throws or rejects settles as `Failed`.
 
 Created in a component, a resource belongs to it: removing the component drops
 whatever is in flight. A resource created under a `View.Suspense` makes that
-suspense show its fallback until the first fetch settles. During a server
+suspense show its fallback until the first fetch settles; `hold` does the same
+for a resource created elsewhere. During a server
 render (`SSR.renderToString`) no fetch starts, and a resource stays `Pending`;
 one created outside a render, at module level in a server process, does fetch.
 
@@ -136,3 +137,36 @@ Resource.isLoading(Resource.Ready(1)) == false
 ```
 */
 let isLoading: state<'a> => bool
+
+/**
+Makes the nearest `View.Suspense` of the calling component wait for a resource
+created somewhere else — at module level, in a shared store, or in a component
+above the suspense.
+
+The wait follows the same rule as for a resource created below the suspense:
+the fallback shows until the resource first has a value or fails, and a later
+fetch never brings it back. A resource that already has a value or has failed
+holds nothing. While the hold lasts, the resource's fetches also count toward
+`View.Suspense.pending`.
+
+Call it in a component body. The hold is released with the component, which
+ends any wait it still holds. Outside any `Suspense`, and during a server
+render, it does nothing. Call it once per resource to wait for several.
+
+## Examples
+
+```rescript
+let currentUser = Resource.make(() => fetchCurrentUser())
+
+module Greeting = {
+  @xote.component
+  let make = () => {
+    Resource.hold(currentUser)
+    <h1> {Signal.get(currentUser)->Resource.value->Option.mapOr("", user => user.name)} </h1>
+  }
+}
+
+<View.Suspense fallback={<p> {"Loading..."} </p>}> <Greeting /> </View.Suspense>
+```
+*/
+let hold: t<'a> => unit

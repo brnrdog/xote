@@ -7,7 +7,13 @@
 
    A resource created under a `View.Suspense` holds that suspense until its
    first fetch settles, through `RuntimeLifecycle.suspend`. Later fetches never
-   suspend again: they show as `Refreshing` with the previous value kept. */
+   suspend again: they show as `Refreshing` with the previous value kept. Every
+   fetch, first or later, counts toward that suspense's `inFlight` while it is
+   in flight, which is what `View.Suspense.pending` reads.
+
+   `hold` lets a component make its own suspense wait for a resource created
+   somewhere else, with the same rule: until the resource first has a value or
+   fails. */
 
 type state<'a> =
   | Pending
@@ -26,6 +32,8 @@ type controller = {
   mutable version: int,
   /* Ends the wait of the suspense the resource was created under. */
   resume: unit => unit,
+  /* This resource's share of that suspense's fetches in flight. */
+  flight: RuntimeLifecycle.flight,
 }
 
 let controllers: WeakMap.t<Obj.t, controller> = WeakMap.make()
@@ -38,6 +46,7 @@ let make = (fetch: unit => promise<'a>): t<'a> => {
       trigger: Signal.make(0),
       version: 0,
       resume: RuntimeLifecycle.suspend(),
+      flight: RuntimeLifecycle.flight(),
     }
     controllers->WeakMap.set(Obj.magic(state), controller)->ignore
     /* Released with the component that created it: whatever is in flight is
@@ -45,6 +54,7 @@ let make = (fetch: unit => promise<'a>): t<'a> => {
     RuntimeOwner.track(RuntimeOwner.addDisposer, () => {
       controller.version = controller.version + 1
       controller.resume()
+      controller.flight.finish()
     })
 
     Effect.run(() => {
@@ -55,7 +65,11 @@ let make = (fetch: unit => promise<'a>): t<'a> => {
         if version == controller.version {
           Signal.set(state, next)
           controller.resume()
+          controller.flight.finish()
         }
+      /* A fetch that replaces one still in flight keeps the count where it
+         is: only the latest fetch settling ends it. */
+      controller.flight.start()
       Signal.set(
         state,
         switch Signal.peek(state) {
@@ -92,6 +106,7 @@ let mutate = (resource: t<'a>, value: 'a): unit => {
   | Some(controller) => {
       controller.version = controller.version + 1
       controller.resume()
+      controller.flight.finish()
     }
   | None => ()
   }
@@ -108,4 +123,49 @@ let isLoading = (state: state<'a>): bool =>
   switch state {
   | Pending | Refreshing(_) => true
   | Ready(_) | Failed(_) => false
+  }
+
+/* Make the suspense of the calling component wait for a resource created
+   elsewhere. The wait follows the creator's rule: it lasts until the resource
+   first leaves `Pending` — a value or a failure — and never comes back, so a
+   resource that already has one holds nothing. Its fetches count toward the
+   suspense's `inFlight` for as long as the hold lasts. Released with the
+   calling component. */
+let hold = (resource: t<'a>): unit =>
+  if !RuntimeLifecycle.serverRendering() {
+    switch RuntimeLifecycle.nearestSuspense() {
+    | None => ()
+    | Some(suspense) => {
+        let flight = RuntimeLifecycle.flightOn(suspense)
+        /* `None` before the first run; then the open wait, if any. Once the
+           resource has left `Pending` it is `Some(noop)` for good. */
+        let wait: ref<option<unit => unit>> = ref(None)
+        let endWait = () =>
+          switch wait.contents {
+          | Some(resume) => {
+              wait := Some(() => ())
+              resume()
+            }
+          | None => wait := Some(() => ())
+          }
+        RuntimeOwner.track(RuntimeOwner.addDisposer, () => {
+          endWait()
+          flight.finish()
+        })
+        Effect.run(() => {
+          let state = Signal.get(resource)
+          switch (state, wait.contents) {
+          | (Pending, None) => wait := Some(RuntimeLifecycle.suspendOn(suspense))
+          | (Pending, Some(_)) => ()
+          | (Ready(_) | Refreshing(_) | Failed(_), _) => endWait()
+          }
+          if isLoading(state) {
+            flight.start()
+          } else {
+            flight.finish()
+          }
+          None
+        })
+      }
+    }
   }

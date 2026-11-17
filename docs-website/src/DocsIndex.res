@@ -588,6 +588,8 @@ let sections: array<section> = [
           {text: "Handle errors", id: "handle-errors", level: 2},
           {text: "Suspense", id: "suspense", level: 2},
           {text: "Suspense rules", id: "suspense-rules", level: 3},
+          {text: "Wait for a resource created elsewhere", id: "wait-for-a-resource-created-elsewhere", level: 3},
+          {text: "Show that something is refreshing", id: "show-that-something-is-refreshing", level: 3},
           {text: "Server rendering", id: "server-rendering", level: 2},
         ],
         agentDocument: Some(resourcesDocAgent),

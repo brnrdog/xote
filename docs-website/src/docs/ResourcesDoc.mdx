@@ -78,10 +78,46 @@ The fallback shows until every resource created below the suspense has loaded on
 
 ### Suspense rules
 
-- A resource suspends the nearest `Suspense` above the component that **created** it, wherever it is read.
+- A resource suspends the nearest `Suspense` above the component that **created** it, wherever it is read. To wait for one created elsewhere, use `Resource.hold` (below).
 - A resource counts once. A later fetch shows as `Refreshing` and never brings the fallback back.
 - Suspenses nest. The nearest one waits, and an inner subtree that is ready stays hidden while an outer suspense still waits.
 - Removing a component releases its resources: a fetch in flight is dropped, and a suspense waiting for it stops waiting.
+
+### Wait for a resource created elsewhere
+
+A resource created at module level, or in a component above the suspense, doesn't make the suspense wait. Call `Resource.hold` in a component below the suspense to make it wait for one:
+
+```rescript
+let currentUser = Resource.make(() => Api.getCurrentUser())
+
+module Greeting = {
+  @xote.component
+  let make = () => {
+    Resource.hold(currentUser)
+    <h1> {Signal.get(currentUser)->Resource.value->Option.mapOr("", user => user.name)} </h1>
+  }
+}
+```
+
+The wait follows the same rule as for a resource created below the suspense: the fallback shows until the resource first has a value or fails, and never again. A resource that already has a value holds nothing. Removing the component ends its hold. Call it once for each resource to wait for several.
+
+### Show that something is refreshing
+
+The fallback only covers the first load. To show that a refetch is in progress, call `View.Suspense.pending()` in a component below the suspense. It returns a signal that is `true` while any resource the suspense counts, created below it or held with `Resource.hold`, is fetching:
+
+```rescript
+module Toolbar = {
+  @xote.component
+  let make = () => {
+    let refreshing = View.Suspense.pending()
+    <div class={Signal.get(refreshing) ? "toolbar dimmed" : "toolbar"}>
+      <ReloadButton />
+    </div>
+  }
+}
+```
+
+Only the nearest suspense counts: a resource below a nested `Suspense` counts toward that one. Call `pending()` in a component body; called anywhere else it can't tell which suspense it's under, and logs a warning in development. Outside any suspense it is always `false`.
 
 ## Server rendering
 

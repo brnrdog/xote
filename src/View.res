@@ -330,6 +330,39 @@ module ErrorBoundary = {
    shown (see `RuntimeLifecycle.suspend`). The whole thing is one reactive
    region, so hydration renders it afresh on the client. On the server nothing
    is awaited, and the fallback is what renders. */
+/* Development mode, read once; defined ahead of the components because
+   `Suspense.pending` warns from it. The development-only diagnostics cost
+   something in production — the probe
+   allocates a throwaway computed per unresolved leaf, `warnUnrenderable`
+   formats a console argument on every coerced child, `Suspense.pending` checks
+   where it was called from — so all of them are skipped there.
+   `globalThis.__XOTE_DEV__` wins when set; otherwise `process.env.NODE_ENV`
+   (which bundlers inline) decides. When neither is available they stay on: a
+   silently stale UI is worse than an allocation. */
+let readDevFlag: unit => bool = %raw(`function () {
+  try {
+    if (typeof globalThis !== "undefined" && globalThis.__XOTE_DEV__ !== undefined) {
+      return !!globalThis.__XOTE_DEV__
+    }
+    if (typeof process !== "undefined" && process.env && process.env.NODE_ENV) {
+      return process.env.NODE_ENV !== "production"
+    }
+  } catch (_) {}
+  return true
+}`)
+
+let devMode: ref<option<bool>> = ref(None)
+
+let isDevMode = (): bool =>
+  switch devMode.contents {
+  | Some(enabled) => enabled
+  | None => {
+      let enabled = readDevFlag()
+      devMode := Some(enabled)
+      enabled
+    }
+  }
+
 module Suspense = {
   type props = {
     fallback?: node,
@@ -366,6 +399,31 @@ module Suspense = {
         ]),
       )
     }
+
+  /* Whether a resource counting toward the nearest suspense has a fetch in
+     flight. Read from the frame, so it belongs in a component body: anywhere
+     else the frame is whatever happens to be installed, or none. Outside any
+     suspense — including on the server, where a suspense never renders its
+     children — nothing is ever in flight. */
+  let pending = (): Signal.t<bool> => {
+    if !RuntimeContext.inBody.contents && isDevMode() {
+      Console.warn(
+        "[Xote] View.Suspense.pending was called outside a component body, so it cannot tell which suspense it is under. Call it while the component renders and keep the signal it returns.",
+      )
+    }
+    switch RuntimeContext.suspenseOf(RuntimeContext.current.contents)->Nullable.toOption {
+    | None => Signal.make(false)
+    | Some(suspense) => {
+        /* Cut off on equal results: a second fetch starting while one is in
+           flight must not wake the readers again. */
+        let inFlight = RuntimeOwner.markOwned(
+          Computed.make(() => Signal.get(suspense.inFlight) > 0, ~equals=(a, b) => a === b),
+        )
+        RuntimeOwner.ownComputed(inFlight)
+        inFlight
+      }
+    }
+  }
 }
 
 /* Element refs: a handle the renderer hands the element to once it is in the
@@ -531,36 +589,6 @@ let isScalar: 'a => bool = %raw(`function (v) {
 /* ============================================================================
  * Development-only diagnostics
  * ============================================================================ */
-
-/* Both diagnostics below cost something in production — the probe allocates a
-   throwaway computed per unresolved leaf, and `warnUnrenderable` formats a
-   console argument on every coerced child — so both are skipped there.
-   `globalThis.__XOTE_DEV__` wins when set; otherwise `process.env.NODE_ENV`
-   (which bundlers inline) decides. When neither is available they stay on: a
-   silently stale UI is worse than an allocation. */
-let readDevFlag: unit => bool = %raw(`function () {
-  try {
-    if (typeof globalThis !== "undefined" && globalThis.__XOTE_DEV__ !== undefined) {
-      return !!globalThis.__XOTE_DEV__
-    }
-    if (typeof process !== "undefined" && process.env && process.env.NODE_ENV) {
-      return process.env.NODE_ENV !== "production"
-    }
-  } catch (_) {}
-  return true
-}`)
-
-let devMode: ref<option<bool>> = ref(None)
-
-let isDevMode = (): bool =>
-  switch devMode.contents {
-  | Some(enabled) => enabled
-  | None => {
-      let enabled = readDevFlag()
-      devMode := Some(enabled)
-      enabled
-    }
-  }
 
 let logUnrenderable: 'a => unit = %raw(`function (v) {
   console.warn(
