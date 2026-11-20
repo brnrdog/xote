@@ -148,6 +148,13 @@ let suspended =
   <Xote.View.Suspense fallback={Xote.View.text("Loading")}>
     {Xote.View.text("Loaded")}
   </Xote.View.Suspense>
+let profileName: Xote.Resource.t<int> = Xote.Resource.map(profile, String.length)
+let profilePair: Xote.Resource.t<(string, int)> = Xote.Resource.map2(profile, profileName, (a, b) => (a, b))
+let profileTriple: Xote.Resource.t<string> = Xote.Resource.map3(profile, profile, profile, (a, b, c) =>
+  a ++ b ++ c
+)
+let profiles: Xote.Resource.t<array<string>> = Xote.Resource.all([profile, profile])
+let profilePosts: Xote.Resource.t<string> = Xote.Resource.chain(profile, name => Promise.resolve(name))
 /* Component-body calls, so wrapped in a component rather than run at load. */
 let holdsProfile = () => {
   let () = Xote.Resource.hold(profile)

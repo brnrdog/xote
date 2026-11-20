@@ -227,11 +227,9 @@ In `tests/Resource_test.res`, under jsdom:
 
 These are not proposed here; they are listed so step 1 is judged against them.
 
-- **Step 2 — pending through derived values.** A computed that reads a resource
-  is pending while the resource is, so a page that derives from three resources
-  does not match on three states. Can likely be done in Xote with a
-  `Resource.map`/`Resource.all` family that returns resources, before any
-  change upstream.
+- **Step 2 — pending through derived values.** Implemented as
+  `Resource.map`/`map2`/`map3`/`all` and `Resource.chain`, without a change
+  upstream; see [`derived-resources.md`](./derived-resources.md).
 - **Step 3 — async computeds in `rescript-signals`.** Something like
   `Computed.async: (unit => promise<'a>) => Signal.t<'a>`, where reading a
   value that is not there yet throws a dedicated exception that `Suspense`

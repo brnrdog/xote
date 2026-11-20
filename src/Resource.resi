@@ -11,6 +11,11 @@ are its dependencies, and a change to any of them fetches again. Only the
 latest fetch can settle the state: an earlier one that finishes late is
 ignored. A fetch that throws or rejects settles as `Failed`.
 
+Resources derive from one another: `map`, `map2`, `map3` and `all` combine
+the values of resources into a resource, and `chain` fetches with another
+resource's value. A derived resource is loading while what it derives from
+is, so a view reads one state instead of matching on several.
+
 Created in a component, a resource belongs to it: removing the component drops
 whatever is in flight. A resource created under a `View.Suspense` makes that
 suspense show its fallback until the first fetch settles; `hold` does the same
@@ -84,6 +89,11 @@ Fetches again with the same dependencies, keeping the current value as
 `Refreshing` meanwhile (`Pending` after a failure). Does nothing for a
 resource created during a server render.
 
+On a derived resource (`map`, `map2`, `map3`, `all`), it fetches again every
+resource it derives from, each once even when it is reached two ways. On a
+`chain`, it runs the chain's own fetch again with the source's current value,
+and leaves the source alone.
+
 ## Examples
 
 ```rescript
@@ -100,6 +110,10 @@ let refetch: t<'a> => unit
 /**
 Sets the value directly, as `Ready(value)`, and drops any fetch in flight. For
 optimistic updates; the next dependency change or `refetch` fetches again.
+
+On a `chain`, it sets the chain's own value. On a derived resource (`map`,
+`map2`, `map3`, `all`) it does nothing: a derived value has nothing of its own
+to set, so mutate the resources it derives from.
 
 ## Examples
 
@@ -170,3 +184,98 @@ module Greeting = {
 ```
 */
 let hold: t<'a> => unit
+
+/**
+A resource whose value is `fn` of another's.
+
+The derived resource follows its source: `Pending` and `Failed` as the source
+is, and `fn` of the value otherwise, `Refreshing` while the source refreshes.
+`fn` runs again only when the source's value changes, so a source that only
+starts or stops refreshing keeps the derived value as it was. An `fn` that
+throws makes the derived resource `Failed`. Keep `fn` pure.
+
+A derived resource has no fetch of its own, so it does not make a
+`View.Suspense` wait by being created; its source does that where *it* was
+created. To make a suspense wait for it, `hold` it. It is read like any
+resource, and stays attached to its source only while something reads it.
+
+## Examples
+
+```rescript
+let user = Resource.make(() => Api.getUser("1"))
+let name = Resource.map(user, user => user.name)
+```
+*/
+let map: (t<'a>, 'a => 'b) => t<'b>
+
+/**
+A resource derived from two others: `fn` of both values once both have one.
+
+It is `Failed` as soon as either has failed (the first, if both have),
+otherwise `Pending` while either has no value yet, otherwise `fn` of both
+values — `Refreshing` while either refreshes, `Ready` once neither does. The
+rest is as for `map`.
+
+## Examples
+
+```rescript
+let user = Resource.make(() => Api.getUser("1"))
+let settings = Resource.make(() => Api.getSettings())
+
+let greeting = Resource.map2(user, settings, (user, settings) =>
+  settings.formal ? "Good day, " ++ user.name : "Hi " ++ user.name
+)
+```
+*/
+let map2: (t<'a>, t<'b>, ('a, 'b) => 'c) => t<'c>
+
+/**
+`map2` for three resources.
+
+## Examples
+
+```rescript
+let page = Resource.map3(user, settings, feed, (user, settings, feed) =>
+  {user, settings, feed}
+)
+```
+*/
+let map3: (t<'a>, t<'b>, t<'c>, ('a, 'b, 'c) => 'd) => t<'d>
+
+/**
+A resource of every value of `resources`, in order, combined as `map2`
+combines two: `Failed` as soon as one has failed, `Pending` while one has no
+value yet, and the array of values otherwise. The array is the same one until
+a value in it changes.
+
+## Examples
+
+```rescript
+let users = ["1", "2", "3"]->Array.map(id => Resource.make(() => Api.getUser(id)))
+let team = Resource.all(users)
+```
+*/
+let all: array<t<'a>> => t<array<'a>>
+
+/**
+A resource whose fetch needs another resource's value.
+
+`fetch` runs with the source's value each time the source settles with one,
+and not while the source has none or is only refreshing. Like the fetch of
+`make`, the signals it reads before its first `await` are dependencies too,
+and only its latest call can settle the chain.
+
+Seen from outside, the chain is loading while either fetch is: `Pending` or
+`Failed` while the source is, its own state otherwise, shown as `Refreshing`
+while the source refreshes. Created under a `View.Suspense`, it makes that
+suspense wait until it first has a value or fails — which, since it cannot
+fetch before its source loads, waits for the source as well.
+
+## Examples
+
+```rescript
+let user = Resource.make(() => Api.getUser("1"))
+let posts = user->Resource.chain(user => Api.getPosts(user.id))
+```
+*/
+let chain: (t<'a>, 'a => promise<'b>) => t<'b>

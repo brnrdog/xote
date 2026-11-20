@@ -203,6 +203,27 @@ When a screen needs a few resources before it makes sense, wrap it in [`View.Sus
 
 Later reloads show as `Refreshing` inside each component and never bring the fallback back.
 
+When one component needs several results at once, combine them into one resource with `Resource.map2` (or `map3`, or `Resource.all` for a list), so it handles one loading state instead of several:
+
+```rescript
+let user = Resource.make(() => loadUser(id))
+let todos = Resource.make(() => loadTodos(~page=1))
+let dashboard = Resource.map2(user, todos, (user, todos) => (user, todos))
+```
+
+Both requests start at once. Each keeps its own `refetch` and `mutate`, which a single `Promise.all` inside one resource would not give you.
+
+## Load data that needs other data
+
+When one request needs the result of another, chain them with `Resource.chain`. The second fetch waits for the first and runs again whenever the first loads anew:
+
+```rescript
+let user = Resource.make(() => loadUser(id))
+let todos = user->Resource.chain(user => loadTodos(~owner=user.id, ~page=1))
+```
+
+`todos` is `Pending` until both have loaded, and `Failed` if either fails.
+
 ## Data in server-rendered pages
 
 Resources don't fetch during a [server render](/docs/advanced/ssr). The HTML shows the `Pending` state, and the browser fetches after hydration. That's fine for most data.

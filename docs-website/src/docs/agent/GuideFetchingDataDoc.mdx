@@ -36,6 +36,8 @@ Before 7.2.0, implement fetching with `Effect.run` plus a status signal and a st
 | Show data with loading/error states | `Resource.make` |
 | Refetch when inputs change, ignore stale responses | `Resource.make` (built in) |
 | Wait for several loads before showing a region | `Resource` under `View.Suspense` |
+| One view needs several results as one state | `Resource.map2` / `map3` / `all` (unreleased: added after 7.2.0) |
+| A request needs another request's result | `Resource.chain` (unreleased: added after 7.2.0) |
 | Optimistic update after a write | `Resource.mutate` then `Resource.refetch` |
 | Fire-and-forget request (analytics, autosave) whose result is not shown | `Effect.run` |
 | Polling, websockets, subscriptions | `Effect.run` with cleanup |
@@ -132,7 +134,15 @@ let addTodo = async (todo: todo) => {
 }
 ```
 
-**Parallel requests** — Use when: one view needs several results. Either combine in one resource (one state for all):
+**Parallel requests** — Use when: one view needs several results. Either combine separate resources into one state with `Resource.map2` (each keeps its own `refetch`/`mutate`; unreleased, added after 7.2.0):
+
+```rescript
+let user = Resource.make(() => loadUser("ada"))
+let todos = Resource.make(() => loadTodos(~page=1))
+let both = Resource.map2(user, todos, (user, todos) => (user, todos))
+```
+
+or fetch both in one resource (one state, one `refetch` for both):
 
 ```rescript
 let both = Resource.make(() => Promise.all2((loadUser("ada"), loadTodos(~page=1))))
@@ -145,6 +155,13 @@ or create one resource per component and wrap the region in `View.Suspense`, whi
   <Profile id="ada" />
   <TodoPages />
 </View.Suspense>
+```
+
+**Dependent requests** — Use when: a request needs another request's result. `Resource.chain` (unreleased, added after 7.2.0) fetches once the source has a value, again each time it settles with a new one, and never while it is only refreshing:
+
+```rescript
+let user = Resource.make(() => loadUser("ada"))
+let todos = user->Resource.chain(user => loadTodos(~owner=user.id, ~page=1))
 ```
 
 **Route failures to an error boundary** — Use when: a failure should replace a whole region with a retryable panel.

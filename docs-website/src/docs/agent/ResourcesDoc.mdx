@@ -9,7 +9,7 @@ A resource (`Resource.make`) is a signal of the loading state of an async functi
 | Modules | `Resource`, `View.Suspense` (plus `View.ErrorBoundary` for failures) |
 | Import / entry | `xote` (with `-open Xote`), or `xote/resource` for `Resource` alone |
 | First stable version | 7.2.0 (new) |
-| Status | new in 7.2.0 (`Resource`, `View.Suspense` and `View.ErrorBoundary` all first appear in 7.2.0). `Resource.hold` and `View.Suspense.pending` are unreleased: added after 7.2.0 |
+| Status | new in 7.2.0 (`Resource`, `View.Suspense` and `View.ErrorBoundary` all first appear in 7.2.0). `Resource.hold`, `View.Suspense.pending`, `Resource.map`/`map2`/`map3`/`all` and `Resource.chain` are unreleased: added after 7.2.0 |
 | PPX required | No. `Resource` and `View.Suspense` work with `@jsx.component`; examples use `@xote.component` |
 
 ## Rules
@@ -31,6 +31,13 @@ A resource (`Resource.make`) is a signal of the loading state of an async functi
 15. `Resource.hold(r)`, called in a component body, makes the nearest `View.Suspense` of that component wait for `r` wherever `r` was created. It follows rule 11: the wait lasts until `r` first leaves `Pending` (a value, a failure, or `mutate`) and never comes back; a resource that is already `Ready`, `Refreshing` or `Failed` holds nothing. The hold is released with the calling component. Outside any `Suspense`, and during a server render, `hold` does nothing.
 16. `View.Suspense.pending()`, called in a component body, returns a `Signal.t<bool>` that is `true` while any resource counting toward the nearest `Suspense` (created below it, or held below it while the hold lasts) has a fetch in flight: the first fetch and every later one. A fetch that replaces one still in flight does not make it flicker to `false`. It counts the nearest suspense only, not nested ones. Outside any `Suspense` it returns a signal that is always `false`.
 17. `View.Suspense.pending()` reads which suspense it is under from the render in progress. Called outside a component body (an event handler, a timer, an effect's later run, an `onMount` callback) it logs a warning in development, and its result is whatever the frame installed at that moment gives.
+18. `Resource.map(r, f)`, `map2`, `map3` and `all` return a *derived* resource: a `Resource.t` with no fetch of its own, whose state combines its sources' states. It is `Failed(e)` as soon as a source is `Failed` (the first in argument order), otherwise `Pending` while a source is `Pending`, otherwise `Refreshing(f(values))` while a source is `Refreshing`, otherwise `Ready(f(values))`.
+19. A derived resource calls `f` again only when a source's **value** changes (by `===`). A source that only starts or stops refreshing keeps the derived value the same object. An `f` that throws makes the derived resource `Failed(exn)`. Its readers wake only when the state's case or value changes.
+20. A derived resource does not suspend anything by being created (it fetches nothing). Its sources suspend where they were created; `Resource.hold(derived)` makes a suspense wait until every source has a value or one failed. It stays attached to its sources only while something reads it, like any computed.
+21. `Resource.refetch(derived)` refetches every resource it derives from, each once even when reached through several paths. `Resource.mutate(derived, v)` does nothing.
+22. `Resource.chain(source, fetch)` runs `fetch(value)` each time `source` settles as `Ready(value)` (and once, at creation, if `source` is already `Refreshing(value)`). It never fetches while `source` is `Pending`, `Failed` or only refreshing. Signals `fetch` reads before its first `await` are dependencies too, and only its latest call can settle the chain.
+23. A chain's state: `Pending` / `Failed(e)` while `source` is; otherwise its own fetch state, with `Ready(v)` shown as `Refreshing(v)` while `source` refreshes. Created under a `View.Suspense`, a chain makes it wait until it first leaves `Pending` (which needs the source too), and counts toward `View.Suspense.pending()` while it is loading.
+24. `Resource.refetch(chain)` runs the chain's own fetch again with the source's current value and does not refetch the source. `Resource.mutate(chain, v)` sets the chain's own value and drops its fetch in flight.
 
 ### State machine
 
@@ -57,6 +64,11 @@ A resource (`Resource.make`) is a signal of the loading state of an async functi
 | `Resource.mutate` | `(t<'a>, 'a) => unit` | Sets `Ready(value)` now, drops any fetch in flight. |
 | `Resource.value` | `state<'a> => option<'a>` | `Some(v)` for `Ready(v)` and `Refreshing(v)`, `None` otherwise. |
 | `Resource.isLoading` | `state<'a> => bool` | `true` for `Pending` and `Refreshing`. |
+| `Resource.map` | `(t<'a>, 'a => 'b) => t<'b>` | Derived resource of `f(value)` (rules 18–21). |
+| `Resource.map2` | `(t<'a>, t<'b>, ('a, 'b) => 'c) => t<'c>` | Derived from two resources. |
+| `Resource.map3` | `(t<'a>, t<'b>, t<'c>, ('a, 'b, 'c) => 'd) => t<'d>` | Derived from three resources. |
+| `Resource.all` | `array<t<'a>> => t<array<'a>>` | Derived array of every value, in order. |
+| `Resource.chain` | `(t<'a>, 'a => promise<'b>) => t<'b>` | Fetches with the source's value once it has one (rules 22–24). |
 | `Resource.hold` | `t<'a> => unit` | In a component body: makes the nearest `View.Suspense` wait for this resource until it first leaves `Pending` (rule 15). |
 | `View.Suspense` | props `fallback?: node`, `children?: node` | Shows `fallback` until every resource created (or held) below has settled once. |
 | `View.Suspense.pending` | `unit => Signal.t<bool>` | In a component body: `true` while a resource counting toward the nearest suspense is fetching, refetches included (rule 16). |
@@ -160,6 +172,28 @@ module Greeting = {
 }
 ```
 
+Use when one view needs several resources: combine them, so the view matches on one state. Use `chain` when one fetch needs another's result.
+
+```rescript
+module Dashboard = {
+  @xote.component
+  let make = (~userId: Signal.t<string>) => {
+    let user = Resource.make(() => Api.getUser(Signal.get(userId)))
+    let settings = Resource.make(() => Api.getSettings())
+    let posts = user->Resource.chain(u => Api.getPosts(u.id))
+    let page = Resource.map3(user, settings, posts, (u, s, p) => (u, s, p))
+    <section>
+      {switch Signal.get(page) {
+      | Pending => "Loading…"
+      | Failed(_) => "Could not load the dashboard."
+      | Ready((u, _, p)) | Refreshing((u, _, p)) =>
+        u.name ++ ": " ++ Int.toString(Array.length(p)) ++ " posts"
+      }}
+    </section>
+  }
+}
+```
+
 Use when the page should show that a refetch is in progress without matching on every resource: read `View.Suspense.pending()` in any component under the suspense.
 
 ```rescript
@@ -243,6 +277,8 @@ Symptom: a resource with no owner per click; nothing disposes them, and nothing 
 - Signal equality: every settle writes a new `Ready(v)` value, so readers are notified even when `v` is structurally equal to the previous value.
 - `View.Suspense` renders its children immediately, inside a wrapper `div` with `display: none` while waiting and `display: contents` after; their refs and `View.onMount` callbacks are held until the children are shown. CSS child selectors see these wrappers.
 - `View.ErrorBoundary` also renders a `<div style="display: contents">` around its subtree.
+- `Resource.mutate` on a derived resource (`map`, `map2`, `map3`, `all`) is a silent no-op: the type allows the call, but a derived value has nothing of its own to set. Mutate a source.
+- A source that settles to a structurally equal but new value (a new object from a refetch) counts as a new value: a derived resource calls `f` again, and a chain fetches again.
 - Cancellation: there is none. A superseded fetch keeps running; only its result is ignored. Pass an `AbortController` signal yourself if the request must be aborted.
 - Ownership: a resource created in a component that is later removed stops affecting state; a resource at module level keeps re-fetching on dependency changes forever.
 

@@ -165,9 +165,14 @@
     "use"
   ],
   "Resource": [
+    "all",
+    "chain",
     "hold",
     "isLoading",
     "make",
+    "map",
+    "map2",
+    "map3",
     "mutate",
     "refetch",
     "value"

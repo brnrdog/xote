@@ -52,6 +52,26 @@ module UserName = {
 
 Only the latest fetch can settle the state. If the user switches from one id to another and the first response arrives last, it's ignored.
 
+## Combine and chain resources
+
+A view that needs several resources would otherwise match on several states. `Resource.map2` combines two resources into one, so it reads one state:
+
+```rescript
+let page = Resource.map2(user, settings, (user, settings) => {user, settings})
+```
+
+The combined resource is `Failed` as soon as one of them has failed, `Pending` while one has no value yet, and the combined value otherwise, shown as `Refreshing` while either refreshes. `Resource.map` derives from one resource, `map3` from three, and `Resource.all` from an array of resources of the same type. The function runs again only when a value changes, not when a resource merely starts or stops refreshing, so keep it pure.
+
+When a fetch needs another resource's value, use `Resource.chain`:
+
+```rescript
+let posts = user->Resource.chain(user => Api.getPosts(user.id))
+```
+
+The posts are fetched once the user has loaded, and again each time the user loads anew, but not while the user is only refreshing. Until then, the chain is `Pending` (or `Failed` if the user failed), and while the user refreshes it shows `Refreshing` with the posts it has.
+
+`Resource.refetch` on a combined resource fetches every resource it combines; on a chain it runs the chain's own fetch again. `Resource.mutate` sets a chain's value, but does nothing on a combined resource: set the resources it combines instead.
+
 ## Handle errors
 
 A failed fetch is a state like any other. To hand it to a [`View.ErrorBoundary`](/docs/api/view#view-errorboundary) instead, throw it where the state is read:
@@ -79,6 +99,7 @@ The fallback shows until every resource created below the suspense has loaded on
 ### Suspense rules
 
 - A resource suspends the nearest `Suspense` above the component that **created** it, wherever it is read. To wait for one created elsewhere, use `Resource.hold` (below).
+- A combined resource (`map`, `map2`, `map3`, `all`) fetches nothing, so it doesn't suspend anything by being created; `hold` it to make a suspense wait for it. A `chain` fetches, so it suspends like `Resource.make`, until it first has a value or fails.
 - A resource counts once. A later fetch shows as `Refreshing` and never brings the fallback back.
 - Suspenses nest. The nearest one waits, and an inner subtree that is ready stays hidden while an outer suspense still waits.
 - Removing a component releases its resources: a fetch in flight is dropped, and a suspense waiting for it stops waiting.
