@@ -34,6 +34,10 @@ type boundary = {
    while that count is above zero so they run once the subtree is shown. */
 type rec suspense = {
   pending: Signal.t<int>,
+  /* How many resources counting toward this suspense have a fetch in flight,
+     first or later — what `View.Suspense.pending` reads. Unlike `pending` it
+     holds nothing back. */
+  inFlight: Signal.t<int>,
   /* The suspense this one renders inside, whose wait also holds back what
      this one renders. */
   parent: Nullable.t<suspense>,
@@ -119,6 +123,7 @@ let installBoundary = (boundary: boundary): unit =>
 
 let makeSuspense = (): suspense => {
   pending: Signal.make(0),
+  inFlight: Signal.make(0),
   parent: suspenseOf(current.contents),
   heldRefs: [],
   heldMounts: [],
@@ -138,6 +143,15 @@ let rec waitingSuspense = (suspense: Nullable.t<suspense>): option<suspense> =>
       waitingSuspense(suspense.parent)
     }
   | None => None
+  }
+
+/* A read of an async value that has none yet. Not a failure: whoever reads it
+   waits — an effect runs again once the value arrives, and the suspense around
+   it, if any, holds meanwhile (see `Effect`). No error boundary claims it. */
+let isNotReady = (exn: exn): bool =>
+  switch exn {
+  | Signals.Async.NotReady => true
+  | _ => false
   }
 
 /* A failure that reached code with no boundary above it, and so propagates.
@@ -209,6 +223,10 @@ let within = (frame: Nullable.t<frame>, fn: unit => 'a, ~onFailure: unit => 'a):
   | exn => {
       current := savedFrame
       inBody := savedBody
+      /* Passed on to the scheduler, which keeps the effect waiting. */
+      if isNotReady(exn) {
+        throw(exn)
+      }
       fail(frame, exn)
       onFailure()
     }
@@ -264,7 +282,7 @@ let renderBoundary = (
     Ok(RuntimeOwner.runWithOwner(owner, () => render(node)))
   } catch {
   | exn =>
-    if hasEscaped(exn) {
+    if hasEscaped(exn) || isNotReady(exn) {
       /* Not this boundary's to handle: release what rendered, and let it go
          on to the caller. */
       RuntimeOwner.disposeOwner(owner)
@@ -304,12 +322,22 @@ let renderBoundary = (
    installed a boundary renders its result through `renderBoundary`. The body
    runs untracked: rendering happens inside the enclosing region's effect, and
    an eager read in a body must not subscribe that region. */
+/* A body runs once and untracked, so a read there of a value not ready yet
+   would leave the component waiting on something it never subscribed to. */
+let notReadyInBody = () =>
+  JsError.throwWithMessage(
+    "[Xote] A component body read an async value that is not ready yet. A body runs once and untracked, so it would never see the value arrive. Read it where Xote can wait for it instead: in JSX (a child or an attribute), a View.tracked block, a Computed or an Effect.",
+  )
+
 let renderComponent = (fn: unit => RuntimeNode.node, render: RuntimeNode.node => 'a): 'a => {
   let savedFrame = current.contents
   let savedBody = inBody.contents
   inBody := true
   try {
-    let node = Signal.untrack(fn)
+    let node = switch Signal.untrack(fn) {
+    | node => node
+    | exception Signals.Async.NotReady => notReadyInBody()
+    }
     inBody := savedBody
     let installed = boundaryOf(current.contents)
     let result = if installed === boundaryOf(savedFrame) {

@@ -269,23 +269,64 @@ let releaseHeld = (suspense: RuntimeContext.suspense): unit => {
   }
 }
 
-/* Make the nearest suspense wait for one more thing, and return what ends the
-   wait. Ending it is idempotent. When the last wait ends, what the suspense
-   held is released (see `releaseHeld`). Outside any suspense there is nothing
-   to wait on. */
-let suspend = (): (unit => unit) =>
-  switch RuntimeContext.suspenseOf(RuntimeContext.current.contents)->Nullable.toOption {
-  | None => () => ()
-  | Some(suspense) => {
-      Signal.update(suspense.pending, count => count + 1)
-      let waiting = ref(true)
-      () =>
-        if waiting.contents {
-          waiting := false
-          Signal.update(suspense.pending, count => count - 1)
-          if Signal.peek(suspense.pending) == 0 {
-            releaseHeld(suspense)
-          }
-        }
+/* Make `suspense` wait for one more thing, and return what ends the wait.
+   Ending it is idempotent. When the last wait ends, what the suspense held is
+   released (see `releaseHeld`). */
+let suspendOn = (suspense: RuntimeContext.suspense): (unit => unit) => {
+  Signal.update(suspense.pending, count => count + 1)
+  let waiting = ref(true)
+  () =>
+    if waiting.contents {
+      waiting := false
+      Signal.update(suspense.pending, count => count - 1)
+      if Signal.peek(suspense.pending) == 0 {
+        releaseHeld(suspense)
+      }
     }
+}
+
+let nearestSuspense = (): option<RuntimeContext.suspense> =>
+  RuntimeContext.suspenseOf(RuntimeContext.current.contents)->Nullable.toOption
+
+/* `suspendOn` the nearest suspense. Outside any suspense there is nothing to
+   wait on. */
+let suspend = (): (unit => unit) =>
+  switch nearestSuspense() {
+  | None => () => ()
+  | Some(suspense) => suspendOn(suspense)
+  }
+
+/* One resource's share of a suspense's `inFlight` count: `start` when a fetch
+   begins, `finish` when the latest one settles or nothing will settle it any
+   more. A resource counts once however many fetches replace each other, so
+   both are idempotent: `start` while counted and `finish` while not do
+   nothing. */
+type flight = {
+  start: unit => unit,
+  finish: unit => unit,
+}
+
+let noFlight = {start: () => (), finish: () => ()}
+
+let flightOn = (suspense: RuntimeContext.suspense): flight => {
+  let counted = ref(false)
+  {
+    start: () =>
+      if !counted.contents {
+        counted := true
+        Signal.update(suspense.inFlight, count => count + 1)
+      },
+    finish: () =>
+      if counted.contents {
+        counted := false
+        Signal.update(suspense.inFlight, count => count - 1)
+      },
+  }
+}
+
+/* `flightOn` the nearest suspense, or nothing outside one. */
+let flight = (): flight =>
+  switch nearestSuspense() {
+  | None => noFlight
+  | Some(suspense) => flightOn(suspense)
   }

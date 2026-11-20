@@ -43,7 +43,7 @@ Reactive behavior comes from `rescript-signals`:
 Computed values and effects are also provided by `rescript-signals`:
 
 - **`Computed.make(~name?, ~equals?, fn)`** creates a lazy derived signal. Upstream writes mark it dirty; it recomputes when read.
-- **`Computed.dispose(signal)`** manually disposes a computed signal when needed.
+- **`Computed.dispose(signal)`** forces a computed to detach from its sources. Rarely needed: a computed detaches by itself when it loses its last subscriber.
 - **`Effect.run(~name?, fn)`** creates a fire-and-forget effect. Created while a component renders, it belongs to that component and is disposed on unmount; created outside a render, it lives until its disposer runs.
 - **`Effect.runWithDisposer(~name?, fn)`** returns a disposer with `dispose()`.
 - Effect callbacks return `option<unit => unit>`: `Some(cleanup)` for teardown or `None` when no cleanup is needed.
@@ -93,7 +93,7 @@ Rendering is fine-grained:
 - `View.tracked(body)` lowers to `SignalFragment` over a `Computed` of the body, so every signal read while the body runs subscribes the block and its dependencies are re-discovered on each run.
 - `KeyedList` uses comment anchors and key-based reconciliation to preserve DOM identity.
 - `LazyComponent` defers component evaluation until render/hydration time, and runs the component body untracked: a component is its own reactive scope, so an eager read in a body does not subscribe the region that renders it.
-- Reactive state belongs to the region that rendered it — a keyed row, a `SignalFragment` pass — and removing the region disposes it: the effects the renderer attached, any `Effect.run` a component body set up, and the computeds the library allocated to back a node (`View.child`, `tracked`, `each`, `Show`/`Maybe`/`Value`, `signalText`). A signal or computed the caller built is left alone — `Computed.dispose` stays manual there.
+- Reactive state belongs to the region that rendered it — a keyed row, a `SignalFragment` pass — and removing the region disposes it: the effects the renderer attached, any `Effect.run` a component body set up, and the computeds the library allocated to back a node (`View.child`, `tracked`, `each`, `Show`/`Maybe`/`Value`, `signalText`). A signal or computed the caller built is not owned by the region; a computed of theirs detaches from its sources by itself once nothing subscribes to it, so one read only by the removed region goes cold with it.
 - A region renders repeated shapes by cloning (`RuntimeTemplate`): from the second tree of a given root onwards, a static skeleton is `cloneNode`d and walked against the recorded shape to attach handlers and effects and write the values that differ. A subtree that does not match is rendered normally and swapped in.
 - Text that is an element's only child is written through `textContent`; a reactive text leaf in that position updates the element's content directly.
 
@@ -137,7 +137,7 @@ Build one with `MaybeSignal.static(value)`, `MaybeSignal.reactive(signal)`, or `
 
 Wrapping is only required where a prop has a declared type — `View.Show`, `View.For`, `View.Maybe`, `View.Value`, and user-written components. Built-in element attributes and `View.Text`/`Int`/`Float`/`Bool` take untyped values and coerce them at runtime, so a raw signal or thunk can be passed straight through.
 
-Two sharp edges worth knowing: `MaybeSignal.map` runs its function once immediately and, for reactive values, leaves a `Computed` subscribed to the source until `Computed.dispose` — it is not marked library-owned, so no node releases it for you; and `MaybeSignal.toSignal` returns `Some(source signal)` for `Reactive` but `None` for `Static`, because a plain value has no underlying signal — lift one explicitly with `MaybeSignal.fold(value, ~static=v => Signal.make(v), ~reactive=s => s)` when you need a uniform `Signal.t`.
+Two sharp edges worth knowing: `MaybeSignal.map` runs its function once immediately and, for reactive values, is backed by a `Computed` that is not marked library-owned — it is attached to the source only while something subscribes to it; and `MaybeSignal.toSignal` returns `Some(source signal)` for `Reactive` but `None` for `Static`, because a plain value has no underlying signal — lift one explicitly with `MaybeSignal.fold(value, ~static=v => Signal.make(v), ~reactive=s => s)` when you need a uniform `Signal.t`.
 
 `Xote.Prop` is a deprecated alias of `Xote.MaybeSignal`. `Prop.t` is a type alias of `MaybeSignal.t` with the same constructors and runtime representation, so the two are interchangeable and migrating is a rename. The deprecations are declared in `src/Prop.resi`, because ReScript only reports warning 3 for values declared in an interface file. `XoteJSX.Prop` and `Router.Link.Prop` re-export the deprecated module, so those paths warn as well.
 

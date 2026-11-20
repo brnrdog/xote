@@ -63,6 +63,22 @@ let suite = Zekr.suite(
       let r2 = Dom.Assert.toHaveTextContent(container, "Count: 5")
       combineResults([r1, r2])
     }),
+    test("reactive text that was empty on the server follows later values", () => {
+      let name = Signal.make("")
+      let component = () =>
+        Html.div(
+          ~children=[
+            View.signalText(() => Signal.get(name)),
+            Html.span(~children=[View.text("after")], ()),
+          ],
+          (),
+        )
+      let ssrHtml = SSR.renderToString(component)
+      let {container} = Dom.render(ssrHtml)
+      Hydration.hydrate(component, container)
+      Signal.set(name, "ada")
+      Dom.Assert.toHaveTextContent(container, "adaafter")
+    }),
     test("event handlers are attached after hydration", () => {
       let clicked = ref(false)
       let component = () =>

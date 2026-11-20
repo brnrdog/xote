@@ -173,7 +173,7 @@ let isStatic: t<'a> => bool
 Transforms the wrapped value, preserving staticness.
 
 A `Static` input maps eagerly and stays `Static`. A `Reactive` result is backed
-by a `Computed` that stays subscribed until `Computed.dispose`.
+by a `Computed`, attached to the source only while something subscribes to it.
 
 ## Examples
 

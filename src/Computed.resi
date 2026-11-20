@@ -25,8 +25,9 @@ Creates a computed whose value is the result of `compute`.
 
 Every signal read while `compute` runs becomes a dependency. `~name` is a
 debugging label; `~equals` decides whether a recomputed value propagates to
-downstream observers, defaulting to JavaScript strict equality — so a computed
-that recomputes to an equal value does not wake its own dependents.
+downstream observers. There is no default cutoff: without `~equals`, every
+recompute wakes the computed's dependents, even when it produced an identical
+(`===`) value.
 
 The result is a `Signal.t`, read with `Signal.get` and `Signal.peek`. There is
 no `set`: a computed is written only by its `compute` function.
@@ -53,9 +54,12 @@ let make: (unit => 'a, ~name: string=?, ~equals: ('a, 'a) => bool=?) => Signal.t
 /**
 Disposes a computed, unsubscribing it from its dependencies.
 
-Rarely needed: computeds auto-dispose when they lose all subscribers, and one
-created inside a component or effect is disposed with its owner. Reach for this
-only for a long-lived computed created outside any owner.
+Rarely needed: a computed detaches from its sources by itself when it loses its
+last subscriber, so one read only by a component's own leaves and effects goes
+cold when the component unmounts. It is not tied to an owner, though: while
+anything still subscribes to it, it stays attached. Reach for this to cut off a
+computed that still has subscribers. The computed stays readable, and the next
+read recomputes it and re-collects its dependencies.
 
 ## Examples
 

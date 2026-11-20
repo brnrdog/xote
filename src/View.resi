@@ -901,8 +901,14 @@ shown. A resource counts once: a later fetch shows as `Resource.Refreshing`
 with the previous value kept, and never brings the fallback back.
 
 A resource suspends the nearest `Suspense` above the component that *created*
-it, wherever it is read. Suspenses nest: the nearest one waits, and an inner
+it, wherever it is read. To make a suspense wait for a resource created
+elsewhere — at module level, or above the suspense — call `Resource.hold` in a
+component below it. Suspenses nest: the nearest one waits, and an inner
 subtree that is ready stays hidden while an outer suspense still waits.
+
+`View.Suspense.pending()` tells a component below a suspense whether anything
+it waits on is fetching, first load or refresh, so the page can show that it
+is refreshing without matching on each resource.
 
 On the server nothing is awaited, so the fallback is what renders; hydration
 renders the children on the client.
@@ -947,6 +953,40 @@ module Suspense: {
 
   /** Renders the children, behind the fallback until they are ready. Called for you by `<View.Suspense />`; see the module doc for usage. */
   let make: props => node
+
+  /**
+  Whether a resource the nearest suspense counts has a fetch in flight.
+
+  `true` while any resource created below the nearest `Suspense`, or held below
+  it with `Resource.hold`, is fetching: during its first load, and again during
+  every refetch, which the fallback never covers. Only the nearest suspense
+  counts: a resource below a nested `Suspense` counts toward that one.
+
+  Call it in a component body and keep the signal it returns. It reads which
+  suspense it is under from the render in progress, so called anywhere else it
+  cannot tell, and in development it logs a warning. Outside any `Suspense` it
+  returns a signal that is always `false`.
+
+  ## Examples
+
+  ```rescript
+  module Toolbar = {
+    @xote.component
+    let make = () => {
+      let refreshing = View.Suspense.pending()
+      <div class={Signal.get(refreshing) ? "toolbar dimmed" : "toolbar"}>
+        <ReloadButton />
+      </div>
+    }
+  }
+
+  <View.Suspense fallback={<Spinner />}>
+    <Toolbar />
+    <Results />
+  </View.Suspense>
+  ```
+  */
+  let pending: unit => Signal.t<bool>
 }
 
 /**
