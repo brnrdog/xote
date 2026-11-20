@@ -23,6 +23,7 @@
         "Effect",
         "Context",
         "Resource",
+        "Async",
         "Devtools",
         "DevtoolsPanel"
       ]

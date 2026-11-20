@@ -591,6 +591,7 @@ let sections: array<section> = [
           {text: "Suspense rules", id: "suspense-rules", level: 3},
           {text: "Wait for a resource created elsewhere", id: "wait-for-a-resource-created-elsewhere", level: 3},
           {text: "Show that something is refreshing", id: "show-that-something-is-refreshing", level: 3},
+          {text: "Async values", id: "async-values", level: 2},
           {text: "Server rendering", id: "server-rendering", level: 2},
         ],
         agentDocument: Some(resourcesDocAgent),

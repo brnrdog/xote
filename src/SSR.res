@@ -57,7 +57,8 @@ let rec renderNodeToString = (node: View.node): string => {
 
   | View.SignalText(signal) => {
       /* Read current signal value and wrap with hydration markers */
-      let value = Signal.peek(signal)
+      /* A value not ready yet renders empty; the client fills it in. */
+      let value = RuntimeNode.peekOr(signal, ~fallback="")
       RuntimeHydrationMarkers.signalTextStart ++
       RuntimeHtml.escape(value) ++
       RuntimeHydrationMarkers.signalTextEnd
@@ -67,7 +68,7 @@ let rec renderNodeToString = (node: View.node): string => {
 
   | View.SignalFragment(signal) => {
       /* Read current signal value and wrap with hydration markers */
-      let children = Signal.peek(signal)
+      let children = RuntimeNode.peekOr(signal, ~fallback=[])
       let content = children->Array.map(renderNodeToString)->Array.join("")
       RuntimeHydrationMarkers.signalFragmentStart ++
       content ++
@@ -96,7 +97,7 @@ let rec renderNodeToString = (node: View.node): string => {
     }
 
   | View.KeyedList({signal, keyFn, renderItem}) => {
-      let items = Signal.peek(signal)
+      let items = RuntimeNode.peekOr(signal, ~fallback=[])
       let content =
         items
         ->Array.map(item => {

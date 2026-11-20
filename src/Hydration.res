@@ -160,8 +160,9 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
       let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.signalTextStartContent)
 
       /* Get the text node. An empty value leaves none between the markers —
-         the browser makes no node for empty text — so one is made there for
-         the value to go into. */
+         the browser makes no node for empty text, and a value not ready yet
+         renders empty on the server — so one is made there for the value to
+         go into. */
       let textNode = switch DOMWalker.peek(walker) {
       | Some(endMarker)
         if DOMWalker.isMarker(endMarker, RuntimeHydrationMarkers.signalTextEndContent) =>
@@ -180,9 +181,13 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
           RuntimeOwner.ownComputed(signal)
           /* The server's text may be stale by the time the client runs, so the
              current value is written once before the node starts following. */
-          let current = Signal.peek(signal)
-          RuntimeDom.setTextContent(textNode, current)
-          RuntimeRender.attachText(textNode, signal, Nullable.make(current))
+          let current = RuntimeNode.peekText(signal)
+          switch current->Nullable.toOption {
+          | Some(text) => RuntimeDom.setTextContent(textNode, text)
+          /* Not ready yet: the server's text stays until the value arrives. */
+          | None => ()
+          }
+          RuntimeRender.attachText(textNode, signal, current)
 
           /* Skip end marker */
           let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.signalTextEndContent)
@@ -304,7 +309,9 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
       /* Indexed once: a scan per marker would make hydrating a list quadratic
          in its length, which is the size this path exists to serve. */
       let itemsByKey: Dict.t<Obj.t> = Dict.make()
-      Signal.peek(signal)->Array.forEach(item => itemsByKey->Dict.set(keyFn(item), item))
+      RuntimeNode.peekOr(signal, ~fallback=[])->Array.forEach(item =>
+        itemsByKey->Dict.set(keyFn(item), item)
+      )
 
       let rec parseKeyedItems = () => {
         switch DOMWalker.peek(walker) {

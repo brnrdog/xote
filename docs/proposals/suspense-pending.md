@@ -230,14 +230,12 @@ These are not proposed here; they are listed so step 1 is judged against them.
 - **Step 2 — pending through derived values.** Implemented as
   `Resource.map`/`map2`/`map3`/`all` and `Resource.chain`, without a change
   upstream; see [`derived-resources.md`](./derived-resources.md).
-- **Step 3 — async computeds in `rescript-signals`.** Something like
-  `Computed.async: (unit => promise<'a>) => Signal.t<'a>`, where reading a
-  value that is not there yet throws a dedicated exception that `Suspense`
-  catches, and pending state propagates through ordinary computeds. A separate
-  constructor because ReScript, unlike TypeScript, will not let a computed that
-  returns `promise<'a>` read as `'a`. This is where read-based suspension and a
-  read-based `isPending` become possible, and where batching updates until
-  async work settles (transitions) would start to pay for itself.
+- **Step 3 — async computeds in `rescript-signals`.** Implemented as
+  rescript-signals 4's `Async` (`make`, `NotReady`, `isPending`) and Xote's
+  `Xote.Async`, with read-based suspension: an effect that reads a value not
+  ready yet makes its `Suspense` wait. See
+  [`async-values.md`](./async-values.md). Batching updates until async work
+  settles (transitions) is still not built.
 
 ## Open questions
 

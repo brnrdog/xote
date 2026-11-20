@@ -62,9 +62,31 @@ let resolveAttr = (value: attrValue): attrRead =>
   }
 
 /* Current value of an attribute without subscribing to it — SSR renders a
- snapshot, so it must not register dependencies. */
+ snapshot, so it must not register dependencies. A value not ready yet (an
+ `Async` value still loading) renders as absent. */
 let peekAttr = (value: attrValue): Nullable.t<string> =>
   switch resolveAttr(value) {
   | ReadStatic(value) => value
-  | ReadReactive(read) => Signal.untrack(read)
+  | ReadReactive(read) =>
+    switch Signal.untrack(read) {
+    | value => value
+    | exception Signals.Async.NotReady => Nullable.null
+    }
+  }
+
+/* The current value of a signal a renderer reads once, untracked, before the
+   effect that follows it takes over — or `fallback` while it is not ready
+   yet. The effect waits for the value and writes it when it arrives. */
+let peekOr = (signal: Signal.t<'a>, ~fallback: 'a): 'a =>
+  switch Signal.peek(signal) {
+  | value => value
+  | exception Signals.Async.NotReady => fallback
+  }
+
+/* A text leaf's current value, or null while it is not ready: the text node
+   starts empty, and its effect writes the value as soon as there is one. */
+let peekText = (signal: Signal.t<string>): Nullable.t<string> =>
+  switch Signal.peek(signal) {
+  | value => Nullable.make(value)
+  | exception Signals.Async.NotReady => Nullable.null
   }

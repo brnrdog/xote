@@ -182,10 +182,10 @@ let rec record = (
 
   | SignalText(signal) => {
       skeleton->RuntimeDom.appendChild(RuntimeDom.createTextNode(""))
-      let current = Signal.peek(signal)
-      let textNode = RuntimeDom.createTextNode(current)
+      let current = RuntimeNode.peekText(signal)
+      let textNode = RuntimeDom.createTextNode(current->Nullable.getOr(""))
       ownComputed(signal)
-      hooks.attachText(textNode, signal, Nullable.make(current))
+      hooks.attachText(textNode, signal, current)
       instance->RuntimeDom.appendChild(textNode)
       SSignalText
     }

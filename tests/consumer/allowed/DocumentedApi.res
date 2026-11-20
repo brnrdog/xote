@@ -155,6 +155,13 @@ let profileTriple: Xote.Resource.t<string> = Xote.Resource.map3(profile, profile
 )
 let profiles: Xote.Resource.t<array<string>> = Xote.Resource.all([profile, profile])
 let profilePosts: Xote.Resource.t<string> = Xote.Resource.chain(profile, name => Promise.resolve(name))
+let asyncProfile: Xote.Signal.t<string> = Xote.Async.make(() => Promise.resolve("Ada"), ~name="profile")
+let asyncLoading: bool = Xote.Async.isPending(() => Xote.Signal.get(asyncProfile))
+let asyncName = (): string =>
+  switch Xote.Signal.get(asyncProfile) {
+  | name => name
+  | exception Xote.Async.NotReady => ""
+  }
 /* Component-body calls, so wrapped in a component rather than run at load. */
 let holdsProfile = () => {
   let () = Xote.Resource.hold(profile)

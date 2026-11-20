@@ -12,3 +12,4 @@ export * as Computed from "../src/Computed.res.mjs";
 export * as Effect from "../src/Effect.res.mjs";
 export * as Context from "../src/Context.res.mjs";
 export * as Resource from "../src/Resource.res.mjs";
+export * as Async from "../src/Async.res.mjs";

@@ -177,6 +177,11 @@
     "refetch",
     "value"
   ],
+  "Async": [
+    "NotReady",
+    "isPending",
+    "make"
+  ],
   "Devtools": [
     "Budget",
     "clearHistory",

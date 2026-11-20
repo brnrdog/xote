@@ -442,10 +442,10 @@ and render = (node: node): Dom.element => {
   | Text(content) => RuntimeDom.createTextNode(content)
 
   | SignalText(signal) => {
-      let current = Signal.peek(signal)
-      let textNode = RuntimeDom.createTextNode(current)
+      let current = RuntimeNode.peekText(signal)
+      let textNode = RuntimeDom.createTextNode(current->Nullable.getOr(""))
       ownComputed(signal)
-      attachText(textNode, signal, Nullable.make(current))
+      attachText(textNode, signal, current)
       textNode
     }
 
@@ -542,7 +542,7 @@ and render = (node: node): Dom.element => {
       let fragment = RuntimeDom.createDocumentFragment()
       fragment->RuntimeDom.appendChild(startAnchor)
 
-      let initialItems = Signal.peek(signal)
+      let initialItems = RuntimeNode.peekOr(signal, ~fallback=[])
       region.pass = 1
       initialItems->Array.forEachWithIndex((item, index) => {
         let key = keyFn(item)

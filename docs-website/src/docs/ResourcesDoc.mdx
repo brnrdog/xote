@@ -140,6 +140,34 @@ module Toolbar = {
 
 Only the nearest suspense counts: a resource below a nested `Suspense` counts toward that one. Call `pending()` in a component body; called anywhere else it can't tell which suspense it's under, and logs a warning in development. Outside any suspense it is always `false`.
 
+## Async values
+
+`Resource` keeps loading in a state you match on. `Async.make` takes the other road: an async value is a plain `Signal.t` of the value itself, so it is read like any signal, and Xote waits for it where it is read.
+
+```rescript
+let userId = Signal.make("1")
+let user = Async.make(() => Api.getUser(Signal.get(userId)))
+
+module UserName = {
+  @xote.component
+  let make = () => <h2> {Signal.get(user).name} </h2>
+}
+```
+
+What the function reads before its first `await` is its dependencies, as with `Resource.make`. Until the first value arrives, a read throws `Async.NotReady`. Xote treats that as "not yet", never as a failure:
+
+- A JSX child or attribute, a `View.tracked` block, a list or a `Show` that reads the value renders once it is there. A `Computed` that reads it holds `NotReady` and recomputes when the value arrives.
+- Under a `View.Suspense`, the fallback shows until the value arrives, and `View.Suspense.pending()` is `true` meanwhile.
+- An error boundary lets it pass. A fetch that rejects is a failure, and goes to the boundary.
+
+While a later fetch is in flight, reads return the previous value. `Async.isPending(() => Signal.get(user))` tells whether anything it read is still loading, so a view can dim itself.
+
+Read an async value where Xote can wait for it. A component body runs once and untracked, so a `let` that reads a value not ready yet there is an error that says so: move the read into JSX, a `View.tracked` block or a `Computed`.
+
+During a server render no fetch starts, and the value is never ready: the server renders what does not depend on it, and the client fetches once it hydrates.
+
+Use `Async` when you want to derive with ordinary code (`Signal.get(user).name`) and let `Suspense` handle loading. Use `Resource` when you want the loading and failure states as values in your view, with `refetch` and `mutate`.
+
 ## Server rendering
 
 During a [server render](/docs/advanced/ssr) (`SSR.renderToString`) nothing is awaited: no fetch starts, and `Suspense` renders its fallback. A resource created outside a render, at module level in a server process, isn't covered and does fetch, so create resources in components. Hydration then renders the children in the browser, where the resources fetch.

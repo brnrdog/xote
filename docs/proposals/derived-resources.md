@@ -167,7 +167,6 @@ settles as `Failed` through the same version.
 ## Later steps
 
 Step 3 — async computeds in `rescript-signals`, read-based suspension and a
-read-based `isPending` — is unchanged: see
-[`suspense-pending.md`](./suspense-pending.md#later-steps). This step makes it
-less urgent: most of what a page derives from resources can now be expressed
-without it.
+read-based `isPending` — is built: see [`async-values.md`](./async-values.md).
+`Resource` and its derived forms stay: they keep loading and failure as values
+a view matches on, where `Async` makes them reads that wait or throw.
