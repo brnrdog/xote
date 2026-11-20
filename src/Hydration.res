@@ -159,8 +159,23 @@ let rec hydrateNodeWithWalker = (node: View.node, walker: DOMWalker.t): unit => 
       /* Find the marker, then hydrate the text node */
       let _ = DOMWalker.skipUntilMarker(walker, RuntimeHydrationMarkers.signalTextStartContent)
 
-      /* Get the text node */
-      switch DOMWalker.next(walker) {
+      /* Get the text node. An empty value leaves none between the markers —
+         the browser makes no node for empty text — so one is made there for
+         the value to go into. */
+      let textNode = switch DOMWalker.peek(walker) {
+      | Some(endMarker)
+        if DOMWalker.isMarker(endMarker, RuntimeHydrationMarkers.signalTextEndContent) =>
+        switch RuntimeDom.getParentNode(endMarker)->Nullable.toOption {
+        | Some(parent) => {
+            let created = RuntimeDom.createTextNode("")
+            parent->RuntimeDom.insertBefore(created, endMarker)
+            Some(created)
+          }
+        | None => None
+        }
+      | _ => DOMWalker.next(walker)
+      }
+      switch textNode {
       | Some(textNode) => {
           RuntimeOwner.ownComputed(signal)
           /* The server's text may be stale by the time the client runs, so the
