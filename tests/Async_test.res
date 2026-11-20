@@ -72,6 +72,38 @@ let suite = Zekr.asyncSuite(
         assertEqual(text(container, ".rows"), Some("a:adab:adac:ada")),
       ])
     }),
+    asyncTest("a bare JSX child (what @xote.component emits) waits for its value", async () => {
+      let {container} = Dom.render("")
+      let (user, fetches) = controlled()
+      let shown = Signal.make(true)
+      let _ = mountTo(
+        <View.Suspense fallback={<p class="fallback" />}>
+          {View.LazyComponent(
+            () =>
+              <div>
+                <p class="scalar"> {View.child(() => Signal.get(user))} </p>
+                <p class="node">
+                  {View.child(() =>
+                    Signal.get(shown) ? <b> {View.text(Signal.get(user))} </b> : View.null()
+                  )}
+                </p>
+              </div>,
+          )}
+        </View.Suspense>,
+        container,
+      )
+      let waiting = has(container, ".fallback")
+      resolveNth(fetches, 0, "ada")
+      await settle()
+      let loaded = (text(container, ".scalar"), text(container, ".node"))
+      Signal.set(shown, false)
+      combineResults([
+        assertTrue(waiting),
+        assertFalse(has(container, ".fallback")),
+        assertEqual(loaded, (Some("ada"), Some("ada"))),
+        assertEqual(text(container, ".node"), Some("")),
+      ])
+    }),
     asyncTest("an attribute waits for its value", async () => {
       let {container} = Dom.render("")
       let (role, fetches) = controlled()

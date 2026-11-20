@@ -643,7 +643,13 @@ let rec child = (value: 'a): node => {
       /* The thunk's first result decides the shape. That probe read is
          untracked and thrown away — it asks what the leaf *is*, and must not
          subscribe anything on its own. */
-      if isScalar(Signal.untrack(compute)) {
+      /* A value not ready yet cannot say what shape it is: the general
+         fragment below handles either, and waits for it like any block. */
+      let scalarFirst = switch Signal.untrack(compute) {
+      | first => isScalar(first)
+      | exception Signals.Async.NotReady => false
+      }
+      if scalarFirst {
         /* scalar-first thunk: a reactive text node. ReScript typing keeps a
            scalar thunk scalar, so locking text mode here is safe. */
         SignalText(RuntimeOwner.ownedComputed(() => stringifyChild(compute())))
